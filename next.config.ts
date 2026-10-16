@@ -27,11 +27,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // No landing page yet. The dashboard sends logged-out visitors to /login.
-  // permanent: false (307) so browsers don't cache it; we'll want / back for a landing page.
-  redirects() {
-    return [{ source: "/", destination: "/dashboard", permanent: false }];
-  },
   turbopack: {
     rules: {
       "*.css": {

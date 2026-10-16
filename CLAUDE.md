@@ -290,6 +290,14 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Tickets assigned before step 10 were marked "assigned by a person" by the
   migration (db/migrations/0009, hand-added UPDATE).
 
+## Before launch (not code)
+- Fill in lib/site.ts: registered company name, contact email, governing law.
+- Have a lawyer review app/(marketing)/privacy and terms, then set
+  legalPagesReviewed: true (that removes the "draft" notice).
+- Decide pricing; set it on the Stripe price and on app/(marketing)/pricing.
+- Name the hosting provider in the privacy policy once chosen.
+- Work through docs/going-live.md.
+
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
   Tenant isolation enforced in /db instead of RLS.
@@ -376,3 +384,10 @@ Do not jump ahead. Finish step N before starting step N+1.
   subscription from Stripe (handles late or out-of-order events). The company
   comes from the id we put on the checkout; billing never moves between
   companies. Dev stand-in: "simulate" buttons on /billing (refused in production).
+- 2026-10-17: Step 19: public website in app/(marketing) (landing, pricing,
+  privacy, terms), fully static. "/" is the landing page now (the old redirect
+  to /dashboard is gone). Legal pages describe only what the code really does and
+  show a draft notice until reviewed; placeholders live in lib/site.ts. Pricing
+  page says the price is being finalised. robots.txt keeps the app unindexed.
+  Fixed the font: globals.css pointed --font-sans at itself, so every page had
+  been showing the browser's serif font.
