@@ -64,6 +64,13 @@
       "when": 1792158251219,
       "tag": "0008_ticket_email_setter",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792160261336,
+      "tag": "0009_categories_and_routing",
+      "breakpoints": true
     }
   ]
 }

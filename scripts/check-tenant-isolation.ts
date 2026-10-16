@@ -12,9 +12,11 @@ import { runAssignmentChecks } from "./tenant-isolation/assignment-checks";
 import { runBrainAnalysisChecks } from "./tenant-isolation/brain-analysis-checks";
 import { runBrainGuardChecks } from "./tenant-isolation/brain-guard-checks";
 import { runCallTicketChecks } from "./tenant-isolation/call-ticket-checks";
+import { runCategoryChecks } from "./tenant-isolation/category-checks";
 import { runEmailChecks } from "./tenant-isolation/email-checks";
 import { cleanUpTestData, getFailureCount, signUpTestOwner } from "./tenant-isolation/helpers";
 import { runInviteChecks } from "./tenant-isolation/invite-checks";
+import { runRoutingChecks } from "./tenant-isolation/routing-checks";
 import { runSignupChecks } from "./tenant-isolation/signup-checks";
 import { runTicketChecks } from "./tenant-isolation/ticket-checks";
 import { runTicketEmailChecks } from "./tenant-isolation/ticket-email-checks";
@@ -34,6 +36,8 @@ async function runChecksAndCleanUp() {
     await runBrainAnalysisChecks(ownerA, ownerB);
     await runCallTicketChecks(ownerA, ownerB);
     await runTicketEmailChecks(ownerA, ownerB);
+    await runCategoryChecks(ownerA, ownerB);
+    await runRoutingChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();

@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import type { DecisionAsker, ModelResult } from "@/lib/call-brain/model-output";
+import type { DecisionAsker, DecisionRequest, ModelResult } from "@/lib/call-brain/model-output";
 import { endOfCallReportSchema } from "@/lib/validation/vapi";
 import { saveEndOfCallReport } from "@/services/calls";
 import { buildSampleEndOfCallReport } from "../vapi-sample";
@@ -13,10 +13,11 @@ export const TEST_CALLER = "+1 555 0177";
 
 // A stand-in for adapters/claude.ts that records what it was asked.
 export function fakeModel(reply: ModelResult | (() => never)) {
-  const fake = { calls: 0, prompts: [] as string[], ask: (async () => reply) as DecisionAsker };
-  fake.ask = async (_system, prompt) => {
+  const fake = { calls: 0, prompts: [] as string[], requests: [] as DecisionRequest[], ask: (async () => reply) as DecisionAsker };
+  fake.ask = async (request) => {
     fake.calls += 1;
-    fake.prompts.push(prompt);
+    fake.prompts.push(request.prompt);
+    fake.requests.push(request);
     return typeof reply === "function" ? reply() : reply;
   };
   return fake;

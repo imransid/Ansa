@@ -2,6 +2,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import type { NewTicketInput } from "@/lib/validation/tickets";
 import { db, type DbTransaction } from "./client";
+import { routeTicketIfUnassigned } from "./routing";
 import { companies, tickets } from "./schema";
 import type { Ticket } from "./tickets";
 
@@ -16,6 +17,7 @@ export async function createTicket(
 // Same as createTicket, but inside a transaction the caller already opened,
 // so the ticket is saved together with the caller's other changes (or not at all).
 // callId links the ticket to the phone call it came from.
+// A ticket with a category is routed to an expert in the same transaction (step 10).
 export async function insertTicketWithNextNumber(
   tx: DbTransaction,
   companyId: string,
@@ -51,5 +53,9 @@ export async function insertTicketWithNextNumber(
     })
     .returning();
 
-  return ticket;
+  const expertId = await routeTicketIfUnassigned(tx, companyId, ticket.id);
+  if (!expertId) {
+    return ticket;
+  }
+  return { ...ticket, assignedToUserId: expertId, assignedAutomatically: true, routedToUserId: expertId };
 }

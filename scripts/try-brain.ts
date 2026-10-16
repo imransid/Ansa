@@ -9,6 +9,7 @@
 
 import { eq } from "drizzle-orm";
 import { askClaudeForCallDecision } from "@/adapters/claude";
+import { getActiveCategoryNames } from "@/db/categories";
 import { db } from "@/db/client";
 import { calls } from "@/db/schema";
 import { buildTranscriptSlice } from "@/lib/call-brain/transcript-slice";
@@ -43,10 +44,13 @@ async function main() {
   }
 
   console.log(`Model: ${env.ANTHROPIC_MODEL}${env.ANTHROPIC_API_KEY ? "" : " (no ANTHROPIC_API_KEY set)"}`);
-  const { decision, askedModel, usage } = await computeCallDecision(transcript, call.endedReason, askClaudeForCallDecision);
+  const categoryNames = await getActiveCategoryNames(call.companyId);
+  console.log(`Categories offered: ${categoryNames.length}`);
+  const { decision, askedModel, usage } = await computeCallDecision(transcript, call.endedReason, askClaudeForCallDecision, categoryNames);
   console.log(`Outcome: ${decision.outcome}`);
   console.log(`Decided by: ${decision.source}${askedModel ? "" : " (Claude was not asked)"}`);
   console.log(`Reason code: ${decision.reasonCode}`);
+  console.log(`Category: ${decision.category ?? "(none)"}`);
   if (usage) {
     console.log(`Tokens: ${usage.inputTokens} in, ${usage.outputTokens} out (thinking included in out).`);
   }

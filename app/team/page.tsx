@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { requireSessionContext } from "@/lib/session";
 import { getDashboardSummary } from "@/services/dashboard";
+import { getTeamCategoriesForSession } from "@/services/categories";
 import { getTeamForSession } from "@/services/team";
+import { CategoriesSection } from "./categories-section";
 import { InviteForm } from "./invite-form";
 import { MembersTable } from "./members-table";
 import { PendingInvitesTable } from "./pending-invites-table";
@@ -25,9 +27,10 @@ export default function TeamPage() {
 // Reads the session once and hands it to everything on the page.
 async function TeamContent() {
   const session = await requireSessionContext();
-  const [summary, team] = await Promise.all([
+  const [summary, team, teamCategories] = await Promise.all([
     getDashboardSummary(session),
     getTeamForSession(session),
+    getTeamCategoriesForSession(session),
   ]);
 
   return (
@@ -35,8 +38,23 @@ async function TeamContent() {
       <AppHeader summary={summary} />
       <section className="grid gap-3">
         <h1 className="text-xl font-semibold">Team</h1>
-        <MembersTable members={team.members} currentUserId={session.userId} />
+        <MembersTable
+          members={team.members}
+          currentUserId={session.userId}
+          currentUserIsOwner={session.role === "owner"}
+          teamCategories={teamCategories}
+        />
       </section>
+      {/* Hiding this is only for a tidy page. services/categories.ts refuses non-owners. */}
+      {session.role === "owner" && (
+        <section className="grid gap-3">
+          <h2 className="text-lg font-semibold">Categories</h2>
+          <p className="text-sm text-muted-foreground">
+            New tickets go to whoever handles their category and has the fewest open tickets.
+          </p>
+          <CategoriesSection categories={teamCategories.categories} />
+        </section>
+      )}
       {/* Hiding this is only for a tidy page. The real check is in
           services/invites.ts, which refuses non-owners. */}
       {team.canManageInvites && (

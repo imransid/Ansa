@@ -1,7 +1,8 @@
 import "server-only";
-import { and, eq, exists, sql } from "drizzle-orm";
+import { and, eq, exists, isNull, sql } from "drizzle-orm";
 import { db } from "./client";
-import { outgoingEmails, tickets, users } from "./schema";
+import { routeTicketIfUnassigned } from "./routing";
+import { categories, outgoingEmails, tickets, users } from "./schema";
 
 // Each function below changes tickets with an UPDATE whose WHERE clause holds every rule.
 // If any rule fails (wrong company, wrong status, unknown person), no row
@@ -29,7 +30,8 @@ export async function assignTicket(
 
   const updated = await db
     .update(tickets)
-    .set({ assignedToUserId: assigneeUserId })
+    // A person chose this assignee, so it is not automatic (null = unassigned).
+    .set({ assignedToUserId: assigneeUserId, assignedAutomatically: assigneeUserId === null ? null : false })
     .where(
       and(
         eq(tickets.id, ticketId),
@@ -134,4 +136,37 @@ export async function setTicketCustomerEmail(
     .where(and(eq(tickets.id, ticketId), eq(tickets.companyId, companyId)))
     .returning({ id: tickets.id });
   return updated.length > 0;
+}
+
+// Sets (or clears, with null) the category of one company's ticket. The
+// category must be an active category of the same company. An unassigned
+// ticket is then routed to an expert for it; an assigned one keeps its assignee.
+export async function setTicketCategory(
+  companyId: string,
+  ticketId: string,
+  category: string | null,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const categoryIsUsable =
+      category === null
+        ? sql`true`
+        : exists(
+            tx
+              .select({ id: categories.id })
+              .from(categories)
+              .where(and(eq(categories.companyId, companyId), eq(categories.name, category), isNull(categories.archivedAt))),
+          );
+    const updated = await tx
+      .update(tickets)
+      .set({ category })
+      .where(and(eq(tickets.id, ticketId), eq(tickets.companyId, companyId), categoryIsUsable))
+      .returning({ id: tickets.id });
+    if (updated.length === 0) {
+      return false;
+    }
+    if (category) {
+      await routeTicketIfUnassigned(tx, companyId, ticketId);
+    }
+    return true;
+  });
 }

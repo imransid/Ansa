@@ -6,6 +6,7 @@ import {
   STALE_ANALYSIS_MINUTES,
   type CallToAnalyze,
 } from "@/db/call-analysis";
+import { getActiveCategoryNames } from "@/db/categories";
 import {
   decideBeforeAskingModel,
   decideFromModelResult,
@@ -14,7 +15,7 @@ import {
   REASON_LABELS,
   type CallDecision,
 } from "@/lib/call-brain/decision";
-import type { DecisionAsker } from "@/lib/call-brain/model-output";
+import { buildModelDecisionJsonSchema, type DecisionAsker } from "@/lib/call-brain/model-output";
 import { buildDecisionPrompt, CALL_DECISION_SYSTEM_PROMPT } from "@/lib/call-brain/prompt";
 import { buildTranscriptSlice } from "@/lib/call-brain/transcript-slice";
 import { decryptText, encryptText } from "@/lib/encryption";
@@ -36,11 +37,13 @@ export type ComputedDecision = {
 };
 
 // Works out the decision for one transcript without saving anything.
-// Used by analyzeCall and by pnpm try:brain.
+// categoryNames: the company's active categories (Claude may only pick one of
+// these). Used by analyzeCall and by pnpm try:brain.
 export async function computeCallDecision(
   transcript: string | null,
   endedReason: string | null,
   askModel: DecisionAsker,
+  categoryNames: string[],
 ): Promise<ComputedDecision> {
   if (!transcript) {
     return { decision: escalateByRule(REASON_CODES.noTranscript), askedModel: false, usage: null };
@@ -51,10 +54,14 @@ export async function computeCallDecision(
     return { decision: ruleDecision, askedModel: false, usage: null };
   }
 
-  // Only the slice is sent: no company, caller number or ids.
-  const result = await askModel(CALL_DECISION_SYSTEM_PROMPT, buildDecisionPrompt(slice));
+  // Only the slice and the category names are sent: no company, caller number or ids.
+  const result = await askModel({
+    systemPrompt: CALL_DECISION_SYSTEM_PROMPT,
+    prompt: buildDecisionPrompt(slice, categoryNames),
+    jsonSchema: buildModelDecisionJsonSchema(categoryNames),
+  });
   return {
-    decision: decideFromModelResult(result, slice),
+    decision: decideFromModelResult(result, slice, categoryNames),
     askedModel: result.kind !== "unavailable",
     usage: result.kind === "ok" ? result.usage : null,
   };
@@ -77,9 +84,10 @@ export async function analyzeCall(
     }
 
     const transcript = decryptTranscriptOrNull(companyId, call.vapiCallId, call.transcriptEncrypted);
+    const categoryNames = await getActiveCategoryNames(companyId);
     const computed = transcript === "unreadable"
       ? { decision: escalateByRule(REASON_CODES.transcriptUnreadable), askedModel: false }
-      : await computeCallDecision(transcript, call.endedReason, askModel);
+      : await computeCallDecision(transcript, call.endedReason, askModel, categoryNames);
 
     await storeDecision(companyId, callId, call.callerNumber, computed.decision, computed.askedModel);
     return "decided";
@@ -175,6 +183,8 @@ function buildCallTicket(decision: CallDecision, callerNumber: string | null): N
     subject: decision.ticketSubject ?? FALLBACK_TICKET_SUBJECT,
     description: descriptionParts.join("\n\n"),
     channel: "phone",
+    // Routes the ticket to an expert for this category (step 10).
+    category: decision.category,
     customerPhone: callerNumber,
   });
 }

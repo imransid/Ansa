@@ -32,6 +32,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
           <TableHead>#</TableHead>
           <TableHead>Subject</TableHead>
           <TableHead>Customer</TableHead>
+          <TableHead>Category</TableHead>
           <TableHead>Assigned to</TableHead>
           <TableHead>Channel</TableHead>
           <TableHead>Status</TableHead>
@@ -48,6 +49,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
               </Link>
             </TableCell>
             <TableCell>{describeCustomer(ticket)}</TableCell>
+            <TableCell>{ticket.category ?? "-"}</TableCell>
             <TableCell>{ticket.assigneeName ?? "Unassigned"}</TableCell>
             <TableCell>
               <Badge variant="outline">{ticket.channel}</Badge>

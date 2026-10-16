@@ -1,6 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { MODEL_DECISION_JSON_SCHEMA, type ModelResult } from "@/lib/call-brain/model-output";
+import type { DecisionRequest, ModelResult } from "@/lib/call-brain/model-output";
 import { env } from "@/lib/env";
 
 // Translates "decide this call" into one Claude API request.
@@ -15,7 +15,7 @@ import { env } from "@/lib/env";
 // Thinking tokens count toward this, so leave room beyond the short JSON answer.
 const MAX_TOKENS = 8_000;
 
-export async function askClaudeForCallDecision(systemPrompt: string, prompt: string): Promise<ModelResult> {
+export async function askClaudeForCallDecision({ systemPrompt, prompt, jsonSchema }: DecisionRequest): Promise<ModelResult> {
   if (!env.ANTHROPIC_API_KEY) {
     return { kind: "unavailable" };
   }
@@ -34,7 +34,7 @@ export async function askClaudeForCallDecision(systemPrompt: string, prompt: str
       output_config: {
         // A wrong "solved" is the expensive mistake, so think it through.
         effort: "high",
-        format: { type: "json_schema", schema: MODEL_DECISION_JSON_SCHEMA },
+        format: { type: "json_schema", schema: jsonSchema },
       },
     });
 

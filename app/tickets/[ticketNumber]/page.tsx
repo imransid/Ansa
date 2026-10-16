@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
 import { formatUtcDateTime } from "@/lib/format-date";
 import { requireSessionContext } from "@/lib/session";
+import { listActiveCategoryNamesForSession } from "@/services/categories";
 import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getDashboardSummary } from "@/services/dashboard";
 import { listTeamMembersForSession } from "@/services/team";
@@ -13,6 +14,7 @@ import { getTicketForSession, type TicketDetail } from "@/services/tickets";
 import { CustomerEmailSection } from "./customer-email-section";
 import { CustomerEmailStatus } from "./customer-email-status";
 import { TicketActions } from "./ticket-actions";
+import { TicketCategoryForm } from "./ticket-category-form";
 
 export const metadata: Metadata = { title: "Ticket - ansa" };
 
@@ -42,10 +44,11 @@ async function TicketContent({
     notFound();
   }
 
-  const [summary, teamMembers, latestEmail] = await Promise.all([
+  const [summary, teamMembers, latestEmail, categoryNames] = await Promise.all([
     getDashboardSummary(session),
     listTeamMembersForSession(session),
     getLatestCustomerEmailForSession(session, ticket.id),
+    listActiveCategoryNamesForSession(session),
   ]);
 
   return (
@@ -63,6 +66,7 @@ async function TicketContent({
         originLine={describeEmailOrigin(ticket)}
       />
       <CustomerEmailStatus ticket={ticket} latestEmail={latestEmail} />
+      <TicketCategoryForm ticketId={ticket.id} category={ticket.category} categoryNames={categoryNames} />
       <TicketActions
         ticketId={ticket.id}
         status={ticket.status}
@@ -92,6 +96,8 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
         <dd>{ticket.customerName ?? "Unknown"}</dd>
         <dt className="text-muted-foreground">Phone</dt>
         <dd>{ticket.customerPhone ?? "-"}</dd>
+        <dt className="text-muted-foreground">Assigned to</dt>
+        <dd>{describeAssignment(ticket)}</dd>
         <dt className="text-muted-foreground">Created (UTC)</dt>
         <dd>{formatUtcDateTime(ticket.createdAt)}</dd>
         {ticket.callId && (
@@ -127,4 +133,15 @@ function describeEmailOrigin(ticket: TicketDetail): string | null {
     return `entered by ${ticket.customerEmailSetByName} on ${formatUtcDateTime(ticket.customerEmailSetAt)} (UTC)`;
   }
   return "came with the ticket";
+}
+
+// Who has the ticket and how they got it (step 10): routed by category, or picked by a person.
+function describeAssignment(ticket: TicketDetail): string {
+  if (!ticket.assigneeName) {
+    return "Nobody yet";
+  }
+  const how = ticket.assignedAutomatically
+    ? `routed automatically${ticket.category ? ` (${ticket.category})` : ""}`
+    : "assigned by a person";
+  return `${ticket.assigneeName}, ${how}`;
 }

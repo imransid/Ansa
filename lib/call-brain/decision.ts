@@ -1,5 +1,5 @@
 import type { CallOutcome, DecisionSource } from "@/db/schema";
-import { modelDecisionSchema, type ModelResult } from "./model-output";
+import { buildModelDecisionSchema, type ModelResult } from "./model-output";
 import type { TranscriptSlice } from "./transcript-slice";
 
 // The guards between Claude and the database. The one rule: anything
@@ -49,6 +49,8 @@ export type CallDecision = {
   customerIssue: string | null;
   explanation: string | null;
   ticketSubject: string | null;
+  // One of the company's active categories, or null (step 10).
+  category: string | null;
 };
 
 // Vapi end reasons that mean the call did not finish normally. Escalate them
@@ -70,7 +72,8 @@ export function decideBeforeAskingModel(slice: TranscriptSlice, endedReason: str
 }
 
 // Turns whatever came back from the model into a decision.
-export function decideFromModelResult(result: ModelResult, slice: TranscriptSlice): CallDecision {
+// categoryNames: the company's active categories, the only allowed values.
+export function decideFromModelResult(result: ModelResult, slice: TranscriptSlice, categoryNames: string[]): CallDecision {
   switch (result.kind) {
     case "unavailable":
       return escalateByRule(REASON_CODES.modelUnavailable);
@@ -83,12 +86,12 @@ export function decideFromModelResult(result: ModelResult, slice: TranscriptSlic
     case "error":
       return escalateAfterModel(REASON_CODES.modelError);
     case "ok":
-      return decideFromModelText(result.outputText, slice);
+      return decideFromModelText(result.outputText, slice, categoryNames);
   }
 }
 
-function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDecision {
-  const parsed = modelDecisionSchema.safeParse(parseJsonOrNull(outputText));
+function decideFromModelText(outputText: string, slice: TranscriptSlice, categoryNames: string[]): CallDecision {
+  const parsed = buildModelDecisionSchema(categoryNames).safeParse(parseJsonOrNull(outputText));
   if (!parsed.success) {
     return escalateAfterModel(REASON_CODES.invalidOutput);
   }
@@ -102,6 +105,7 @@ function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDe
       customerIssue: answer.customer_issue,
       explanation: answer.reason,
       ticketSubject: answer.ticket_subject,
+      category: answer.category || null,
     };
   }
 
@@ -116,6 +120,7 @@ function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDe
       customerIssue: answer.customer_issue,
       explanation: null,
       ticketSubject: answer.ticket_subject,
+      category: answer.category || null,
     };
   }
   return {
@@ -125,6 +130,7 @@ function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDe
     customerIssue: answer.customer_issue,
     explanation: answer.reason,
     ticketSubject: null,
+    category: null,
   };
 }
 
@@ -160,9 +166,9 @@ function parseJsonOrNull(text: string): unknown {
 }
 
 export function escalateByRule(reasonCode: ReasonCode): CallDecision {
-  return { outcome: "needs_human", source: "rule", reasonCode, customerIssue: null, explanation: null, ticketSubject: null };
+  return { outcome: "needs_human", source: "rule", reasonCode, customerIssue: null, explanation: null, ticketSubject: null, category: null };
 }
 
 function escalateAfterModel(reasonCode: ReasonCode): CallDecision {
-  return { outcome: "needs_human", source: "model", reasonCode, customerIssue: null, explanation: null, ticketSubject: null };
+  return { outcome: "needs_human", source: "model", reasonCode, customerIssue: null, explanation: null, ticketSubject: null, category: null };
 }

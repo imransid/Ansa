@@ -16,6 +16,7 @@ export type TicketListItem = Pick<
   | "customerName"
   | "customerEmail"
   | "customerPhone"
+  | "category"
   | "createdAt"
 > & { assigneeName: string | null };
 
@@ -52,6 +53,7 @@ export async function getTicketsForCompany(
       customerName: tickets.customerName,
       customerEmail: tickets.customerEmail,
       customerPhone: tickets.customerPhone,
+      category: tickets.category,
       createdAt: tickets.createdAt,
       assigneeName: assignee.name,
     })

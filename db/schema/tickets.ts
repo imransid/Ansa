@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   foreignKey,
   integer,
@@ -12,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { calls } from "./calls";
+import { categories } from "./categories";
 import { companies } from "./companies";
 
 export const ticketStatuses = ["open", "solved"] as const;
@@ -38,7 +40,8 @@ export const tickets = pgTable(
     description: text("description").notNull(),
     status: ticketStatusEnum("status").notNull().default("open"),
     channel: ticketChannelEnum("channel").notNull(),
-    // Used later to route tickets to the right expert. Nothing sets it yet.
+    // The category's name (see categories.ts). Decides who the ticket is
+    // routed to (db/routing.ts). Renaming a category updates this too.
     category: text("category"),
     customerName: text("customer_name"),
     customerEmail: text("customer_email"),
@@ -49,6 +52,13 @@ export const tickets = pgTable(
     customerPhone: text("customer_phone"),
     // The expert working on it. Empty = unassigned.
     assignedToUserId: text("assigned_to_user_id"),
+    // How the CURRENT assignment happened: true = routed by category, false =
+    // a person picked the assignee, empty = unassigned.
+    assignedAutomatically: boolean("assigned_automatically"),
+    // Who routing picked, set once and never overwritten, even if a person
+    // reassigns later. Compare with the assignee / solver to see how often
+    // routing picks the right expert.
+    routedToUserId: text("routed_to_user_id"),
     // Both set when the ticket is solved, both cleared when it is reopened.
     solvedAt: timestamp("solved_at", { withTimezone: true }),
     solvedByUserId: text("solved_by_user_id"),
@@ -95,6 +105,23 @@ export const tickets = pgTable(
     check(
       "tickets_email_setter_fields_together",
       sql`(${table.customerEmailSetByUserId} IS NULL) = (${table.customerEmailSetAt} IS NULL)`,
+    ),
+    foreignKey({
+      name: "tickets_routed_to_in_same_company_fk",
+      columns: [table.companyId, table.routedToUserId],
+      foreignColumns: [users.companyId, users.id],
+    }),
+    // The category must be one of this company's categories. ON UPDATE CASCADE:
+    // renaming a category renames it on every ticket.
+    foreignKey({
+      name: "tickets_category_in_same_company_fk",
+      columns: [table.companyId, table.category],
+      foreignColumns: [categories.companyId, categories.name],
+    }).onUpdate("cascade"),
+    // Assigned exactly when we know how it was assigned.
+    check(
+      "tickets_assignment_origin_matches_assignee",
+      sql`(${table.assignedToUserId} IS NULL) = (${table.assignedAutomatically} IS NULL)`,
     ),
     // Postgres refuses a ticket linked to another company's call.
     foreignKey({

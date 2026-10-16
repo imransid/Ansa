@@ -59,6 +59,15 @@ and creates a ticket for a human expert when it can't.
   foreign key before the unique constraint it needs: check the migration order.
 - User ids from forms are only claims. Updates check them inside the same SQL
   statement (see db/ticket-updates.ts), never in a separate earlier read.
+- Routing (step 10, db/routing.ts): every new ticket with a category, and every
+  unassigned ticket whose category is set, goes to the expert in the SAME company
+  who handles that category and has the fewest open tickets (ties: joined first),
+  in the same transaction. Routing never takes a ticket from someone. Every
+  assignment records how it happened: tickets.assigned_automatically (true =
+  routed, false = a person, null = unassigned) and tickets.routed_to_user_id
+  (routing's first pick, never overwritten) so routing accuracy can be measured.
+- Category names are owner-managed settings, sent to Claude with the transcript
+  slice. Claude may only answer with one of the company's active names, or "".
 - Email: core code only calls sendEmail() in lib/send-email.ts. It writes to
   .dev-emails/ (adapters/dev-email-outbox.ts) unless SEND_REAL_EMAIL is exactly
   "true", then it uses adapters/resend.ts. Never call Resend directly.
@@ -208,6 +217,10 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Every escalation makes a ticket, including silent or abnormal calls. Expect noise
   (robocalls); filter by reason once real volume shows what to drop.
 - Calls escalated before step 8 have no ticket (test data only, no backfill).
+- Routing doesn't notify the expert yet (no email or in-app notification).
+- Load counts only open tickets; it ignores ticket size, time off, or skill level.
+- Tickets assigned before step 10 were marked "assigned by a person" by the
+  migration (db/migrations/0009, hand-added UPDATE).
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -256,3 +269,8 @@ Do not jump ahead. Finish step N before starting step N+1.
   same-company foreign key). No double entry (copy-paste defeats it): the form
   shows the cleaned-up address back ("Solved emails for this ticket will go to
   x@y.com. Correct?") and saves only on confirm. No auto-send, no "send now".
+- 2026-10-16: Step 10: owners manage the category list (archive, never delete;
+  renames follow through to tickets). Each person ticks their own categories;
+  owners can change anyone's. Routing: fewest open assigned tickets, ties to whoever
+  joined first. Manual category menu on the ticket page. Assignments record
+  automatic vs manual, plus routing's original pick (routed_to_user_id).

@@ -6,7 +6,19 @@ import { readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { inArray, like } from "drizzle-orm";
 import { db } from "@/db/client";
-import { calls, companies, invites, outgoingEmails, phoneLines, tickets, userRoles, users, type UserRole } from "@/db/schema";
+import {
+  calls,
+  categories,
+  companies,
+  invites,
+  outgoingEmails,
+  phoneLines,
+  tickets,
+  userCategories,
+  userRoles,
+  users,
+  type UserRole,
+} from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
 import { createInviteForSession } from "@/services/invites";
@@ -134,12 +146,15 @@ export async function cleanUpTestData() {
   const testCompanyIds = testCompanies.map((company) => company.id);
 
   if (testCompanyIds.length > 0) {
-    // Order matters: emails point at tickets, tickets point at calls, calls at phone lines.
+    // Order matters: emails point at tickets, tickets at calls and categories,
+    // calls at phone lines, and user_categories at users and categories.
     await deleteTestEmails(testCompanyIds);
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
     await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
     await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
     await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));
+    await db.delete(userCategories).where(inArray(userCategories.companyId, testCompanyIds));
+    await db.delete(categories).where(inArray(categories.companyId, testCompanyIds));
   }
   if (createdEmails.length > 0) {
     await db.delete(users).where(inArray(users.email, createdEmails));

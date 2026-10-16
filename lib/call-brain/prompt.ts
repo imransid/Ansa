@@ -13,16 +13,20 @@ Fill in:
 - customer_issue: one or two sentences on what the customer needed, written for the expert who may pick this up. Leave out card numbers and other secrets.
 - resolution_evidence: for "solved", copy the customer's confirming words exactly as they appear in the transcript (one short sentence). For "needs_human", an empty string.
 - reason: one sentence explaining your decision.
-- ticket_subject: a short subject line, under 80 characters, for the follow-up ticket an expert would work from (for example "Replacement for a cracked screen"). Leave out card numbers and other secrets.`;
+- ticket_subject: a short subject line, under 80 characters, for the follow-up ticket an expert would work from (for example "Replacement for a cracked screen"). Leave out card numbers and other secrets.
+- category: the name from <categories> that best fits the customer's problem, copied exactly, or "" if none fits or the list is empty.`;
 
-// Builds the user message: the transcript slice, and nothing else.
-export function buildDecisionPrompt(slice: TranscriptSlice): string {
+// Builds the user message: the transcript slice and the company's category
+// names (settings, not customer data). Nothing else: no company name or ids.
+export function buildDecisionPrompt(slice: TranscriptSlice, categoryNames: string[]): string {
   const lines = slice.opening.map(formatTurn);
   if (slice.omittedTurnCount > 0) {
     lines.push(`[${slice.omittedTurnCount} turns left out]`);
   }
   lines.push(...slice.closing.map(formatTurn));
-  return `<transcript>\n${lines.join("\n")}\n</transcript>`;
+  // Category names can't contain < or > (lib/validation/categories.ts).
+  const categoryLines = categoryNames.map((name) => `- ${name}`).join("\n");
+  return `<transcript>\n${lines.join("\n")}\n</transcript>\n\n<categories>\n${categoryLines}\n</categories>`;
 }
 
 const SPEAKER_NAMES = { customer: "Customer", agent: "Agent", unknown: "Unknown" } as const;
