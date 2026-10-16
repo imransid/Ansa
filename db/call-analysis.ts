@@ -60,13 +60,20 @@ export async function claimCallForAnalysis(
 // Stores the decision for one call of one company that is being analyzed and,
 // when `ticket` is given, creates that call's ticket in the SAME transaction:
 // a call is never escalated without its ticket, and never gets two.
-// Returns false if the call was no longer "analyzing" (another run finished first).
+// saved is false if the call was no longer "analyzing" (another run finished
+// first). ticketId / assignedToUserId describe the ticket created, if any.
+export type SavedDecision = {
+  saved: boolean;
+  ticketId: string | null;
+  assignedToUserId: string | null;
+};
+
 export async function saveCallDecision(
   companyId: string,
   callId: string,
   decision: StoredDecision,
   ticket: NewTicketInput | null,
-): Promise<boolean> {
+): Promise<SavedDecision> {
   return db.transaction(async (tx) => {
     const saved = await tx
       .update(calls)
@@ -90,11 +97,12 @@ export async function saveCallDecision(
       .returning({ id: calls.id });
 
     if (saved.length === 0) {
-      return false;
+      return { saved: false, ticketId: null, assignedToUserId: null };
     }
-    if (ticket) {
-      await insertTicketWithNextNumber(tx, companyId, ticket, callId);
+    if (!ticket) {
+      return { saved: true, ticketId: null, assignedToUserId: null };
     }
-    return true;
+    const created = await insertTicketWithNextNumber(tx, companyId, ticket, callId);
+    return { saved: true, ticketId: created.id, assignedToUserId: created.assignedToUserId };
   });
 }

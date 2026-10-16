@@ -12,7 +12,6 @@ import {
   decideFromModelResult,
   escalateByRule,
   REASON_CODES,
-  REASON_LABELS,
   type CallDecision,
 } from "@/lib/call-brain/decision";
 import { buildModelDecisionJsonSchema, type DecisionAsker } from "@/lib/call-brain/model-output";
@@ -23,8 +22,9 @@ import { callExplanationContext, callIssueContext, callTranscriptContext } from 
 import { env } from "@/lib/env";
 import type { FormResult } from "@/lib/form-result";
 import type { SessionContext } from "@/lib/session";
-import { newTicketSchema, type NewTicketInput } from "@/lib/validation/tickets";
 import { analyzeCallSchema } from "@/lib/validation/vapi";
+import { notifyAssignee } from "./assignment-notifications";
+import { buildCallTicket } from "./call-tickets";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
 // LOGGING RULE for this file: never log the transcript, the prompt, the
@@ -152,7 +152,7 @@ async function storeDecision(
   askedModel: boolean,
 ) {
   const ticket = decision.outcome === "needs_human" ? buildCallTicket(decision, callerNumber) : null;
-  await saveCallDecision(companyId, callId, {
+  const saved = await saveCallDecision(companyId, callId, {
     outcome: decision.outcome,
     source: decision.source,
     reasonCode: decision.reasonCode,
@@ -164,27 +164,9 @@ async function storeDecision(
       ? encryptText(decision.explanation, callExplanationContext(companyId, callId))
       : null,
   }, ticket);
-}
 
-// Used when the decision came from a rule, or Claude gave no usable subject.
-const FALLBACK_TICKET_SUBJECT = "Phone call needs follow-up";
-
-// Builds the ticket for a call that needs a human. It holds Claude's short
-// summary only, in plain text. The transcript never goes on the ticket: it
-// stays encrypted on the call, which the ticket links to.
-function buildCallTicket(decision: CallDecision, callerNumber: string | null): NewTicketInput {
-  const descriptionParts = [
-    decision.customerIssue,
-    decision.explanation,
-    `Escalated because: ${REASON_LABELS[decision.reasonCode]}`,
-  ].filter((part): part is string => Boolean(part));
-
-  return newTicketSchema.parse({
-    subject: decision.ticketSubject ?? FALLBACK_TICKET_SUBJECT,
-    description: descriptionParts.join("\n\n"),
-    channel: "phone",
-    // Routes the ticket to an expert for this category (step 10).
-    category: decision.category,
-    customerPhone: callerNumber,
-  });
+  // After the transaction: tell whoever routing picked (step 13).
+  if (saved.ticketId && saved.assignedToUserId) {
+    await notifyAssignee({ companyId, ticketId: saved.ticketId, assigneeUserId: saved.assignedToUserId, assignedByUserId: null });
+  }
 }

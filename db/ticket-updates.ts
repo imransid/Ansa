@@ -141,11 +141,12 @@ export async function setTicketCustomerEmail(
 // Sets (or clears, with null) the category of one company's ticket. The
 // category must be an active category of the same company. An unassigned
 // ticket is then routed to an expert for it; an assigned one keeps its assignee.
+// routedTo says who routing picked, if anyone.
 export async function setTicketCategory(
   companyId: string,
   ticketId: string,
   category: string | null,
-): Promise<boolean> {
+): Promise<{ updated: boolean; routedTo: string | null }> {
   return db.transaction(async (tx) => {
     const categoryIsUsable =
       category === null
@@ -162,11 +163,9 @@ export async function setTicketCategory(
       .where(and(eq(tickets.id, ticketId), eq(tickets.companyId, companyId), categoryIsUsable))
       .returning({ id: tickets.id });
     if (updated.length === 0) {
-      return false;
+      return { updated: false, routedTo: null };
     }
-    if (category) {
-      await routeTicketIfUnassigned(tx, companyId, ticketId);
-    }
-    return true;
+    const routedTo = category ? await routeTicketIfUnassigned(tx, companyId, ticketId) : null;
+    return { updated: true, routedTo };
   });
 }

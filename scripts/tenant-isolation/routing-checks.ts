@@ -45,7 +45,8 @@ export async function runRoutingChecks(ownerA: TestUser, ownerB: TestUser) {
 
   await check("routing: a tie goes to whoever joined first, then to whoever has fewer open tickets", async () => {
     const { result: first, logs } = await captureConsole(() => createTicketForCompany(ownerA.companyId, newTicket("Support")));
-    assert.deepEqual(logs, []);
+    // The dev outbox announces the assignment email (file name only); nothing else may be printed.
+    assert.deepEqual(logs.filter((line) => !line.startsWith("[dev email] Not sent.")), []);
     assert.equal(first.assignedToUserId, expert1.id);
     assert.equal(first.assignedAutomatically, true);
     assert.equal(first.routedToUserId, expert1.id);

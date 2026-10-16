@@ -25,6 +25,7 @@ import {
   ticketIdSchema,
   ticketNumberSchema,
 } from "@/lib/validation/tickets";
+import { notifyAssignee } from "./assignment-notifications";
 import { deliverOutgoingEmail } from "./customer-emails";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
@@ -68,7 +69,12 @@ export async function createTicketForCompany(
   input: unknown,
 ): Promise<Ticket> {
   const validInput = newTicketSchema.parse(input);
-  return createTicket(companyId, validInput);
+  const ticket = await createTicket(companyId, validInput);
+  // Routing gave it to someone: tell them (step 13).
+  if (ticket.assignedToUserId) {
+    await notifyAssignee({ companyId, ticketId: ticket.id, assigneeUserId: ticket.assignedToUserId, assignedByUserId: null });
+  }
+  return ticket;
 }
 
 // Assigns a ticket to someone in the session's company, or unassigns it.
@@ -89,6 +95,9 @@ export async function assignTicketForSession(
   const wasAssigned = await assignTicket(session.companyId, ticketId, assigneeUserId);
   if (!wasAssigned) {
     return { ok: false, errors: { message: "That ticket or teammate was not found in your company." } };
+  }
+  if (assigneeUserId) {
+    await notifyAssignee({ companyId: session.companyId, ticketId, assigneeUserId, assignedByUserId: session.userId });
   }
   return { ok: true };
 }

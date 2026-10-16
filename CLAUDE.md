@@ -90,6 +90,10 @@ and creates a ticket for a human expert when it can't.
     (db/call-analysis.ts). tickets.call_id is unique (one ticket per call) and has
     a same-company foreign key. The ticket gets Claude's short summary in plain
     text; the transcript never goes on a ticket, it stays encrypted on the call.
+- Whoever a ticket lands on gets an email (services/assignment-notifications.ts),
+  sent AFTER the save, whatever the path: routing at creation, routing after a
+  call, routing when a category is set, or a person assigning. Never for assigning
+  yourself. The email holds number, subject and category only: no customer data.
 - Sensitive text at rest (transcripts now, OAuth tokens later) goes through
   lib/encryption.ts with a context naming its company and record.
 - Every customer email is first a row in outgoing_emails, written in the same
@@ -231,7 +235,9 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Every escalation makes a ticket, including silent or abnormal calls. Expect noise
   (robocalls); filter by reason once real volume shows what to drop.
 - Calls escalated before step 8 have no ticket (test data only, no backfill).
-- Routing doesn't notify the expert yet (no email or in-app notification).
+- Assignment emails (step 13) are best effort: sent right after the assignment is
+  saved, not through the outbox table, so a failed send is only logged (no retry).
+  There is no way to turn them off yet, and no in-app notification.
 - Load counts only open tickets; it ignores ticket size, time off, or skill level.
 - Tickets assigned before step 10 were marked "assigned by a person" by the
   migration (db/migrations/0009, hand-added UPDATE).
@@ -296,3 +302,5 @@ Do not jump ahead. Finish step N before starting step N+1.
   and invited teammates). Accounts that existed before were marked verified by
   migration 0010 so nobody was locked out. Login of an unconfirmed account sends a
   fresh link; links work for one hour.
+- 2026-10-17: Step 13: assignment emails to the assignee (best effort, after the
+  save). Ticket subjects are cleaned of line breaks before going in a subject line.

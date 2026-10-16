@@ -2,23 +2,8 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readdir, rm } from "node:fs/promises";
 import path from "node:path";
-import { inArray, like } from "drizzle-orm";
-import { db } from "@/db/client";
-import {
-  calls,
-  categories,
-  companies,
-  invites,
-  outgoingEmails,
-  phoneLines,
-  tickets,
-  userCategories,
-  userRoles,
-  users,
-  type UserRole,
-} from "@/db/schema";
+import { userRoles, type UserRole } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
 import { createInviteForSession } from "@/services/invites";
@@ -27,7 +12,8 @@ import { createInviteForSession } from "@/services/invites";
 // can find exactly what this run created and nothing else.
 export const runId = randomUUID().slice(0, 8);
 export const testPassword = "isolation-test-password";
-const createdEmails: string[] = [];
+// Every email address a check signed up with; cleanup.ts removes them.
+export const createdEmails: string[] = [];
 let failures = 0;
 
 export type TestUser = {
@@ -134,65 +120,4 @@ export async function check(description: string, run: () => Promise<void>) {
 
 export function getFailureCount(): number {
   return failures;
-}
-
-// Test data is removed directly here (not through /db) because the app itself
-// never deletes invites, tickets, users or companies yet.
-export async function cleanUpTestData() {
-  const testCompanies = await db
-    .select({ id: companies.id })
-    .from(companies)
-    .where(like(companies.name, `%${runId}`));
-  const testCompanyIds = testCompanies.map((company) => company.id);
-
-  if (testCompanyIds.length > 0) {
-    // Order matters: emails point at tickets, tickets at calls and categories,
-    // calls at phone lines, and user_categories at users and categories.
-    await deleteTestEmails(testCompanyIds);
-    await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
-    await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
-    await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
-    await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));
-    await db.delete(userCategories).where(inArray(userCategories.companyId, testCompanyIds));
-    await db.delete(categories).where(inArray(categories.companyId, testCompanyIds));
-  }
-  if (createdEmails.length > 0) {
-    await deleteVerificationEmailFiles();
-    await db.delete(users).where(inArray(users.email, createdEmails));
-  }
-  if (testCompanyIds.length > 0) {
-    await db.delete(companies).where(inArray(companies.id, testCompanyIds));
-  }
-}
-
-// Removes the test companies' email rows and every dev outbox file they wrote.
-// A retried email writes one file per attempt, all named after the email id.
-async function deleteTestEmails(testCompanyIds: string[]) {
-  const emails = await db
-    .select({ id: outgoingEmails.id })
-    .from(outgoingEmails)
-    .where(inArray(outgoingEmails.companyId, testCompanyIds));
-  const emailIds = emails.map((email) => email.id);
-
-  const outboxDir = path.join(process.cwd(), ".dev-emails");
-  const outboxFiles = await readdir(outboxDir).catch(() => []);
-  for (const fileName of outboxFiles) {
-    if (emailIds.some((emailId) => fileName.includes(emailId))) {
-      await rm(path.join(outboxDir, fileName), { force: true });
-    }
-  }
-  await db.delete(outgoingEmails).where(inArray(outgoingEmails.companyId, testCompanyIds));
-}
-
-// Removes the "confirm your email" files the dev outbox wrote for test users
-// (their names contain the user's id, see services/email-verification.ts).
-async function deleteVerificationEmailFiles() {
-  const testUsers = await db.select({ id: users.id }).from(users).where(inArray(users.email, createdEmails));
-  const outboxDir = path.join(process.cwd(), ".dev-emails");
-  const outboxFiles = await readdir(outboxDir).catch(() => [] as string[]);
-  for (const fileName of outboxFiles) {
-    if (testUsers.some((user) => fileName.includes(`verify-email-${user.id}-`))) {
-      await rm(path.join(outboxDir, fileName), { force: true });
-    }
-  }
 }

@@ -21,6 +21,7 @@ import {
   setTicketCategorySchema,
   setUserCategoriesSchema,
 } from "@/lib/validation/categories";
+import { notifyAssignee } from "./assignment-notifications";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
 // Re-exported so pages can use the types without importing from /db.
@@ -124,8 +125,15 @@ export async function setTicketCategoryForSession(session: SessionContext, input
   if (await isOverRateLimit("ticket-changes", session.userId, RATE_LIMITS.ticketChangesPerUser)) {
     return tooManyChanges;
   }
-  const updated = await setTicketCategory(session.companyId, parsed.data.ticketId, parsed.data.category);
-  return updated ? { ok: true } : { ok: false, errors: { message: "That ticket or category was not found in your company." } };
+  const { updated, routedTo } = await setTicketCategory(session.companyId, parsed.data.ticketId, parsed.data.category);
+  if (!updated) {
+    return { ok: false, errors: { message: "That ticket or category was not found in your company." } };
+  }
+  // Setting the category routed it: tell the expert (step 13).
+  if (routedTo) {
+    await notifyAssignee({ companyId: session.companyId, ticketId: parsed.data.ticketId, assigneeUserId: routedTo, assignedByUserId: null });
+  }
+  return { ok: true };
 }
 
 function isOverSettingsLimit(session: SessionContext): Promise<boolean> {
