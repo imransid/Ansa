@@ -48,7 +48,11 @@ and creates a ticket for a human expert when it can't.
 - Auth: Better Auth's HTTP handler (/api/auth/*) is NOT mounted. Signup, login and
   logout go through server actions -> services/auth.ts (validated + rate limited).
   Which company a new user joins is decided in ONE place: the user-create hook in
-  lib/auth.ts -> services/company-membership.ts.
+  lib/auth.ts -> services/company-membership.ts (new company as owner, or the
+  inviting company with the invited role). Never enable `transaction: true` on
+  the Better Auth adapter: signups would deadlock on DB connections (see lib/auth.ts).
+- Invite links put the token after "#" so it never reaches the server or its logs.
+  Only a SHA-256 hash of the token is stored.
 - Next.js 16 has Cache Components on: any component that reads the session must
   sit inside <Suspense>. See app/dashboard/page.tsx. Read @AGENTS.md before
   writing Next.js code; this version differs from older docs.
@@ -118,13 +122,17 @@ Do not jump ahead. Finish step N before starting step N+1.
 
 ## Known gaps (revisit later)
 - No email verification yet: anyone can sign up with any email. Needs Resend (step 5).
+  This also means an invite tied to an email only protects against people who
+  don't know that email.
+- An invite is marked used just before Better Auth saves the new user. If saving
+  then fails, the invite is spent and the owner has to create a new one.
 - Signup inserts the company before Better Auth inserts the user, in separate
   transactions. If the user insert fails, an empty company row is left behind.
 - The IP used for rate limiting comes from x-forwarded-for. That header is only
   trustworthy behind a host that overwrites it (Vercel, Cloudflare). Check when hosting is picked.
 - Old rate_limits rows are never deleted. Add a cleanup job when it matters.
 - Ticket list has no pagination (50 cap). See TICKET_LIST_LIMIT in db/tickets.ts.
-- Times are shown in UTC, not the viewer's local time (app/dashboard/ticket-table.tsx).
+- Times are shown in UTC, not the viewer's local time (lib/format-date.ts).
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.

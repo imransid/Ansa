@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth";
 import type { FormResult } from "@/lib/form-result";
 import { getClientIp } from "@/lib/request-ip";
 import { loginSchema, signupSchema } from "@/lib/validation/auth";
+import { joinWithInviteSchema } from "@/lib/validation/invites";
+import { MEMBERSHIP_ERROR_CODES } from "./company-membership";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
 // Creates a new company with the signing-up person as its owner, then logs them in.
@@ -32,6 +34,40 @@ export async function signUpCompanyOwner(input: unknown): Promise<FormResult> {
   // Better Auth passes extra body fields like companyName through at runtime,
   // but its types don't list them, so the body is built before the call.
   const signupBody = { name, email, password, companyName };
+  try {
+    await auth.api.signUpEmail({
+      body: signupBody,
+      headers: await headers(),
+    });
+  } catch (error) {
+    return { ok: false, errors: { message: getSignupErrorMessage(error) } };
+  }
+
+  return { ok: true };
+}
+
+// Creates an account from an invite link, joins the inviting company, then logs in.
+export async function joinCompanyWithInvite(input: unknown): Promise<FormResult> {
+  const parsed = joinWithInviteSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      errors: { fieldErrors: z.flattenError(parsed.error).fieldErrors },
+    };
+  }
+
+  const ip = await getClientIp();
+  if (await isOverRateLimit("signup", ip, RATE_LIMITS.signupPerIp)) {
+    return {
+      ok: false,
+      errors: { message: "Too many signup attempts. Try again in an hour." },
+    };
+  }
+
+  const { inviteToken, name, email, password } = parsed.data;
+  // The user-create hook in lib/auth.ts sees inviteToken, checks the invite
+  // matches this email, and takes company and role from the invite.
+  const signupBody = { name, email, password, inviteToken };
   try {
     await auth.api.signUpEmail({
       body: signupBody,
@@ -86,6 +122,9 @@ export async function logOut(): Promise<void> {
 function getSignupErrorMessage(error: unknown): string {
   if (isAPIError(error) && error.body?.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
     return "An account with this email already exists. Log in instead.";
+  }
+  if (isAPIError(error) && error.body?.code === MEMBERSHIP_ERROR_CODES.inviteNotUsable) {
+    return "This invite link has expired, was revoked, was already used, or is for a different email. Ask your team owner for a new one.";
   }
   logUnexpectedAuthError("signup", error);
   return "Could not create your account. Please try again.";

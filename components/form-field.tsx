@@ -6,6 +6,8 @@ type FormFieldProps = {
   label: string;
   type?: "text" | "email" | "password";
   autoComplete?: string;
+  defaultValue?: string;
+  readOnly?: boolean;
   errors?: string[];
 };
 
@@ -15,6 +17,8 @@ export function FormField({
   label,
   type = "text",
   autoComplete,
+  defaultValue,
+  readOnly,
   errors,
 }: FormFieldProps) {
   const errorId = `${name}-errors`;
@@ -28,6 +32,8 @@ export function FormField({
         name={name}
         type={type}
         autoComplete={autoComplete}
+        defaultValue={defaultValue}
+        readOnly={readOnly}
         required
         aria-invalid={hasErrors}
         aria-describedby={hasErrors ? errorId : undefined}

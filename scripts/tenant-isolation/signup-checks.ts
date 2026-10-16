@@ -7,13 +7,14 @@ import { getUsersInCompany } from "@/db/users";
 import {
   check,
   runId,
+  signUpTestOwner,
   signUpWithBody,
   testEmail,
   testPassword,
-  type TestOwner,
+  type TestUser,
 } from "./helpers";
 
-export async function runSignupChecks(ownerA: TestOwner, ownerB: TestOwner) {
+export async function runSignupChecks(ownerA: TestUser, ownerB: TestUser) {
   await check("signup creates a company and makes the user its owner", async () => {
     assert.equal(ownerA.role, "owner");
     const companyA = await getCompanyById(ownerA.companyId);
@@ -61,6 +62,21 @@ export async function runSignupChecks(ownerA: TestOwner, ownerB: TestOwner) {
       }),
       /role is not allowed to be set/,
     );
+  });
+
+  await check("12 signups at the same moment all finish", async () => {
+    // If signups ever wait on each other for database connections, they hang
+    // forever instead of failing. Stop the whole run then: cleanup would hang too.
+    const timer = setTimeout(() => {
+      console.log("FAIL  12 signups at the same moment all finish");
+      console.log("      Timed out after 30s: signups are stuck waiting for database connections.");
+      process.exit(1);
+    }, 30_000);
+    const owners = await Promise.all(
+      Array.from({ length: 12 }, (_, index) => signUpTestOwner(`parallel-${index}`)),
+    );
+    clearTimeout(timer);
+    assert.equal(new Set(owners.map((owner) => owner.companyId)).size, 12);
   });
 
   await check("signup without a company name creates nothing", async () => {

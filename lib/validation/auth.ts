@@ -11,31 +11,35 @@ const companyNameSchema = z
 
 // Trim and lowercase first, then check the format, so " Ana@Example.com "
 // is accepted and stored as "ana@example.com".
-const emailSchema = z
+export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
   .max(254, "Email is too long")
   .pipe(z.email("Enter a valid email address"));
 
+export const personNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter your name")
+  .max(100, "Name must be at most 100 characters");
+
+export const newPasswordSchema = z
+  .string()
+  .min(
+    PASSWORD_MIN_LENGTH,
+    `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+  )
+  .max(
+    PASSWORD_MAX_LENGTH,
+    `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
+  );
+
 export const signupSchema = z.object({
   companyName: companyNameSchema,
-  name: z
-    .string()
-    .trim()
-    .min(1, "Enter your name")
-    .max(100, "Name must be at most 100 characters"),
+  name: personNameSchema,
   email: emailSchema,
-  password: z
-    .string()
-    .min(
-      PASSWORD_MIN_LENGTH,
-      `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
-    )
-    .max(
-      PASSWORD_MAX_LENGTH,
-      `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
-    ),
+  password: newPasswordSchema,
 });
 
 export const loginSchema = z.object({

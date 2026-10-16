@@ -1,12 +1,14 @@
-// Checks that one company can never see another company's data, and that
-// callers cannot choose server-owned fields (company, role, ticket number).
+// Checks that one company can never see another company's data, that callers
+// cannot choose server-owned fields (company, role, ticket number), and that
+// invite links only ever work as intended.
 //
 // Run with: pnpm check:tenant-isolation
 // Needs the local database running and migrated (pnpm db:up && pnpm db:migrate).
-// Creates throwaway companies, users and tickets, and deletes them again at the end.
+// Creates throwaway companies, users, tickets and invites, and deletes them at the end.
 
 import { db } from "@/db/client";
 import { cleanUpTestData, getFailureCount, signUpTestOwner } from "./tenant-isolation/helpers";
+import { runInviteChecks } from "./tenant-isolation/invite-checks";
 import { runSignupChecks } from "./tenant-isolation/signup-checks";
 import { runTicketChecks } from "./tenant-isolation/ticket-checks";
 
@@ -16,6 +18,7 @@ async function runChecksAndCleanUp() {
     const ownerB = await signUpTestOwner("b");
     await runSignupChecks(ownerA, ownerB);
     await runTicketChecks(ownerA, ownerB);
+    await runInviteChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();

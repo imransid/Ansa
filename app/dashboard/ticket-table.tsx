@@ -7,15 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatUtcDateTime } from "@/lib/format-date";
 import type { TicketListItem } from "@/services/tickets";
-
-// Rendered on the server, so times would otherwise follow the server's clock
-// (your laptop in dev, UTC in production). Always UTC keeps them consistent.
-const createdAtFormat = new Intl.DateTimeFormat("en-GB", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
 
 type TicketTableProps = {
   tickets: TicketListItem[];
@@ -57,7 +50,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
                 {ticket.status}
               </Badge>
             </TableCell>
-            <TableCell>{createdAtFormat.format(ticket.createdAt)}</TableCell>
+            <TableCell>{formatUtcDateTime(ticket.createdAt)}</TableCell>
           </TableRow>
         ))}
       </TableBody>

@@ -17,11 +17,14 @@ import { createMembershipForNewUser } from "@/services/company-membership";
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
+  // Do NOT turn on `transaction: true` here. Better Auth would then hold one
+  // pool connection for the whole signup while our user-create hook asks the
+  // same pool for another. With 10+ signups at once every connection is held
+  // and all of them wait forever. scripts/tenant-isolation checks for this.
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
     usePlural: true,
-    transaction: true,
   }),
   emailAndPassword: {
     enabled: true,
@@ -50,7 +53,10 @@ export const auth = betterAuth({
         // decides which company a user belongs to. It runs before the user row
         // is inserted, because users.company_id cannot be empty.
         before: async (user, context) => {
-          const membership = await createMembershipForNewUser(context?.body);
+          const membership = await createMembershipForNewUser(
+            context?.body,
+            user.email,
+          );
           return {
             data: {
               ...user,

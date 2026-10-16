@@ -11,6 +11,8 @@ export const RATE_LIMITS = {
   signupPerIp: { maxAttempts: 10, windowSeconds: 60 * 60 },
   loginPerIp: { maxAttempts: 20, windowSeconds: 15 * 60 },
   loginPerEmail: { maxAttempts: 10, windowSeconds: 15 * 60 },
+  inviteChangesPerCompany: { maxAttempts: 30, windowSeconds: 60 * 60 },
+  invitePreviewPerIp: { maxAttempts: 30, windowSeconds: 15 * 60 },
 } satisfies Record<string, RateLimitRule>;
 
 // Counts one attempt and returns true when the caller has gone over the limit.

@@ -3,19 +3,13 @@
 
 import assert from "node:assert/strict";
 import { createTicketForCompany, listTicketsForSession } from "@/services/tickets";
-import type { SessionContext } from "@/lib/session";
-import { check, type TestOwner } from "./helpers";
+import { check, sessionFor, type TestUser } from "./helpers";
 
 function sampleTicket(subject: string) {
   return { subject, description: "Created by the tenant isolation checks.", channel: "phone" };
 }
 
-// The list service only needs companyId from the session; the rest is filler.
-function sessionFor(owner: TestOwner): SessionContext {
-  return { userId: owner.id, companyId: owner.companyId, role: "owner", name: "Test", email: owner.email };
-}
-
-export async function runTicketChecks(ownerA: TestOwner, ownerB: TestOwner) {
+export async function runTicketChecks(ownerA: TestUser, ownerB: TestUser) {
   const firstA = await createTicketForCompany(ownerA.companyId, sampleTicket("A first"));
   const secondA = await createTicketForCompany(ownerA.companyId, sampleTicket("A second"));
   const firstB = await createTicketForCompany(ownerB.companyId, sampleTicket("B first"));

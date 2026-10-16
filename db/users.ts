@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "./client";
 import { users, type UserRole } from "./schema";
 
@@ -25,4 +25,17 @@ export async function getUsersInCompany(
     .from(users)
     .where(eq(users.companyId, companyId))
     .orderBy(asc(users.createdAt));
+}
+
+// Says whether this email already belongs to someone in this company.
+// Company-scoped on purpose: it must not reveal accounts in other companies.
+export async function isEmailInCompany(
+  companyId: string,
+  email: string,
+): Promise<boolean> {
+  const matches = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.companyId, companyId), eq(users.email, email)));
+  return matches.length > 0;
 }
