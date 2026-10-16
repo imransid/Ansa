@@ -85,6 +85,20 @@
       "when": 1792190853165,
       "tag": "0011_call_recordings",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792191140172,
+      "tag": "0012_inbound_emails",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792191156107,
+      "tag": "0013_inbound_email_content",
+      "breakpoints": true
     }
   ]
 }

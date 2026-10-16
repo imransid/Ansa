@@ -9,6 +9,8 @@ import {
   calls,
   categories,
   companies,
+  inboundAddresses,
+  inboundEmails,
   invites,
   outgoingEmails,
   phoneLines,
@@ -37,6 +39,8 @@ export async function cleanUpTestData() {
       await rm(path.join(process.cwd(), ".dev-files", "recordings", companyId), { recursive: true, force: true });
     }
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
+    await db.delete(inboundEmails).where(inArray(inboundEmails.companyId, testCompanyIds));
+    await db.delete(inboundAddresses).where(inArray(inboundAddresses.companyId, testCompanyIds));
     await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
     await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
     await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));

@@ -56,6 +56,9 @@ importers:
       shadcn:
         specifier: ^4.21.5
         version: 4.21.5
+      standardwebhooks:
+        specifier: 1.1.1
+        version: 1.1.1
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0

@@ -60,10 +60,12 @@ export type ModelResult =
   | { kind: "error"; errorName: string }
   | { kind: "unavailable" };
 
+// One request to the model. Also used for email triage (lib/email-triage),
+// which sends its own JSON schema.
 export type DecisionRequest = {
   systemPrompt: string;
   prompt: string;
-  jsonSchema: ReturnType<typeof buildModelDecisionJsonSchema>;
+  jsonSchema: Record<string, unknown>;
 };
 
 // The shape of any function that asks a model for a decision. The real one is

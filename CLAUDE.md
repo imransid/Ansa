@@ -98,6 +98,14 @@ and creates a ticket for a human expert when it can't.
   .dev-files/ unless USE_R2_STORAGE is exactly "true", then to the private R2
   bucket. Files are only served by our routes after a login + company check, as a
   5-minute signed link (R2) or the bytes (dev). Keys start with the company id.
+- Email channel (step 15): Resend's signed "email.received" webhook ->
+  services/inbound-email-webhook.ts (same strict order as Vapi) -> the address it
+  was sent to (inbound_addresses) decides the company -> after the 200,
+  services/inbound-email-processing.ts fetches the content, skips auto-replies,
+  bulk mail, bounces, our own addresses and floods (10/hour per sender), lets
+  Claude triage it (summary, subject, category: lib/email-triage), and creates a
+  ticket whose customer email is the sender. Subject and body are stored
+  encrypted on inbound_emails and shown on the ticket as "Original email".
 - Any URL the server fetches because a webhook said so (recordings) must be https
   on an allowed host, checked again on every redirect (lib/recording-download.ts).
 - Sensitive text at rest (transcripts now, OAuth tokens later) goes through
@@ -224,6 +232,14 @@ Do not jump ahead. Finish step N before starting step N+1.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
   no key rotation yet (the "v1:" prefix leaves room for it).
 - Phone lines are linked with pnpm link:phone-line until onboarding (step 16).
+- Email channel: the AI does NOT reply to customers by email. It only triages into
+  a ticket. Letting the AI answer emails on its own needs (a) the company's
+  knowledge (step 16 uploads) and (b) your decision on auto-send vs. draft for an
+  expert to approve. No acknowledgement email is sent either. HTML-only emails
+  (no plain-text part) reach Claude with an empty body; attachments are ignored.
+  If fetching the content fails, the email is marked ignored ("content_unavailable");
+  Resend keeps the original, but there is no retry button. Not tested against a
+  real Resend account yet.
 - Call brain quality is unmeasured: no eval set yet. Collect real calls, then
   tune the prompt, effort and model against them before trusting "solved".
 - The transcript parser assumes Vapi's "AI:" / "User:" labels. Confirm with the
@@ -316,3 +332,6 @@ Do not jump ahead. Finish step N before starting step N+1.
 - 2026-10-17: Step 14: recordings copied into private storage from allowed hosts
   only (VAPI_RECORDING_HOSTS, default storage.vapi.ai), at most 100 MB, audio only.
   Played via /api/calls/<id>/recording (login + company check, no caching).
+- 2026-10-17: Step 15: inbound email via Resend Receiving (the proposed default),
+  signed with Standard Webhooks (standardwebhooks library). Email is triaged into a
+  ticket; the AI sends no email replies (open decision).

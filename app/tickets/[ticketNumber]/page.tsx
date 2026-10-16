@@ -9,6 +9,7 @@ import { requireSessionContext } from "@/lib/session";
 import { listActiveCategoryNamesForSession } from "@/services/categories";
 import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getDashboardSummary } from "@/services/dashboard";
+import { getOriginalEmailForSession, type OriginalEmail } from "@/services/inbound-emails";
 import { listTeamMembersForSession } from "@/services/team";
 import { getTicketForSession, type TicketDetail } from "@/services/tickets";
 import { CustomerEmailSection, type EmailOrigin } from "./customer-email-section";
@@ -44,11 +45,12 @@ async function TicketContent({
     notFound();
   }
 
-  const [summary, teamMembers, latestEmail, categoryNames] = await Promise.all([
+  const [summary, teamMembers, latestEmail, categoryNames, originalEmail] = await Promise.all([
     getDashboardSummary(session),
     listTeamMembersForSession(session),
     getLatestCustomerEmailForSession(session, ticket.id),
     listActiveCategoryNamesForSession(session),
+    getOriginalEmailForSession(session, ticket.id),
   ]);
 
   return (
@@ -58,6 +60,7 @@ async function TicketContent({
         &larr; All tickets
       </Link>
       <TicketSummary ticket={ticket} />
+      {originalEmail && <OriginalEmailSection email={originalEmail} />}
       <CustomerEmailSection
         // A new key after every save puts the section back into "view" mode.
         key={`${ticket.customerEmail ?? "none"}-${ticket.customerEmailSetAt?.toISOString() ?? "never"}`}
@@ -146,4 +149,18 @@ function describeAssignment(ticket: TicketDetail): string {
     ? `routed automatically${ticket.category ? ` (${ticket.category})` : ""}`
     : "assigned by a person";
   return `${ticket.assigneeName}, ${how}`;
+}
+
+// The customer's own email, for tickets that came in by email (step 15).
+function OriginalEmailSection({ email }: { email: OriginalEmail }) {
+  return (
+    <section className="grid gap-2 rounded-lg border p-4">
+      <h2 className="text-lg font-semibold">Original email</h2>
+      <p className="text-sm text-muted-foreground">
+        From {email.fromAddress ?? "unknown sender"}, <LocalDateTime iso={email.receivedAt.toISOString()} />
+      </p>
+      <p className="text-sm font-medium">{email.subject ?? "(no subject)"}</p>
+      <pre className="whitespace-pre-wrap font-sans text-sm">{email.body ?? "(no plain-text body)"}</pre>
+    </section>
+  );
 }

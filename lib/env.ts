@@ -27,6 +27,10 @@ const envSchema = z
     // the display name when sending.
     EMAIL_FROM: z.email().optional(),
 
+    // Signing secret Resend shows for our webhook (inbound email, bounces).
+    // Without it every Resend webhook is refused.
+    RESEND_WEBHOOK_SECRET: z.string().startsWith("whsec_", "RESEND_WEBHOOK_SECRET must start with whsec_").optional(),
+
     // Encrypts call transcripts at rest (lib/encryption.ts). Losing this key
     // means losing every stored transcript, so back it up.
     DATA_ENCRYPTION_KEY: base64Key32Bytes,

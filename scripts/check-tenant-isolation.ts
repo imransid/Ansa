@@ -16,6 +16,7 @@ import { runCategoryChecks } from "./tenant-isolation/category-checks";
 import { runEmailChecks } from "./tenant-isolation/email-checks";
 import { cleanUpTestData } from "./tenant-isolation/cleanup";
 import { getFailureCount, signUpTestOwner } from "./tenant-isolation/helpers";
+import { runInboundEmailChecks } from "./tenant-isolation/inbound-email-checks";
 import { runInviteChecks } from "./tenant-isolation/invite-checks";
 import { runNotificationChecks } from "./tenant-isolation/notification-checks";
 import { runPaginationChecks } from "./tenant-isolation/pagination-checks";
@@ -47,6 +48,7 @@ async function runChecksAndCleanUp() {
     await runPaginationChecks(ownerB);
     await runNotificationChecks(ownerA, ownerB);
     await runRecordingChecks(ownerA, ownerB);
+    await runInboundEmailChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();
