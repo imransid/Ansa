@@ -47,3 +47,7 @@ export const endOfCallReportSchema = z.object({
 export type EndOfCallReport = z.infer<typeof endOfCallReportSchema>;
 
 export const callIdSchema = z.uuid();
+
+export const analyzeCallSchema = z.object({
+  callId: z.uuid(),
+});

@@ -48,6 +48,15 @@ const envSchema = z
     VAPI_TIMESTAMP_UNIT: z.enum(["seconds", "milliseconds"]).default("seconds"),
     // How old (or how far in the future) a signed request may be.
     VAPI_TIMESTAMP_TOLERANCE_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
+
+    // The call brain (adapters/claude.ts). Without a key every call is
+    // escalated to a human with reason "model unavailable".
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
+    // Switching models is this one line in .env.local.
+    ANTHROPIC_MODEL: z
+      .string()
+      .regex(/^claude-[a-z0-9.-]+$/, "ANTHROPIC_MODEL must look like claude-sonnet-5-5")
+      .default("claude-sonnet-5-5"),
   })
   .superRefine((values, context) => {
     if (values.SEND_REAL_EMAIL !== "true") {

@@ -3,6 +3,7 @@ import { readRawBodyWithLimit } from "@/lib/read-raw-body";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
 import { getVapiSignatureSettings, isValidVapiSignature } from "@/lib/vapi-signature";
 import { endOfCallReportSchema, vapiMessageTypeSchema } from "@/lib/validation/vapi";
+import { analyzeCall } from "./call-analysis";
 import { saveEndOfCallReport } from "./calls";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
@@ -13,10 +14,14 @@ import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
+// Runs work after the response has been sent. The route passes Next.js's
+// after(); the checks pass a function that records the work instead.
+export type RunAfterResponse = (task: () => Promise<void>) => void;
+
 // Handles one request from Vapi. Never throws.
-export async function handleVapiWebhook(request: Request): Promise<Response> {
+export async function handleVapiWebhook(request: Request, runAfterResponse: RunAfterResponse): Promise<Response> {
   try {
-    return await processVapiWebhook(request);
+    return await processVapiWebhook(request, runAfterResponse);
   } catch (error) {
     const errorName = error instanceof Error ? error.constructor.name : "unknown";
     console.error(`Vapi webhook failed: ${errorName}`);
@@ -24,7 +29,7 @@ export async function handleVapiWebhook(request: Request): Promise<Response> {
   }
 }
 
-async function processVapiWebhook(request: Request): Promise<Response> {
+async function processVapiWebhook(request: Request, runAfterResponse: RunAfterResponse): Promise<Response> {
   // 1. Raw bytes only, nothing decoded or parsed yet.
   const rawBody = await readRawBodyWithLimit(request, MAX_BODY_BYTES);
   if (rawBody === "too-large") {
@@ -74,9 +79,18 @@ async function processVapiWebhook(request: Request): Promise<Response> {
 
   // 4. Save it. A phone line we don't know is acknowledged (so Vapi stops
   // retrying) but nothing is stored.
-  const outcome = await saveEndOfCallReport(report.data);
-  if (outcome === "unknown-phone-line") {
+  const saved = await saveEndOfCallReport(report.data);
+  if (saved.outcome === "unknown-phone-line") {
     console.warn("Vapi webhook ignored: unknown phone line");
+  }
+
+  // 5. A new call gets analyzed by the call brain after Vapi has its 200, so
+  // Vapi never waits for Claude. A duplicate delivery is not analyzed again.
+  if (saved.outcome === "saved") {
+    const { companyId, callId } = saved;
+    runAfterResponse(async () => {
+      await analyzeCall(companyId, callId);
+    });
   }
   return emptyResponse(200);
 }

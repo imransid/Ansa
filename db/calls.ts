@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "./client";
-import { calls } from "./schema";
+import { calls, type CallAnalysisStatus, type CallOutcome } from "./schema";
 
 export type CallListItem = {
   id: string;
@@ -9,6 +9,8 @@ export type CallListItem = {
   startedAt: Date | null;
   endedAt: Date | null;
   endedReason: string | null;
+  analysisStatus: CallAnalysisStatus;
+  aiOutcome: CallOutcome | null;
 };
 
 export type StoredCall = typeof calls.$inferSelect;
@@ -28,14 +30,14 @@ type NewCall = {
 const CALL_LIST_LIMIT = 50;
 
 // Saves a finished call for one company, unless a call with the same Vapi id
-// was already saved. Returns true if it was new.
-export async function insertCallIfNew(companyId: string, call: NewCall): Promise<boolean> {
-  const inserted = await db
+// was already saved. Returns the new call's id, or null if it already existed.
+export async function insertCallIfNew(companyId: string, call: NewCall): Promise<string | null> {
+  const [inserted] = await db
     .insert(calls)
     .values({ companyId, ...call })
     .onConflictDoNothing({ target: calls.vapiCallId })
     .returning({ id: calls.id });
-  return inserted.length > 0;
+  return inserted?.id ?? null;
 }
 
 // Lists one company's calls, newest first. Leaves out the transcript.
@@ -47,6 +49,8 @@ export async function getCallsForCompany(companyId: string): Promise<CallListIte
       startedAt: calls.startedAt,
       endedAt: calls.endedAt,
       endedReason: calls.endedReason,
+      analysisStatus: calls.analysisStatus,
+      aiOutcome: calls.aiOutcome,
     })
     .from(calls)
     .where(eq(calls.companyId, companyId))

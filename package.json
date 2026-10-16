@@ -16,9 +16,11 @@
     "check:tenant-isolation": "tsx --conditions=react-server --env-file=.env.local scripts/check-tenant-isolation.ts",
     "seed:tickets": "tsx --conditions=react-server --env-file=.env.local scripts/seed-tickets.ts",
     "link:phone-line": "tsx --conditions=react-server --env-file=.env.local scripts/link-phone-line.ts",
-    "simulate:vapi-call": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-vapi-call.ts"
+    "simulate:vapi-call": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-vapi-call.ts",
+    "try:brain": "tsx --conditions=react-server --env-file=.env.local scripts/try-brain.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@base-ui/react": "^1.9.0",
     "better-auth": "^1.7.9",
     "class-variance-authority": "^0.7.1",

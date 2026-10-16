@@ -19,6 +19,13 @@ const settings = getVapiSignatureSettings();
 const secretPhrase = `secret-phrase-${runId}`;
 const callerNumber = `+1 555 01${Math.floor(Math.random() * 90 + 10)}`;
 const allLogs: string[] = [];
+// Analyses the webhook asked to run after responding. Recorded, NEVER run:
+// running them would call the real, paid Claude API. brain-checks.ts tests
+// the analysis itself with a fake model.
+let scheduledAnalyses = 0;
+const recordInsteadOfRunning = () => {
+  scheduledAnalyses += 1;
+};
 
 function reportBody(phoneNumberId: string, callId: string, endedReason = "customer-ended-call"): Buffer {
   const report = buildSampleEndOfCallReport({ callId, phoneNumberId, callerNumber, transcript: `User: ${secretPhrase}` });
@@ -38,7 +45,7 @@ async function send(body: Buffer, headers: Record<string, string>): Promise<{ st
       headers: { "content-type": "application/json", ...headers },
       body: new Uint8Array(body),
     });
-    const response = await handleVapiWebhook(request);
+    const response = await handleVapiWebhook(request, recordInsteadOfRunning);
     return { status: response.status, logs };
   } finally {
     Object.assign(console, originals);
@@ -78,9 +85,11 @@ export async function runVapiChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.ok(!wholeRow.includes("secret-recording"), "recording URL stored");
   });
 
-  await check("the same call delivered twice is saved once", async () => {
+  await check("the same call delivered twice is saved once and analyzed once", async () => {
+    assert.equal(scheduledAnalyses, 1, "the first delivery should schedule one analysis");
     assert.equal((await sendSigned(reportBody(lineA.vapiPhoneNumberId, callA))).status, 200);
     assert.equal((await storedCall(callA)).length, 1);
+    assert.equal(scheduledAnalyses, 1, "a duplicate delivery scheduled another analysis");
   });
 
   await check("a call on company B's line belongs to B and is invisible to A", async () => {

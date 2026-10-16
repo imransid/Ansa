@@ -8,6 +8,7 @@ import { formatUtcDateTime } from "@/lib/format-date";
 import { requireSessionContext } from "@/lib/session";
 import { getCallForSession, type CallDetail } from "@/services/calls";
 import { getDashboardSummary } from "@/services/dashboard";
+import { CallDecision } from "./call-decision";
 
 export const metadata: Metadata = { title: "Call - ansa" };
 
@@ -48,6 +49,7 @@ async function CallContent({ params }: Pick<PageProps<"/calls/[callId]">, "param
         <dt className="text-muted-foreground">Ended because</dt>
         <dd>{call.endedReason ?? "-"}</dd>
       </dl>
+      <CallDecision call={call} />
       <Transcript call={call} />
     </>
   );

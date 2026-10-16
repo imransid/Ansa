@@ -15,6 +15,7 @@ import { formatUtcDateTime } from "@/lib/format-date";
 import { requireSessionContext } from "@/lib/session";
 import { listCallsForSession, type CallListItem } from "@/services/calls";
 import { getDashboardSummary } from "@/services/dashboard";
+import { DecisionBadge } from "./decision-badge";
 
 export const metadata: Metadata = { title: "Calls - ansa" };
 
@@ -65,6 +66,7 @@ function CallsTable({ calls }: { calls: CallListItem[] }) {
           <TableHead>Caller</TableHead>
           <TableHead>Duration</TableHead>
           <TableHead>Ended because</TableHead>
+          <TableHead>AI decision</TableHead>
           <TableHead />
         </TableRow>
       </TableHeader>
@@ -75,6 +77,9 @@ function CallsTable({ calls }: { calls: CallListItem[] }) {
             <TableCell>{call.callerNumber ?? "Withheld"}</TableCell>
             <TableCell>{formatCallDuration(call.startedAt, call.endedAt)}</TableCell>
             <TableCell>{call.endedReason ?? "-"}</TableCell>
+            <TableCell>
+              <DecisionBadge analysisStatus={call.analysisStatus} aiOutcome={call.aiOutcome} />
+            </TableCell>
             <TableCell className="text-right">
               <Link href={`/calls/${call.id}`} className="text-sm hover:underline">
                 Transcript

@@ -96,6 +96,19 @@ export function devOutboxPath(providerMessageId: string): string {
   return path.join(process.cwd(), ".dev-emails", providerMessageId.replace("dev-outbox:", ""));
 }
 
+// Runs `run` while recording everything printed to the console, then restores it.
+export async function captureConsole<T>(run: () => Promise<T>): Promise<{ result: T; logs: string[] }> {
+  const logs: string[] = [];
+  const originals = { log: console.log, info: console.info, warn: console.warn, error: console.error, debug: console.debug };
+  const record = (...args: unknown[]) => logs.push(args.map(String).join(" "));
+  Object.assign(console, { log: record, info: record, warn: record, error: record, debug: record });
+  try {
+    return { result: await run(), logs };
+  } finally {
+    Object.assign(console, originals);
+  }
+}
+
 export async function check(description: string, run: () => Promise<void>) {
   try {
     await run();

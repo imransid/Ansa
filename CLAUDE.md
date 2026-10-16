@@ -65,6 +65,15 @@ and creates a ticket for a human expert when it can't.
 - Webhooks (services/vapi-webhook.ts) always run in this order: size cap -> raw
   bytes -> signature + timestamp -> rate limit -> JSON parse -> Zod -> save. The
   company comes from our phone_lines table, never from the payload.
+- Call brain (step 7): lib/call-brain/ holds the slice, prompt, output schema and
+  guards; adapters/claude.ts is the ONLY file that talks to Anthropic;
+  services/call-analysis.ts runs it after the webhook responds (Next's after()).
+  - Claude never gets company, caller number or ids, has no tools, and its output
+    has no company/call field. The service applies the decision to the call it asked about.
+  - Anything missing, malformed, unexpected, refused, truncated or failed becomes
+    "needs_human". "solved" needs the customer's own words, found verbatim in a
+    customer turn of the slice. Never add a path that defaults to "solved".
+  - Checks use fake models (DecisionAsker). Never call the real API from checks.
 - Sensitive text at rest (transcripts now, OAuth tokens later) goes through
   lib/encryption.ts with a context naming its company and record.
 - Every customer email is first a row in outgoing_emails, written in the same
@@ -94,6 +103,9 @@ and creates a ticket for a human expert when it can't.
   only an error's class name in code that handles call data.
 - All secrets in .env.local only. Never hardcode. Never commit .env
 - Encrypt stored third-party OAuth tokens at rest
+- Claude API: send the smallest slice of customer data that does the job, never a
+  whole transcript when less will do. Never log the prompt, Claude's raw response,
+  or SDK error messages (they can quote the response).
 - Verify webhook signatures on every incoming webhook (Vapi, Resend) before parsing
   anything: read raw bytes for the HMAC only. Unsigned or badly signed requests get
   401 and the only log line is the rejection.
@@ -171,6 +183,13 @@ Do not jump ahead. Finish step N before starting step N+1.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
   no key rotation yet (the "v1:" prefix leaves room for it).
 - Phone lines are linked with pnpm link:phone-line until onboarding (step 12).
+- Call brain quality is unmeasured: no eval set yet. Collect real calls, then
+  tune the prompt, effort and model against them before trusting "solved".
+- The transcript parser assumes Vapi's "AI:" / "User:" labels. Confirm with the
+  first real transcript (lib/call-brain/transcript-slice.ts).
+- Transcript slices are sent to Anthropic, which keeps API data for a limited
+  time by default. Zero data retention is an org-level arrangement with Anthropic.
+- The system prompt is too short for prompt caching to apply, so it isn't cached.
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -202,3 +221,7 @@ Do not jump ahead. Finish step N before starting step N+1.
 - 2026-10-16: Transcripts encrypted at rest with AES-256-GCM. Caller numbers stay
   plain (step 8 copies them onto tickets). Only end-of-call-report is handled.
 - 2026-10-16: Read-only Calls page (list + transcript), company-scoped.
+- 2026-10-16: The brain analyses finished calls (Vapi runs the live conversation).
+  No custom-model mode. Model from ANTHROPIC_MODEL, starting at claude-sonnet-5-5,
+  effort high. No refusal fallback: a refusal escalates. Without ANTHROPIC_API_KEY
+  every call escalates ("model unavailable").
