@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
+import { retryCustomerEmailForSession } from "@/services/customer-emails";
 import {
   assignTicketForSession,
   markTicketSolvedForSession,
@@ -42,6 +43,17 @@ export async function reopenTicketAction(
   const session = await requireSessionContext();
   const result = await reopenTicketForSession(session, {
     ticketId: formData.get("ticketId"),
+  });
+  return refreshTicketPagesOrReturnErrors(result);
+}
+
+export async function retryCustomerEmailAction(
+  _previousErrors: FormErrors | undefined,
+  formData: FormData,
+): Promise<FormErrors | undefined> {
+  const session = await requireSessionContext();
+  const result = await retryCustomerEmailForSession(session, {
+    emailId: formData.get("emailId"),
   });
   return refreshTicketPagesOrReturnErrors(result);
 }

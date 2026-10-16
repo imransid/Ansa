@@ -61,6 +61,9 @@ export const tickets = pgTable(
       table.companyId,
       table.ticketNumber,
     ),
+    // id is already unique. This pair lets other tables use a (company_id,
+    // ticket_id) foreign key, same idea as users_company_id_id_unique.
+    unique("tickets_company_id_id_unique").on(table.companyId, table.id),
     // Safety net under the app's own checks: Postgres refuses any assignee or
     // solver who is not in the ticket's company. When the user column is empty
     // (unassigned, not solved) Postgres skips the check.

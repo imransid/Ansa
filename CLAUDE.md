@@ -59,6 +59,12 @@ and creates a ticket for a human expert when it can't.
   foreign key before the unique constraint it needs: check the migration order.
 - User ids from forms are only claims. Updates check them inside the same SQL
   statement (see db/ticket-updates.ts), never in a separate earlier read.
+- Email: core code only calls sendEmail() in lib/send-email.ts. It writes to
+  .dev-emails/ (adapters/dev-email-outbox.ts) unless SEND_REAL_EMAIL is exactly
+  "true", then it uses adapters/resend.ts. Never call Resend directly.
+- Every customer email is first a row in outgoing_emails, written in the same
+  transaction as the change that causes it, then delivered right after commit.
+  The row id is the idempotency key, so a retry never sends twice.
 - Next.js 16 has Cache Components on: any component that reads the session must
   sit inside <Suspense>. See app/dashboard/page.tsx. Read @AGENTS.md before
   writing Next.js code; this version differs from older docs.
@@ -140,6 +146,11 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Old rate_limits rows are never deleted. Add a cleanup job when it matters.
 - Ticket list has no pagination (50 cap). See TICKET_LIST_LIMIT in db/tickets.ts.
 - Times are shown in UTC, not the viewer's local time (lib/format-date.ts).
+- Production must set SEND_REAL_EMAIL=true. Otherwise emails go to .dev-emails/,
+  which fails on read-only hosting, and tickets show "Email failed".
+- No automatic email retries: if the server stops between saving and sending, the
+  email stays "not sent yet" until someone clicks Retry on the ticket.
+- No Resend webhooks yet (bounces, deliveries). When added, verify signatures (Rule 1).
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -158,3 +169,9 @@ Do not jump ahead. Finish step N before starting step N+1.
 - 2026-10-16: Anyone in the company can assign and solve tickets. Only owners can
   reopen. Reopen sets status open and clears solved_at and solved_by_user_id.
   Solving a reopened ticket again sends the customer another email (step 5).
+- 2026-10-16: Customer emails use an outbox table (outgoing_emails) with a Retry
+  button. No customer email on the ticket = no email, page says so.
+- 2026-10-16: One shared EMAIL_FROM, company name as display name. If
+  companies.reply_to_email is set it becomes the Reply-To (nothing sets it yet).
+- 2026-10-16: Real email only when SEND_REAL_EMAIL=true. Default everywhere is
+  writing emails to .dev-emails/.

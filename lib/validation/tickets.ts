@@ -53,3 +53,7 @@ export const assignTicketSchema = z.object({
     .max(100)
     .transform((value) => (value === "" ? null : value)),
 });
+
+export const ticketEmailIdSchema = z.object({
+  emailId: z.uuid(),
+});

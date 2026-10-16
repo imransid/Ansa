@@ -13,21 +13,10 @@ import {
   markTicketSolvedForSession,
   reopenTicketForSession,
 } from "@/services/tickets";
-import { addTeammate, check, sessionFor, type TestUser } from "./helpers";
+import { addTeammate, assertRefusedByConstraint, check, sessionFor, type TestUser } from "./helpers";
 
 function newTicket(subject: string) {
   return { subject, description: "Created by the assignment checks.", channel: "email" };
-}
-
-// Drizzle wraps database errors; the Postgres error, which names the
-// constraint that refused the change, is in `cause`.
-async function assertRefusedByConstraint(query: Promise<unknown>, constraintName: string) {
-  await assert.rejects(query, (error: unknown) => {
-    const cause = error instanceof Error ? error.cause : undefined;
-    assert.ok(typeof cause === "object" && cause !== null && "constraint" in cause, `no database error: ${error}`);
-    assert.equal(cause.constraint, constraintName);
-    return true;
-  });
 }
 
 async function readTicket(user: TestUser, ticketNumber: number) {

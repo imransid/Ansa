@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { assignTicket, markTicketSolved, reopenTicket } from "@/db/ticket-updates";
+import { assignTicket, markTicketSolvedAndQueueEmail, reopenTicket } from "@/db/ticket-updates";
 import {
   createTicket,
   getTicketByNumber,
@@ -19,6 +19,7 @@ import {
   ticketIdSchema,
   ticketNumberSchema,
 } from "@/lib/validation/tickets";
+import { deliverOutgoingEmail } from "./customer-emails";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
 // Re-exported so pages can use the types without importing from /db.
@@ -85,8 +86,8 @@ export async function assignTicketForSession(
   return { ok: true };
 }
 
-// Marks an open ticket of the session's company as solved by the logged-in user.
-// Anyone in the company may do this.
+// Marks an open ticket of the session's company as solved by the logged-in user,
+// then emails the customer if they have an email address. Anyone in the company may do this.
 export async function markTicketSolvedForSession(
   session: SessionContext,
   input: unknown,
@@ -99,9 +100,19 @@ export async function markTicketSolvedForSession(
     return tooManyChanges();
   }
 
-  const wasSolved = await markTicketSolved(session.companyId, parsed.data.ticketId, session.userId);
-  if (!wasSolved) {
+  const { solved, queuedEmailId } = await markTicketSolvedAndQueueEmail(
+    session.companyId,
+    parsed.data.ticketId,
+    session.userId,
+  );
+  if (!solved) {
     return { ok: false, errors: { message: "This ticket is already solved or was not found." } };
+  }
+
+  // The ticket is solved either way. If delivery fails, the ticket page shows
+  // "Email failed" with a Retry button, so nothing is lost.
+  if (queuedEmailId) {
+    await deliverOutgoingEmail(session.companyId, queuedEmailId);
   }
   return { ok: true };
 }

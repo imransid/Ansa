@@ -6,6 +6,9 @@ export const companies = pgTable("companies", {
   name: text("name").notNull(),
   // The number given to this company's most recent ticket. See createTicket.
   lastTicketNumber: integer("last_ticket_number").notNull().default(0),
+  // Where customer replies to our emails should go (the Reply-To header).
+  // Empty = no Reply-To. Nothing sets it yet.
+  replyToEmail: text("reply_to_email"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

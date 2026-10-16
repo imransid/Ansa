@@ -1,9 +1,9 @@
 import "server-only";
 import { and, eq, exists, sql } from "drizzle-orm";
 import { db } from "./client";
-import { tickets, users } from "./schema";
+import { outgoingEmails, tickets, users } from "./schema";
 
-// Each function below is a single UPDATE whose WHERE clause holds every rule.
+// Each function below changes tickets with an UPDATE whose WHERE clause holds every rule.
 // If any rule fails (wrong company, wrong status, unknown person), no row
 // matches, nothing changes, and the function returns false.
 
@@ -41,29 +41,59 @@ export async function assignTicket(
   return updated.length > 0;
 }
 
-// Marks one company's open ticket as solved by the given person.
-// solvedByUserId must be the session's own user.
-export async function markTicketSolved(
+export type SolveResult = {
+  solved: boolean;
+  // The queued "your request is solved" email, or null when the customer has
+  // no email address on file (or the ticket was not solved).
+  queuedEmailId: string | null;
+};
+
+// Marks one company's open ticket as solved by the given person and, if the
+// customer has an email address, queues the "solved" email in the same
+// transaction. solvedByUserId must be the session's own user.
+export async function markTicketSolvedAndQueueEmail(
   companyId: string,
   ticketId: string,
   solvedByUserId: string,
-): Promise<boolean> {
-  const updated = await db
-    .update(tickets)
-    .set({
-      status: "solved",
-      solvedAt: sql`now()`,
-      solvedByUserId,
-    })
-    .where(
-      and(
-        eq(tickets.id, ticketId),
-        eq(tickets.companyId, companyId),
-        eq(tickets.status, "open"),
-      ),
-    )
-    .returning({ id: tickets.id });
-  return updated.length > 0;
+): Promise<SolveResult> {
+  // One transaction: either the ticket is solved AND its email is queued, or
+  // neither happens. The email is delivered after this commits.
+  return db.transaction(async (tx) => {
+    const [solvedTicket] = await tx
+      .update(tickets)
+      .set({
+        status: "solved",
+        solvedAt: sql`now()`,
+        solvedByUserId,
+      })
+      .where(
+        and(
+          eq(tickets.id, ticketId),
+          eq(tickets.companyId, companyId),
+          eq(tickets.status, "open"),
+        ),
+      )
+      .returning({ id: tickets.id, customerEmail: tickets.customerEmail });
+
+    if (!solvedTicket) {
+      return { solved: false, queuedEmailId: null };
+    }
+    if (!solvedTicket.customerEmail) {
+      return { solved: true, queuedEmailId: null };
+    }
+
+    const [queuedEmail] = await tx
+      .insert(outgoingEmails)
+      .values({
+        companyId,
+        ticketId: solvedTicket.id,
+        kind: "ticket_solved",
+        toEmail: solvedTicket.customerEmail,
+      })
+      .returning({ id: outgoingEmails.id });
+
+    return { solved: true, queuedEmailId: queuedEmail.id };
+  });
 }
 
 // Reopens one company's solved ticket and clears who solved it and when.

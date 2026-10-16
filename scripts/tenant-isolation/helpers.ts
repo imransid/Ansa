@@ -1,9 +1,12 @@
 // Shared pieces for the tenant isolation checks: test data and a tiny check runner.
 
+import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readdir, rm } from "node:fs/promises";
+import path from "node:path";
 import { inArray, like } from "drizzle-orm";
 import { db } from "@/db/client";
-import { companies, invites, tickets, userRoles, users, type UserRole } from "@/db/schema";
+import { companies, invites, outgoingEmails, tickets, userRoles, users, type UserRole } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
 import { createInviteForSession } from "@/services/invites";
@@ -77,6 +80,22 @@ export function sessionFor(user: TestUser): SessionContext {
   return { userId: user.id, companyId: user.companyId, role: user.role, name: "Test", email: user.email };
 }
 
+// Drizzle wraps database errors; the Postgres error, which names the
+// constraint that refused the change, is in `cause`.
+export async function assertRefusedByConstraint(query: Promise<unknown>, constraintName: string) {
+  await assert.rejects(query, (error: unknown) => {
+    const cause = error instanceof Error ? error.cause : undefined;
+    assert.ok(typeof cause === "object" && cause !== null && "constraint" in cause, `no database error: ${error}`);
+    assert.equal(cause.constraint, constraintName);
+    return true;
+  });
+}
+
+// Where the dev outbox wrote an email, from its providerMessageId "dev-outbox:<file>".
+export function devOutboxPath(providerMessageId: string): string {
+  return path.join(process.cwd(), ".dev-emails", providerMessageId.replace("dev-outbox:", ""));
+}
+
 export async function check(description: string, run: () => Promise<void>) {
   try {
     await run();
@@ -102,6 +121,7 @@ export async function cleanUpTestData() {
   const testCompanyIds = testCompanies.map((company) => company.id);
 
   if (testCompanyIds.length > 0) {
+    await deleteTestEmails(testCompanyIds);
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
     await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
   }
@@ -111,4 +131,23 @@ export async function cleanUpTestData() {
   if (testCompanyIds.length > 0) {
     await db.delete(companies).where(inArray(companies.id, testCompanyIds));
   }
+}
+
+// Removes the test companies' email rows and every dev outbox file they wrote.
+// A retried email writes one file per attempt, all named after the email id.
+async function deleteTestEmails(testCompanyIds: string[]) {
+  const emails = await db
+    .select({ id: outgoingEmails.id })
+    .from(outgoingEmails)
+    .where(inArray(outgoingEmails.companyId, testCompanyIds));
+  const emailIds = emails.map((email) => email.id);
+
+  const outboxDir = path.join(process.cwd(), ".dev-emails");
+  const outboxFiles = await readdir(outboxDir).catch(() => []);
+  for (const fileName of outboxFiles) {
+    if (emailIds.some((emailId) => fileName.includes(emailId))) {
+      await rm(path.join(outboxDir, fileName), { force: true });
+    }
+  }
+  await db.delete(outgoingEmails).where(inArray(outgoingEmails.companyId, testCompanyIds));
 }

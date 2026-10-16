@@ -6,9 +6,11 @@ import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
 import { formatUtcDateTime } from "@/lib/format-date";
 import { requireSessionContext } from "@/lib/session";
+import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getDashboardSummary } from "@/services/dashboard";
 import { listTeamMembersForSession } from "@/services/team";
 import { getTicketForSession, type TicketDetail } from "@/services/tickets";
+import { CustomerEmailStatus } from "./customer-email-status";
 import { TicketActions } from "./ticket-actions";
 
 export const metadata: Metadata = { title: "Ticket - ansa" };
@@ -39,9 +41,10 @@ async function TicketContent({
     notFound();
   }
 
-  const [summary, teamMembers] = await Promise.all([
+  const [summary, teamMembers, latestEmail] = await Promise.all([
     getDashboardSummary(session),
     listTeamMembersForSession(session),
+    getLatestCustomerEmailForSession(session, ticket.id),
   ]);
 
   return (
@@ -51,6 +54,7 @@ async function TicketContent({
         &larr; All tickets
       </Link>
       <TicketSummary ticket={ticket} />
+      <CustomerEmailStatus ticket={ticket} latestEmail={latestEmail} />
       <TicketActions
         ticketId={ticket.id}
         status={ticket.status}
