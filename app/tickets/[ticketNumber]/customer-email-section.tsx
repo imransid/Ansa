@@ -2,15 +2,18 @@
 
 import { useActionState, useState } from "react";
 import { setCustomerEmailAction } from "@/app/actions/tickets";
+import { LocalDateTime } from "@/components/local-date-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// Who typed the email in and when, "came-with-ticket", or null when there is no email.
+export type EmailOrigin = { setByName: string; setAtIso: string } | "came-with-ticket" | null;
+
 type CustomerEmailSectionProps = {
   ticketId: string;
   customerEmail: string | null;
-  // "Entered by Ana on ...", "Came with the ticket", or null when there is no email.
-  originLine: string | null;
+  origin: EmailOrigin;
 };
 
 // Shows the customer's email and lets anyone in the company add or change it.
@@ -18,7 +21,7 @@ type CustomerEmailSectionProps = {
 // address is shown back for confirmation and only saved after "Yes, save".
 // The page gives this component a key that changes on every save, so it
 // starts again in "view" mode afterwards.
-export function CustomerEmailSection({ ticketId, customerEmail, originLine }: CustomerEmailSectionProps) {
+export function CustomerEmailSection({ ticketId, customerEmail, origin }: CustomerEmailSectionProps) {
   const [mode, setMode] = useState<"view" | "edit" | "confirm">("view");
   const [typedEmail, setTypedEmail] = useState(customerEmail ?? "");
   const [errors, saveAction, isSaving] = useActionState(setCustomerEmailAction, undefined);
@@ -35,7 +38,12 @@ export function CustomerEmailSection({ ticketId, customerEmail, originLine }: Cu
           {customerEmail ? (
             <p className="text-sm">
               <strong>{customerEmail}</strong>
-              {originLine && <span className="text-muted-foreground"> · {originLine}</span>}
+              {origin === "came-with-ticket" && <span className="text-muted-foreground"> · came with the ticket</span>}
+              {origin && origin !== "came-with-ticket" && (
+                <span className="text-muted-foreground">
+                  {" "}· entered by {origin.setByName} on <LocalDateTime iso={origin.setAtIso} />
+                </span>
+              )}
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">

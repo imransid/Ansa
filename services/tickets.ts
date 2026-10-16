@@ -31,11 +31,12 @@ import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 // Re-exported so pages can use the types without importing from /db.
 export type { TicketCounts, TicketDetail, TicketListItem };
 
-// Lists the newest tickets of the logged-in user's company.
+// Lists one page of the logged-in user's company's tickets, newest first.
 export async function listTicketsForSession(
   session: SessionContext,
+  page = 1,
 ): Promise<TicketListItem[]> {
-  return getTicketsForCompany(session.companyId);
+  return getTicketsForCompany(session.companyId, page);
 }
 
 // Counts open and solved tickets of the logged-in user's company.

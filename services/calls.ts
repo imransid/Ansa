@@ -1,5 +1,5 @@
 import "server-only";
-import { getCallById, getCallsForCompany, insertCallIfNew, type CallListItem } from "@/db/calls";
+import { countCallsForCompany, getCallById, getCallsForCompany, insertCallIfNew, type CallListItem } from "@/db/calls";
 import { findPhoneLineByVapiNumberId } from "@/db/phone-lines";
 import type { DecisionSource } from "@/db/schema";
 import { getTicketNumberForCall } from "@/db/tickets";
@@ -63,9 +63,14 @@ export async function saveEndOfCallReport(report: EndOfCallReport): Promise<Save
   return { outcome: "saved", companyId: line.companyId, callId: newCallId };
 }
 
-// Lists the newest calls of the logged-in user's company.
-export async function listCallsForSession(session: SessionContext): Promise<CallListItem[]> {
-  return getCallsForCompany(session.companyId);
+// Lists one page of the logged-in user's company's calls, newest first.
+export async function listCallsForSession(session: SessionContext, page = 1): Promise<CallListItem[]> {
+  return getCallsForCompany(session.companyId, page);
+}
+
+// Counts the logged-in user's company's calls.
+export async function countCallsForSession(session: SessionContext): Promise<number> {
+  return countCallsForCompany(session.companyId);
 }
 
 // Reads one call of the session's company, decrypting its transcript and the

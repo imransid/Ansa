@@ -11,31 +11,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCallDuration } from "@/lib/format-duration";
-import { formatUtcDateTime } from "@/lib/format-date";
+import { LocalDateTime } from "@/components/local-date-time";
+import { PaginationLinks } from "@/components/pagination-links";
+import { parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
-import { listCallsForSession, type CallListItem } from "@/services/calls";
+import { countCallsForSession, listCallsForSession, type CallListItem } from "@/services/calls";
 import { getDashboardSummary } from "@/services/dashboard";
 import { DecisionBadge } from "./decision-badge";
 
 export const metadata: Metadata = { title: "Calls - ansa" };
 
-export default function CallsPage() {
+export default function CallsPage({ searchParams }: PageProps<"/calls">) {
   return (
     <main className="mx-auto grid w-full max-w-5xl gap-6 p-6">
       {/* Cache Components rule: anything that reads the session must sit
           inside <Suspense>, because it can only run at request time. */}
       <Suspense fallback={<p className="text-muted-foreground">Loading...</p>}>
-        <CallsContent />
+        <CallsContent searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function CallsContent() {
+async function CallsContent({ searchParams }: Pick<PageProps<"/calls">, "searchParams">) {
+  const page = parsePageNumber((await searchParams).page);
   const session = await requireSessionContext();
-  const [summary, calls] = await Promise.all([
+  const [summary, calls, totalCalls] = await Promise.all([
     getDashboardSummary(session),
-    listCallsForSession(session),
+    listCallsForSession(session, page),
+    countCallsForSession(session),
   ]);
 
   return (
@@ -43,13 +47,24 @@ async function CallsContent() {
       <AppHeader summary={summary} />
       <section className="grid gap-3">
         <h1 className="text-xl font-semibold">Calls</h1>
-        <CallsTable calls={calls} />
+        <CallsTable calls={calls} page={page} />
+        <PaginationLinks basePath="/calls" page={page} totalRows={totalCalls} />
       </section>
     </>
   );
 }
 
-function CallsTable({ calls }: { calls: CallListItem[] }) {
+function CallsTable({ calls, page }: { calls: CallListItem[]; page: number }) {
+  if (calls.length === 0 && page > 1) {
+    return (
+      <p className="rounded-lg border p-6 text-center text-muted-foreground">
+        Nothing on this page.{" "}
+        <Link href="/calls" className="underline">
+          Go to the first page
+        </Link>
+      </p>
+    );
+  }
   if (calls.length === 0) {
     return (
       <p className="rounded-lg border p-6 text-center text-muted-foreground">
@@ -62,7 +77,7 @@ function CallsTable({ calls }: { calls: CallListItem[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Started (UTC)</TableHead>
+          <TableHead>Started</TableHead>
           <TableHead>Caller</TableHead>
           <TableHead>Duration</TableHead>
           <TableHead>Ended because</TableHead>
@@ -73,7 +88,7 @@ function CallsTable({ calls }: { calls: CallListItem[] }) {
       <TableBody>
         {calls.map((call) => (
           <TableRow key={call.id}>
-            <TableCell>{call.startedAt ? formatUtcDateTime(call.startedAt) : "-"}</TableCell>
+            <TableCell>{call.startedAt ? <LocalDateTime iso={call.startedAt.toISOString()} /> : "-"}</TableCell>
             <TableCell>{call.callerNumber ?? "Withheld"}</TableCell>
             <TableCell>{formatCallDuration(call.startedAt, call.endedAt)}</TableCell>
             <TableCell>{call.endedReason ?? "-"}</TableCell>

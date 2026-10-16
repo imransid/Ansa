@@ -8,14 +8,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatUtcDateTime } from "@/lib/format-date";
+import { LocalDateTime } from "@/components/local-date-time";
 import type { TicketListItem } from "@/services/tickets";
 
 type TicketTableProps = {
   tickets: TicketListItem[];
+  page: number;
 };
 
-export function TicketTable({ tickets }: TicketTableProps) {
+export function TicketTable({ tickets, page }: TicketTableProps) {
+  if (tickets.length === 0 && page > 1) {
+    return (
+      <p className="rounded-lg border p-6 text-center text-muted-foreground">
+        Nothing on this page.{" "}
+        <Link href="/dashboard" className="underline">
+          Go to the first page
+        </Link>
+      </p>
+    );
+  }
   if (tickets.length === 0) {
     return (
       <p className="rounded-lg border p-6 text-center text-muted-foreground">
@@ -36,7 +47,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
           <TableHead>Assigned to</TableHead>
           <TableHead>Channel</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Created (UTC)</TableHead>
+          <TableHead>Created</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -59,7 +70,9 @@ export function TicketTable({ tickets }: TicketTableProps) {
                 {ticket.status}
               </Badge>
             </TableCell>
-            <TableCell>{formatUtcDateTime(ticket.createdAt)}</TableCell>
+            <TableCell>
+              <LocalDateTime iso={ticket.createdAt.toISOString()} />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

@@ -1,5 +1,6 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
+import { PAGE_SIZE, pageOffset } from "@/lib/pagination";
 import { db } from "./client";
 import { calls, type CallAnalysisStatus, type CallOutcome } from "./schema";
 
@@ -26,8 +27,6 @@ type NewCall = {
   transcriptEncrypted: string | null;
 };
 
-// No pagination yet, same as tickets.
-const CALL_LIST_LIMIT = 50;
 
 // Saves a finished call for one company, unless a call with the same Vapi id
 // was already saved. Returns the new call's id, or null if it already existed.
@@ -40,8 +39,8 @@ export async function insertCallIfNew(companyId: string, call: NewCall): Promise
   return inserted?.id ?? null;
 }
 
-// Lists one company's calls, newest first. Leaves out the transcript.
-export async function getCallsForCompany(companyId: string): Promise<CallListItem[]> {
+// Lists one page of one company's calls, newest first. Leaves out the transcript.
+export async function getCallsForCompany(companyId: string, page: number): Promise<CallListItem[]> {
   return db
     .select({
       id: calls.id,
@@ -54,8 +53,16 @@ export async function getCallsForCompany(companyId: string): Promise<CallListIte
     })
     .from(calls)
     .where(eq(calls.companyId, companyId))
-    .orderBy(desc(calls.createdAt))
-    .limit(CALL_LIST_LIMIT);
+    // id breaks ties, so a call never shows up on two pages.
+    .orderBy(desc(calls.createdAt), desc(calls.id))
+    .limit(PAGE_SIZE)
+    .offset(pageOffset(page));
+}
+
+// Counts one company's calls, for "Page 2 of 5".
+export async function countCallsForCompany(companyId: string): Promise<number> {
+  const [row] = await db.select({ total: count() }).from(calls).where(eq(calls.companyId, companyId));
+  return row?.total ?? 0;
 }
 
 // Reads one call of one company, including its encrypted transcript.

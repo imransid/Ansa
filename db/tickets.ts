@@ -1,6 +1,7 @@
 import "server-only";
 import { and, count, desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { PAGE_SIZE, pageOffset } from "@/lib/pagination";
 import { db } from "./client";
 import { tickets, users, type TicketStatus } from "./schema";
 
@@ -28,8 +29,6 @@ export type TicketDetail = Ticket & {
 
 export type TicketCounts = Record<TicketStatus, number>;
 
-// No pagination yet. 50 is plenty until real calls create tickets (step 7).
-const TICKET_LIST_LIMIT = 50;
 
 // Separate views of the users table: the person assigned, the person who
 // solved, and the person who typed in the customer's email. Every join also
@@ -39,9 +38,10 @@ const assignee = alias(users, "assignee");
 const solver = alias(users, "solver");
 const emailSetter = alias(users, "email_setter");
 
-// Lists one company's tickets, newest first (highest ticket number first).
+// Lists one page of one company's tickets, newest first (highest ticket number first).
 export async function getTicketsForCompany(
   companyId: string,
+  page: number,
 ): Promise<TicketListItem[]> {
   return db
     .select({
@@ -67,7 +67,8 @@ export async function getTicketsForCompany(
     )
     .where(eq(tickets.companyId, companyId))
     .orderBy(desc(tickets.ticketNumber))
-    .limit(TICKET_LIST_LIMIT);
+    .limit(PAGE_SIZE)
+    .offset(pageOffset(page));
 }
 
 // Reads one ticket of one company by its per-company number (#1, #2, ...).

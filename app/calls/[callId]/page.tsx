@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { formatCallDuration } from "@/lib/format-duration";
-import { formatUtcDateTime } from "@/lib/format-date";
+import { LocalDateTime } from "@/components/local-date-time";
 import { requireSessionContext } from "@/lib/session";
 import { getCallForSession, type CallDetail } from "@/services/calls";
 import { getDashboardSummary } from "@/services/dashboard";
@@ -42,8 +42,8 @@ async function CallContent({ params }: Pick<PageProps<"/calls/[callId]">, "param
       </Link>
       <h1 className="text-xl font-semibold">Call from {call.callerNumber ?? "a withheld number"}</h1>
       <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Started (UTC)</dt>
-        <dd>{call.startedAt ? formatUtcDateTime(call.startedAt) : "-"}</dd>
+        <dt className="text-muted-foreground">Started</dt>
+        <dd>{call.startedAt ? <LocalDateTime iso={call.startedAt.toISOString()} /> : "-"}</dd>
         <dt className="text-muted-foreground">Duration</dt>
         <dd>{formatCallDuration(call.startedAt, call.endedAt)}</dd>
         <dt className="text-muted-foreground">Ended because</dt>

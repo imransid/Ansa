@@ -92,6 +92,8 @@ and creates a ticket for a human expert when it can't.
 - Every customer email is first a row in outgoing_emails, written in the same
   transaction as the change that causes it, then delivered right after commit.
   The row id is the idempotency key, so a retry never sends twice.
+- Times: stored in UTC, shown with components/local-date-time.tsx (the viewer's own
+  timezone). Lists page with ?page= (lib/pagination.ts, 50 per page).
 - Next.js 16 has Cache Components on: any component that reads the session must
   sit inside <Suspense>. See app/dashboard/page.tsx. Read @AGENTS.md before
   writing Next.js code; this version differs from older docs.
@@ -162,9 +164,20 @@ and creates a ticket for a human expert when it can't.
 8. Auto-create ticket on escalate
 9. Expert enters the customer's email on a ticket
 10. Route tickets to experts by category (each person picks the categories they handle)
-11. First adapter (whichever vendor my first customer uses)
-12. Email channel using the same brain
-13. Company onboarding flow (connect software, upload docs to R2)
+11. Ticket and call lists in pages (no 50 cap), times in each viewer's local time
+12. Email verification at signup
+13. Email the expert when a ticket lands on them
+14. Call recordings stored in a private R2 bucket, viewed via short-lived links
+15. Email channel using the same brain (inbound provider: confirm at this step)
+16. Company onboarding flow (categories, team, phone number, reply-to, upload docs to R2)
+17. Going live: hosting (confirm at this step), Neon, checks on every push, error
+    monitoring without call data, rate-limit cleanup, Resend bounce webhook
+18. Payments (provider and pricing: decide at this step)
+19. Website: landing page, pricing, privacy policy and terms
+20. First adapter (whichever vendor my first customer uses). BLOCKED until known.
+
+Every outside service gets a local stand-in (like .dev-emails/), so each step can
+be built and tested before the real account exists.
 
 Do not jump ahead. Finish step N before starting step N+1.
 
@@ -179,8 +192,6 @@ Do not jump ahead. Finish step N before starting step N+1.
 - The IP used for rate limiting comes from x-forwarded-for. That header is only
   trustworthy behind a host that overwrites it (Vercel, Cloudflare). Check when hosting is picked.
 - Old rate_limits rows are never deleted. Add a cleanup job when it matters.
-- Ticket list has no pagination (50 cap). See TICKET_LIST_LIMIT in db/tickets.ts.
-- Times are shown in UTC, not the viewer's local time (lib/format-date.ts).
 - Production must set SEND_REAL_EMAIL=true. Otherwise emails go to .dev-emails/,
   which fails on read-only hosting, and tickets show "Email failed".
 - No automatic email retries: if the server stops between saving and sending, the
@@ -196,7 +207,7 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Call recordings are dropped. Copying them into a private R2 bucket is later work.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
   no key rotation yet (the "v1:" prefix leaves room for it).
-- Phone lines are linked with pnpm link:phone-line until onboarding (step 13).
+- Phone lines are linked with pnpm link:phone-line until onboarding (step 16).
 - Call brain quality is unmeasured: no eval set yet. Collect real calls, then
   tune the prompt, effort and model against them before trusting "solved".
 - The transcript parser assumes Vapi's "AI:" / "User:" labels. Confirm with the
@@ -274,3 +285,7 @@ Do not jump ahead. Finish step N before starting step N+1.
   owners can change anyone's. Routing: fewest open assigned tickets, ties to whoever
   joined first. Manual category menu on the ticket page. Assignments record
   automatic vs manual, plus routing's original pick (routed_to_user_id).
+- 2026-10-17: New build order for everything left (steps 11-20 above). The first
+  adapter moved to the end because it is blocked on the first customer's vendor.
+  Still one step at a time: plan, yes, build, test, commit. Proposed but NOT yet
+  decided: Vercel for hosting (step 17), Resend Receiving for inbound email (step 15).

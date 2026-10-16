@@ -4,14 +4,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
-import { formatUtcDateTime } from "@/lib/format-date";
+import { LocalDateTime } from "@/components/local-date-time";
 import { requireSessionContext } from "@/lib/session";
 import { listActiveCategoryNamesForSession } from "@/services/categories";
 import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getDashboardSummary } from "@/services/dashboard";
 import { listTeamMembersForSession } from "@/services/team";
 import { getTicketForSession, type TicketDetail } from "@/services/tickets";
-import { CustomerEmailSection } from "./customer-email-section";
+import { CustomerEmailSection, type EmailOrigin } from "./customer-email-section";
 import { CustomerEmailStatus } from "./customer-email-status";
 import { TicketActions } from "./ticket-actions";
 import { TicketCategoryForm } from "./ticket-category-form";
@@ -63,7 +63,7 @@ async function TicketContent({
         key={`${ticket.customerEmail ?? "none"}-${ticket.customerEmailSetAt?.toISOString() ?? "never"}`}
         ticketId={ticket.id}
         customerEmail={ticket.customerEmail}
-        originLine={describeEmailOrigin(ticket)}
+        origin={describeEmailOrigin(ticket)}
       />
       <CustomerEmailStatus ticket={ticket} latestEmail={latestEmail} />
       <TicketCategoryForm ticketId={ticket.id} category={ticket.category} categoryNames={categoryNames} />
@@ -98,8 +98,10 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
         <dd>{ticket.customerPhone ?? "-"}</dd>
         <dt className="text-muted-foreground">Assigned to</dt>
         <dd>{describeAssignment(ticket)}</dd>
-        <dt className="text-muted-foreground">Created (UTC)</dt>
-        <dd>{formatUtcDateTime(ticket.createdAt)}</dd>
+        <dt className="text-muted-foreground">Created</dt>
+        <dd>
+          <LocalDateTime iso={ticket.createdAt.toISOString()} />
+        </dd>
         {ticket.callId && (
           <>
             <dt className="text-muted-foreground">From call</dt>
@@ -113,9 +115,9 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
         )}
         {ticket.solvedAt && (
           <>
-            <dt className="text-muted-foreground">Solved (UTC)</dt>
+            <dt className="text-muted-foreground">Solved</dt>
             <dd>
-              {formatUtcDateTime(ticket.solvedAt)} by {ticket.solvedByName}
+              <LocalDateTime iso={ticket.solvedAt.toISOString()} /> by {ticket.solvedByName}
             </dd>
           </>
         )}
@@ -125,14 +127,14 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
 }
 
 // Where the customer's email came from, shown next to the address.
-function describeEmailOrigin(ticket: TicketDetail): string | null {
+function describeEmailOrigin(ticket: TicketDetail): EmailOrigin {
   if (!ticket.customerEmail) {
     return null;
   }
   if (ticket.customerEmailSetByName && ticket.customerEmailSetAt) {
-    return `entered by ${ticket.customerEmailSetByName} on ${formatUtcDateTime(ticket.customerEmailSetAt)} (UTC)`;
+    return { setByName: ticket.customerEmailSetByName, setAtIso: ticket.customerEmailSetAt.toISOString() };
   }
-  return "came with the ticket";
+  return "came-with-ticket";
 }
 
 // Who has the ticket and how they got it (step 10): routed by category, or picked by a person.

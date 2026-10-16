@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { REASON_LABELS, type ReasonCode } from "@/lib/call-brain/decision";
-import { formatUtcDateTime } from "@/lib/format-date";
+import { LocalDateTime } from "@/components/local-date-time";
 import type { CallDetail } from "@/services/calls";
 import { DecisionBadge } from "../decision-badge";
 import { AnalyzeNowButton } from "./analyze-now-button";
@@ -25,7 +25,11 @@ export function CallDecision({ call }: { call: CallDetail }) {
           <dt className="text-muted-foreground">Decided by</dt>
           <dd>
             {analysis.source === "model" ? `Claude (${analysis.model ?? "unknown model"})` : "A rule (Claude was not asked)"}
-            {analysis.decidedAt && `, ${formatUtcDateTime(analysis.decidedAt)} (UTC)`}
+            {analysis.decidedAt && (
+              <>
+                , <LocalDateTime iso={analysis.decidedAt.toISOString()} />
+              </>
+            )}
           </dd>
           <dt className="text-muted-foreground">Reason code</dt>
           <dd>

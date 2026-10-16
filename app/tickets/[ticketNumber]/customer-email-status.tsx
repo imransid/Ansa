@@ -1,4 +1,5 @@
-import { formatUtcDateTime } from "@/lib/format-date";
+import type { ReactNode } from "react";
+import { LocalDateTime } from "@/components/local-date-time";
 import type { CustomerEmailSummary } from "@/services/customer-emails";
 import type { TicketDetail } from "@/services/tickets";
 import { RetryEmailButton } from "./retry-email-button";
@@ -35,16 +36,16 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
   }
 
   if (latestEmail.status === "sent" && latestEmail.sentAt) {
-    const when = formatUtcDateTime(latestEmail.sentAt);
+    const when = <LocalDateTime iso={latestEmail.sentAt.toISOString()} />;
     // Real email is off (SEND_REAL_EMAIL), so it was only written to a file.
     if (latestEmail.providerMessageId?.startsWith("dev-outbox:")) {
       return (
         <StatusLine
-          text={`Email to ${latestEmail.toEmail} saved to .dev-emails/ on ${when} (UTC). Real email is off, so it was not sent.`}
+          text={<>Email to {latestEmail.toEmail} saved to .dev-emails/ on {when}. Real email is off, so it was not sent.</>}
         />
       );
     }
-    return <StatusLine text={`Customer emailed at ${latestEmail.toEmail} on ${when} (UTC).`} />;
+    return <StatusLine text={<>Customer emailed at {latestEmail.toEmail} on {when}.</>} />;
   }
 
   const problem =
@@ -59,6 +60,6 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
   );
 }
 
-function StatusLine({ text }: { text: string }) {
+function StatusLine({ text }: { text: ReactNode }) {
   return <p className="text-sm text-muted-foreground">{text}</p>;
 }

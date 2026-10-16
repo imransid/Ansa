@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatUtcDateTime } from "@/lib/format-date";
+import { LocalDateTime } from "@/components/local-date-time";
 import type { PendingInvite } from "@/services/team";
 
 type PendingInvitesTableProps = {
@@ -27,7 +27,7 @@ export function PendingInvitesTable({ invites }: PendingInvitesTableProps) {
         <TableRow>
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
-          <TableHead>Expires (UTC)</TableHead>
+          <TableHead>Expires</TableHead>
           <TableHead />
         </TableRow>
       </TableHeader>
@@ -40,7 +40,9 @@ export function PendingInvitesTable({ invites }: PendingInvitesTableProps) {
                 {invite.role}
               </Badge>
             </TableCell>
-            <TableCell>{formatUtcDateTime(invite.expiresAt)}</TableCell>
+            <TableCell>
+              <LocalDateTime iso={invite.expiresAt.toISOString()} />
+            </TableCell>
             <TableCell className="text-right">
               <form action={revokeInviteAction}>
                 <input type="hidden" name="inviteId" value={invite.id} />
