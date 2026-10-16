@@ -62,6 +62,11 @@ and creates a ticket for a human expert when it can't.
 - Email: core code only calls sendEmail() in lib/send-email.ts. It writes to
   .dev-emails/ (adapters/dev-email-outbox.ts) unless SEND_REAL_EMAIL is exactly
   "true", then it uses adapters/resend.ts. Never call Resend directly.
+- Webhooks (services/vapi-webhook.ts) always run in this order: size cap -> raw
+  bytes -> signature + timestamp -> rate limit -> JSON parse -> Zod -> save. The
+  company comes from our phone_lines table, never from the payload.
+- Sensitive text at rest (transcripts now, OAuth tokens later) goes through
+  lib/encryption.ts with a context naming its company and record.
 - Every customer email is first a row in outgoing_emails, written in the same
   transaction as the change that causes it, then delivered right after commit.
   The row id is the idempotency key, so a retry never sends twice.
@@ -84,10 +89,14 @@ and creates a ticket for a human expert when it can't.
 - Tenant isolation enforced in /db on every query (see Architecture rules), no exceptions
 - Never trust company_id from the client. Always read it from the Better Auth session on the server.
 - Validate every input with Zod before it touches the database
-- Never log API keys, tokens, phone numbers, or call transcripts
+- Never log API keys, tokens, phone numbers, call transcripts, or recording URLs,
+  anywhere, including error logs. Database errors contain query values, so log
+  only an error's class name in code that handles call data.
 - All secrets in .env.local only. Never hardcode. Never commit .env
 - Encrypt stored third-party OAuth tokens at rest
-- Verify webhook signatures on every incoming webhook (Vapi, Resend)
+- Verify webhook signatures on every incoming webhook (Vapi, Resend) before parsing
+  anything: read raw bytes for the HMAC only. Unsigned or badly signed requests get
+  401 and the only log line is the rejection.
 - Rate limit all public endpoints (counters stored in a Postgres table, no Redis)
 - Parameterized queries only. Use Drizzle's query builder or its sql`` template.
   Never sql.raw() with user input. Never string-concatenate SQL.
@@ -151,6 +160,17 @@ Do not jump ahead. Finish step N before starting step N+1.
 - No automatic email retries: if the server stops between saving and sending, the
   email stays "not sent yet" until someone clicks Retry on the ticket.
 - No Resend webhooks yet (bounces, deliveries). When added, verify signatures (Rule 1).
+- Vapi's real signing format is NOT confirmed yet (no account). On the first real
+  call, compare Vapi's Webhook Logs (dashboard) with the VAPI_* settings in
+  lib/env.ts and adjust env only. Also confirm the end-of-call-report field paths
+  in lib/validation/vapi.ts. Vapi only signs when the server URL comes from saved
+  config (assistant, phone number, Server Configuration), not inline API calls.
+- Testing real calls locally needs a tunnel (e.g. cloudflared) so Vapi can reach
+  /api/webhooks/vapi. Until then use pnpm simulate:vapi-call.
+- Call recordings are dropped. Copying them into a private R2 bucket is later work.
+- DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
+  no key rotation yet (the "v1:" prefix leaves room for it).
+- Phone lines are linked with pnpm link:phone-line until onboarding (step 12).
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -175,3 +195,10 @@ Do not jump ahead. Finish step N before starting step N+1.
   companies.reply_to_email is set it becomes the Reply-To (nothing sets it yet).
 - 2026-10-16: Real email only when SEND_REAL_EMAIL=true. Default everywhere is
   writing emails to .dev-emails/.
+- 2026-10-16: Vapi webhooks use HMAC. Defaults: SHA256, x-vapi-signature,
+  x-vapi-timestamp, "{timestamp}.{body}", hex, seconds, 5 min window. Header
+  names, algorithm, payload format, encoding, prefix and timestamp unit are env
+  settings so Vapi's real format can be matched without code changes.
+- 2026-10-16: Transcripts encrypted at rest with AES-256-GCM. Caller numbers stay
+  plain (step 8 copies them onto tickets). Only end-of-call-report is handled.
+- 2026-10-16: Read-only Calls page (list + transcript), company-scoped.

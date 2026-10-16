@@ -15,6 +15,9 @@ export function AppHeader({ summary }: AppHeaderProps) {
         <Link href="/dashboard" className="hover:underline">
           Tickets
         </Link>
+        <Link href="/calls" className="hover:underline">
+          Calls
+        </Link>
         <Link href="/team" className="hover:underline">
           Team
         </Link>

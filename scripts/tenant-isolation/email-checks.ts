@@ -132,7 +132,13 @@ export async function runEmailChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("only SEND_REAL_EMAIL=true turns real email on, and it needs a key and a From address", async () => {
-    const base = { DATABASE_URL: "postgres://x@localhost/x", BETTER_AUTH_SECRET: "s".repeat(32), BETTER_AUTH_URL: "http://localhost:3000" };
+    const base = {
+      DATABASE_URL: "postgres://x@localhost/x",
+      BETTER_AUTH_SECRET: "s".repeat(32),
+      BETTER_AUTH_URL: "http://localhost:3000",
+      DATA_ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
+      VAPI_WEBHOOK_SECRET: "v".repeat(32),
+    };
     assert.equal(parseEnv(base).SEND_REAL_EMAIL, undefined);
     assert.throws(() => parseEnv({ ...base, SEND_REAL_EMAIL: "true" }), /RESEND_API_KEY is required/);
     assert.throws(() => parseEnv({ ...base, SEND_REAL_EMAIL: "true", RESEND_API_KEY: "re_x" }), /EMAIL_FROM is required/);

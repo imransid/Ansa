@@ -6,7 +6,7 @@ import { readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { inArray, like } from "drizzle-orm";
 import { db } from "@/db/client";
-import { companies, invites, outgoingEmails, tickets, userRoles, users, type UserRole } from "@/db/schema";
+import { calls, companies, invites, outgoingEmails, phoneLines, tickets, userRoles, users, type UserRole } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
 import { createInviteForSession } from "@/services/invites";
@@ -122,6 +122,8 @@ export async function cleanUpTestData() {
 
   if (testCompanyIds.length > 0) {
     await deleteTestEmails(testCompanyIds);
+    await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
+    await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
     await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
   }

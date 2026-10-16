@@ -14,7 +14,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "check:tenant-isolation": "tsx --conditions=react-server --env-file=.env.local scripts/check-tenant-isolation.ts",
-    "seed:tickets": "tsx --conditions=react-server --env-file=.env.local scripts/seed-tickets.ts"
+    "seed:tickets": "tsx --conditions=react-server --env-file=.env.local scripts/seed-tickets.ts",
+    "link:phone-line": "tsx --conditions=react-server --env-file=.env.local scripts/link-phone-line.ts",
+    "simulate:vapi-call": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-vapi-call.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
