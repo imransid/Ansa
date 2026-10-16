@@ -53,6 +53,12 @@ and creates a ticket for a human expert when it can't.
   the Better Auth adapter: signups would deadlock on DB connections (see lib/auth.ts).
 - Invite links put the token after "#" so it never reaches the server or its logs.
   Only a SHA-256 hash of the token is stored.
+- Any column that points at a user (assignee, solver, ...) gets a composite foreign
+  key (company_id, user_id) -> users(company_id, id), so Postgres itself refuses a
+  user from another company. See db/schema/tickets.ts. drizzle-kit may write that
+  foreign key before the unique constraint it needs: check the migration order.
+- User ids from forms are only claims. Updates check them inside the same SQL
+  statement (see db/ticket-updates.ts), never in a separate earlier read.
 - Next.js 16 has Cache Components on: any component that reads the session must
   sit inside <Suspense>. See app/dashboard/page.tsx. Read @AGENTS.md before
   writing Next.js code; this version differs from older docs.
@@ -114,9 +120,10 @@ and creates a ticket for a human expert when it can't.
 6. Vapi webhook receiving a call transcript
 7. Claude brain: decide solve vs escalate
 8. Auto-create ticket on escalate
-9. First adapter (whichever vendor my first customer uses)
-10. Email channel using the same brain
-11. Company onboarding flow (connect software, upload docs to R2)
+9. Route tickets to experts by category (each person picks the categories they handle)
+10. First adapter (whichever vendor my first customer uses)
+11. Email channel using the same brain
+12. Company onboarding flow (connect software, upload docs to R2)
 
 Do not jump ahead. Finish step N before starting step N+1.
 
@@ -144,3 +151,10 @@ Do not jump ahead. Finish step N before starting step N+1.
 - 2026-10-16: Own companies table. One user belongs to exactly one company via
   users.company_id. No Better Auth organization plugin.
 - 2026-10-16: Teammate invites (step 3) start as copy-paste invite links, no email.
+- 2026-10-16: Invites are tied to one email, 7 days, single use, revocable. The owner
+  picks owner or member (default member). Only owners create or revoke invites.
+- 2026-10-16: Category routing is its own step after auto-create (step 9). Step 4
+  is manual assignment only.
+- 2026-10-16: Anyone in the company can assign and solve tickets. Only owners can
+  reopen. Reopen sets status open and clears solved_at and solved_by_user_id.
+  Solving a reopened ticket again sends the customer another email (step 5).

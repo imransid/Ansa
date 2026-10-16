@@ -33,3 +33,23 @@ export const newTicketSchema = z.object({
 });
 
 export type NewTicketInput = z.infer<typeof newTicketSchema>;
+
+// Ticket numbers arrive as text (from the URL), so they are converted first.
+// "abc", "0", "-1" and "1.5" are all rejected.
+export const ticketNumberSchema = z.coerce.number().int().positive().max(2_147_483_647);
+
+export const ticketIdSchema = z.object({
+  ticketId: z.uuid(),
+});
+
+export const assignTicketSchema = z.object({
+  ticketId: z.uuid(),
+  // "" is the "Unassigned" choice in the form and becomes null.
+  // Any other value is only a claim: db/ticket-updates.ts checks the person
+  // really is in the ticket's company before saving.
+  assigneeUserId: z
+    .string()
+    .trim()
+    .max(100)
+    .transform((value) => (value === "" ? null : value)),
+});

@@ -6,6 +6,7 @@ import { db } from "@/db/client";
 import { companies, invites, tickets, userRoles, users, type UserRole } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
+import { createInviteForSession } from "@/services/invites";
 
 // Every company and email created by one run contains this id, so cleanUp
 // can find exactly what this run created and nothing else.
@@ -50,6 +51,25 @@ export async function signUpTestOwner(label: string): Promise<TestUser> {
     password: testPassword,
     companyName: `Isolation test ${label} ${runId}`,
   });
+}
+
+// Creates an invite as `owner` and returns the token from the link.
+export async function inviteAs(owner: TestUser, email: string, role: UserRole) {
+  const result = await createInviteForSession(sessionFor(owner), { email, role });
+  if (!result.ok) {
+    throw new Error(`Could not create invite: ${JSON.stringify(result.errors)}`);
+  }
+  return result.inviteLink.split("#")[1];
+}
+
+export function joinWithToken(email: string, inviteToken: string): Promise<TestUser> {
+  return signUpWithBody({ name: "Invited", email, password: testPassword, inviteToken });
+}
+
+// Adds a new person to the owner's company through a real invite.
+export async function addTeammate(owner: TestUser, label: string, role: UserRole): Promise<TestUser> {
+  const email = testEmail(label);
+  return joinWithToken(email, await inviteAs(owner, email, role));
 }
 
 // Services only read companyId, userId and role from the session; the rest is filler.

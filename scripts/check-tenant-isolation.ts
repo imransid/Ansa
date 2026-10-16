@@ -7,6 +7,7 @@
 // Creates throwaway companies, users, tickets and invites, and deletes them at the end.
 
 import { db } from "@/db/client";
+import { runAssignmentChecks } from "./tenant-isolation/assignment-checks";
 import { cleanUpTestData, getFailureCount, signUpTestOwner } from "./tenant-isolation/helpers";
 import { runInviteChecks } from "./tenant-isolation/invite-checks";
 import { runSignupChecks } from "./tenant-isolation/signup-checks";
@@ -19,6 +20,7 @@ async function runChecksAndCleanUp() {
     await runSignupChecks(ownerA, ownerB);
     await runTicketChecks(ownerA, ownerB);
     await runInviteChecks(ownerA, ownerB);
+    await runAssignmentChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();

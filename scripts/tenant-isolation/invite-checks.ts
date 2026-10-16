@@ -11,22 +11,19 @@ import { generateInviteToken, hashInviteToken } from "@/lib/invite-token";
 import { createMembershipForNewUser } from "@/services/company-membership";
 import { createInviteForSession, revokeInviteForSession } from "@/services/invites";
 import { getTeamForSession } from "@/services/team";
-import { check, runId, sessionFor, signUpWithBody, testEmail, testPassword, type TestUser } from "./helpers";
+import {
+  check,
+  inviteAs,
+  joinWithToken,
+  runId,
+  sessionFor,
+  signUpWithBody,
+  testEmail,
+  testPassword,
+  type TestUser,
+} from "./helpers";
 
 const INVITE_NOT_USABLE = /This invite is not valid, already used, revoked or expired/;
-
-// Creates an invite as `owner` and returns the token from the link.
-async function inviteAs(owner: TestUser, email: string, role: "owner" | "member") {
-  const result = await createInviteForSession(sessionFor(owner), { email, role });
-  if (!result.ok) {
-    throw new Error(`Could not create invite: ${JSON.stringify(result.errors)}`);
-  }
-  return result.inviteLink.split("#")[1];
-}
-
-function joinWithToken(email: string, inviteToken: string) {
-  return signUpWithBody({ name: "Invited", email, password: testPassword, inviteToken });
-}
 
 async function findPendingInviteId(owner: TestUser, email: string): Promise<string> {
   const pending = await getPendingInvitesForCompany(owner.companyId);

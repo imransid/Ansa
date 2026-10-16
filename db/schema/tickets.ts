@@ -1,4 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
+  foreignKey,
   integer,
   pgEnum,
   pgTable,
@@ -7,6 +10,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth";
 import { companies } from "./companies";
 
 export const ticketStatuses = ["open", "solved"] as const;
@@ -33,11 +37,16 @@ export const tickets = pgTable(
     description: text("description").notNull(),
     status: ticketStatusEnum("status").notNull().default("open"),
     channel: ticketChannelEnum("channel").notNull(),
-    // Used in step 4 to route tickets to the right expert. Nothing sets it yet.
+    // Used later to route tickets to the right expert. Nothing sets it yet.
     category: text("category"),
     customerName: text("customer_name"),
     customerEmail: text("customer_email"),
     customerPhone: text("customer_phone"),
+    // The expert working on it. Empty = unassigned.
+    assignedToUserId: text("assigned_to_user_id"),
+    // Both set when the ticket is solved, both cleared when it is reopened.
+    solvedAt: timestamp("solved_at", { withTimezone: true }),
+    solvedByUserId: text("solved_by_user_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -46,11 +55,29 @@ export const tickets = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  // Also serves as the index for "this company's tickets, newest first".
   (table) => [
+    // Also serves as the index for "this company's tickets, newest first".
     unique("tickets_company_id_ticket_number_unique").on(
       table.companyId,
       table.ticketNumber,
+    ),
+    // Safety net under the app's own checks: Postgres refuses any assignee or
+    // solver who is not in the ticket's company. When the user column is empty
+    // (unassigned, not solved) Postgres skips the check.
+    foreignKey({
+      name: "tickets_assignee_in_same_company_fk",
+      columns: [table.companyId, table.assignedToUserId],
+      foreignColumns: [users.companyId, users.id],
+    }),
+    foreignKey({
+      name: "tickets_solver_in_same_company_fk",
+      columns: [table.companyId, table.solvedByUserId],
+      foreignColumns: [users.companyId, users.id],
+    }),
+    // A ticket is solved exactly when it has both a solved time and a solver.
+    check(
+      "tickets_solved_fields_match_status",
+      sql`(${table.status} = 'solved') = (${table.solvedAt} IS NOT NULL AND ${table.solvedByUserId} IS NOT NULL)`,
     ),
   ],
 );

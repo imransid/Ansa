@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { companies } from "./companies";
@@ -42,7 +43,13 @@ export const users = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index("users_company_id_idx").on(table.companyId)],
+  (table) => [
+    index("users_company_id_idx").on(table.companyId),
+    // id is already unique on its own. This pair exists so other tables can use
+    // a foreign key on (company_id, user_id), which makes Postgres itself refuse
+    // to link a row to a user from a different company. See tickets.ts.
+    unique("users_company_id_id_unique").on(table.companyId, table.id),
+  ],
 );
 
 export const sessions = pgTable(

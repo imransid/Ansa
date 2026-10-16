@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -31,6 +32,7 @@ export function TicketTable({ tickets }: TicketTableProps) {
           <TableHead>#</TableHead>
           <TableHead>Subject</TableHead>
           <TableHead>Customer</TableHead>
+          <TableHead>Assigned to</TableHead>
           <TableHead>Channel</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Created (UTC)</TableHead>
@@ -40,8 +42,13 @@ export function TicketTable({ tickets }: TicketTableProps) {
         {tickets.map((ticket) => (
           <TableRow key={ticket.id}>
             <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-            <TableCell>{ticket.subject}</TableCell>
+            <TableCell>
+              <Link href={`/tickets/${ticket.ticketNumber}`} className="hover:underline">
+                {ticket.subject}
+              </Link>
+            </TableCell>
             <TableCell>{describeCustomer(ticket)}</TableCell>
+            <TableCell>{ticket.assigneeName ?? "Unassigned"}</TableCell>
             <TableCell>
               <Badge variant="outline">{ticket.channel}</Badge>
             </TableCell>

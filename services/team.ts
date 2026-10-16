@@ -13,6 +13,13 @@ export type Team = {
   pendingInvites: PendingInvite[];
 };
 
+// Lists everyone in the logged-in user's company (for example, to pick an assignee).
+export async function listTeamMembersForSession(
+  session: SessionContext,
+): Promise<CompanyUser[]> {
+  return getUsersInCompany(session.companyId);
+}
+
 // Gathers what the team page shows for the logged-in user's company.
 export async function getTeamForSession(session: SessionContext): Promise<Team> {
   const isOwner = session.role === "owner";
