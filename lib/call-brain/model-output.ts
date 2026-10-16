@@ -20,8 +20,9 @@ export const MODEL_DECISION_JSON_SCHEMA = {
     customer_issue: { type: "string" },
     resolution_evidence: { type: "string" },
     reason: { type: "string" },
+    ticket_subject: { type: "string" },
   },
-  required: ["outcome", "customer_issue", "resolution_evidence", "reason"],
+  required: ["outcome", "customer_issue", "resolution_evidence", "reason", "ticket_subject"],
   additionalProperties: false,
 };
 
@@ -31,6 +32,8 @@ export const modelDecisionSchema = z
     customer_issue: z.string().min(1).max(500),
     resolution_evidence: z.string().max(300),
     reason: z.string().max(500),
+    // Becomes the subject of the follow-up ticket (step 8).
+    ticket_subject: z.string().min(1).max(80),
   })
   .strict();
 

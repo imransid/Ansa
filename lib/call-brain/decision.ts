@@ -48,6 +48,7 @@ export type CallDecision = {
   // From Claude, only when Claude gave a valid answer.
   customerIssue: string | null;
   explanation: string | null;
+  ticketSubject: string | null;
 };
 
 // Vapi end reasons that mean the call did not finish normally. Escalate them
@@ -100,6 +101,7 @@ function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDe
       reasonCode: REASON_CODES.modelNeedsHuman,
       customerIssue: answer.customer_issue,
       explanation: answer.reason,
+      ticketSubject: answer.ticket_subject,
     };
   }
 
@@ -113,6 +115,7 @@ function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDe
       reasonCode: REASON_CODES.unverifiedResolution,
       customerIssue: answer.customer_issue,
       explanation: null,
+      ticketSubject: answer.ticket_subject,
     };
   }
   return {
@@ -121,6 +124,7 @@ function decideFromModelText(outputText: string, slice: TranscriptSlice): CallDe
     reasonCode: REASON_CODES.modelSolved,
     customerIssue: answer.customer_issue,
     explanation: answer.reason,
+    ticketSubject: null,
   };
 }
 
@@ -156,9 +160,9 @@ function parseJsonOrNull(text: string): unknown {
 }
 
 export function escalateByRule(reasonCode: ReasonCode): CallDecision {
-  return { outcome: "needs_human", source: "rule", reasonCode, customerIssue: null, explanation: null };
+  return { outcome: "needs_human", source: "rule", reasonCode, customerIssue: null, explanation: null, ticketSubject: null };
 }
 
 function escalateAfterModel(reasonCode: ReasonCode): CallDecision {
-  return { outcome: "needs_human", source: "model", reasonCode, customerIssue: null, explanation: null };
+  return { outcome: "needs_human", source: "model", reasonCode, customerIssue: null, explanation: null, ticketSubject: null };
 }

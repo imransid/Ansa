@@ -1,11 +1,17 @@
 import "server-only";
 import { askClaudeForCallDecision } from "@/adapters/claude";
-import { claimCallForAnalysis, saveCallDecision, STALE_ANALYSIS_MINUTES } from "@/db/call-analysis";
+import {
+  claimCallForAnalysis,
+  saveCallDecision,
+  STALE_ANALYSIS_MINUTES,
+  type CallToAnalyze,
+} from "@/db/call-analysis";
 import {
   decideBeforeAskingModel,
   decideFromModelResult,
   escalateByRule,
   REASON_CODES,
+  REASON_LABELS,
   type CallDecision,
 } from "@/lib/call-brain/decision";
 import type { DecisionAsker } from "@/lib/call-brain/model-output";
@@ -16,6 +22,7 @@ import { callExplanationContext, callIssueContext, callTranscriptContext } from 
 import { env } from "@/lib/env";
 import type { FormResult } from "@/lib/form-result";
 import type { SessionContext } from "@/lib/session";
+import { newTicketSchema, type NewTicketInput } from "@/lib/validation/tickets";
 import { analyzeCallSchema } from "@/lib/validation/vapi";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
@@ -53,7 +60,8 @@ export async function computeCallDecision(
   };
 }
 
-// Decides whether one saved call needs a human, and stores the decision.
+// Decides whether one saved call needs a human, stores the decision, and
+// creates a ticket for every "needs_human" (step 8).
 // companyId must come from a trusted source (the phone line, or a session).
 // Never throws. askModel is only replaced by the checks, with a fake.
 export async function analyzeCall(
@@ -61,30 +69,30 @@ export async function analyzeCall(
   callId: string,
   askModel: DecisionAsker = askClaudeForCallDecision,
 ): Promise<"decided" | "not-claimed"> {
-  let claimed = false;
+  let call: CallToAnalyze | undefined;
   try {
-    const call = await claimCallForAnalysis(companyId, callId);
+    call = await claimCallForAnalysis(companyId, callId);
     if (!call) {
       return "not-claimed";
     }
-    claimed = true;
 
     const transcript = decryptTranscriptOrNull(companyId, call.vapiCallId, call.transcriptEncrypted);
     const computed = transcript === "unreadable"
       ? { decision: escalateByRule(REASON_CODES.transcriptUnreadable), askedModel: false }
       : await computeCallDecision(transcript, call.endedReason, askModel);
 
-    await storeDecision(companyId, callId, computed.decision, computed.askedModel);
+    await storeDecision(companyId, callId, call.callerNumber, computed.decision, computed.askedModel);
     return "decided";
   } catch (error) {
     console.error(`Call analysis failed: ${error instanceof Error ? error.constructor.name : "unknown"}`);
-    // Still record an escalation if we can, so the call is never left without a decision.
-    if (claimed) {
-      await storeDecision(companyId, callId, escalateByRule(REASON_CODES.analysisError), false).catch(() => {
+    // Still record an escalation (and its ticket) if we can, so the call is
+    // never left without a decision.
+    if (call) {
+      await storeDecision(companyId, callId, call.callerNumber, escalateByRule(REASON_CODES.analysisError), false).catch(() => {
         console.error("Could not store the fallback decision");
       });
     }
-    return claimed ? "decided" : "not-claimed";
+    return call ? "decided" : "not-claimed";
   }
 }
 
@@ -128,7 +136,14 @@ function decryptTranscriptOrNull(companyId: string, vapiCallId: string, encrypte
   }
 }
 
-async function storeDecision(companyId: string, callId: string, decision: CallDecision, askedModel: boolean) {
+async function storeDecision(
+  companyId: string,
+  callId: string,
+  callerNumber: string | null,
+  decision: CallDecision,
+  askedModel: boolean,
+) {
+  const ticket = decision.outcome === "needs_human" ? buildCallTicket(decision, callerNumber) : null;
   await saveCallDecision(companyId, callId, {
     outcome: decision.outcome,
     source: decision.source,
@@ -140,5 +155,26 @@ async function storeDecision(companyId: string, callId: string, decision: CallDe
     explanationEncrypted: decision.explanation
       ? encryptText(decision.explanation, callExplanationContext(companyId, callId))
       : null,
+  }, ticket);
+}
+
+// Used when the decision came from a rule, or Claude gave no usable subject.
+const FALLBACK_TICKET_SUBJECT = "Phone call needs follow-up";
+
+// Builds the ticket for a call that needs a human. It holds Claude's short
+// summary only, in plain text. The transcript never goes on the ticket: it
+// stays encrypted on the call, which the ticket links to.
+function buildCallTicket(decision: CallDecision, callerNumber: string | null): NewTicketInput {
+  const descriptionParts = [
+    decision.customerIssue,
+    decision.explanation,
+    `Escalated because: ${REASON_LABELS[decision.reasonCode]}`,
+  ].filter((part): part is string => Boolean(part));
+
+  return newTicketSchema.parse({
+    subject: decision.ticketSubject ?? FALLBACK_TICKET_SUBJECT,
+    description: descriptionParts.join("\n\n"),
+    channel: "phone",
+    customerPhone: callerNumber,
   });
 }

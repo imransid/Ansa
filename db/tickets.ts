@@ -2,7 +2,7 @@ import "server-only";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { NewTicketInput } from "@/lib/validation/tickets";
-import { db } from "./client";
+import { db, type DbTransaction } from "./client";
 import { companies, tickets, users, type TicketStatus } from "./schema";
 
 export type Ticket = typeof tickets.$inferSelect;
@@ -131,35 +131,58 @@ export async function createTicket(
   companyId: string,
   input: NewTicketInput,
 ): Promise<Ticket> {
-  return db.transaction(async (tx) => {
-    // Bumping the counter locks this company's row until the transaction ends.
-    // A second ticket created at the same moment waits here, then gets the
-    // next number, so two tickets can never share a number.
-    const [counter] = await tx
-      .update(companies)
-      .set({ lastTicketNumber: sql`${companies.lastTicketNumber} + 1` })
-      .where(eq(companies.id, companyId))
-      .returning({ ticketNumber: companies.lastTicketNumber });
+  return db.transaction((tx) => insertTicketWithNextNumber(tx, companyId, input, null));
+}
 
-    if (!counter) {
-      throw new Error("Cannot create a ticket for a company that does not exist");
-    }
+// Same as createTicket, but inside a transaction the caller already opened,
+// so the ticket is saved together with the caller's other changes (or not at all).
+// callId links the ticket to the phone call it came from.
+export async function insertTicketWithNextNumber(
+  tx: DbTransaction,
+  companyId: string,
+  input: NewTicketInput,
+  callId: string | null,
+): Promise<Ticket> {
+  // Bumping the counter locks this company's row until the transaction ends.
+  // A second ticket created at the same moment waits here, then gets the
+  // next number, so two tickets can never share a number.
+  const [counter] = await tx
+    .update(companies)
+    .set({ lastTicketNumber: sql`${companies.lastTicketNumber} + 1` })
+    .where(eq(companies.id, companyId))
+    .returning({ ticketNumber: companies.lastTicketNumber });
 
-    const [ticket] = await tx
-      .insert(tickets)
-      .values({
-        companyId,
-        ticketNumber: counter.ticketNumber,
-        subject: input.subject,
-        description: input.description,
-        channel: input.channel,
-        category: input.category,
-        customerName: input.customerName,
-        customerEmail: input.customerEmail,
-        customerPhone: input.customerPhone,
-      })
-      .returning();
+  if (!counter) {
+    throw new Error("Cannot create a ticket for a company that does not exist");
+  }
 
-    return ticket;
-  });
+  const [ticket] = await tx
+    .insert(tickets)
+    .values({
+      companyId,
+      ticketNumber: counter.ticketNumber,
+      subject: input.subject,
+      description: input.description,
+      channel: input.channel,
+      category: input.category,
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone,
+      callId,
+    })
+    .returning();
+
+  return ticket;
+}
+
+// Finds the number of the ticket created from one call of one company, if any.
+export async function getTicketNumberForCall(
+  companyId: string,
+  callId: string,
+): Promise<number | null> {
+  const [ticket] = await db
+    .select({ ticketNumber: tickets.ticketNumber })
+    .from(tickets)
+    .where(and(eq(tickets.companyId, companyId), eq(tickets.callId, callId)));
+  return ticket?.ticketNumber ?? null;
 }

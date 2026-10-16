@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { REASON_LABELS, type ReasonCode } from "@/lib/call-brain/decision";
 import { formatUtcDateTime } from "@/lib/format-date";
 import type { CallDetail } from "@/services/calls";
@@ -31,6 +32,15 @@ export function CallDecision({ call }: { call: CallDetail }) {
             <code>{analysis.reasonCode}</code> {analysis.explanation && <>{reasonLabel(analysis.reasonCode)}</>}
           </dd>
         </dl>
+      )}
+
+      {call.ticketNumber !== null && (
+        <p className="text-sm">
+          Escalated to{" "}
+          <Link href={`/tickets/${call.ticketNumber}`} className="font-medium underline">
+            ticket #{call.ticketNumber}
+          </Link>
+        </p>
       )}
 
       {analysis.canAnalyzeNow && <AnalyzeNowButton callId={call.id} />}

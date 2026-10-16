@@ -29,7 +29,8 @@ export const newTicketSchema = z.object({
   category: optionalText(100),
   customerName: optionalText(200),
   customerEmail: optionalEmail,
-  customerPhone: optionalText(32),
+  // 40 matches the longest caller number the Vapi webhook accepts.
+  customerPhone: optionalText(40),
 });
 
 export type NewTicketInput = z.infer<typeof newTicketSchema>;

@@ -6,3 +6,7 @@ import * as schema from "./schema";
 // The one database connection pool for the whole app.
 // Only files inside /db (and Better Auth's adapter in lib/auth.ts) may import this.
 export const db = drizzle(env.DATABASE_URL, { schema });
+
+// The `tx` object Drizzle passes into db.transaction(async (tx) => ...).
+// Functions that must run inside someone else's transaction take one of these.
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];

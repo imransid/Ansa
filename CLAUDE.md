@@ -74,6 +74,10 @@ and creates a ticket for a human expert when it can't.
     "needs_human". "solved" needs the customer's own words, found verbatim in a
     customer turn of the slice. Never add a path that defaults to "solved".
   - Checks use fake models (DecisionAsker). Never call the real API from checks.
+  - Every "needs_human" creates a ticket in the SAME transaction as the decision
+    (db/call-analysis.ts). tickets.call_id is unique (one ticket per call) and has
+    a same-company foreign key. The ticket gets Claude's short summary in plain
+    text; the transcript never goes on a ticket, it stays encrypted on the call.
 - Sensitive text at rest (transcripts now, OAuth tokens later) goes through
   lib/encryption.ts with a context naming its company and record.
 - Every customer email is first a row in outgoing_emails, written in the same
@@ -190,6 +194,13 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Transcript slices are sent to Anthropic, which keeps API data for a limited
   time by default. Zero data retention is an org-level arrangement with Anthropic.
 - The system prompt is too short for prompt caching to apply, so it isn't cached.
+- Tickets from calls have no customer email (we never extract one from a
+  transcript: a misheard address would leak details to a stranger), so the
+  "solved" email (step 5) does not go out for them. Planned: let the expert enter
+  the customer's email on a ticket. Not yet scheduled in the build order.
+- Every escalation makes a ticket, including silent or abnormal calls. Expect noise
+  (robocalls); filter by reason once real volume shows what to drop.
+- Calls escalated before step 8 have no ticket (test data only, no backfill).
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -225,3 +236,7 @@ Do not jump ahead. Finish step N before starting step N+1.
   No custom-model mode. Model from ANTHROPIC_MODEL, starting at claude-sonnet-5-5,
   effort high. No refusal fallback: a refusal escalates. Without ANTHROPIC_API_KEY
   every call escalates ("model unavailable").
+- 2026-10-16: Step 8: every "needs_human" (including rule cases) gets a ticket:
+  subject from Claude's ticket_subject (or "Phone call needs follow-up"), plain-text
+  summary, caller number as customer phone, linked to the call. No email
+  extraction, no backfill of older calls.

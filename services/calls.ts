@@ -2,6 +2,7 @@ import "server-only";
 import { getCallById, getCallsForCompany, insertCallIfNew, type CallListItem } from "@/db/calls";
 import { findPhoneLineByVapiNumberId } from "@/db/phone-lines";
 import type { DecisionSource } from "@/db/schema";
+import { getTicketNumberForCall } from "@/db/tickets";
 import { decryptText, encryptText } from "@/lib/encryption";
 import { callExplanationContext, callIssueContext, callTranscriptContext } from "@/lib/encryption-contexts";
 import type { SessionContext } from "@/lib/session";
@@ -15,6 +16,8 @@ export type CallDetail = CallListItem & {
   transcript: string | null;
   // True when a transcript is stored but could not be decrypted (wrong key, damaged data).
   transcriptUnreadable: boolean;
+  // The ticket created from this call (step 8), if any.
+  ticketNumber: number | null;
   analysis: {
     source: DecisionSource | null;
     reasonCode: string | null;
@@ -81,6 +84,7 @@ export async function getCallForSession(
   }
 
   const transcript = decryptOrUnreadable(call.transcriptEncrypted, callTranscriptContext(call.companyId, call.vapiCallId));
+  const ticketNumber = await getTicketNumberForCall(session.companyId, call.id);
   return {
     id: call.id,
     callerNumber: call.callerNumber,
@@ -91,6 +95,7 @@ export async function getCallForSession(
     aiOutcome: call.aiOutcome,
     transcript: transcript === "unreadable" ? null : transcript,
     transcriptUnreadable: transcript === "unreadable",
+    ticketNumber,
     analysis: {
       source: call.aiDecisionSource,
       reasonCode: call.aiReasonCode,

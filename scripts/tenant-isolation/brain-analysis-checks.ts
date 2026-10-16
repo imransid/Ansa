@@ -4,38 +4,15 @@
 // Every check uses a FAKE model. None of them call the real, paid API.
 
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { createPhoneLine } from "@/db/phone-lines";
 import { calls, companies } from "@/db/schema";
-import type { DecisionAsker, ModelResult } from "@/lib/call-brain/model-output";
-import { endOfCallReportSchema } from "@/lib/validation/vapi";
 import { analyzeCall, analyzeCallForSession } from "@/services/call-analysis";
-import { getCallForSession, saveEndOfCallReport } from "@/services/calls";
-import { buildSampleEndOfCallReport } from "../vapi-sample";
+import { getCallForSession } from "@/services/calls";
 import { SOLVED_TRANSCRIPT, solvedAnswer } from "./brain-guard-checks";
+import { fakeModel, saveTestCall, TEST_CALLER } from "./brain-test-calls";
 import { assertRefusedByConstraint, captureConsole, check, runId, sessionFor, type TestUser } from "./helpers";
-
-const CALLER = "+1 555 0177";
-
-function fakeModel(reply: ModelResult | (() => never)) {
-  const fake = { calls: 0, prompts: [] as string[], ask: (async () => reply) as DecisionAsker };
-  fake.ask = async (_system, prompt) => {
-    fake.calls += 1;
-    fake.prompts.push(prompt);
-    return typeof reply === "function" ? reply() : reply;
-  };
-  return fake;
-}
-
-async function saveTestCall(phoneNumberId: string, transcript: string): Promise<string> {
-  const vapiCallId = `brain-${runId}-${randomUUID()}`;
-  const report = endOfCallReportSchema.parse(buildSampleEndOfCallReport({ callId: vapiCallId, phoneNumberId, callerNumber: CALLER, transcript }));
-  const saved = await saveEndOfCallReport(report);
-  assert.equal(saved.outcome, "saved");
-  return saved.outcome === "saved" ? saved.callId : "";
-}
 
 async function row(callId: string) {
   const [stored] = await db.select().from(calls).where(eq(calls.id, callId));
@@ -67,7 +44,7 @@ export async function runBrainAnalysisChecks(ownerA: TestUser, ownerB: TestUser)
     await analyzeCall(ownerA.companyId, callId, model.ask);
     const prompt = model.prompts[0];
     const stored = await row(callId);
-    for (const secret of [CALLER, companyA.name, ownerA.companyId, callId, stored.vapiCallId, line.vapiPhoneNumberId]) {
+    for (const secret of [TEST_CALLER, companyA.name, ownerA.companyId, callId, stored.vapiCallId, line.vapiPhoneNumberId]) {
       assert.ok(!prompt.includes(secret), `prompt contains ${secret}`);
     }
   });

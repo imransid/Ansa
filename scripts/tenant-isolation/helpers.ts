@@ -134,11 +134,12 @@ export async function cleanUpTestData() {
   const testCompanyIds = testCompanies.map((company) => company.id);
 
   if (testCompanyIds.length > 0) {
+    // Order matters: emails point at tickets, tickets point at calls, calls at phone lines.
     await deleteTestEmails(testCompanyIds);
-    await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
-    await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
     await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
+    await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
+    await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));
   }
   if (createdEmails.length > 0) {
     await db.delete(users).where(inArray(users.email, createdEmails));

@@ -96,6 +96,8 @@ export const calls = pgTable(
   },
   (table) => [
     index("calls_company_id_created_at_idx").on(table.companyId, table.createdAt),
+    // Lets tickets use a (company_id, call_id) foreign key.
+    unique("calls_company_id_id_unique").on(table.companyId, table.id),
     // Postgres refuses a call whose phone line belongs to another company.
     foreignKey({
       name: "calls_phone_line_in_same_company_fk",

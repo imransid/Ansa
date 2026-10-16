@@ -88,6 +88,17 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
         <dd>{ticket.customerPhone ?? "-"}</dd>
         <dt className="text-muted-foreground">Created (UTC)</dt>
         <dd>{formatUtcDateTime(ticket.createdAt)}</dd>
+        {ticket.callId && (
+          <>
+            <dt className="text-muted-foreground">From call</dt>
+            <dd>
+              {/* The transcript stays on the call page, encrypted at rest. */}
+              <Link href={`/calls/${ticket.callId}`} className="underline">
+                Open the call and its transcript
+              </Link>
+            </dd>
+          </>
+        )}
         {ticket.solvedAt && (
           <>
             <dt className="text-muted-foreground">Solved (UTC)</dt>

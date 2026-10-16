@@ -24,7 +24,7 @@ export function answer(fields: Record<string, unknown>): ModelResult {
 }
 
 export function solvedAnswer(evidence: string): ModelResult {
-  return answer({ outcome: "solved", customer_issue: "Router drops connection.", resolution_evidence: evidence, reason: "Fixed." });
+  return answer({ outcome: "solved", customer_issue: "Router drops connection.", resolution_evidence: evidence, reason: "Fixed.", ticket_subject: "Router drops connection" });
 }
 
 export async function runBrainGuardChecks() {
@@ -54,7 +54,8 @@ export async function runBrainGuardChecks() {
       { kind: "ok", outputText: "[]", usage: { inputTokens: 1, outputTokens: 1 } },
       answer({ outcome: "solved" }), // missing fields
       answer({ outcome: "closed", customer_issue: "x", resolution_evidence: "", reason: "x" }), // unknown outcome
-      answer({ outcome: "solved", customer_issue: "x", resolution_evidence: "that fixed it, thank you so much", reason: "x", companyId: "other" }), // extra field
+      answer({ outcome: "solved", customer_issue: "x", resolution_evidence: "that fixed it, thank you so much", reason: "x", ticket_subject: "x", companyId: "other" }), // extra field
+      answer({ outcome: "solved", customer_issue: "x", resolution_evidence: "that fixed it, thank you so much", reason: "x", ticket_subject: "x".repeat(81) }), // subject too long
       { kind: "refused" },
       { kind: "truncated" },
       { kind: "unexpected-stop" },

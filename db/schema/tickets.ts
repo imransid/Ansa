@@ -11,6 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
+import { calls } from "./calls";
 import { companies } from "./companies";
 
 export const ticketStatuses = ["open", "solved"] as const;
@@ -47,6 +48,9 @@ export const tickets = pgTable(
     // Both set when the ticket is solved, both cleared when it is reopened.
     solvedAt: timestamp("solved_at", { withTimezone: true }),
     solvedByUserId: text("solved_by_user_id"),
+    // The phone call this ticket was created from (step 8), if any. Unique: a
+    // call gets at most one ticket. The transcript stays on the call, encrypted.
+    callId: uuid("call_id").unique(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -76,6 +80,12 @@ export const tickets = pgTable(
       name: "tickets_solver_in_same_company_fk",
       columns: [table.companyId, table.solvedByUserId],
       foreignColumns: [users.companyId, users.id],
+    }),
+    // Postgres refuses a ticket linked to another company's call.
+    foreignKey({
+      name: "tickets_call_in_same_company_fk",
+      columns: [table.companyId, table.callId],
+      foreignColumns: [calls.companyId, calls.id],
     }),
     // A ticket is solved exactly when it has both a solved time and a solver.
     check(
