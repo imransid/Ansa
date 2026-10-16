@@ -1,5 +1,5 @@
 // Links a Vapi phone number id to the company of an existing user, so calls to
-// that number are saved for that company. Stand-in for the onboarding flow (step 12).
+// that number are saved for that company. Stand-in for the onboarding flow (step 13).
 //
 // Run with: pnpm link:phone-line you@example.com <vapiPhoneNumberId>
 // For local testing any id works, e.g. "pn-local-test".

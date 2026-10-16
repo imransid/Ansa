@@ -151,10 +151,11 @@ and creates a ticket for a human expert when it can't.
 6. Vapi webhook receiving a call transcript
 7. Claude brain: decide solve vs escalate
 8. Auto-create ticket on escalate
-9. Route tickets to experts by category (each person picks the categories they handle)
-10. First adapter (whichever vendor my first customer uses)
-11. Email channel using the same brain
-12. Company onboarding flow (connect software, upload docs to R2)
+9. Expert enters the customer's email on a ticket
+10. Route tickets to experts by category (each person picks the categories they handle)
+11. First adapter (whichever vendor my first customer uses)
+12. Email channel using the same brain
+13. Company onboarding flow (connect software, upload docs to R2)
 
 Do not jump ahead. Finish step N before starting step N+1.
 
@@ -186,7 +187,7 @@ Do not jump ahead. Finish step N before starting step N+1.
 - Call recordings are dropped. Copying them into a private R2 bucket is later work.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
   no key rotation yet (the "v1:" prefix leaves room for it).
-- Phone lines are linked with pnpm link:phone-line until onboarding (step 12).
+- Phone lines are linked with pnpm link:phone-line until onboarding (step 13).
 - Call brain quality is unmeasured: no eval set yet. Collect real calls, then
   tune the prompt, effort and model against them before trusting "solved".
 - The transcript parser assumes Vapi's "AI:" / "User:" labels. Confirm with the
@@ -196,8 +197,14 @@ Do not jump ahead. Finish step N before starting step N+1.
 - The system prompt is too short for prompt caching to apply, so it isn't cached.
 - Tickets from calls have no customer email (we never extract one from a
   transcript: a misheard address would leak details to a stranger), so the
-  "solved" email (step 5) does not go out for them. Planned: let the expert enter
-  the customer's email on a ticket. Not yet scheduled in the build order.
+  "solved" email (step 5) does not go out for them until an expert enters the
+  customer's email on the ticket (step 9).
+- Adding a customer email to an ALREADY-SOLVED ticket sends nothing. Reopen is
+  owner-only, so a member who adds an email to a solved ticket cannot trigger the
+  "solved" email at all; only an owner can, by reopening and solving again.
+  No "send now" button on purpose: build one only when this actually comes up.
+- Changing a ticket's email never redirects an email already queued or failed:
+  outgoing_emails.to_email keeps the address from solve time, and Retry uses it.
 - Every escalation makes a ticket, including silent or abnormal calls. Expect noise
   (robocalls); filter by reason once real volume shows what to drop.
 - Calls escalated before step 8 have no ticket (test data only, no backfill).
@@ -240,3 +247,12 @@ Do not jump ahead. Finish step N before starting step N+1.
   subject from Claude's ticket_subject (or "Phone call needs follow-up"), plain-text
   summary, caller number as customer phone, linked to the call. No email
   extraction, no backfill of older calls.
+- 2026-10-16: Build order: new step 9 "expert enters the customer's email on a
+  ticket". Everything after shifted down by one: category routing is now step 10,
+  first adapter 11, email channel 12, onboarding 13. (Older log entries keep the
+  step numbers they had at the time.)
+- 2026-10-16: Step 9: anyone in the company can set or change a ticket's customer
+  email; who and when are recorded (tickets.customer_email_set_by_user_id / _at,
+  same-company foreign key). No double entry (copy-paste defeats it): the form
+  shows the cleaned-up address back ("Solved emails for this ticket will go to
+  x@y.com. Correct?") and saves only on confirm. No auto-send, no "send now".

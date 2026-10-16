@@ -1,8 +1,13 @@
 import "server-only";
 import { z } from "zod";
-import { assignTicket, markTicketSolvedAndQueueEmail, reopenTicket } from "@/db/ticket-updates";
 import {
-  createTicket,
+  assignTicket,
+  markTicketSolvedAndQueueEmail,
+  reopenTicket,
+  setTicketCustomerEmail,
+} from "@/db/ticket-updates";
+import { createTicket } from "@/db/ticket-creation";
+import {
   getTicketByNumber,
   getTicketCountsForCompany,
   getTicketsForCompany,
@@ -16,6 +21,7 @@ import type { SessionContext } from "@/lib/session";
 import {
   assignTicketSchema,
   newTicketSchema,
+  setCustomerEmailSchema,
   ticketIdSchema,
   ticketNumberSchema,
 } from "@/lib/validation/tickets";
@@ -136,6 +142,29 @@ export async function reopenTicketForSession(
   const wasReopened = await reopenTicket(session.companyId, parsed.data.ticketId);
   if (!wasReopened) {
     return { ok: false, errors: { message: "This ticket is not solved or was not found." } };
+  }
+  return { ok: true };
+}
+
+// Sets or changes the customer's email on a ticket of the session's company,
+// recording who did it. Anyone in the company may do this. Only future solves
+// use the new address: nothing is sent now, and queued emails keep theirs.
+export async function setCustomerEmailForSession(
+  session: SessionContext,
+  input: unknown,
+): Promise<FormResult> {
+  const parsed = setCustomerEmailSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, errors: { fieldErrors: z.flattenError(parsed.error).fieldErrors } };
+  }
+  if (await isOverTicketChangeLimit(session)) {
+    return tooManyChanges();
+  }
+
+  const { ticketId, customerEmail } = parsed.data;
+  const wasSet = await setTicketCustomerEmail(session.companyId, ticketId, customerEmail, session.userId);
+  if (!wasSet) {
+    return { ok: false, errors: { message: "That ticket was not found in your company." } };
   }
   return { ok: true };
 }

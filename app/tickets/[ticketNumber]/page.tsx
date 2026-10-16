@@ -10,6 +10,7 @@ import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getDashboardSummary } from "@/services/dashboard";
 import { listTeamMembersForSession } from "@/services/team";
 import { getTicketForSession, type TicketDetail } from "@/services/tickets";
+import { CustomerEmailSection } from "./customer-email-section";
 import { CustomerEmailStatus } from "./customer-email-status";
 import { TicketActions } from "./ticket-actions";
 
@@ -54,6 +55,13 @@ async function TicketContent({
         &larr; All tickets
       </Link>
       <TicketSummary ticket={ticket} />
+      <CustomerEmailSection
+        // A new key after every save puts the section back into "view" mode.
+        key={`${ticket.customerEmail ?? "none"}-${ticket.customerEmailSetAt?.toISOString() ?? "never"}`}
+        ticketId={ticket.id}
+        customerEmail={ticket.customerEmail}
+        originLine={describeEmailOrigin(ticket)}
+      />
       <CustomerEmailStatus ticket={ticket} latestEmail={latestEmail} />
       <TicketActions
         ticketId={ticket.id}
@@ -82,8 +90,6 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
       <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 text-sm">
         <dt className="text-muted-foreground">Customer</dt>
         <dd>{ticket.customerName ?? "Unknown"}</dd>
-        <dt className="text-muted-foreground">Email</dt>
-        <dd>{ticket.customerEmail ?? "-"}</dd>
         <dt className="text-muted-foreground">Phone</dt>
         <dd>{ticket.customerPhone ?? "-"}</dd>
         <dt className="text-muted-foreground">Created (UTC)</dt>
@@ -110,4 +116,15 @@ function TicketSummary({ ticket }: { ticket: TicketDetail }) {
       </dl>
     </section>
   );
+}
+
+// Where the customer's email came from, shown next to the address.
+function describeEmailOrigin(ticket: TicketDetail): string | null {
+  if (!ticket.customerEmail) {
+    return null;
+  }
+  if (ticket.customerEmailSetByName && ticket.customerEmailSetAt) {
+    return `entered by ${ticket.customerEmailSetByName} on ${formatUtcDateTime(ticket.customerEmailSetAt)} (UTC)`;
+  }
+  return "came with the ticket";
 }

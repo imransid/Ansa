@@ -114,3 +114,24 @@ export async function reopenTicket(
     .returning({ id: tickets.id });
   return updated.length > 0;
 }
+
+// Sets (or changes) the customer's email on one company's ticket and records
+// who did it and when. setByUserId must be the session's own user.
+// Emails already queued keep the address they were queued with (outgoing_emails.to_email).
+export async function setTicketCustomerEmail(
+  companyId: string,
+  ticketId: string,
+  customerEmail: string,
+  setByUserId: string,
+): Promise<boolean> {
+  const updated = await db
+    .update(tickets)
+    .set({
+      customerEmail,
+      customerEmailSetByUserId: setByUserId,
+      customerEmailSetAt: sql`now()`,
+    })
+    .where(and(eq(tickets.id, ticketId), eq(tickets.companyId, companyId)))
+    .returning({ id: tickets.id });
+  return updated.length > 0;
+}

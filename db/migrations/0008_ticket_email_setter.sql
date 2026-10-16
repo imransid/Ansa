@@ -1,0 +1,4 @@
+ALTER TABLE "tickets" ADD COLUMN "customer_email_set_by_user_id" text;--> statement-breakpoint
+ALTER TABLE "tickets" ADD COLUMN "customer_email_set_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tickets" ADD CONSTRAINT "tickets_email_setter_in_same_company_fk" FOREIGN KEY ("company_id","customer_email_set_by_user_id") REFERENCES "public"."users"("company_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tickets" ADD CONSTRAINT "tickets_email_setter_fields_together" CHECK (("tickets"."customer_email_set_by_user_id" IS NULL) = ("tickets"."customer_email_set_at" IS NULL));

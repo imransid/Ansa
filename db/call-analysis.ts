@@ -3,7 +3,7 @@ import { and, eq, lt, or, sql } from "drizzle-orm";
 import type { NewTicketInput } from "@/lib/validation/tickets";
 import { db } from "./client";
 import { calls, type CallOutcome, type DecisionSource } from "./schema";
-import { insertTicketWithNextNumber } from "./tickets";
+import { insertTicketWithNextNumber } from "./ticket-creation";
 
 export type CallToAnalyze = {
   vapiCallId: string;

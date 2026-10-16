@@ -8,6 +8,7 @@ import {
   assignTicketForSession,
   markTicketSolvedForSession,
   reopenTicketForSession,
+  setCustomerEmailForSession,
 } from "@/services/tickets";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
@@ -54,6 +55,19 @@ export async function retryCustomerEmailAction(
   const session = await requireSessionContext();
   const result = await retryCustomerEmailForSession(session, {
     emailId: formData.get("emailId"),
+  });
+  return refreshTicketPagesOrReturnErrors(result);
+}
+
+export async function setCustomerEmailAction(
+  _previousErrors: FormErrors | undefined,
+  formData: FormData,
+): Promise<FormErrors | undefined> {
+  const session = await requireSessionContext();
+  const result = await setCustomerEmailForSession(session, {
+    ticketId: formData.get("ticketId"),
+    customerEmail: formData.get("customerEmail"),
+    confirmed: formData.get("confirmed"),
   });
   return refreshTicketPagesOrReturnErrors(result);
 }

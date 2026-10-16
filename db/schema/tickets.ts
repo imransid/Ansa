@@ -31,7 +31,7 @@ export const tickets = pgTable(
       .notNull()
       .references(() => companies.id, { onDelete: "restrict" }),
     // Human-friendly number, counted per company: #1, #2, ...
-    // Handed out by createTicket in db/tickets.ts, never chosen by the caller.
+    // Handed out by createTicket in db/ticket-creation.ts, never chosen by the caller.
     ticketNumber: integer("ticket_number").notNull(),
     subject: text("subject").notNull(),
     // Call or email notes: what the customer needs and what the AI already tried.
@@ -42,6 +42,10 @@ export const tickets = pgTable(
     category: text("category"),
     customerName: text("customer_name"),
     customerEmail: text("customer_email"),
+    // Who typed the customer's email into the ticket, and when (step 9).
+    // Both empty = the email came with the ticket (or there is none).
+    customerEmailSetByUserId: text("customer_email_set_by_user_id"),
+    customerEmailSetAt: timestamp("customer_email_set_at", { withTimezone: true }),
     customerPhone: text("customer_phone"),
     // The expert working on it. Empty = unassigned.
     assignedToUserId: text("assigned_to_user_id"),
@@ -81,6 +85,17 @@ export const tickets = pgTable(
       columns: [table.companyId, table.solvedByUserId],
       foreignColumns: [users.companyId, users.id],
     }),
+    // Postgres refuses a "set by" user from another company.
+    foreignKey({
+      name: "tickets_email_setter_in_same_company_fk",
+      columns: [table.companyId, table.customerEmailSetByUserId],
+      foreignColumns: [users.companyId, users.id],
+    }),
+    // "Set by" and "set at" are always filled in together, or not at all.
+    check(
+      "tickets_email_setter_fields_together",
+      sql`(${table.customerEmailSetByUserId} IS NULL) = (${table.customerEmailSetAt} IS NULL)`,
+    ),
     // Postgres refuses a ticket linked to another company's call.
     foreignKey({
       name: "tickets_call_in_same_company_fk",

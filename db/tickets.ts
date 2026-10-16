@@ -1,9 +1,8 @@
 import "server-only";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import type { NewTicketInput } from "@/lib/validation/tickets";
-import { db, type DbTransaction } from "./client";
-import { companies, tickets, users, type TicketStatus } from "./schema";
+import { db } from "./client";
+import { tickets, users, type TicketStatus } from "./schema";
 
 export type Ticket = typeof tickets.$inferSelect;
 
@@ -23,6 +22,7 @@ export type TicketListItem = Pick<
 export type TicketDetail = Ticket & {
   assigneeName: string | null;
   solvedByName: string | null;
+  customerEmailSetByName: string | null;
 };
 
 export type TicketCounts = Record<TicketStatus, number>;
@@ -30,11 +30,13 @@ export type TicketCounts = Record<TicketStatus, number>;
 // No pagination yet. 50 is plenty until real calls create tickets (step 7).
 const TICKET_LIST_LIMIT = 50;
 
-// Two separate views of the users table: the person assigned and the person
-// who solved. Both joins also match company_id, so a name from another company
-// can never show up (the database foreign keys already prevent that link).
+// Separate views of the users table: the person assigned, the person who
+// solved, and the person who typed in the customer's email. Every join also
+// matches company_id, so a name from another company can never show up (the
+// database foreign keys already prevent that link).
 const assignee = alias(users, "assignee");
 const solver = alias(users, "solver");
+const emailSetter = alias(users, "email_setter");
 
 // Lists one company's tickets, newest first (highest ticket number first).
 export async function getTicketsForCompany(
@@ -76,6 +78,7 @@ export async function getTicketByNumber(
       ticket: tickets,
       assigneeName: assignee.name,
       solvedByName: solver.name,
+      customerEmailSetByName: emailSetter.name,
     })
     .from(tickets)
     .leftJoin(
@@ -92,6 +95,13 @@ export async function getTicketByNumber(
         eq(solver.companyId, tickets.companyId),
       ),
     )
+    .leftJoin(
+      emailSetter,
+      and(
+        eq(emailSetter.id, tickets.customerEmailSetByUserId),
+        eq(emailSetter.companyId, tickets.companyId),
+      ),
+    )
     .where(
       and(
         eq(tickets.companyId, companyId),
@@ -106,6 +116,7 @@ export async function getTicketByNumber(
     ...row.ticket,
     assigneeName: row.assigneeName,
     solvedByName: row.solvedByName,
+    customerEmailSetByName: row.customerEmailSetByName,
   };
 }
 
@@ -124,55 +135,6 @@ export async function getTicketCountsForCompany(
     counts[row.status] = row.total;
   }
   return counts;
-}
-
-// Saves a new open ticket for one company and gives it that company's next ticket number.
-export async function createTicket(
-  companyId: string,
-  input: NewTicketInput,
-): Promise<Ticket> {
-  return db.transaction((tx) => insertTicketWithNextNumber(tx, companyId, input, null));
-}
-
-// Same as createTicket, but inside a transaction the caller already opened,
-// so the ticket is saved together with the caller's other changes (or not at all).
-// callId links the ticket to the phone call it came from.
-export async function insertTicketWithNextNumber(
-  tx: DbTransaction,
-  companyId: string,
-  input: NewTicketInput,
-  callId: string | null,
-): Promise<Ticket> {
-  // Bumping the counter locks this company's row until the transaction ends.
-  // A second ticket created at the same moment waits here, then gets the
-  // next number, so two tickets can never share a number.
-  const [counter] = await tx
-    .update(companies)
-    .set({ lastTicketNumber: sql`${companies.lastTicketNumber} + 1` })
-    .where(eq(companies.id, companyId))
-    .returning({ ticketNumber: companies.lastTicketNumber });
-
-  if (!counter) {
-    throw new Error("Cannot create a ticket for a company that does not exist");
-  }
-
-  const [ticket] = await tx
-    .insert(tickets)
-    .values({
-      companyId,
-      ticketNumber: counter.ticketNumber,
-      subject: input.subject,
-      description: input.description,
-      channel: input.channel,
-      category: input.category,
-      customerName: input.customerName,
-      customerEmail: input.customerEmail,
-      customerPhone: input.customerPhone,
-      callId,
-    })
-    .returning();
-
-  return ticket;
 }
 
 // Finds the number of the ticket created from one call of one company, if any.

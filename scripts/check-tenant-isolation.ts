@@ -17,6 +17,7 @@ import { cleanUpTestData, getFailureCount, signUpTestOwner } from "./tenant-isol
 import { runInviteChecks } from "./tenant-isolation/invite-checks";
 import { runSignupChecks } from "./tenant-isolation/signup-checks";
 import { runTicketChecks } from "./tenant-isolation/ticket-checks";
+import { runTicketEmailChecks } from "./tenant-isolation/ticket-email-checks";
 import { runVapiChecks } from "./tenant-isolation/vapi-checks";
 
 async function runChecksAndCleanUp() {
@@ -32,6 +33,7 @@ async function runChecksAndCleanUp() {
     await runBrainGuardChecks();
     await runBrainAnalysisChecks(ownerA, ownerB);
     await runCallTicketChecks(ownerA, ownerB);
+    await runTicketEmailChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();

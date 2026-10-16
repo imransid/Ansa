@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ticketChannels } from "@/db/schema";
+import { emailSchema } from "./auth";
 
 // Optional text: missing or blank becomes null, so the database never stores "".
 function optionalText(maxLength: number) {
@@ -57,4 +58,12 @@ export const assignTicketSchema = z.object({
 
 export const ticketEmailIdSchema = z.object({
   emailId: z.uuid(),
+});
+
+export const setCustomerEmailSchema = z.object({
+  ticketId: z.uuid(),
+  customerEmail: emailSchema,
+  // The form only sends "yes" after showing the address back to the expert
+  // ("Solved emails for this ticket will go to ... Correct?").
+  confirmed: z.literal("yes", "Confirm the address before saving"),
 });

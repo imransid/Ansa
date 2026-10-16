@@ -10,11 +10,15 @@ type CustomerEmailStatusProps = {
 
 // One line telling the expert whether the customer has been (or will be) emailed.
 export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatusProps) {
-  if (!ticket.customerEmail) {
-    return <StatusLine text="No customer email on file." />;
+  // The "Customer email" section above already says there is none.
+  if (!ticket.customerEmail && !latestEmail) {
+    return null;
   }
 
   if (ticket.status === "open") {
+    if (!ticket.customerEmail) {
+      return null;
+    }
     return (
       <StatusLine
         text={`The customer will be emailed at ${ticket.customerEmail} when this is solved.`}
@@ -22,8 +26,12 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
     );
   }
 
+  // Solved before an email was on file: nothing was sent, and adding an email
+  // later does not send one (known gap, see CLAUDE.md).
   if (!latestEmail) {
-    return <StatusLine text="No email was queued for this ticket." />;
+    return (
+      <StatusLine text="This ticket was solved before an email was on file, so the customer was not emailed. An owner can reopen and solve it again to email them." />
+    );
   }
 
   if (latestEmail.status === "sent" && latestEmail.sentAt) {
