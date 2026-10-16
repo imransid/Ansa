@@ -1,0 +1,53 @@
+import { z } from "zod";
+
+export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MAX_LENGTH = 128;
+
+const companyNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Company name must be at least 2 characters")
+  .max(100, "Company name must be at most 100 characters");
+
+// Trim and lowercase first, then check the format, so " Ana@Example.com "
+// is accepted and stored as "ana@example.com".
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(254, "Email is too long")
+  .pipe(z.email("Enter a valid email address"));
+
+export const signupSchema = z.object({
+  companyName: companyNameSchema,
+  name: z
+    .string()
+    .trim()
+    .min(1, "Enter your name")
+    .max(100, "Name must be at most 100 characters"),
+  email: emailSchema,
+  password: z
+    .string()
+    .min(
+      PASSWORD_MIN_LENGTH,
+      `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+    )
+    .max(
+      PASSWORD_MAX_LENGTH,
+      `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
+    ),
+});
+
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string()
+    .min(1, "Enter your password")
+    .max(PASSWORD_MAX_LENGTH, "Password is too long"),
+});
+
+// Used by the user-create hook in lib/auth.ts. z.object drops every other key,
+// so a companyId or role smuggled into the request body is ignored here.
+export const newCompanySchema = z.object({
+  companyName: companyNameSchema,
+});

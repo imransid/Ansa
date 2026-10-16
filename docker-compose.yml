@@ -1,0 +1,21 @@
+# Local development database only. Production will use Neon.
+# Start it with: pnpm db:up   (reads credentials from .env.local)
+name: ansa
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # Bound to 127.0.0.1 so nothing else on the network can reach it.
+      # Host port 5450 because 5432 is often taken by another local Postgres.
+      - "127.0.0.1:5450:5432"
+    volumes:
+      - ansa-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  ansa-postgres-data:
