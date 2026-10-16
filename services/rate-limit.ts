@@ -19,6 +19,8 @@ export const RATE_LIMITS = {
   // Categories and who handles them (Team page).
   settingsChangesPerUser: { maxAttempts: 60, windowSeconds: 10 * 60 },
   recordingViewsPerUser: { maxAttempts: 200, windowSeconds: 10 * 60 },
+  documentUploadsPerUser: { maxAttempts: 20, windowSeconds: 10 * 60 },
+  documentDownloadsPerUser: { maxAttempts: 200, windowSeconds: 10 * 60 },
   resendWebhookPerIp: { maxAttempts: 600, windowSeconds: 60 },
   // One sender can open at most this many tickets an hour (stops mail floods).
   inboundEmailsPerSender: { maxAttempts: 10, windowSeconds: 60 * 60 },

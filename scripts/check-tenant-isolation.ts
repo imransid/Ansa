@@ -22,6 +22,7 @@ import { runNotificationChecks } from "./tenant-isolation/notification-checks";
 import { runPaginationChecks } from "./tenant-isolation/pagination-checks";
 import { runRecordingChecks } from "./tenant-isolation/recording-checks";
 import { runRoutingChecks } from "./tenant-isolation/routing-checks";
+import { runSetupChecks } from "./tenant-isolation/setup-checks";
 import { runSignupChecks } from "./tenant-isolation/signup-checks";
 import { runTicketChecks } from "./tenant-isolation/ticket-checks";
 import { runTicketEmailChecks } from "./tenant-isolation/ticket-email-checks";
@@ -49,6 +50,7 @@ async function runChecksAndCleanUp() {
     await runNotificationChecks(ownerA, ownerB);
     await runRecordingChecks(ownerA, ownerB);
     await runInboundEmailChecks(ownerA, ownerB);
+    await runSetupChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();

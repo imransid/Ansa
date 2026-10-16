@@ -231,7 +231,13 @@ Do not jump ahead. Finish step N before starting step N+1.
   retention rule yet.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
   no key rotation yet (the "v1:" prefix leaves room for it).
-- Phone lines are linked with pnpm link:phone-line until onboarding (step 16).
+- Setup page (step 16): owners link phone numbers and support addresses there
+  (the pnpm link:* scripts still work for testing). A number with calls can't be
+  unlinked. Uploaded documents (PDF, .docx, .txt, .md, .csv, max 4 MB) are only
+  stored and listed: the AI does NOT read them yet. Using them needs text
+  extraction plus a decision on how much of them goes to Claude. Server actions
+  accept up to 5 MB bodies (next.config.ts) for uploads; Vercel caps requests at
+  4.5 MB, so larger files would need direct-to-R2 uploads.
 - Email channel: the AI does NOT reply to customers by email. It only triages into
   a ticket. Letting the AI answer emails on its own needs (a) the company's
   knowledge (step 16 uploads) and (b) your decision on auto-send vs. draft for an
@@ -335,3 +341,9 @@ Do not jump ahead. Finish step N before starting step N+1.
 - 2026-10-17: Step 15: inbound email via Resend Receiving (the proposed default),
   signed with Standard Webhooks (standardwebhooks library). Email is triaged into a
   ticket; the AI sends no email replies (open decision).
+- 2026-10-17: Step 16: Setup page for owners (members see it read-only): checklist,
+  reply-to address, phone numbers, support addresses, link to Team for categories
+  and invites, documents in private storage under documents/<companyId>/. Document
+  type comes from the file extension (allowlist), never from the browser; downloads
+  are always "save as" (attachment), through /api/documents/<id> (login + company
+  check, no caching).

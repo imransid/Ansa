@@ -16,6 +16,16 @@ export async function createInboundAddress(companyId: string, address: string): 
   await db.insert(inboundAddresses).values({ companyId, address: address.toLowerCase() });
 }
 
+// Unlinks one of a company's inbound addresses. Emails already received keep
+// their tickets. Returns false if the company has no such address.
+export async function deleteInboundAddress(companyId: string, address: string): Promise<boolean> {
+  const deleted = await db
+    .delete(inboundAddresses)
+    .where(and(eq(inboundAddresses.companyId, companyId), eq(inboundAddresses.address, address.toLowerCase())))
+    .returning({ address: inboundAddresses.address });
+  return deleted.length > 0;
+}
+
 // Finds which company owns one of the addresses an email was sent to.
 // Not company-scoped on purpose: a webhook has no session. Call this only
 // after the webhook signature is verified.

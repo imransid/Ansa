@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "./client";
 import { phoneLines } from "./schema";
 
@@ -15,6 +15,16 @@ export async function createPhoneLine(
     .values({ companyId, vapiPhoneNumberId })
     .returning();
   return line;
+}
+
+// Unlinks one of a company's phone numbers. Postgres refuses (foreign key)
+// once the number has calls. Returns false if the company has no such number.
+export async function deletePhoneLine(companyId: string, vapiPhoneNumberId: string): Promise<boolean> {
+  const deleted = await db
+    .delete(phoneLines)
+    .where(and(eq(phoneLines.companyId, companyId), eq(phoneLines.vapiPhoneNumberId, vapiPhoneNumberId)))
+    .returning({ id: phoneLines.id });
+  return deleted.length > 0;
 }
 
 // Finds which company owns a Vapi phone number.

@@ -21,6 +21,9 @@ export function AppHeader({ summary }: AppHeaderProps) {
         <Link href="/team" className="hover:underline">
           Team
         </Link>
+        <Link href="/setup" className="hover:underline">
+          Setup
+        </Link>
       </nav>
       <div className="flex items-center gap-4">
         <p className="text-sm">

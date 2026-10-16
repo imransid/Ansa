@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // Not a real vendor: the stand-in for R2 whenever USE_R2_STORAGE is not
@@ -28,4 +28,8 @@ export async function readFromDevFiles(key: string): Promise<Buffer | null> {
   } catch {
     return null;
   }
+}
+
+export async function deleteFromDevFiles(key: string): Promise<void> {
+  await rm(devPath(key), { force: true });
 }

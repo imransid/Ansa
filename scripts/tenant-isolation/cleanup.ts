@@ -9,6 +9,7 @@ import {
   calls,
   categories,
   companies,
+  companyDocuments,
   inboundAddresses,
   inboundEmails,
   invites,
@@ -34,10 +35,13 @@ export async function cleanUpTestData() {
     // calls at phone lines, and user_categories at users and categories.
     await deleteTestEmails(testCompanyIds);
     await deleteAssignmentEmailFiles(testCompanyIds);
-    // Stored files live under recordings/<companyId>/ (services/call-recordings.ts).
+    // Stored files live under recordings/<companyId>/ (services/call-recordings.ts)
+    // and documents/<companyId>/ (services/documents.ts).
     for (const companyId of testCompanyIds) {
       await rm(path.join(process.cwd(), ".dev-files", "recordings", companyId), { recursive: true, force: true });
+      await rm(path.join(process.cwd(), ".dev-files", "documents", companyId), { recursive: true, force: true });
     }
+    await db.delete(companyDocuments).where(inArray(companyDocuments.companyId, testCompanyIds));
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
     await db.delete(inboundEmails).where(inArray(inboundEmails.companyId, testCompanyIds));
     await db.delete(inboundAddresses).where(inArray(inboundAddresses.companyId, testCompanyIds));
