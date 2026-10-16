@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "check:tenant-isolation": "tsx --conditions=react-server --env-file=.env.local scripts/check-tenant-isolation.ts"
+    "check:tenant-isolation": "tsx --conditions=react-server --env-file=.env.local scripts/check-tenant-isolation.ts",
+    "seed:tickets": "tsx --conditions=react-server --env-file=.env.local scripts/seed-tickets.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -123,6 +123,8 @@ Do not jump ahead. Finish step N before starting step N+1.
 - The IP used for rate limiting comes from x-forwarded-for. That header is only
   trustworthy behind a host that overwrites it (Vercel, Cloudflare). Check when hosting is picked.
 - Old rate_limits rows are never deleted. Add a cleanup job when it matters.
+- Ticket list has no pagination (50 cap). See TICKET_LIST_LIMIT in db/tickets.ts.
+- Times are shown in UTC, not the viewer's local time (app/dashboard/ticket-table.tsx).
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
