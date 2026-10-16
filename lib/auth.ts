@@ -10,6 +10,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@/lib/validation/auth";
 import { createMembershipForNewUser } from "@/services/company-membership";
+import { sendVerificationEmail, VERIFICATION_LINK_SECONDS } from "@/services/email-verification";
 
 // Better Auth's HTTP handler (/api/auth/*) is deliberately NOT mounted.
 // All auth goes through our server actions -> services/auth.ts, which are
@@ -30,6 +31,23 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: PASSWORD_MIN_LENGTH,
     maxPasswordLength: PASSWORD_MAX_LENGTH,
+    // No session until the email address is confirmed (step 12). Also makes
+    // signup with an already-used email look like a normal signup, so the
+    // form can't be used to find out who has an account.
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    // An unconfirmed user who tries to log in gets a fresh link (login is rate limited).
+    sendOnSignIn: true,
+    // Confirming the email logs the user in.
+    autoSignInAfterVerification: true,
+    expiresIn: VERIFICATION_LINK_SECONDS,
+    // Better Auth also passes a `url`, but it carries the token in "?token=",
+    // which would end up in request logs. We build our own "#" link instead.
+    sendVerificationEmail: async ({ user, token }) => {
+      await sendVerificationEmail(user, token);
+    },
   },
   account: {
     // Rule 1: OAuth tokens are encrypted at rest. Nothing uses OAuth login yet,

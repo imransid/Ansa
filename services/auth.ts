@@ -7,6 +7,7 @@ import type { FormResult } from "@/lib/form-result";
 import { getClientIp } from "@/lib/request-ip";
 import { loginSchema, signupSchema } from "@/lib/validation/auth";
 import { joinWithInviteSchema } from "@/lib/validation/invites";
+import { verificationTokenSchema } from "@/lib/validation/auth";
 import { MEMBERSHIP_ERROR_CODES } from "./company-membership";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
@@ -80,6 +81,27 @@ export async function joinCompanyWithInvite(input: unknown): Promise<FormResult>
   return { ok: true };
 }
 
+// Confirms an email address from the link in the verification email, then
+// logs the user in (Better Auth's autoSignInAfterVerification).
+export async function verifyEmailWithToken(input: unknown): Promise<FormResult> {
+  const parsed = verificationTokenSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, errors: { message: unusableLinkMessage } };
+  }
+  if (await isOverRateLimit("verify-email", await getClientIp(), RATE_LIMITS.verifyEmailPerIp)) {
+    return { ok: false, errors: { message: "Too many attempts. Try again in 15 minutes." } };
+  }
+  try {
+    await auth.api.verifyEmail({ query: { token: parsed.data }, headers: await headers() });
+  } catch {
+    // Expired, tampered with, or for an account that no longer exists.
+    return { ok: false, errors: { message: unusableLinkMessage } };
+  }
+  return { ok: true };
+}
+
+const unusableLinkMessage = "This link has expired or is not valid. Log in and we'll send you a new one.";
+
 // Logs in with email and password and sets the session cookie.
 export async function logIn(input: unknown): Promise<FormResult> {
   const parsed = loginSchema.safeParse(input);
@@ -133,6 +155,9 @@ function getSignupErrorMessage(error: unknown): string {
 function getLoginErrorMessage(error: unknown): string {
   if (isAPIError(error) && error.status === "UNAUTHORIZED") {
     return "Email or password is incorrect.";
+  }
+  if (isAPIError(error) && error.body?.code === "EMAIL_NOT_VERIFIED") {
+    return "Please confirm your email address first. We've just sent you a new link.";
   }
   logUnexpectedAuthError("login", error);
   return "Could not log you in. Please try again.";

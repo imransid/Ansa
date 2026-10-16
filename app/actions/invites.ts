@@ -61,5 +61,6 @@ export async function joinWithInviteAction(
   if (!result.ok) {
     return result.errors;
   }
-  redirect("/dashboard");
+  // No session yet: the email address must be confirmed first (step 12).
+  redirect("/check-email");
 }

@@ -71,6 +71,13 @@
       "when": 1792160261336,
       "tag": "0009_categories_and_routing",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792190320214,
+      "tag": "0010_verify_existing_users",
+      "breakpoints": true
     }
   ]
 }

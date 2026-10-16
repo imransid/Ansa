@@ -22,12 +22,14 @@ import { runSignupChecks } from "./tenant-isolation/signup-checks";
 import { runTicketChecks } from "./tenant-isolation/ticket-checks";
 import { runTicketEmailChecks } from "./tenant-isolation/ticket-email-checks";
 import { runVapiChecks } from "./tenant-isolation/vapi-checks";
+import { runVerificationChecks } from "./tenant-isolation/verification-checks";
 
 async function runChecksAndCleanUp() {
   try {
     const ownerA = await signUpTestOwner("a");
     const ownerB = await signUpTestOwner("b");
     await runSignupChecks(ownerA, ownerB);
+    await runVerificationChecks();
     await runTicketChecks(ownerA, ownerB);
     await runInviteChecks(ownerA, ownerB);
     await runAssignmentChecks(ownerA, ownerB);

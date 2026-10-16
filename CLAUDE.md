@@ -53,6 +53,9 @@ and creates a ticket for a human expert when it can't.
   the Better Auth adapter: signups would deadlock on DB connections (see lib/auth.ts).
 - Invite links put the token after "#" so it never reaches the server or its logs.
   Only a SHA-256 hash of the token is stored.
+- Email verification (step 12): no session until the address is confirmed
+  (requireEmailVerification). The emailed link also uses "#<token>" (we ignore
+  Better Auth's own "?token=" url); app/verify-email reads it in the browser.
 - Any column that points at a user (assignee, solver, ...) gets a composite foreign
   key (company_id, user_id) -> users(company_id, id), so Postgres itself refuses a
   user from another company. See db/schema/tickets.ts. drizzle-kit may write that
@@ -182,9 +185,9 @@ be built and tested before the real account exists.
 Do not jump ahead. Finish step N before starting step N+1.
 
 ## Known gaps (revisit later)
-- No email verification yet: anyone can sign up with any email. Needs Resend (step 5).
-  This also means an invite tied to an email only protects against people who
-  don't know that email.
+- Email verification (step 12) works, but the link only reaches people once real
+  email is on (SEND_REAL_EMAIL=true). Until then links land in .dev-emails/.
+- Opening an already-used verification link just leads to the login page.
 - An invite is marked used just before Better Auth saves the new user. If saving
   then fails, the invite is spent and the owner has to create a new one.
 - Signup inserts the company before Better Auth inserts the user, in separate
@@ -289,3 +292,7 @@ Do not jump ahead. Finish step N before starting step N+1.
   adapter moved to the end because it is blocked on the first customer's vendor.
   Still one step at a time: plan, yes, build, test, commit. Proposed but NOT yet
   decided: Vercel for hosting (step 17), Resend Receiving for inbound email (step 15).
+- 2026-10-17: Step 12: email verification required for every new account (owners
+  and invited teammates). Accounts that existed before were marked verified by
+  migration 0010 so nobody was locked out. Login of an unconfirmed account sends a
+  fresh link; links work for one hour.

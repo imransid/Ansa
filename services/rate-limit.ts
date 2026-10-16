@@ -11,6 +11,7 @@ export const RATE_LIMITS = {
   signupPerIp: { maxAttempts: 10, windowSeconds: 60 * 60 },
   loginPerIp: { maxAttempts: 20, windowSeconds: 15 * 60 },
   loginPerEmail: { maxAttempts: 10, windowSeconds: 15 * 60 },
+  verifyEmailPerIp: { maxAttempts: 20, windowSeconds: 15 * 60 },
   inviteChangesPerCompany: { maxAttempts: 30, windowSeconds: 60 * 60 },
   invitePreviewPerIp: { maxAttempts: 30, windowSeconds: 15 * 60 },
   ticketChangesPerUser: { maxAttempts: 120, windowSeconds: 10 * 60 },

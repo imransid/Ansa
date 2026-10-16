@@ -157,6 +157,7 @@ export async function cleanUpTestData() {
     await db.delete(categories).where(inArray(categories.companyId, testCompanyIds));
   }
   if (createdEmails.length > 0) {
+    await deleteVerificationEmailFiles();
     await db.delete(users).where(inArray(users.email, createdEmails));
   }
   if (testCompanyIds.length > 0) {
@@ -181,4 +182,17 @@ async function deleteTestEmails(testCompanyIds: string[]) {
     }
   }
   await db.delete(outgoingEmails).where(inArray(outgoingEmails.companyId, testCompanyIds));
+}
+
+// Removes the "confirm your email" files the dev outbox wrote for test users
+// (their names contain the user's id, see services/email-verification.ts).
+async function deleteVerificationEmailFiles() {
+  const testUsers = await db.select({ id: users.id }).from(users).where(inArray(users.email, createdEmails));
+  const outboxDir = path.join(process.cwd(), ".dev-emails");
+  const outboxFiles = await readdir(outboxDir).catch(() => [] as string[]);
+  for (const fileName of outboxFiles) {
+    if (testUsers.some((user) => fileName.includes(`verify-email-${user.id}-`))) {
+      await rm(path.join(outboxDir, fileName), { force: true });
+    }
+  }
 }

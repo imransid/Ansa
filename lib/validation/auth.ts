@@ -55,3 +55,10 @@ export const loginSchema = z.object({
 export const newCompanySchema = z.object({
   companyName: companyNameSchema,
 });
+
+// The token from an email verification link: a signed JWT (three base64url
+// parts). Checking the shape rejects junk before Better Auth looks at it.
+export const verificationTokenSchema = z
+  .string()
+  .max(2000)
+  .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
