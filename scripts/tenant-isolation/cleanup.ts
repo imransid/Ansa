@@ -9,6 +9,7 @@ import {
   calls,
   categories,
   companies,
+  companyBilling,
   companyDocuments,
   inboundAddresses,
   inboundEmails,
@@ -42,6 +43,7 @@ export async function cleanUpTestData() {
       await rm(path.join(process.cwd(), ".dev-files", "documents", companyId), { recursive: true, force: true });
     }
     await db.delete(companyDocuments).where(inArray(companyDocuments.companyId, testCompanyIds));
+    await db.delete(companyBilling).where(inArray(companyBilling.companyId, testCompanyIds));
     await db.delete(invites).where(inArray(invites.companyId, testCompanyIds));
     await db.delete(inboundEmails).where(inArray(inboundEmails.companyId, testCompanyIds));
     await db.delete(inboundAddresses).where(inArray(inboundAddresses.companyId, testCompanyIds));

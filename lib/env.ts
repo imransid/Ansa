@@ -70,6 +70,14 @@ const envSchema = z
     // internal addresses.
     VAPI_RECORDING_HOSTS: z.string().min(1).default("storage.vapi.ai"),
 
+    // Payments (step 18). OFF unless exactly "true": the Billing page then only
+    // offers "simulate" buttons and nothing is charged. When "true", all three
+    // STRIPE_ values are required. Pricing lives in Stripe (the price id).
+    USE_STRIPE: z.enum(["true", "false"]).optional(),
+    STRIPE_SECRET_KEY: z.string().regex(/^(sk|rk)_(test|live)_/, "STRIPE_SECRET_KEY must start with sk_test_, sk_live_ or rk_").optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with whsec_").optional(),
+    STRIPE_PRICE_ID: z.string().startsWith("price_", "STRIPE_PRICE_ID must start with price_").optional(),
+
     // The call brain (adapters/claude.ts). Without a key every call is
     // escalated to a human with reason "model unavailable".
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
@@ -84,6 +92,13 @@ const envSchema = z
       for (const key of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const) {
         if (!values[key]) {
           context.addIssue({ code: "custom", path: [key], message: `${key} is required when USE_R2_STORAGE=true` });
+        }
+      }
+    }
+    if (values.USE_STRIPE === "true") {
+      for (const key of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRICE_ID"] as const) {
+        if (!values[key]) {
+          context.addIssue({ code: "custom", path: [key], message: `${key} is required when USE_STRIPE=true` });
         }
       }
     }

@@ -229,6 +229,10 @@ Do not jump ahead. Finish step N before starting step N+1.
   the hosting logs ("event":"request_error"). Error messages are never logged
   (lib/safe-error-logging.ts), which also hides them from you: debug with the
   class, Postgres code, constraint and stack frames, or reproduce locally.
+- Payments (step 18) record who pays but enforce NOTHING: a company that never
+  paid, or whose payment failed, keeps full access. Deciding what happens then
+  (trial length, lockout, grace period) is open, and so is pricing. No free
+  trial is set up; Stripe can add one on the price or checkout.
 - No Content-Security-Policy header yet (Next.js inline scripts need nonces).
   The other security headers are set in next.config.ts.
 - Vapi's real signing format is NOT confirmed yet (no account). On the first real
@@ -366,3 +370,9 @@ Do not jump ahead. Finish step N before starting step N+1.
   Errors logged without messages (instrumentation.ts), startup warnings for any
   dev stand-in left on in production, Resend bounce/spam events recorded on the
   sent email. Deploy steps in docs/going-live.md.
+- 2026-10-17: Step 18: Stripe (the proposed default, not decided) behind
+  USE_STRIPE. One plan: STRIPE_PRICE_ID, so pricing is set in Stripe. Stripe
+  Checkout to subscribe, Stripe's portal to manage; webhooks always re-read the
+  subscription from Stripe (handles late or out-of-order events). The company
+  comes from the id we put on the checkout; billing never moves between
+  companies. Dev stand-in: "simulate" buttons on /billing (refused in production).

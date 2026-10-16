@@ -46,7 +46,20 @@ Neon keeps point-in-time backups; check the retention on your plan.
 
 Set `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` defaults to `claude-sonnet-5-5`.
 
-## 6. Everything else
+## 6. Payments (Stripe, if chosen)
+
+1. In Stripe, create a product with one recurring price. Its id goes in
+   `STRIPE_PRICE_ID`. Changing the price later is done in Stripe, not in code.
+2. Turn on the customer portal (Settings > Billing > Customer portal) so owners
+   can change cards, see invoices and cancel.
+3. Add a webhook: `https://<your domain>/api/webhooks/stripe`, with the events
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated` and `customer.subscription.deleted`. Its
+   signing secret goes in `STRIPE_WEBHOOK_SECRET`.
+4. Set `STRIPE_SECRET_KEY` and `USE_STRIPE=true`. Try everything with test keys
+   (`sk_test_`) and Stripe's test cards first, then switch to live keys.
+
+## 7. Everything else
 
 | Setting | Value |
 | --- | --- |
@@ -57,7 +70,7 @@ Set `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` defaults to `claude-sonnet-5-5`.
 
 Use new values for every secret. Never reuse the ones in your `.env.local`.
 
-## 7. Hosting (Vercel, if chosen)
+## 8. Hosting (Vercel, if chosen)
 
 - Import the GitHub repo and add every setting above as an environment variable.
 - `vercel.json` schedules the daily cleanup (`/api/cron/cleanup`, 04:00 UTC).
@@ -67,7 +80,7 @@ Use new values for every secret. Never reuse the ones in your `.env.local`.
   be faked there. On other hosting, check that the proxy does the same.
 - Requests are capped at 4.5 MB, which is why documents are capped at 4 MB.
 
-## 8. After the first deploy
+## 9. After the first deploy
 
 1. Open the logs. Any line starting with `Production setting:` names a setting
    still missing; fix it and redeploy.
@@ -75,6 +88,7 @@ Use new values for every secret. Never reuse the ones in your `.env.local`.
 3. Send an email to a support address: a ticket should appear.
 4. Make a test call: a call and, if escalated, a ticket should appear.
 5. Solve a ticket with your own address as the customer email: the email arrives.
+6. Subscribe on the Billing page with a Stripe test card: it shows "active".
 
 ## Errors
 

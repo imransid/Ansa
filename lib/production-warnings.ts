@@ -14,6 +14,7 @@ export function warnAboutDevStandIns(): void {
     !env.RESEND_WEBHOOK_SECRET && "RESEND_WEBHOOK_SECRET is missing: every Resend webhook is refused",
     !env.ANTHROPIC_API_KEY && "ANTHROPIC_API_KEY is missing: calls and emails can't be analysed",
     !env.CRON_SECRET && "CRON_SECRET is missing: the daily cleanup is off",
+    env.USE_STRIPE !== "true" && "USE_STRIPE is not true: nobody can pay",
     !env.BETTER_AUTH_URL.startsWith("https://") && "BETTER_AUTH_URL is not https: links in emails will not work for customers",
   ].filter(Boolean);
   for (const problem of problems) {

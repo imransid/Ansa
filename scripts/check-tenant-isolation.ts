@@ -9,6 +9,7 @@
 
 import { db } from "@/db/client";
 import { runAssignmentChecks } from "./tenant-isolation/assignment-checks";
+import { runBillingChecks } from "./tenant-isolation/billing-checks";
 import { runBrainAnalysisChecks } from "./tenant-isolation/brain-analysis-checks";
 import { runBrainGuardChecks } from "./tenant-isolation/brain-guard-checks";
 import { runCallTicketChecks } from "./tenant-isolation/call-ticket-checks";
@@ -53,6 +54,7 @@ async function runChecksAndCleanUp() {
     await runInboundEmailChecks(ownerA, ownerB);
     await runSetupChecks(ownerA, ownerB);
     await runOpsChecks(ownerA, ownerB);
+    await runBillingChecks(ownerA, ownerB);
   } finally {
     await cleanUpTestData();
     await db.$client.end();

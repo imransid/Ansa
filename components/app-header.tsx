@@ -24,6 +24,12 @@ export function AppHeader({ summary }: AppHeaderProps) {
         <Link href="/setup" className="hover:underline">
           Setup
         </Link>
+        {/* Only a tidy menu: services/billing.ts refuses members anyway. */}
+        {summary.role === "owner" && (
+          <Link href="/billing" className="hover:underline">
+            Billing
+          </Link>
+        )}
       </nav>
       <div className="flex items-center gap-4">
         <p className="text-sm">

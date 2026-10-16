@@ -8,3 +8,4 @@ export * from "./calls";
 export * from "./inbound-emails";
 export * from "./documents";
 export * from "./rate-limits";
+export * from "./billing";
