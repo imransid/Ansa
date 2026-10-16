@@ -94,6 +94,12 @@ and creates a ticket for a human expert when it can't.
   sent AFTER the save, whatever the path: routing at creation, routing after a
   call, routing when a category is set, or a person assigning. Never for assigning
   yourself. The email holds number, subject and category only: no customer data.
+- Files (step 14): core code only calls lib/file-storage.ts. It writes to
+  .dev-files/ unless USE_R2_STORAGE is exactly "true", then to the private R2
+  bucket. Files are only served by our routes after a login + company check, as a
+  5-minute signed link (R2) or the bytes (dev). Keys start with the company id.
+- Any URL the server fetches because a webhook said so (recordings) must be https
+  on an allowed host, checked again on every redirect (lib/recording-download.ts).
 - Sensitive text at rest (transcripts now, OAuth tokens later) goes through
   lib/encryption.ts with a context naming its company and record.
 - Every customer email is first a row in outgoing_emails, written in the same
@@ -211,7 +217,10 @@ Do not jump ahead. Finish step N before starting step N+1.
   config (assistant, phone number, Server Configuration), not inline API calls.
 - Testing real calls locally needs a tunnel (e.g. cloudflared) so Vapi can reach
   /api/webhooks/vapi. Until then use pnpm simulate:vapi-call.
-- Call recordings are dropped. Copying them into a private R2 bucket is later work.
+- Call recordings (step 14): copied once, right after the webhook answers. If the
+  copy fails it is not retried (the Vapi link is never stored). Not tested against
+  a real Vapi recording or a real R2 bucket yet. Recordings are kept forever: no
+  retention rule yet.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript. There is
   no key rotation yet (the "v1:" prefix leaves room for it).
 - Phone lines are linked with pnpm link:phone-line until onboarding (step 16).
@@ -304,3 +313,6 @@ Do not jump ahead. Finish step N before starting step N+1.
   fresh link; links work for one hour.
 - 2026-10-17: Step 13: assignment emails to the assignee (best effort, after the
   save). Ticket subjects are cleaned of line breaks before going in a subject line.
+- 2026-10-17: Step 14: recordings copied into private storage from allowed hosts
+  only (VAPI_RECORDING_HOSTS, default storage.vapi.ai), at most 100 MB, audio only.
+  Played via /api/calls/<id>/recording (login + company check, no caching).

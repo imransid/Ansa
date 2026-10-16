@@ -1,7 +1,7 @@
 import "server-only";
 import { countCallsForCompany, getCallById, getCallsForCompany, insertCallIfNew, type CallListItem } from "@/db/calls";
 import { findPhoneLineByVapiNumberId } from "@/db/phone-lines";
-import type { DecisionSource } from "@/db/schema";
+import type { DecisionSource, RecordingStatus } from "@/db/schema";
 import { getTicketNumberForCall } from "@/db/tickets";
 import { decryptText, encryptText } from "@/lib/encryption";
 import { callExplanationContext, callIssueContext, callTranscriptContext } from "@/lib/encryption-contexts";
@@ -16,6 +16,7 @@ export type CallDetail = CallListItem & {
   transcript: string | null;
   // True when a transcript is stored but could not be decrypted (wrong key, damaged data).
   transcriptUnreadable: boolean;
+  recordingStatus: RecordingStatus;
   // The ticket created from this call (step 8), if any.
   ticketNumber: number | null;
   analysis: {
@@ -31,7 +32,8 @@ export type CallDetail = CallListItem & {
 };
 
 export type SaveCallOutcome =
-  | { outcome: "saved"; companyId: string; callId: string }
+  // recordingUrl is only handed on so the webhook can copy the file; it is never stored.
+  | { outcome: "saved"; companyId: string; callId: string; recordingUrl: string | null }
   | { outcome: "duplicate" }
   | { outcome: "unknown-phone-line" };
 
@@ -60,7 +62,9 @@ export async function saveEndOfCallReport(report: EndOfCallReport): Promise<Save
   if (!newCallId) {
     return { outcome: "duplicate" };
   }
-  return { outcome: "saved", companyId: line.companyId, callId: newCallId };
+  const recordingUrl =
+    message.artifact?.recording?.mono?.combinedUrl ?? message.artifact?.recordingUrl ?? message.recordingUrl ?? null;
+  return { outcome: "saved", companyId: line.companyId, callId: newCallId, recordingUrl };
 }
 
 // Lists one page of the logged-in user's company's calls, newest first.
@@ -100,6 +104,7 @@ export async function getCallForSession(
     aiOutcome: call.aiOutcome,
     transcript: transcript === "unreadable" ? null : transcript,
     transcriptUnreadable: transcript === "unreadable",
+    recordingStatus: call.recordingStatus,
     ticketNumber,
     analysis: {
       source: call.aiDecisionSource,

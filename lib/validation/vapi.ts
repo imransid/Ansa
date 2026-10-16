@@ -2,7 +2,9 @@ import { z } from "zod";
 
 // These schemas are only used AFTER the webhook signature has been verified.
 // z.object drops every field not listed here, so things we must not keep
-// (recording URLs, costs, the assistant's settings) are thrown away on parse.
+// (costs, the assistant's settings) are thrown away on parse.
+// Recording URLs are read (step 14) only to copy the file into private
+// storage right away; they are never stored or logged.
 
 // Just enough to know which event this is.
 export const vapiMessageTypeSchema = z.object({
@@ -26,8 +28,15 @@ export const endOfCallReportSchema = z.object({
     artifact: z
       .object({
         transcript: z.string().max(500_000).optional(),
+        recordingUrl: z.string().max(2000).optional(),
+        // Newer Vapi payloads nest the recording here instead.
+        recording: z
+          .object({ mono: z.object({ combinedUrl: z.string().max(2000).optional() }).optional() })
+          .optional(),
       })
       .optional(),
+    // Older Vapi payloads put the recording URL here.
+    recordingUrl: z.string().max(2000).optional(),
     // Older Vapi payloads put the transcript here instead of under artifact.
     transcript: z.string().max(500_000).optional(),
     call: z.object({

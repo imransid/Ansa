@@ -49,6 +49,18 @@ const envSchema = z
     // How old (or how far in the future) a signed request may be.
     VAPI_TIMESTAMP_TOLERANCE_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
 
+    // Private file storage (step 14). OFF unless exactly "true": files then go to
+    // .dev-files/ instead of the R2 bucket. When "true", all four R2_ values are required.
+    USE_R2_STORAGE: z.enum(["true", "false"]).optional(),
+    R2_ACCOUNT_ID: z.string().min(1).optional(),
+    R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+    R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+    R2_BUCKET: z.string().min(1).optional(),
+    // Hosts we will download call recordings from, comma separated. Anything
+    // else in a webhook is ignored, so a webhook can't make the server fetch
+    // internal addresses.
+    VAPI_RECORDING_HOSTS: z.string().min(1).default("storage.vapi.ai"),
+
     // The call brain (adapters/claude.ts). Without a key every call is
     // escalated to a human with reason "model unavailable".
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
@@ -59,6 +71,13 @@ const envSchema = z
       .default("claude-sonnet-5-5"),
   })
   .superRefine((values, context) => {
+    if (values.USE_R2_STORAGE === "true") {
+      for (const key of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const) {
+        if (!values[key]) {
+          context.addIssue({ code: "custom", path: [key], message: `${key} is required when USE_R2_STORAGE=true` });
+        }
+      }
+    }
     if (values.SEND_REAL_EMAIL !== "true") {
       return;
     }

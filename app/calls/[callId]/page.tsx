@@ -50,6 +50,7 @@ async function CallContent({ params }: Pick<PageProps<"/calls/[callId]">, "param
         <dd>{call.endedReason ?? "-"}</dd>
       </dl>
       <CallDecision call={call} />
+      <Recording call={call} />
       <Transcript call={call} />
     </>
   );
@@ -70,6 +71,23 @@ function Transcript({ call }: { call: CallDetail }) {
     <section className="grid gap-2">
       <h2 className="text-lg font-semibold">Transcript</h2>
       <pre className="whitespace-pre-wrap rounded-lg border p-4 font-sans text-sm">{call.transcript}</pre>
+    </section>
+  );
+}
+
+// Plays from our own route, which checks the login and company, then hands out
+// a 5-minute link to the private bucket. The bucket itself is never public.
+function Recording({ call }: { call: CallDetail }) {
+  if (call.recordingStatus === "failed") {
+    return <p className="text-sm text-muted-foreground">The recording could not be saved.</p>;
+  }
+  if (call.recordingStatus !== "stored") {
+    return null;
+  }
+  return (
+    <section className="grid gap-2">
+      <h2 className="text-lg font-semibold">Recording</h2>
+      <audio controls preload="none" src={`/api/calls/${call.id}/recording`} className="w-full" />
     </section>
   );
 }

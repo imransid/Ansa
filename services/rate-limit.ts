@@ -18,6 +18,7 @@ export const RATE_LIMITS = {
   vapiWebhookPerIp: { maxAttempts: 600, windowSeconds: 60 },
   // Categories and who handles them (Team page).
   settingsChangesPerUser: { maxAttempts: 60, windowSeconds: 10 * 60 },
+  recordingViewsPerUser: { maxAttempts: 200, windowSeconds: 10 * 60 },
   // Each analysis is a paid Claude call.
   callAnalysisPerUser: { maxAttempts: 20, windowSeconds: 10 * 60 },
 } satisfies Record<string, RateLimitRule>;

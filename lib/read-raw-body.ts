@@ -8,16 +8,25 @@ export async function readRawBodyWithLimit(
   request: Request,
   maxBytes: number,
 ): Promise<Buffer | "too-large"> {
-  const declaredLength = Number(request.headers.get("content-length") ?? "0");
-  if (declaredLength > maxBytes) {
+  return readStreamWithLimit(request.body, request.headers.get("content-length"), maxBytes);
+}
+
+// Same, for any body stream (also used for downloads). declaredLength is the
+// Content-Length header, if any.
+export async function readStreamWithLimit(
+  body: ReadableStream<Uint8Array> | null,
+  declaredLength: string | null,
+  maxBytes: number,
+): Promise<Buffer | "too-large"> {
+  if (Number(declaredLength ?? "0") > maxBytes) {
     return "too-large";
   }
-  if (!request.body) {
+  if (!body) {
     return Buffer.alloc(0);
   }
 
   // Content-Length can be missing or wrong, so count while reading too.
-  const reader = request.body.getReader();
+  const reader = body.getReader();
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
   while (true) {

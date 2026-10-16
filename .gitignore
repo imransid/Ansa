@@ -43,3 +43,6 @@ next-env.d.ts
 
 # dev email outbox (emails are written here instead of sent)
 /.dev-emails/
+
+# dev file storage (stand-in for the private R2 bucket)
+/.dev-files/

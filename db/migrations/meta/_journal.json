@@ -78,6 +78,13 @@
       "when": 1792190320214,
       "tag": "0010_verify_existing_users",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792190853165,
+      "tag": "0011_call_recordings",
+      "breakpoints": true
     }
   ]
 }

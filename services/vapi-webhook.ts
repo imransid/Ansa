@@ -4,6 +4,7 @@ import { getClientIpFromHeaders } from "@/lib/request-ip";
 import { getVapiSignatureSettings, isValidVapiSignature } from "@/lib/vapi-signature";
 import { endOfCallReportSchema, vapiMessageTypeSchema } from "@/lib/validation/vapi";
 import { analyzeCall } from "./call-analysis";
+import { isCopyableRecordingUrl, storeCallRecording } from "./call-recordings";
 import { saveEndOfCallReport } from "./calls";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
@@ -87,10 +88,19 @@ async function processVapiWebhook(request: Request, runAfterResponse: RunAfterRe
   // 5. A new call gets analyzed by the call brain after Vapi has its 200, so
   // Vapi never waits for Claude. A duplicate delivery is not analyzed again.
   if (saved.outcome === "saved") {
-    const { companyId, callId } = saved;
+    const { companyId, callId, recordingUrl } = saved;
     runAfterResponse(async () => {
       await analyzeCall(companyId, callId);
     });
+    // 6. Copy the recording into private storage, but only from an allowed
+    // host (lib/recording-download.ts explains why). The URL is never logged.
+    if (recordingUrl && isCopyableRecordingUrl(recordingUrl)) {
+      runAfterResponse(async () => {
+        await storeCallRecording(companyId, callId, recordingUrl);
+      });
+    } else if (recordingUrl) {
+      console.warn("Vapi recording ignored: host not allowed");
+    }
   }
   return emptyResponse(200);
 }

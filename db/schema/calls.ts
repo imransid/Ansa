@@ -21,6 +21,12 @@ export const callOutcomes = ["solved", "needs_human"] as const;
 export const callOutcomeEnum = pgEnum("call_outcome", callOutcomes);
 export type CallOutcome = (typeof callOutcomes)[number];
 
+// none = Vapi sent no usable recording; stored = copied into private storage;
+// failed = the copy didn't work (the Vapi link is not kept, so no retry).
+export const recordingStatuses = ["none", "stored", "failed"] as const;
+export const recordingStatusEnum = pgEnum("call_recording_status", recordingStatuses);
+export type RecordingStatus = (typeof recordingStatuses)[number];
+
 // "model" = Claude was asked. "rule" = our code decided without asking
 // (no transcript, abnormal end, no API key, ...). Rules only ever escalate.
 export const decisionSources = ["model", "rule"] as const;
@@ -71,6 +77,12 @@ export const calls = pgTable(
     // Encrypted with lib/encryption.ts (AES-256-GCM). Never stored or logged in plain text.
     transcriptEncrypted: text("transcript_encrypted"),
 
+    // The call's recording in PRIVATE storage (step 14), reached only through
+    // short-lived signed links. The Vapi download link itself is never stored.
+    recordingStatus: recordingStatusEnum("recording_status").notNull().default("none"),
+    recordingKey: text("recording_key"),
+    recordingContentType: text("recording_content_type"),
+
     // The call brain's decision (step 7).
     analysisStatus: callAnalysisStatusEnum("analysis_status").notNull().default("pending"),
     // When the current analysis started. A stuck "analyzing" call can be retried after a while.
@@ -104,6 +116,11 @@ export const calls = pgTable(
       columns: [table.companyId, table.phoneLineId],
       foreignColumns: [phoneLines.companyId, phoneLines.id],
     }),
+    // A recording is "stored" exactly when we know where it is.
+    check(
+      "calls_recording_fields_match_status",
+      sql`(${table.recordingStatus} = 'stored') = (${table.recordingKey} IS NOT NULL AND ${table.recordingContentType} IS NOT NULL)`,
+    ),
     // A call is "decided" exactly when it has an outcome, source, reason and time.
     check(
       "calls_decision_fields_match_status",
