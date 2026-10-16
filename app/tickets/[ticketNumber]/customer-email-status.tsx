@@ -37,6 +37,16 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
 
   if (latestEmail.status === "sent" && latestEmail.sentAt) {
     const when = <LocalDateTime iso={latestEmail.sentAt.toISOString()} />;
+    if (latestEmail.deliveryProblem === "bounced") {
+      return (
+        <StatusLine
+          text={<>Email to {latestEmail.toEmail} on {when} bounced: that address does not accept mail. Check the address with the customer.</>}
+        />
+      );
+    }
+    if (latestEmail.deliveryProblem === "complained") {
+      return <StatusLine text={<>Email to {latestEmail.toEmail} on {when} was marked as spam by the customer.</>} />;
+    }
     // Real email is off (SEND_REAL_EMAIL), so it was only written to a file.
     if (latestEmail.providerMessageId?.startsWith("dev-outbox:")) {
       return (

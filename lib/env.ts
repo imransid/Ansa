@@ -31,6 +31,11 @@ const envSchema = z
     // Without it every Resend webhook is refused.
     RESEND_WEBHOOK_SECRET: z.string().startsWith("whsec_", "RESEND_WEBHOOK_SECRET must start with whsec_").optional(),
 
+    // The scheduler sends it as "Authorization: Bearer <secret>" when calling
+    // /api/cron/cleanup (Vercel Cron does this by itself when it is set).
+    // Without it the cleanup route answers 404.
+    CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters").optional(),
+
     // Encrypts call transcripts at rest (lib/encryption.ts). Losing this key
     // means losing every stored transcript, so back it up.
     DATA_ENCRYPTION_KEY: base64Key32Bytes,

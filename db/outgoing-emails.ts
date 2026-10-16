@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, gte, ne, sql } from "drizzle-orm";
 import { db } from "./client";
-import { companies, outgoingEmails, tickets, type EmailStatus } from "./schema";
+import { companies, outgoingEmails, tickets, type DeliveryProblem, type EmailStatus } from "./schema";
 
 export type CustomerEmailSummary = {
   id: string;
@@ -9,6 +9,7 @@ export type CustomerEmailSummary = {
   toEmail: string;
   sentAt: Date | null;
   providerMessageId: string | null;
+  deliveryProblem: DeliveryProblem | null;
 };
 
 export type EmailToDeliver = {
@@ -33,6 +34,7 @@ export async function getLatestEmailForTicket(
       toEmail: outgoingEmails.toEmail,
       sentAt: outgoingEmails.sentAt,
       providerMessageId: outgoingEmails.providerMessageId,
+      deliveryProblem: outgoingEmails.deliveryProblem,
     })
     .from(outgoingEmails)
     .where(

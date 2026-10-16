@@ -11,7 +11,7 @@ export async function getClientIp(): Promise<string> {
 export function getClientIpFromHeaders(headerList: Pick<Headers, "get">): string {
   // x-forwarded-for looks like "client, proxy1, proxy2". The first entry is
   // the original caller. This header is only trustworthy when the hosting
-  // platform overwrites it (Vercel and Cloudflare do). Revisit when we pick hosting.
+  // platform overwrites it (Vercel and Cloudflare do; see docs/going-live.md).
   const forwardedFor = headerList.get("x-forwarded-for");
   if (forwardedFor) {
     return forwardedFor.split(",")[0].trim();

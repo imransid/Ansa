@@ -1,4 +1,5 @@
 import "server-only";
+import { markDeliveryProblem } from "@/db/email-delivery-events";
 import { findCompanyForInboundAddress, insertInboundEmailIfNew } from "@/db/inbound-emails";
 import { readRawBodyWithLimit } from "@/lib/read-raw-body";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
@@ -14,7 +15,11 @@ import type { RunAfterResponse } from "./vapi-webhook";
 // Resend events are small (metadata only; content is fetched separately).
 const MAX_BODY_BYTES = 256 * 1024;
 
-// Handles one webhook from Resend (step 15: "email.received"). Never throws.
+// Resend delivery events we act on, and what they mean for the email.
+const DELIVERY_PROBLEMS = { "email.bounced": "bounced", "email.complained": "complained" } as const;
+
+// Handles one webhook from Resend: received emails (step 15) and delivery
+// problems of emails we sent (step 17). Never throws.
 export async function handleResendWebhook(request: Request, runAfterResponse: RunAfterResponse): Promise<Response> {
   try {
     return await processResendWebhook(request, runAfterResponse);
@@ -46,18 +51,26 @@ async function processResendWebhook(request: Request, runAfterResponse: RunAfter
     console.warn("Resend webhook rejected: not a Resend event");
     return emptyResponse(400);
   }
-  // Bounces and other events come in step 17.
-  if (event.data.type !== "email.received" || !event.data.data?.email_id) {
+  const emailId = event.data.data?.email_id;
+  if (!emailId) {
+    return emptyResponse(200);
+  }
+  if (Object.hasOwn(DELIVERY_PROBLEMS, event.data.type)) {
+    await markDeliveryProblem(emailId, DELIVERY_PROBLEMS[event.data.type as keyof typeof DELIVERY_PROBLEMS]);
+    return emptyResponse(200);
+  }
+  // Every other event (delivered, opened...) is acknowledged and ignored.
+  if (event.data.type !== "email.received") {
     return emptyResponse(200);
   }
 
   // 4. The address it was sent to decides the company. Nothing else in the email is trusted for that.
-  const companyId = await findCompanyForRecipients(event.data.data.to ?? []);
+  const companyId = await findCompanyForRecipients(event.data.data?.to ?? []);
   if (!companyId) {
     console.warn("Inbound email ignored: unknown address");
     return emptyResponse(200);
   }
-  const inboundEmailId = await insertInboundEmailIfNew(companyId, event.data.data.email_id);
+  const inboundEmailId = await insertInboundEmailIfNew(companyId, emailId);
   // 5. Fetching the content and asking Claude happen after Resend has its 200.
   if (inboundEmailId) {
     runAfterResponse(async () => {

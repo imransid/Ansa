@@ -15,6 +15,8 @@ pnpm db:migrate                 # create the tables
 pnpm dev                        # http://localhost:3000
 ```
 
+Going to production: see [docs/going-live.md](docs/going-live.md).
+
 ## Useful commands
 
 | Command                       | What it does                                          |

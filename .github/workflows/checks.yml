@@ -1,0 +1,58 @@
+# Runs on every push and pull request: types, lint, every tenant isolation
+# check against a fresh database, and a production build. All secrets below are
+# throwaway values made up for this run; no real service is called (emails go to
+# .dev-emails/, files to .dev-files/, and Claude is replaced by fakes).
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ansa
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: ansa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ansa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Write a throwaway .env.local
+        run: |
+          {
+            echo "DATABASE_URL=postgres://ansa:ci-only-password@127.0.0.1:5432/ansa"
+            echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)"
+            echo "BETTER_AUTH_URL=http://localhost:3000"
+            echo "SEND_REAL_EMAIL=false"
+            echo "USE_R2_STORAGE=false"
+            echo "DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+            echo "VAPI_WEBHOOK_SECRET=$(openssl rand -hex 32)"
+            echo "RESEND_WEBHOOK_SECRET=whsec_$(openssl rand -base64 32)"
+            echo "CRON_SECRET=$(openssl rand -hex 32)"
+          } > .env.local
+
+      - run: pnpm db:migrate
+      # Route types (.next/types) are generated, not committed.
+      - run: pnpm exec next typegen
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm check:tenant-isolation
+      - run: pnpm build

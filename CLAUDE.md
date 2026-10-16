@@ -118,6 +118,9 @@ and creates a ticket for a human expert when it can't.
 - Next.js 16 has Cache Components on: any component that reads the session must
   sit inside <Suspense>. See app/dashboard/page.tsx. Read @AGENTS.md before
   writing Next.js code; this version differs from older docs.
+- A GET route handler that reads no params is prerendered at BUILD time unless it
+  calls `await connection()` first (see app/api/cron/cleanup/route.ts). Check the
+  build output: every /api route must show ƒ (dynamic).
 - Adapter pattern for third-party software:
   - Core code only calls generic actions: getOrder, getCustomer, createTicket
   - One adapter file per vendor: /adapters/shopify.ts, /adapters/zendesk.ts
@@ -212,12 +215,22 @@ Do not jump ahead. Finish step N before starting step N+1.
   transactions. If the user insert fails, an empty company row is left behind.
 - The IP used for rate limiting comes from x-forwarded-for. That header is only
   trustworthy behind a host that overwrites it (Vercel, Cloudflare). Check when hosting is picked.
-- Old rate_limits rows are never deleted. Add a cleanup job when it matters.
+- The daily cleanup (step 17) deletes old rate limit counters, expired sessions and
+  expired verification links. Nothing else is ever deleted automatically (no data
+  retention policy yet for calls, emails or tickets).
 - Production must set SEND_REAL_EMAIL=true. Otherwise emails go to .dev-emails/,
   which fails on read-only hosting, and tickets show "Email failed".
 - No automatic email retries: if the server stops between saving and sending, the
   email stays "not sent yet" until someone clicks Retry on the ticket.
-- No Resend webhooks yet (bounces, deliveries). When added, verify signatures (Rule 1).
+- Bounces and spam reports (step 17) are recorded for customer "solved" emails
+  only, not for verification or assignment emails. A bounced email is shown on the
+  ticket but never re-sent; fixing the address needs a reopen (owner) and solve.
+- No error monitoring service yet: failed requests are one data-free JSON line in
+  the hosting logs ("event":"request_error"). Error messages are never logged
+  (lib/safe-error-logging.ts), which also hides them from you: debug with the
+  class, Postgres code, constraint and stack frames, or reproduce locally.
+- No Content-Security-Policy header yet (Next.js inline scripts need nonces).
+  The other security headers are set in next.config.ts.
 - Vapi's real signing format is NOT confirmed yet (no account). On the first real
   call, compare Vapi's Webhook Logs (dashboard) with the VAPI_* settings in
   lib/env.ts and adjust env only. Also confirm the end-of-call-report field paths
@@ -347,3 +360,9 @@ Do not jump ahead. Finish step N before starting step N+1.
   type comes from the file extension (allowlist), never from the browser; downloads
   are always "save as" (attachment), through /api/documents/<id> (login + company
   check, no caching).
+- 2026-10-17: Step 17: hosting still undecided; built for Vercel (proposed) without
+  locking in: only vercel.json (daily cron) is Vercel-specific. Neon via its pooled
+  URL. CI on every push (.github/workflows/checks.yml) with throwaway secrets.
+  Errors logged without messages (instrumentation.ts), startup warnings for any
+  dev stand-in left on in production, Resend bounce/spam events recorded on the
+  sent email. Deploy steps in docs/going-live.md.

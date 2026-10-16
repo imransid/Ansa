@@ -19,7 +19,8 @@
     "simulate:vapi-call": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-vapi-call.ts",
     "try:brain": "tsx --conditions=react-server --env-file=.env.local scripts/try-brain.ts",
     "link:inbound-address": "tsx --conditions=react-server --env-file=.env.local scripts/link-inbound-address.ts",
-    "simulate:inbound-email": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-inbound-email.ts"
+    "simulate:inbound-email": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-inbound-email.ts",
+    "simulate:email-bounce": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-email-bounce.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

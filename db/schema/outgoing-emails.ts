@@ -18,6 +18,11 @@ export const emailStatuses = ["pending", "sent", "failed"] as const;
 export const emailStatusEnum = pgEnum("email_status", emailStatuses);
 export type EmailStatus = (typeof emailStatuses)[number];
 
+// Reported by Resend after an email was sent (step 17 delivery webhook).
+export const deliveryProblems = ["bounced", "complained"] as const;
+export const deliveryProblemEnum = pgEnum("email_delivery_problem", deliveryProblems);
+export type DeliveryProblem = (typeof deliveryProblems)[number];
+
 // Every email we send to a customer. A row is written in the same database
 // transaction as the change that causes it (for example marking a ticket
 // solved), so an email can never be silently forgotten. Delivery happens right
@@ -41,6 +46,10 @@ export const outgoingEmails = pgTable(
     // Resend's email id, or "dev-outbox:<file>" when real sending is off.
     providerMessageId: text("provider_message_id"),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    // Set when the receiving server rejected it (bounced) or the customer
+    // marked it as spam (complained).
+    deliveryProblem: deliveryProblemEnum("delivery_problem"),
+    deliveryProblemAt: timestamp("delivery_problem_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -54,6 +63,8 @@ export const outgoingEmails = pgTable(
       table.companyId,
       table.ticketId,
     ),
+    // Delivery webhooks find the email by Resend's id.
+    index("outgoing_emails_provider_message_id_idx").on(table.providerMessageId),
     // Postgres refuses an email row whose ticket belongs to another company.
     foreignKey({
       name: "outgoing_emails_ticket_in_same_company_fk",

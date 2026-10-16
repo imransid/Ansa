@@ -24,6 +24,7 @@ export const RATE_LIMITS = {
   resendWebhookPerIp: { maxAttempts: 600, windowSeconds: 60 },
   // One sender can open at most this many tickets an hour (stops mail floods).
   inboundEmailsPerSender: { maxAttempts: 10, windowSeconds: 60 * 60 },
+  cronPerIp: { maxAttempts: 30, windowSeconds: 60 * 60 },
   // Each analysis is a paid Claude call.
   callAnalysisPerUser: { maxAttempts: 20, windowSeconds: 10 * 60 },
 } satisfies Record<string, RateLimitRule>;
