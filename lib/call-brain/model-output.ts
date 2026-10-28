@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_TURN_CHARACTERS } from "./transcript-slice";
 
 // Exactly what Claude must return, written twice on purpose:
 // - buildModelDecisionJsonSchema is sent to the API, which then only lets
@@ -37,11 +38,17 @@ export function buildModelDecisionSchema(categoryNames: string[]) {
   return z
     .object({
       outcome: z.enum(["solved", "needs_human"]),
-      customer_issue: z.string().min(1).max(500),
-      resolution_evidence: z.string().max(300),
+      customer_issue: z.string().trim().min(1).max(500),
+      // One whole sentence of a turn (resolution-evidence.ts), so at most a
+      // whole turn: a long run-on sentence must reach that check, not be
+      // refused as malformed. Claude's copy is only compared there; when it
+      // passes, the transcript's own sentence is kept, encrypted on the call,
+      // and shown on the call page (step 31).
+      resolution_evidence: z.string().max(MAX_TURN_CHARACTERS),
       reason: z.string().max(500),
-      // Becomes the subject of the follow-up ticket (step 8).
-      ticket_subject: z.string().min(1).max(80),
+      // Becomes the subject of the follow-up ticket (step 8). Blank counts as
+      // missing: the ticket schema would refuse it later anyway.
+      ticket_subject: z.string().trim().min(1).max(80),
       // Decides who the ticket is routed to (step 10). "" = none fits.
       category: z.enum(allowedCategories),
     })
@@ -50,24 +57,27 @@ export function buildModelDecisionSchema(categoryNames: string[]) {
 
 export type ModelDecision = z.infer<ReturnType<typeof buildModelDecisionSchema>>;
 
-// Everything that can come back from asking the model. Only "ok" carries
-// model text, and that text is never logged.
-export type ModelResult =
-  | { kind: "ok"; outputText: string; usage: { inputTokens: number; outputTokens: number } }
-  | { kind: "refused" }
-  | { kind: "truncated" }
-  | { kind: "unexpected-stop" }
-  | { kind: "error"; errorName: string }
-  | { kind: "unavailable" };
+// A second, looser reading of an answer the schema above refused (step 27),
+// for "needs_human" ONLY: a subject, issue or reason a little over its length
+// is cut to fit, and a blank subject or issue becomes "" (the ticket then gets
+// the fallback subject), instead of throwing Claude's whole answer away (its
+// summary and the category routing needs). Everything else stays as strict:
+// every field present, no extra field, a known category. A "solved" answer
+// never gets this second chance (outcome must be "needs_human").
+export function buildNeedsHumanSalvageSchema(categoryNames: string[]) {
+  const allowedCategories: [string, ...string[]] = ["", ...categoryNames];
+  return z
+    .object({
+      outcome: z.literal("needs_human"),
+      customer_issue: cutToLength(500),
+      resolution_evidence: z.string(),
+      reason: cutToLength(500),
+      ticket_subject: cutToLength(80),
+      category: z.enum(allowedCategories),
+    })
+    .strict();
+}
 
-// One request to the model. Also used for email triage (lib/email-triage),
-// which sends its own JSON schema.
-export type DecisionRequest = {
-  systemPrompt: string;
-  prompt: string;
-  jsonSchema: Record<string, unknown>;
-};
-
-// The shape of any function that asks a model for a decision. The real one is
-// adapters/claude.ts; the checks pass fakes so they never call the paid API.
-export type DecisionAsker = (request: DecisionRequest) => Promise<ModelResult>;
+function cutToLength(maxLength: number) {
+  return z.string().transform((text) => text.trim().slice(0, maxLength).trim());
+}

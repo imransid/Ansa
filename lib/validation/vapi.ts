@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ESCALATION_NOTE_MAX_LENGTH } from "@/lib/ticket-limits";
+import { categoryChoiceSchema, multilineText } from "./ticket-fields";
 
 // These schemas are only used AFTER the webhook signature has been verified.
 // z.object drops every field not listed here, so things we must not keep
@@ -57,6 +59,28 @@ export type EndOfCallReport = z.infer<typeof endOfCallReportSchema>;
 
 export const callIdSchema = z.uuid();
 
+// Vapi's id for a phone number, as ansa's operator pastes it from the Vapi
+// dashboard into pnpm link:phone-line (owners can't link numbers).
+export const vapiPhoneNumberIdSchema = z.string().trim().regex(/^[A-Za-z0-9_-]{3,100}$/, "Paste the phone number id from Vapi");
+
 export const analyzeCallSchema = z.object({
+  // Lowercase, the way Postgres stores it: the id names the encryption
+  // context of what Claude writes about the call, and the call page decrypts
+  // with the id the database gives back.
+  callId: z.uuid().transform((id) => id.toLowerCase()),
+});
+
+// "Escalate to a ticket" on a call the AI marked solved (step 31). The call
+// id is only a claim: the escalation's UPDATE checks it is this company's
+// call, decided "solved" and not escalated yet (db/call-escalation.ts).
+export const escalateCallSchema = z.object({
   callId: z.uuid(),
+  categoryId: categoryChoiceSchema,
+  note: multilineText().pipe(
+    z
+      .string()
+      .trim()
+      .max(ESCALATION_NOTE_MAX_LENGTH, `A note can be at most ${ESCALATION_NOTE_MAX_LENGTH} characters.`)
+      .transform((note) => (note ? note : null)),
+  ),
 });

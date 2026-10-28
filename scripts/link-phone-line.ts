@@ -1,45 +1,57 @@
-// Links a Vapi phone number id to the company of an existing user, so calls to
-// that number are saved for that company. Stand-in for the onboarding flow (step 16).
+// Operator tool: links a Vapi phone number id to the company of an owner, so
+// calls to that number are saved for that company. Owners can't link numbers
+// themselves (step 24): the numbers live in ansa's own Vapi account, and
+// whoever links an id receives its calls.
 //
-// Run with: pnpm link:phone-line you@example.com <vapiPhoneNumberId>
+// Only the address of an owner who confirmed it and was not removed finds a
+// company (scripts/company-of-user.ts). The script first prints that company's
+// name and changes nothing; check it is the company that asked, then run the
+// same command again with --yes to link.
+//
+// Run with: pnpm link:phone-line owner@theircompany.com <vapiPhoneNumberId> [--yes]
+// Against production: DATABASE_URL="<direct url>" pnpm link:phone-line ...
 // For local testing any id works, e.g. "pn-local-test".
+// Undo (only while the number has no calls): pnpm unlink:phone-line.
 
-import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { findPhoneLineByVapiNumberId, createPhoneLine } from "@/db/phone-lines";
-import { users } from "@/db/schema";
+import { createPhoneLine, findPhoneLineByVapiNumberId } from "@/db/phone-lines";
+import { vapiPhoneNumberIdSchema } from "@/lib/validation/vapi";
+import { askToConfirm, describeOwnersCompany, findOwnersCompany, noOwnerMessage, readOperatorArguments } from "./company-of-user";
 
 async function main() {
-  const email = process.argv[2]?.trim().toLowerCase();
-  const vapiPhoneNumberId = process.argv[3]?.trim();
-  if (!email || !vapiPhoneNumberId) {
-    console.error("Usage: pnpm link:phone-line you@example.com <vapiPhoneNumberId>");
+  const { values, confirmed } = readOperatorArguments();
+  const email = values[0] ?? "";
+  const vapiPhoneNumberId = vapiPhoneNumberIdSchema.safeParse(values[1]);
+  if (!email || !vapiPhoneNumberId.success) {
+    console.error("Usage: pnpm link:phone-line owner@theircompany.com <vapiPhoneNumberId> [--yes]");
     process.exitCode = 1;
     return;
   }
 
-  // Looked up directly here, not through /db, on purpose: "find a company by
-  // email" is only safe in a local dev script (same as seed-tickets.ts).
-  const [user] = await db
-    .select({ companyId: users.companyId })
-    .from(users)
-    .where(eq(users.email, email));
-  if (!user) {
-    console.error(`No user with email ${email}. Sign up in the app first.`);
+  const company = await findOwnersCompany(email);
+  if (!company) {
+    console.error(noOwnerMessage(email));
     process.exitCode = 1;
     return;
   }
+  console.log(describeOwnersCompany(company, email));
 
-  const existing = await findPhoneLineByVapiNumberId(vapiPhoneNumberId);
+  const existing = await findPhoneLineByVapiNumberId(vapiPhoneNumberId.data);
   if (existing) {
-    const sameCompany = existing.companyId === user.companyId;
+    const sameCompany = existing.companyId === company.companyId;
     console.log(sameCompany ? "Already linked to this company." : "This number already belongs to another company.");
     process.exitCode = sameCompany ? 0 : 1;
     return;
   }
+  // Exit code 1: nothing was linked, so a script calling this doesn't carry on as if it was.
+  if (!confirmed) {
+    console.log(askToConfirm(`link ${vapiPhoneNumberId.data} to it`));
+    process.exitCode = 1;
+    return;
+  }
 
-  await createPhoneLine(user.companyId, vapiPhoneNumberId);
-  console.log(`Linked ${vapiPhoneNumberId} to ${email}'s company.`);
+  await createPhoneLine(company.companyId, vapiPhoneNumberId.data);
+  console.log(`Linked ${vapiPhoneNumberId.data} to "${company.companyName}". Its Setup page now shows the number.`);
 }
 
 main()

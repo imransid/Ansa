@@ -10,6 +10,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth";
 import { companies } from "./companies";
 
 // pending -> analyzing -> decided. See services/call-analysis.ts.
@@ -93,11 +94,24 @@ export const calls = pgTable(
     aiReasonCode: text("ai_reason_code"),
     // Which Claude model was asked, if any.
     aiModel: text("ai_model"),
+    // When asking Claude failed (reason "model_error"): the SDK error's class
+    // name, like "AuthenticationError", so the call page can say why (step 27).
+    // Never an error message (the check below allows a name only).
+    aiErrorClass: text("ai_error_class"),
     // Claude's short description of the customer's issue and its explanation.
     // Derived from the transcript, so encrypted the same way.
     aiIssueEncrypted: text("ai_issue_encrypted"),
     aiExplanationEncrypted: text("ai_explanation_encrypted"),
+    // The proof behind a "solved" (step 31): the customer's own sentence that
+    // confirmed it, as the transcript has it, so whoever reviews the call can
+    // judge the verdict. Encrypted like the transcript it comes from.
+    aiEvidenceEncrypted: text("ai_evidence_encrypted"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
+    // Who escalated a call the AI marked "solved" to a ticket, and when (step
+    // 31). ai_outcome and ai_reason_code keep what the AI decided, so its
+    // accuracy can still be measured: solved calls a person escalated.
+    escalatedByUserId: text("escalated_by_user_id"),
+    escalatedAt: timestamp("escalated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -116,6 +130,10 @@ export const calls = pgTable(
       columns: [table.companyId, table.phoneLineId],
       foreignColumns: [phoneLines.companyId, phoneLines.id],
     }),
+    // Postgres doesn't index the calls side of that foreign key by itself:
+    // without this, unlinking a number reads every call of the company to
+    // check it has none. Setup also reads each number's newest call through it.
+    index("calls_company_id_phone_line_id_created_at_idx").on(table.companyId, table.phoneLineId, table.createdAt),
     // A recording is "stored" exactly when we know where it is.
     check(
       "calls_recording_fields_match_status",
@@ -126,5 +144,28 @@ export const calls = pgTable(
       "calls_decision_fields_match_status",
       sql`(${table.analysisStatus} = 'decided') = (${table.aiOutcome} IS NOT NULL AND ${table.aiDecisionSource} IS NOT NULL AND ${table.aiReasonCode} IS NOT NULL AND ${table.decidedAt} IS NOT NULL)`,
     ),
+    // A class name like "AuthenticationError" and nothing else: an error
+    // message could quote Claude's answer or the transcript.
+    check("calls_ai_error_class_is_a_name", sql`${table.aiErrorClass} IS NULL OR ${table.aiErrorClass} ~ '^[A-Za-z0-9_]{1,64}$'`),
+    // The customer's confirming sentence exists only on a call decided "solved".
+    check("calls_ai_evidence_only_when_solved", sql`${table.aiEvidenceEncrypted} IS NULL OR ${table.aiOutcome} = 'solved'`),
+    // Postgres refuses an escalation by someone from another company.
+    foreignKey({
+      name: "calls_escalator_in_same_company_fk",
+      columns: [table.companyId, table.escalatedByUserId],
+      foreignColumns: [users.companyId, users.id],
+    }),
+    // Who and when are filled in together, and only on a call the AI decided
+    // "solved": a "needs_human" call got its ticket with the decision.
+    check("calls_escalation_fields_together", sql`(${table.escalatedByUserId} IS NULL) = (${table.escalatedAt} IS NULL)`),
+    check(
+      "calls_escalated_only_when_ai_solved",
+      sql`${table.escalatedAt} IS NULL OR (${table.analysisStatus} = 'decided' AND ${table.aiOutcome} = 'solved')`,
+    ),
+    // The scheduled job looks for unfinished analyses of every company
+    // (db/stuck-work.ts); there are only ever a few of those.
+    index("calls_unfinished_analysis_idx")
+      .on(table.createdAt)
+      .where(sql`${table.analysisStatus} in ('pending', 'analyzing')`),
   ],
 );

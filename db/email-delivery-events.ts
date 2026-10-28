@@ -3,7 +3,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./client";
 import { outgoingEmails, type DeliveryProblem } from "./schema";
 
-// Records that a sent email bounced or was marked as spam. The first problem
+// Records that a sent email bounced, was marked as spam, or was suppressed or
+// failed at Resend (see deliveryProblems in the schema). The first problem
 // reported wins; repeats of the same webhook change nothing.
 // Not company-scoped on purpose: a webhook has no session, only Resend's email
 // id (unique to one email of one company). Call this only after the webhook

@@ -1,7 +1,8 @@
 // Assignment email checks (step 13): whoever a ticket lands on is told, once,
 // whatever way it got there; nobody is told about assigning themselves, about
-// a ticket that isn't theirs, or about another company's ticket; and the email
-// carries no customer contact details or notes.
+// a ticket that isn't theirs, or about another company's ticket, and nobody
+// before confirming their address; and the email carries no customer contact
+// details or notes.
 
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
@@ -18,10 +19,22 @@ import {
   setTicketCategoryForSession,
   setUserCategoriesForSession,
 } from "@/services/categories";
+import { joinCompanyWithInvite } from "@/services/signup";
 import { assignTicketForSession, createTicketForCompany } from "@/services/tickets";
+import { requestHeadersFrom, userIdsWithEmail } from "./account-helpers";
 import { answer } from "./brain-guard-checks";
 import { fakeModel, saveTestCall } from "./brain-test-calls";
-import { addTeammate, captureConsole, check, runId, sessionFor, type TestUser } from "./helpers";
+import {
+  addTeammate,
+  captureConsole,
+  check,
+  inviteAs,
+  runId,
+  sessionFor,
+  testEmail,
+  testPassword,
+  type TestUser,
+} from "./helpers";
 
 const OUTBOX = path.join(process.cwd(), ".dev-emails");
 
@@ -82,12 +95,30 @@ export async function runNotificationChecks(ownerA: TestUser, ownerB: TestUser) 
 
   await check("notify: a call escalation routed by category emails the expert", async () => {
     const line = await createPhoneLine(ownerA.companyId, `pn-notify-${runId}`);
-    const callId = await saveTestCall(line.vapiPhoneNumberId, "User: My printer is broken.\nAI: I'll pass this on.");
+    // A caller of its own: the shared test caller has open tickets with other
+    // experts in this company, and a repeat customer follows them (step 29).
+    const callId = await saveTestCall(line.vapiPhoneNumberId, "User: My printer is broken.\nAI: I'll pass this on.", "+1 555 0120 001");
     const reply = answer({ outcome: "needs_human", customer_issue: "Printer broken.", resolution_evidence: "", reason: "Needs a technician.", ticket_subject: "Broken printer", category: "Notify" });
     await analyzeCall(ownerA.companyId, callId, fakeModel(reply).ask);
     const [ticket] = await db.select().from(tickets).where(eq(tickets.callId, callId));
     assert.equal(ticket.assignedToUserId, expert.id);
     assert.equal((await assignmentEmails(ticket.id)).length, 1);
+  });
+
+  await check("notify: a teammate who hasn't confirmed their address gets no ticket and no email (it may not be theirs)", async () => {
+    // Anyone with an invite link can join as the invited address, with any name.
+    const address = testEmail("notify-unconfirmed");
+    const inviteToken = await inviteAs(ownerA, address, "member");
+    const joinInput = { inviteToken, name: "URGENT: call +1 555 0100", email: address, password: testPassword };
+    assert.deepEqual(await joinCompanyWithInvite(joinInput, requestHeadersFrom("notify-unconfirmed")), { ok: true });
+    const [unconfirmedId] = await userIdsWithEmail(address);
+    const ticket = await createTicketForCompany(ownerA.companyId, { subject: "Unconfirmed", description: "x", channel: "phone" });
+    // Nobody can give them a ticket (step 23)...
+    assert.equal((await assignTicketForSession(asOwnerA, { ticketId: ticket.id, assigneeUserId: unconfirmedId })).ok, false);
+    // ...and one given to them before that still sends them nothing.
+    await db.update(tickets).set({ assignedToUserId: unconfirmedId, assignedAutomatically: false }).where(eq(tickets.id, ticket.id));
+    await notifyAssignee({ companyId: ownerA.companyId, ticketId: ticket.id, assigneeUserId: unconfirmedId, assignedByUserId: ownerA.id });
+    assert.equal((await assignmentEmails(ticket.id)).length, 0);
   });
 
   await check("notify: nobody is told about a ticket that isn't theirs or another company's", async () => {

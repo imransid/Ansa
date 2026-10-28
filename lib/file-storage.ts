@@ -1,10 +1,11 @@
 import "server-only";
 import { deleteFromDevFiles, putToDevFiles, readFromDevFiles } from "@/adapters/dev-file-storage";
-import { deleteFromR2, putToR2, signedR2DownloadUrl } from "@/adapters/r2";
+import { deleteFromR2, getFromR2, putToR2, signedR2DownloadUrl } from "@/adapters/r2";
 import { env } from "@/lib/env";
 
-// Private file storage (call recordings, uploaded documents). Core code
-// calls these functions; it never talks to R2 or the dev folder directly.
+// Private file storage (call recordings, uploaded documents, the media
+// library). Core code calls these functions; it never talks to R2 or the
+// dev folder directly.
 
 // How a stored file can be reached: a short-lived signed R2 link, or (in dev)
 // the bytes themselves, served by our own route after its login check.
@@ -29,14 +30,28 @@ export async function putPrivateFile(key: string, bytes: Buffer, contentType: st
 }
 
 // Returns a way to reach the file, or null if it can't be found.
-// linkSeconds: how long a signed link works. downloadName: save, don't open.
+// contentType: the type we stored, which the answer carries (never one the
+// bucket or a browser guesses). linkSeconds: how long a signed link works.
+// downloadName: save, don't open.
 export async function getPrivateFileAccess(key: string, contentType: string, linkSeconds: number, downloadName?: string): Promise<PrivateFileAccess | null> {
   assertSafeKey(key);
   if (isR2On()) {
-    return { kind: "signed-url", url: await signedR2DownloadUrl(key, linkSeconds, downloadName) };
+    return { kind: "signed-url", url: await signedR2DownloadUrl(key, linkSeconds, contentType, downloadName) };
   }
   const bytes = await readFromDevFiles(key);
   return bytes ? { kind: "bytes", bytes, contentType } : null;
+}
+
+// The file's bytes, read on the server (to take a document's text into
+// knowledge, step 34; to publish an image or video, step 41), or null if it
+// can't be found. Never sent to a browser from here: downloads go through
+// getPrivateFileAccess. timeoutMs: R2's read is cut off then (it throws).
+export async function readPrivateFile(key: string, timeoutMs?: number): Promise<Buffer | null> {
+  assertSafeKey(key);
+  if (isR2On()) {
+    return getFromR2(key, timeoutMs === undefined ? undefined : AbortSignal.timeout(timeoutMs));
+  }
+  return readFromDevFiles(key);
 }
 
 export async function deletePrivateFile(key: string): Promise<void> {

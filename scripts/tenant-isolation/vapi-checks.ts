@@ -1,6 +1,7 @@
-// Vapi webhook checks: only correctly signed, recent requests are accepted,
-// calls land in the company that owns the phone line, transcripts are
-// encrypted, and no call data ever reaches the logs.
+// Vapi webhook checks: only correctly signed, recent requests are accepted
+// (the signature headers default to a Vapi HMAC credential's own), calls land
+// in the company that owns the phone line, transcripts are encrypted (a cut
+// authentication tag is refused), and no call data ever reaches the logs.
 
 import assert from "node:assert/strict";
 import { createHmac, randomUUID } from "node:crypto";
@@ -9,6 +10,7 @@ import { db } from "@/db/client";
 import { createPhoneLine } from "@/db/phone-lines";
 import { calls } from "@/db/schema";
 import { decryptText, encryptText } from "@/lib/encryption";
+import { parseEnv } from "@/lib/env";
 import { getVapiSignatureSettings, isValidVapiSignature, signLikeVapi } from "@/lib/vapi-signature";
 import { getCallForSession, listCallsForSession } from "@/services/calls";
 import { handleVapiWebhook } from "@/services/vapi-webhook";
@@ -182,5 +184,16 @@ export async function runVapiChecks(ownerA: TestUser, ownerB: TestUser) {
     const flipped = Buffer.from(data, "base64");
     flipped[0] = flipped[0] ^ 1;
     assert.throws(() => decryptText([version, iv, tag, flipped.toString("base64")].join(":"), `call-transcript:${ownerA.companyId}:x`));
+    // The tag cut short (Node alone would accept 4, 8 or 12 of its 16 bytes): refused.
+    for (const length of [4, 8, 12, 15]) {
+      const shortTag = Buffer.from(tag, "base64").subarray(0, length).toString("base64");
+      assert.throws(() => decryptText([version, iv, shortTag, data].join(":"), `call-transcript:${ownerA.companyId}:x`), `a ${length}-byte tag was accepted`);
+    }
+  });
+
+  await check("vapi: the signature headers default to a Vapi HMAC credential's own, x-signature and x-timestamp", async () => {
+    const minimal = { DATABASE_URL: "postgres://x@localhost/x", BETTER_AUTH_SECRET: "s".repeat(32), BETTER_AUTH_URL: "http://localhost:3000" };
+    const defaults = parseEnv({ ...minimal, DATA_ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"), VAPI_WEBHOOK_SECRET: "v".repeat(32) });
+    assert.deepEqual([defaults.VAPI_SIGNATURE_HEADER, defaults.VAPI_TIMESTAMP_HEADER], ["x-signature", "x-timestamp"]);
   });
 }

@@ -43,3 +43,54 @@ export function buildSampleEndOfCallReport(sample: SampleReport) {
     },
   };
 }
+
+type SampleToolCall = {
+  id: string;
+  name: string;
+  // An object, or the same as a JSON string: Vapi's docs and API spec differ.
+  arguments: unknown;
+};
+
+type SampleToolCallsMessage = {
+  callId: string;
+  phoneNumberId: string;
+  callerNumber: string;
+  toolCalls: SampleToolCall[];
+  // What the live transcript says so far (message.artifact).
+  transcript: string;
+};
+
+// A made-up Vapi tool-calls message (step 35), as the assistant sends it
+// during a live call. Field paths follow Vapi's docs and API spec.
+export function buildSampleToolCallsMessage(sample: SampleToolCallsMessage) {
+  const toolCallList = sample.toolCalls.map((toolCall) => ({
+    id: toolCall.id,
+    type: "function",
+    function: { name: toolCall.name, arguments: toolCall.arguments },
+  }));
+  return {
+    message: {
+      type: "tool-calls",
+      timestamp: Date.now(),
+      toolCallList,
+      toolWithToolCallList: toolCallList.map((toolCall) => ({
+        type: "function",
+        function: { name: toolCall.function.name, parameters: { type: "object" } },
+        toolCall,
+      })),
+      call: {
+        id: sample.callId,
+        type: "inboundPhoneCall",
+        phoneNumberId: sample.phoneNumberId,
+        // Must be ignored: the company comes from our phone_lines table only.
+        orgId: "attacker-org",
+        metadata: { companyId: "00000000-0000-4000-8000-000000000000" },
+      },
+      customer: { number: sample.callerNumber },
+      // Must never be stored or logged: the live transcript and recording
+      // links, and the phone provider's secrets.
+      artifact: { transcript: sample.transcript, recordingUrl: "https://storage.example.test/recordings/live-recording.wav" },
+      phoneNumber: { provider: "twilio", number: "+1 555 0100", twilioAuthToken: "twilio-secret-token" },
+    },
+  };
+}

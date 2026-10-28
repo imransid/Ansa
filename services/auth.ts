@@ -1,109 +1,36 @@
 import "server-only";
-import { headers } from "next/headers";
 import { isAPIError } from "better-auth/api";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import {
+  auth,
+  isCorrectPasswordForEmail,
+  readEmailFromVerificationToken,
+  spendPasswordCheckTime,
+} from "@/lib/auth";
 import type { FormResult } from "@/lib/form-result";
-import { getClientIp } from "@/lib/request-ip";
-import { loginSchema, signupSchema } from "@/lib/validation/auth";
-import { joinWithInviteSchema } from "@/lib/validation/invites";
-import { verificationTokenSchema } from "@/lib/validation/auth";
-import { MEMBERSHIP_ERROR_CODES } from "./company-membership";
+import { createKnownDeviceCookieValue, type RememberBrowser } from "@/lib/known-device";
+import { getClientIpFromHeaders } from "@/lib/request-ip";
+import { confirmEmailSchema, loginSchema } from "@/lib/validation/auth";
+import {
+  describeLoginAttempt,
+  findLoginLimitReached,
+  forgetSuccessfulLogin,
+  waitAfterLimit,
+  type LoginLimit,
+} from "./login-limits";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
-// Creates a new company with the signing-up person as its owner, then logs them in.
-export async function signUpCompanyOwner(input: unknown): Promise<FormResult> {
-  const parsed = signupSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      errors: { fieldErrors: z.flattenError(parsed.error).fieldErrors },
-    };
-  }
-
-  const ip = await getClientIp();
-  if (await isOverRateLimit("signup", ip, RATE_LIMITS.signupPerIp)) {
-    return {
-      ok: false,
-      errors: { message: "Too many signup attempts. Try again in an hour." },
-    };
-  }
-
-  const { companyName, name, email, password } = parsed.data;
-  // We never send companyId or role. The user-create hook in lib/auth.ts
-  // reads companyName, creates the company, and sets both on the new user.
-  // Better Auth passes extra body fields like companyName through at runtime,
-  // but its types don't list them, so the body is built before the call.
-  const signupBody = { name, email, password, companyName };
-  try {
-    await auth.api.signUpEmail({
-      body: signupBody,
-      headers: await headers(),
-    });
-  } catch (error) {
-    return { ok: false, errors: { message: getSignupErrorMessage(error) } };
-  }
-
-  return { ok: true };
-}
-
-// Creates an account from an invite link, joins the inviting company, then logs in.
-export async function joinCompanyWithInvite(input: unknown): Promise<FormResult> {
-  const parsed = joinWithInviteSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      errors: { fieldErrors: z.flattenError(parsed.error).fieldErrors },
-    };
-  }
-
-  const ip = await getClientIp();
-  if (await isOverRateLimit("signup", ip, RATE_LIMITS.signupPerIp)) {
-    return {
-      ok: false,
-      errors: { message: "Too many signup attempts. Try again in an hour." },
-    };
-  }
-
-  const { inviteToken, name, email, password } = parsed.data;
-  // The user-create hook in lib/auth.ts sees inviteToken, checks the invite
-  // matches this email, and takes company and role from the invite.
-  const signupBody = { name, email, password, inviteToken };
-  try {
-    await auth.api.signUpEmail({
-      body: signupBody,
-      headers: await headers(),
-    });
-  } catch (error) {
-    return { ok: false, errors: { message: getSignupErrorMessage(error) } };
-  }
-
-  return { ok: true };
-}
-
-// Confirms an email address from the link in the verification email, then
-// logs the user in (Better Auth's autoSignInAfterVerification).
-export async function verifyEmailWithToken(input: unknown): Promise<FormResult> {
-  const parsed = verificationTokenSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, errors: { message: unusableLinkMessage } };
-  }
-  if (await isOverRateLimit("verify-email", await getClientIp(), RATE_LIMITS.verifyEmailPerIp)) {
-    return { ok: false, errors: { message: "Too many attempts. Try again in 15 minutes." } };
-  }
-  try {
-    await auth.api.verifyEmail({ query: { token: parsed.data }, headers: await headers() });
-  } catch {
-    // Expired, tampered with, or for an account that no longer exists.
-    return { ok: false, errors: { message: unusableLinkMessage } };
-  }
-  return { ok: true };
-}
-
-const unusableLinkMessage = "This link has expired or is not valid. Log in and we'll send you a new one.";
+// Everything that opens or closes a session: login, confirming an email
+// address, logout. (Creating accounts is services/signup.ts, password reset
+// services/password-reset.ts, password change services/account.ts.)
+// requestHeaders are the incoming request's headers: the IP is the rate limit
+// key and the cookies are the session and the known-device cookie.
+// rememberBrowser hands this browser a new known-device cookie after a login
+// that worked (lib/known-device.ts). Both are passed in so the checks can call
+// these too.
 
 // Logs in with email and password and sets the session cookie.
-export async function logIn(input: unknown): Promise<FormResult> {
+export async function logIn(input: unknown, requestHeaders: Headers, rememberBrowser: RememberBrowser): Promise<FormResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -113,51 +40,140 @@ export async function logIn(input: unknown): Promise<FormResult> {
   }
 
   const { email, password } = parsed.data;
-  const ip = await getClientIp();
-  // Limit per IP (one attacker, many accounts) and per email (many IPs, one account).
-  const tooManyFromThisIp = await isOverRateLimit("login-ip", ip, RATE_LIMITS.loginPerIp);
-  const tooManyForThisEmail = await isOverRateLimit("login-email", email, RATE_LIMITS.loginPerEmail);
-  if (tooManyFromThisIp || tooManyForThisEmail) {
-    return {
-      ok: false,
-      errors: { message: "Too many login attempts. Try again in 15 minutes." },
-    };
+  const attempt = describeLoginAttempt(email, requestHeaders);
+  const limitReached = await findLoginLimitReached(attempt);
+  if (limitReached) {
+    return { ok: false, errors: { message: getTooManyLoginsMessage(limitReached) } };
   }
 
   try {
-    await auth.api.signInEmail({
-      body: { email, password },
-      headers: await headers(),
-    });
+    await auth.api.signInEmail({ body: { email, password }, headers: requestHeaders });
   } catch (error) {
+    if (isEmailNotVerifiedError(error)) {
+      // Better Auth checks the password before it says this, so the password
+      // was right: not a failed attempt.
+      await forgetSuccessfulLogin(attempt);
+    }
     return { ok: false, errors: { message: getLoginErrorMessage(error) } };
   }
 
+  await forgetSuccessfulLogin(attempt);
+  await rememberBrowser(createKnownDeviceCookieValue(email));
+  return { ok: true };
+}
+
+// One answer for a bad link and for a wrong password, so neither can be
+// tested on its own.
+const wrongLinkOrPasswordError: FormResult = {
+  ok: false,
+  errors: { message: "This link has expired or the password is wrong. Try your password again, or log in to get a new link." },
+};
+
+// The confirm page's answer when a login limit refused the attempt.
+function tooManyConfirmAttemptsError(limit: LoginLimit): FormResult {
+  return { ok: false, errors: { message: `Too many attempts. Try again in ${waitAfterLimit(limit)}.` } };
+}
+
+// Confirms an email address with the link from the verification email AND the
+// account's password, then logs the user in. A link alone never confirms or
+// logs in anyone: whoever signed up first with someone else's address knows
+// the password but never sees the link, and the inbox owner sees the link but
+// doesn't know that password (see lib/auth.ts).
+export async function confirmEmailWithPassword(
+  input: unknown,
+  requestHeaders: Headers,
+  rememberBrowser: RememberBrowser,
+): Promise<FormResult> {
+  const parsed = confirmEmailSchema.safeParse(input);
+  if (!parsed.success) {
+    return wrongLinkOrPasswordError;
+  }
+  if (await isOverRateLimit("verify-email", getClientIpFromHeaders(requestHeaders), RATE_LIMITS.verifyEmailPerIp)) {
+    return tooManyConfirmAttemptsError("ip");
+  }
+
+  const { token, password } = parsed.data;
+  const email = await readEmailFromVerificationToken(token);
+  if (!email) {
+    await spendPasswordCheckTime(password);
+    return wrongLinkOrPasswordError;
+  }
+  // The same counters as /login, so password guesses on both pages add up.
+  const attempt = describeLoginAttempt(email, requestHeaders);
+  const limitReached = await findLoginLimitReached(attempt);
+  if (limitReached) {
+    return tooManyConfirmAttemptsError(limitReached);
+  }
+  if (!(await isCorrectPasswordForEmail(email, password))) {
+    return wrongLinkOrPasswordError;
+  }
+  // The password is right, so this is not a failed attempt, whatever happens next.
+  await forgetSuccessfulLogin(attempt);
+
+  const result = await confirmAndLogIn(token, email, password, requestHeaders);
+  if (result.ok) {
+    await rememberBrowser(createKnownDeviceCookieValue(email));
+  }
+  return result;
+}
+
+// Only called once the link and the password have both checked out.
+async function confirmAndLogIn(token: string, email: string, password: string, requestHeaders: Headers): Promise<FormResult> {
+  try {
+    // Checks the token again (signature, expiry, account) and sets
+    // email_verified. It opens no session: autoSignInAfterVerification is off.
+    await auth.api.verifyEmail({ query: { token } });
+  } catch (error) {
+    // The link can expire between our check and this one: Better Auth then
+    // answers UNAUTHORIZED. Anything else (the database, say) is our problem,
+    // and saying "expired" would send people to fetch links that work.
+    if (isAPIError(error) && error.status === "UNAUTHORIZED") {
+      return wrongLinkOrPasswordError;
+    }
+    logUnexpectedAuthError("email confirmation", error);
+    return { ok: false, errors: { message: "Your email address could not be confirmed because of a problem on our side. Try again in a few minutes." } };
+  }
+
+  try {
+    await auth.api.signInEmail({ body: { email, password }, headers: requestHeaders });
+  } catch (error) {
+    logUnexpectedAuthError("login after confirming", error);
+    return { ok: false, errors: { message: "Your email address is confirmed. Log in to continue." } };
+  }
   return { ok: true };
 }
 
 // Ends the current session and clears the session cookie.
-export async function logOut(): Promise<void> {
-  await auth.api.signOut({ headers: await headers() });
+export async function logOut(requestHeaders: Headers): Promise<void> {
+  await auth.api.signOut({ headers: requestHeaders });
 }
 
-function getSignupErrorMessage(error: unknown): string {
-  if (isAPIError(error) && error.body?.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
-    return "An account with this email already exists. Log in instead.";
+// The login page's message for the limit that refused the attempt.
+function getTooManyLoginsMessage(limit: LoginLimit): string {
+  const wait = waitAfterLimit(limit);
+  if (limit === "address") {
+    // Only browsers that never logged in to this account get this far
+    // (services/login-limits.ts), so another browser may still work.
+    return `Too many failed logins for this address. Try again in ${wait}, or from a browser you have logged in with before.`;
   }
-  if (isAPIError(error) && error.body?.code === MEMBERSHIP_ERROR_CODES.inviteNotUsable) {
-    return "This invite link has expired, was revoked, was already used, or is for a different email. Ask your team owner for a new one.";
-  }
-  logUnexpectedAuthError("signup", error);
-  return "Could not create your account. Please try again.";
+  return `Too many login attempts. Try again in ${wait}.`;
 }
 
+// Says whether Better Auth refused a login because the address isn't confirmed yet.
+function isEmailNotVerifiedError(error: unknown): boolean {
+  return isAPIError(error) && error.body?.code === "EMAIL_NOT_VERIFIED";
+}
+
+// Turns Better Auth's answer to a refused login into the message the page shows.
 function getLoginErrorMessage(error: unknown): string {
   if (isAPIError(error) && error.status === "UNAUTHORIZED") {
     return "Email or password is incorrect.";
   }
-  if (isAPIError(error) && error.body?.code === "EMAIL_NOT_VERIFIED") {
-    return "Please confirm your email address first. We've just sent you a new link.";
+  if (isEmailNotVerifiedError(error)) {
+    // Better Auth has just mailed a new link, unless this address already got
+    // 3 in the last hour (services/email-verification.ts). Then an earlier
+    // one still works, so "the newest" is right either way.
+    return "Please confirm your email address first: open the newest confirmation email we sent you.";
   }
   logUnexpectedAuthError("login", error);
   return "Could not log you in. Please try again.";

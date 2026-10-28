@@ -1,0 +1,1 @@
+ALTER TABLE "inbound_emails" ADD COLUMN "inline_image_count" integer DEFAULT 0 NOT NULL;

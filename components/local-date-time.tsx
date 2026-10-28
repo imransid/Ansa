@@ -2,6 +2,13 @@
 
 import { useSyncExternalStore } from "react";
 
+type LocalDateTimeProps = {
+  iso: string;
+  // Lists: only the date ("17 Oct 2026"), so the column stays narrow. The
+  // full time with its zone shows when the pointer rests on it.
+  dateOnly?: boolean;
+};
+
 // Shows a moment in the VIEWER's own timezone, with the zone's name
 // ("17 Oct 2026, 15:05 CEST"). Times are stored in UTC.
 //
@@ -9,12 +16,16 @@ import { useSyncExternalStore } from "react";
 // server, and in the browser while the page wakes up) shows UTC. Right after,
 // the browser switches to local time. useSyncExternalStore is React's way to
 // render differently on the server and in the browser without a mismatch error.
-export function LocalDateTime({ iso }: { iso: string }) {
+export function LocalDateTime({ iso, dateOnly = false }: LocalDateTimeProps) {
   const inBrowser = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const date = new Date(iso);
+  const fullText = inBrowser ? localFormat.format(date) : `${utcFormat.format(date)} UTC`;
+  if (!dateOnly) {
+    return <time dateTime={iso}>{fullText}</time>;
+  }
   return (
-    <time dateTime={iso}>
-      {inBrowser ? localFormat.format(date) : `${utcFormat.format(date)} UTC`}
+    <time dateTime={iso} title={fullText}>
+      {inBrowser ? localDateFormat.format(date) : utcDateFormat.format(date)}
     </time>
   );
 }
@@ -31,11 +42,15 @@ const localFormat = new Intl.DateTimeFormat(undefined, {
   timeZoneName: "short",
 });
 
+const localDateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+
 const utcFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "UTC",
 });
+
+const utcDateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "UTC" });
 
 // Nothing ever changes after the page has loaded, so there is nothing to subscribe to.
 function subscribeToNothing(): () => void {

@@ -22,3 +22,9 @@ export async function getCompanyById(
     .where(eq(companies.id, companyId));
   return company;
 }
+
+// Renames the session's own company. The name is also the sender name of its
+// customer emails. companyId must come from the session.
+export async function updateCompanyName(companyId: string, name: string): Promise<void> {
+  await db.update(companies).set({ name }).where(eq(companies.id, companyId));
+}

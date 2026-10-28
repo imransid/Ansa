@@ -13,7 +13,7 @@ const included = [
   "Routing by category and workload",
   "Call transcripts and private recordings",
   "Your whole team, with owner and member roles",
-  "Customer emails when a ticket is solved",
+  "A \"solved\" email to the customer, when ansa has their address",
 ];
 
 const questions = [

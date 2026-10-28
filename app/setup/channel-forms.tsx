@@ -1,81 +1,67 @@
 "use client";
 
 import { useActionState } from "react";
-import { addInboundAddressAction, addPhoneLineAction, removeInboundAddressAction, removePhoneLineAction } from "@/app/actions/setup";
+import { addInboundAddressAction, removeInboundAddressAction } from "@/app/actions/setup";
+import { ConfirmButton } from "@/components/confirm-button";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
+import { CUSTOMER_EMAIL_MAX_LENGTH } from "@/lib/ticket-limits";
 
-export function PhoneLineForm() {
-  const [errors, action, isAdding] = useActionState(addPhoneLineAction, undefined);
-  return (
-    <form action={action} className="flex max-w-xl flex-wrap items-end gap-2">
-      <FormField name="vapiPhoneNumberId" label="Vapi phone number id" errors={errors?.fieldErrors?.vapiPhoneNumberId} />
-      <Button type="submit" disabled={isAdding}>
-        {isAdding ? "Adding..." : "Add number"}
-      </Button>
-      <FormMessage message={errors?.message} />
-    </form>
-  );
-}
-
+// Keeps what was typed when the address is refused, clears it once added.
 export function InboundAddressForm() {
   const [errors, action, isAdding] = useActionState(addInboundAddressAction, undefined);
   return (
     <form action={action} className="flex max-w-xl flex-wrap items-end gap-2">
-      <FormField name="address" label="Support address" type="email" errors={errors?.fieldErrors?.address} />
+      <FormField
+        name="address"
+        label="Support address"
+        type="email"
+        defaultValue={errors?.values?.address}
+        maxLength={CUSTOMER_EMAIL_MAX_LENGTH}
+        errors={errors?.fieldErrors?.address}
+      />
       <Button type="submit" disabled={isAdding}>
         {isAdding ? "Adding..." : "Add address"}
       </Button>
-      <FormMessage message={errors?.message} />
+      {errors?.message && (
+        <p role="alert" className="w-full text-sm text-destructive">
+          {errors.message}
+        </p>
+      )}
     </form>
   );
 }
 
-type LinkedValuesProps = {
-  kind: "phone" | "address";
-  values: string[];
+type SupportAddressListProps = {
+  addresses: string[];
   canRemove: boolean;
 };
 
-// The company's phone numbers or support addresses, each with a Remove button for owners.
-export function LinkedValues({ kind, values, canRemove }: LinkedValuesProps) {
-  if (values.length === 0) {
-    return <p className="text-sm text-muted-foreground">{kind === "phone" ? "No phone numbers yet." : "No support addresses yet."}</p>;
+// The addresses the company's customers write to, each with a Remove button
+// for owners. Removing one asks first and says what changes: ansa uses the
+// list to recognise the company's own mail (and its Google Group).
+export function SupportAddressList({ addresses, canRemove }: SupportAddressListProps) {
+  if (addresses.length === 0) {
+    return <p className="text-sm text-muted-foreground">No support addresses listed yet.</p>;
   }
   return (
-    <ul className="grid max-w-xl gap-1 text-sm">
-      {values.map((value) => (
-        <LinkedValue key={value} kind={kind} value={value} canRemove={canRemove} />
+    <ul className="grid max-w-xl gap-2 text-sm">
+      {addresses.map((address) => (
+        <li key={address} className="flex flex-wrap items-center gap-2">
+          <span className="min-w-0 font-mono wrap-anywhere">{address}</span>
+          {canRemove && (
+            <ConfirmButton
+              action={removeInboundAddressAction}
+              fields={{ value: address }}
+              label="Remove"
+              accessibleLabel={`Remove ${address}`}
+              question={`Remove ${address}? ansa will no longer recognise it as yours: email from it can become tickets, and if it is a Google Group, the customer emails it passes on will be skipped as bulk mail.`}
+              confirmLabel="Yes, remove"
+              pendingLabel="Removing..."
+            />
+          )}
+        </li>
       ))}
     </ul>
-  );
-}
-
-function LinkedValue({ kind, value, canRemove }: { kind: "phone" | "address"; value: string; canRemove: boolean }) {
-  const [errors, action, isRemoving] = useActionState(kind === "phone" ? removePhoneLineAction : removeInboundAddressAction, undefined);
-  return (
-    <li className="flex flex-wrap items-center gap-2">
-      <span className="font-mono">{value}</span>
-      {canRemove && (
-        <form action={action}>
-          <input type="hidden" name="value" value={value} />
-          <Button type="submit" variant="ghost" size="sm" disabled={isRemoving} aria-label={`Remove ${value}`}>
-            Remove
-          </Button>
-        </form>
-      )}
-      <FormMessage message={errors?.message} />
-    </li>
-  );
-}
-
-function FormMessage({ message }: { message?: string }) {
-  if (!message) {
-    return null;
-  }
-  return (
-    <p role="alert" className="w-full text-sm text-destructive">
-      {message}
-    </p>
   );
 }

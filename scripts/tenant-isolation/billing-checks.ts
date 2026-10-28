@@ -6,49 +6,24 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { signLikeStripe } from "@/adapters/stripe";
+import { signLikeStripe, type RetrievedSubscription } from "@/adapters/stripe";
 import type { SubscriptionSnapshot } from "@/db/billing";
 import { parseEnv } from "@/lib/env";
 import { getBillingForSession, openBillingPortalForSession, simulateSubscriptionForSession, startCheckoutForSession } from "@/services/billing";
-import { handleStripeWebhook } from "@/services/stripe-webhook";
-import { addTeammate, captureConsole, check, runId, sessionFor, type TestUser } from "./helpers";
-
-const secret = `whsec_test_${randomUUID()}`;
-
-type FakeSubscription = SubscriptionSnapshot & { companyId: string | undefined };
-
-function event(type: string, object: Record<string, unknown>) {
-  return Buffer.from(JSON.stringify({ id: `evt_${randomUUID()}`, object: "event", type, data: { object } }));
-}
-
-async function post(body: Buffer, signature: string | null, subscription?: FakeSubscription) {
-  const asked: string[] = [];
-  const headers: Record<string, string> = signature ? { "stripe-signature": signature } : {};
-  const request = new Request("http://localhost/api/webhooks/stripe", { method: "POST", headers, body: new Uint8Array(body) });
-  const retrieve = async (id: string) => {
-    asked.push(id);
-    assert.ok(subscription, "Stripe was asked for a subscription");
-    return subscription;
-  };
-  const { result, logs } = await captureConsole(async () => (await handleStripeWebhook(request, { secret, retrieve })).status);
-  return { status: result, logs, asked };
-}
-
-const signed = (body: Buffer, at?: Date) => signLikeStripe(body, secret, at);
+import { addTeammate, check, runId, sessionFor, type TestUser } from "./helpers";
+import { fakeSubscription, postToStripeWebhook as post, signedLikeStripe as signed, stripeEvent as event } from "./stripe-helpers";
 
 export async function runBillingChecks(ownerA: TestUser, ownerB: TestUser) {
   const owner = sessionFor(ownerA);
   const member = sessionFor(await addTeammate(ownerA, "billing-member", "member"));
   const customerB = `cus_b_${runId}`;
-  const subscriptionB = (id: string, overrides: Partial<FakeSubscription> = {}): FakeSubscription => ({
-    stripeCustomerId: customerB,
-    stripeSubscriptionId: id,
-    status: "active",
-    currentPeriodEnd: new Date(Date.now() + 86_400_000),
-    cancelAtPeriodEnd: false,
-    companyId: ownerB.companyId,
-    ...overrides,
-  });
+  // Company B's subscription as the fake Stripe returns it. metadataCompanyId
+  // is the company id in its metadata (B's, unless a check changes it).
+  const subscriptionB = (id: string, overrides: Partial<SubscriptionSnapshot> = {}, metadataCompanyId = ownerB.companyId): RetrievedSubscription =>
+    fakeSubscription(
+      { stripeCustomerId: customerB, stripeSubscriptionId: id, status: "active", currentPeriodEnd: new Date(Date.now() + 86_400_000), cancelAtPeriodEnd: false, ...overrides },
+      metadataCompanyId,
+    );
 
   await check("billing: USE_STRIPE=true without every Stripe setting refuses to start", async () => {
     const stripeOff = { ...process.env, USE_STRIPE: undefined, STRIPE_SECRET_KEY: undefined, STRIPE_WEBHOOK_SECRET: undefined, STRIPE_PRICE_ID: undefined };
@@ -104,7 +79,7 @@ export async function runBillingChecks(ownerA: TestUser, ownerB: TestUser) {
   await check("stripe webhook: billing never moves to another company", async () => {
     const body = event("customer.subscription.updated", { id: `sub_new_${runId}` });
     // Company A's id on company B's Stripe customer: refused.
-    const moved = await post(body, signed(body), subscriptionB(`sub_new_${runId}`, { companyId: ownerA.companyId, status: "canceled" }));
+    const moved = await post(body, signed(body), subscriptionB(`sub_new_${runId}`, { status: "canceled" }, ownerA.companyId));
     assert.equal(moved.status, 200);
     assert.equal((await getBillingForSession(owner))?.subscription?.status, "active");
     assert.equal((await getBillingForSession(sessionFor(ownerB)))?.subscription?.status, "active");

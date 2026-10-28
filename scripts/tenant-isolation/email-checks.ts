@@ -11,7 +11,8 @@ import { renderTicketSolvedEmail } from "@/lib/emails/ticket-solved";
 import { parseEnv } from "@/lib/env";
 import { buildFromHeader, isRealEmailOn } from "@/lib/send-email";
 import { getLatestCustomerEmailForSession, retryCustomerEmailForSession } from "@/services/customer-emails";
-import { createTicketForCompany, markTicketSolvedForSession, reopenTicketForSession } from "@/services/tickets";
+import { markTicketSolvedForSession, reopenTicketForSession } from "@/services/ticket-status";
+import { createTicketForCompany } from "@/services/tickets";
 import { assertRefusedByConstraint, check, devOutboxPath, runId, sessionFor, type TestUser } from "./helpers";
 
 const customerEmail = `customer-${runId}@example.test`;
@@ -43,7 +44,7 @@ export async function runEmailChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("solving queues and delivers exactly one email to the ticket's customer", async () => {
-    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: ticket.id })).ok, true);
+    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: ticket.id, confirmedCustomerEmail: customerEmail })).ok, true);
     const rows = await emailsForTicket(ticket.id);
     assert.equal(rows.length, 1);
     assert.equal(rows[0].companyId, ownerA.companyId);
@@ -63,16 +64,16 @@ export async function runEmailChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("a refused solve queues no email", async () => {
-    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: ticket.id })).ok, false);
+    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: ticket.id, confirmedCustomerEmail: customerEmail })).ok, false);
     const other = await createTicketForCompany(ownerA.companyId, { subject: "B tries", description: "x", channel: "email", customerEmail });
-    assert.equal((await markTicketSolvedForSession(sessionFor(ownerB), { ticketId: other.id })).ok, false);
+    assert.equal((await markTicketSolvedForSession(sessionFor(ownerB), { ticketId: other.id, confirmedCustomerEmail: customerEmail })).ok, false);
     assert.equal((await emailsForTicket(ticket.id)).length, 1);
     assert.equal((await emailsForTicket(other.id)).length, 0);
   });
 
   await check("a ticket without a customer email queues no email", async () => {
     const phoneOnly = await createTicketForCompany(ownerA.companyId, { subject: "Phone only", description: "x", channel: "phone" });
-    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: phoneOnly.id })).ok, true);
+    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: phoneOnly.id, confirmedCustomerEmail: "" })).ok, true);
     assert.equal((await emailsForTicket(phoneOnly.id)).length, 0);
   });
 
@@ -80,7 +81,7 @@ export async function runEmailChecks(ownerA: TestUser, ownerB: TestUser) {
 
   await check("reopening and solving again queues and sends a second email", async () => {
     assert.equal((await reopenTicketForSession(sessionA, { ticketId: ticket.id })).ok, true);
-    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: ticket.id })).ok, true);
+    assert.equal((await markTicketSolvedForSession(sessionA, { ticketId: ticket.id, confirmedCustomerEmail: customerEmail })).ok, true);
     assert.equal((await emailsForTicket(ticket.id)).length, 2);
     const secondEmail = await latestEmail(ownerA, ticket.id);
     assert.notEqual(secondEmail.id, firstEmail.id);
@@ -123,9 +124,8 @@ export async function runEmailChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("names are HTML-escaped and cannot break the From header", async () => {
-    const email = renderTicketSolvedEmail({ companyName: "Acme", customerName: "<script>x</script>", ticketNumber: 1, ticketSubject: "<b>hi</b>" });
+    const email = renderTicketSolvedEmail({ companyName: "<script>x</script>", ticketNumber: 1 });
     assert.ok(!email.html.includes("<script>") && email.html.includes("&lt;script&gt;"));
-    assert.ok(!email.html.includes("<b>hi</b>"));
     const from = buildFromHeader('Evil"\r\nBcc: victim@example.com <x>');
     assert.ok(!/[\r\n]/.test(from), "line break survived");
     assert.equal(from.split("<").length, 2, "an extra < survived");
@@ -144,7 +144,7 @@ export async function runEmailChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.throws(() => parseEnv({ ...base, SEND_REAL_EMAIL: "true", RESEND_API_KEY: "re_x" }), /EMAIL_FROM is required/);
     assert.throws(() => parseEnv({ ...base, SEND_REAL_EMAIL: "yes" }));
     assert.throws(() => parseEnv({ ...base, SEND_REAL_EMAIL: "TRUE" }));
-    const on = parseEnv({ ...base, SEND_REAL_EMAIL: "true", RESEND_API_KEY: "re_x", EMAIL_FROM: "support@example.com" });
+    const on = parseEnv({ ...base, SEND_REAL_EMAIL: "true", RESEND_API_KEY: "re_x", EMAIL_FROM: "support@example.com", INBOUND_EMAIL_DOMAIN: "inbound.example.com" });
     assert.equal(on.SEND_REAL_EMAIL, "true");
   });
 }

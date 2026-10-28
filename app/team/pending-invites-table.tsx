@@ -1,6 +1,6 @@
 import { revokeInviteAction } from "@/app/actions/invites";
+import { ConfirmButton } from "@/components/confirm-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -16,6 +16,9 @@ type PendingInvitesTableProps = {
   invites: PendingInvite[];
 };
 
+// Owners only. Revoking asks first and says when it didn't work (too many
+// revokes in an hour, or the invite was used meanwhile): a link that still
+// works must never look revoked.
 export function PendingInvitesTable({ invites }: PendingInvitesTableProps) {
   if (invites.length === 0) {
     return <p className="text-sm text-muted-foreground">No pending invites.</p>;
@@ -28,7 +31,9 @@ export function PendingInvitesTable({ invites }: PendingInvitesTableProps) {
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Expires</TableHead>
-          <TableHead />
+          <TableHead>
+            <span className="sr-only">Actions</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -44,12 +49,15 @@ export function PendingInvitesTable({ invites }: PendingInvitesTableProps) {
               <LocalDateTime iso={invite.expiresAt.toISOString()} />
             </TableCell>
             <TableCell className="text-right">
-              <form action={revokeInviteAction}>
-                <input type="hidden" name="inviteId" value={invite.id} />
-                <Button type="submit" variant="outline" size="sm">
-                  Revoke
-                </Button>
-              </form>
+              <ConfirmButton
+                action={revokeInviteAction}
+                fields={{ inviteId: invite.id }}
+                label="Revoke"
+                accessibleLabel={`Revoke the invite for ${invite.email}`}
+                question={`Revoke the invite for ${invite.email}? Its link stops working at once.`}
+                confirmLabel="Yes, revoke"
+                pendingLabel="Revoking..."
+              />
             </TableCell>
           </TableRow>
         ))}

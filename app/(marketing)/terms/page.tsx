@@ -15,7 +15,11 @@ export default function TermsPage() {
       <h2>The service</h2>
       <p>
         {site.name} answers your support calls with an AI voice agent, turns support calls and emails into tickets, routes
-        them to your team, and emails your customers when a ticket is solved.
+        them to your team, and, when it has a customer&apos;s email address, emails them when their ticket is solved. Its
+        AI Co-Founder keeps a profile of your business that an AI interview helps your owners fill in, writes
+        marketing plans and social media drafts from it, keeps the images and videos your team uploads for them,
+        connects the social media accounts your owners choose, and publishes there the posts your owners approve and
+        schedule.
       </p>
 
       <h2>Your account</h2>
@@ -29,12 +33,20 @@ export default function TermsPage() {
         <li>Tell your callers, where the law requires it, that calls are answered by an AI agent and recorded.</li>
         <li>Have the right to process the data of the customers who contact you.</li>
         <li>Don&apos;t use the service for anything unlawful, for unsolicited calls or email, or to harm others.</li>
+        <li>Upload only images and videos you have the right to use and publish.</li>
+        <li>Connect only social media accounts your company may post to, and follow each platform&apos;s own rules.</li>
       </ul>
 
       <h2>AI makes mistakes</h2>
       <p>
         The AI can misunderstand a customer. When it isn&apos;t sure a problem was solved, it hands the call to your team,
-        but you remain responsible for the answers your company gives its customers.
+        but you remain responsible for the answers your company gives its customers. It can also misread what your
+        owners tell the Co-Founder: what it proposes counts only once an owner confirms it. A marketing plan is advice,
+        not a promise of results: check its assumptions before you act on it. A draft is checked against each
+        platform&apos;s rules and lists the claims it makes, but only your owners approve it: read every draft and
+        check its claims before approving it, and you remain responsible for what your company publishes, also for a
+        post an owner&apos;s auto-publish rule lets go out without an approval of its own. When a platform answers
+        unclearly we never send a post again by itself; an owner checks the platform.
       </p>
 
       <h2>Your data</h2>

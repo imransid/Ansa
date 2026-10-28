@@ -1,5 +1,5 @@
 import "server-only";
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@/lib/env";
 
@@ -23,15 +23,31 @@ export async function putToR2(key: string, bytes: Buffer, contentType: string): 
   await r2Client().send(new PutObjectCommand({ Bucket: env.R2_BUCKET, Key: key, Body: bytes, ContentType: contentType }));
 }
 
-// A link that works for `seconds` and then stops working. With downloadName,
-// the browser saves the file under that name instead of opening it.
-export async function signedR2DownloadUrl(key: string, seconds: number, downloadName?: string): Promise<string> {
+// A link that works for `seconds` and then stops working, answered with
+// this Content-Type whatever the object says. With downloadName, the browser
+// saves the file under that name instead of opening it.
+export async function signedR2DownloadUrl(key: string, seconds: number, contentType: string, downloadName?: string): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: env.R2_BUCKET,
     Key: key,
+    ResponseContentType: contentType,
     ResponseContentDisposition: downloadName ? `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}` : undefined,
   });
   return getSignedUrl(r2Client(), command, { expiresIn: seconds });
+}
+
+// The object's bytes, or null when the bucket has no such key. signal:
+// cuts the read off (it then throws).
+export async function getFromR2(key: string, signal?: AbortSignal): Promise<Buffer | null> {
+  try {
+    const object = await r2Client().send(new GetObjectCommand({ Bucket: env.R2_BUCKET, Key: key }), { abortSignal: signal });
+    return object.Body ? Buffer.from(await object.Body.transformToByteArray()) : null;
+  } catch (error) {
+    if (error instanceof NoSuchKey) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function deleteFromR2(key: string): Promise<void> {

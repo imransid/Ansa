@@ -10,7 +10,7 @@ import { isEmailInCompany } from "@/db/users";
 import { env } from "@/lib/env";
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { generateInviteToken, hashInviteToken } from "@/lib/invite-token";
-import { getClientIp } from "@/lib/request-ip";
+import { getClientIpFromHeaders } from "@/lib/request-ip";
 import type { SessionContext } from "@/lib/session";
 import {
   createInviteSchema,
@@ -49,29 +49,35 @@ export async function createInviteForSession(
     };
   }
 
-  if (await isOverRateLimit("invite-changes", session.companyId, RATE_LIMITS.inviteChangesPerCompany)) {
+  if (await isOverRateLimit("invite-creations", session.companyId, RATE_LIMITS.inviteCreationsPerCompany)) {
     return {
       ok: false,
-      errors: { message: "Too many invite changes. Try again in an hour." },
+      errors: { message: "Too many new invites. Try again in an hour." },
     };
   }
 
   const { email, role } = parsed.data;
+  // Removed people count too: their address stays taken (CLAUDE.md, Known gaps).
   if (await isEmailInCompany(session.companyId, email)) {
     return {
       ok: false,
-      errors: { fieldErrors: { email: ["This person is already on your team."] } },
+      errors: { fieldErrors: { email: ["This address already belongs to someone on your team, or to someone removed from it."] } },
     };
   }
 
   const token = generateInviteToken();
-  await createInvite(session.companyId, {
+  const created = await createInvite(session.companyId, {
     email,
     role,
     tokenHash: hashInviteToken(token),
     createdByUserId: session.userId,
     expiresAt: new Date(Date.now() + INVITE_LIFETIME_DAYS * 24 * 60 * 60 * 1000),
   });
+  // /db saves it only while they are still an active owner: someone removed or
+  // made a member since this request began gets no link.
+  if (!created) {
+    return { ok: false, errors: onlyOwnersError };
+  }
 
   // The token goes after "#", which browsers never send to the server.
   // That keeps it out of request logs. The join page reads it in the browser.
@@ -92,10 +98,10 @@ export async function revokeInviteForSession(
     return { ok: false, errors: { message: "Unknown invite." } };
   }
 
-  if (await isOverRateLimit("invite-changes", session.companyId, RATE_LIMITS.inviteChangesPerCompany)) {
+  if (await isOverRateLimit("invite-revocations", session.companyId, RATE_LIMITS.inviteRevocationsPerCompany)) {
     return {
       ok: false,
-      errors: { message: "Too many invite changes. Try again in an hour." },
+      errors: { message: "Too many revoked invites. Try again in an hour." },
     };
   }
 
@@ -106,20 +112,36 @@ export async function revokeInviteForSession(
   return { ok: true };
 }
 
+// What the join page learns about an invite link. "rate-limited" is separate
+// so a busy shared office IP isn't told that a good invite is dead.
+export type InvitePreviewResult =
+  | { status: "ready"; preview: InvitePreview }
+  | { status: "not-usable" }
+  | { status: "rate-limited" };
+
 // Looks up who an invite link is for, so the join page can show it.
-// Returns null for unknown, used, revoked or expired links.
+// "not-usable" covers unknown, used, revoked and expired links.
+// requestHeaders: the incoming request's headers (the IP is the rate limit key).
 export async function getInvitePreview(
   inviteToken: unknown,
-): Promise<InvitePreview | null> {
-  if (await isOverRateLimit("invite-preview", await getClientIp(), RATE_LIMITS.invitePreviewPerIp)) {
-    return null;
+  requestHeaders: Headers,
+): Promise<InvitePreviewResult> {
+  if (await isOverRateLimit("invite-preview", getClientIpFromHeaders(requestHeaders), RATE_LIMITS.invitePreviewPerIp)) {
+    return { status: "rate-limited" };
   }
 
   const parsed = inviteTokenSchema.safeParse(inviteToken);
   if (!parsed.success) {
-    return null;
+    return { status: "not-usable" };
   }
 
   const preview = await getInvitePreviewByTokenHash(hashInviteToken(parsed.data));
-  return preview ?? null;
+  return preview ? { status: "ready", preview } : { status: "not-usable" };
+}
+
+// Says whether this invite token can still be used, and by this email.
+// Read-only: the invite is only claimed by the user-create hook (lib/auth.ts).
+export async function isInviteUsableForEmail(inviteToken: string, email: string): Promise<boolean> {
+  const preview = await getInvitePreviewByTokenHash(hashInviteToken(inviteToken));
+  return preview !== undefined && preview.email === email;
 }

@@ -120,6 +120,167 @@
       "when": 1792192899507,
       "tag": "0016_company_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792442022291,
+      "tag": "0017_team_member_removal",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792446340027,
+      "tag": "0018_forwarding_addresses",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792449111643,
+      "tag": "0019_inbound_emails_company_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792450405676,
+      "tag": "0020_solved_without_email",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792455360578,
+      "tag": "0021_invite_creator_same_company",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792455378984,
+      "tag": "0022_outbox_delivery_claim",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792461581899,
+      "tag": "0023_nothing_lost_silently",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792472939514,
+      "tag": "0024_inline_image_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792484205365,
+      "tag": "0025_ticket_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792490029068,
+      "tag": "0026_manual_tickets_and_escalation",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792502193471,
+      "tag": "0027_ops_readiness_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793028974993,
+      "tag": "0028_knowledge_base",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793037737293,
+      "tag": "0029_knowledge_lookups",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793045429284,
+      "tag": "0030_cofounder_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793098263727,
+      "tag": "0031_marketing_plans",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793108802586,
+      "tag": "0032_content_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793119849475,
+      "tag": "0033_media_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793128266825,
+      "tag": "0034_media_request_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793131729342,
+      "tag": "0035_social_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793139191225,
+      "tag": "0036_social_renewal_claims",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793142174949,
+      "tag": "0037_publishing_queue",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793146823746,
+      "tag": "0038_publish_claim_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793154539032,
+      "tag": "0039_post_metrics",
+      "breakpoints": true
     }
   ]
 }

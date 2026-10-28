@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   foreignKey,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -20,7 +21,9 @@ export const ticketStatuses = ["open", "solved"] as const;
 export const ticketStatusEnum = pgEnum("ticket_status", ticketStatuses);
 export type TicketStatus = (typeof ticketStatuses)[number];
 
-export const ticketChannels = ["phone", "email"] as const;
+// "manual" = typed in by a person in ansa (step 31): a voicemail left on
+// someone's own phone, a customer at the counter, a message on social media.
+export const ticketChannels = ["phone", "email", "manual"] as const;
 export const ticketChannelEnum = pgEnum("ticket_channel", ticketChannels);
 export type TicketChannel = (typeof ticketChannels)[number];
 
@@ -52,16 +55,23 @@ export const tickets = pgTable(
     customerPhone: text("customer_phone"),
     // The expert working on it. Empty = unassigned.
     assignedToUserId: text("assigned_to_user_id"),
-    // How the CURRENT assignment happened: true = routed by category, false =
-    // a person picked the assignee, empty = unassigned.
+    // How the CURRENT assignment happened: true = routed (by category, or to
+    // whoever has the same customer's other open ticket, step 29), false = a
+    // person picked the assignee, empty = unassigned.
     assignedAutomatically: boolean("assigned_automatically"),
     // Who routing picked, set once and never overwritten, even if a person
     // reassigns later. Compare with the assignee / solver to see how often
-    // routing picks the right expert.
+    // routing picks the right expert. Both rules land here; which one made the
+    // pick is in the ticket's history ("routed" rows of ticket_activity: a
+    // category, or none for the same customer's other open ticket, step 30).
     routedToUserId: text("routed_to_user_id"),
     // Both set when the ticket is solved, both cleared when it is reopened.
     solvedAt: timestamp("solved_at", { withTimezone: true }),
     solvedByUserId: text("solved_by_user_id"),
+    // True when someone chose "Close without emailing" (spam, a "thanks"
+    // reply, a duplicate): solved, and on purpose no email to the customer.
+    // Cleared when the ticket is reopened.
+    solvedWithoutEmail: boolean("solved_without_email").notNull().default(false),
     // The phone call this ticket was created from (step 8), if any. Unique: a
     // call gets at most one ticket. The transcript stays on the call, encrypted.
     callId: uuid("call_id").unique(),
@@ -134,5 +144,23 @@ export const tickets = pgTable(
       "tickets_solved_fields_match_status",
       sql`(${table.status} = 'solved') = (${table.solvedAt} IS NOT NULL AND ${table.solvedByUserId} IS NOT NULL)`,
     ),
+    // Only a solved ticket can have been closed without emailing.
+    check(
+      "tickets_solved_without_email_only_when_solved",
+      sql`NOT ${table.solvedWithoutEmail} OR ${table.status} = 'solved'`,
+    ),
+    // Two indexes over OPEN tickets only (a small part of a company's
+    // tickets once it has been running a while), so these never read the
+    // solved ones. By assignee: routing counts each expert's open tickets
+    // while it holds the company's lock (db/routing.ts), "Mine" and
+    // "Unassigned" list them newest first, and removing someone finds theirs.
+    index("tickets_open_company_id_assignee_idx")
+      .on(table.companyId, table.assignedToUserId, table.ticketNumber)
+      .where(sql`${table.status} = 'open'`),
+    // By number: the "Open" view, and the same-customer lookup that runs for
+    // every new ticket inside the company's lock (db/same-customer.ts).
+    index("tickets_open_company_id_ticket_number_idx")
+      .on(table.companyId, table.ticketNumber)
+      .where(sql`${table.status} = 'open'`),
   ],
 );

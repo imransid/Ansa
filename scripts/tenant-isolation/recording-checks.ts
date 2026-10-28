@@ -65,7 +65,7 @@ export async function runRecordingChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.equal(stored.recordingStatus, "stored");
     assert.ok(stored.recordingKey?.startsWith(`recordings/${ownerA.companyId}/`));
     const forA = await getRecordingForSession(sessionFor(ownerA), callId);
-    assert.ok(forA?.kind === "bytes" && forA.bytes.equals(AUDIO));
+    assert.ok(forA !== "rate-limited" && forA?.kind === "bytes" && forA.bytes.equals(AUDIO));
     assert.equal(await getRecordingForSession(sessionFor(ownerB), callId), null, "company B can play A's recording");
     assert.equal(await getRecordingForSession(sessionFor(ownerA), "not-a-uuid"), null);
   });

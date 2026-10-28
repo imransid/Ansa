@@ -1,12 +1,15 @@
 // Call brain guard checks (no database, no API): the transcript slice is small
 // and clean, and every malformed, unexpected or unproven model answer becomes
-// "needs_human". Nothing here can produce "solved" except a verified customer quote.
+// "needs_human". Nothing here can produce "solved" except a verified customer
+// quote: one whole sentence of the customer's near the end of the call (the
+// step 28 probes are in brain-evidence-checks.ts).
 
 import assert from "node:assert/strict";
 import { decideBeforeAskingModel, decideFromModelResult } from "@/lib/call-brain/decision";
-import { buildModelDecisionJsonSchema, buildModelDecisionSchema, type ModelResult } from "@/lib/call-brain/model-output";
+import { buildModelDecisionJsonSchema, buildModelDecisionSchema } from "@/lib/call-brain/model-output";
 import { buildDecisionPrompt } from "@/lib/call-brain/prompt";
 import { buildTranscriptSlice } from "@/lib/call-brain/transcript-slice";
+import type { ModelResult } from "@/lib/model-request";
 import { check } from "./helpers";
 
 export const SOLVED_TRANSCRIPT = [
@@ -15,7 +18,8 @@ export const SOLVED_TRANSCRIPT = [
   "AI: Let's restart it and change the wifi channel. Please unplug it for ten seconds.",
   "User: Okay, done. It's back and the connection looks stable now.",
   "AI: Great. Is there anything else?",
-  "User: No, that fixed it, thank you so much.",
+  // The confirmation is one whole sentence, the only kind the guard accepts.
+  "User: No, that's all. That fixed it, thank you so much.",
   "AI: You're welcome, goodbye.",
 ].join("\n");
 

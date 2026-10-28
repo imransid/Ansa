@@ -7,20 +7,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BillingView, SubscriptionSnapshot } from "@/services/billing";
 
-type BillingPanelProps = {
-  billing: BillingView;
-  justCheckedOut: boolean;
-};
-
-export function BillingPanel({ billing, justCheckedOut }: BillingPanelProps) {
+// What the Billing page shows in each mode (services/billing.ts, BillingMode).
+export function BillingPanel({ billing }: { billing: BillingView }) {
+  // Production with Stripe off: owners can't change that, so no developer
+  // wording and no buttons that would always fail.
+  if (billing.mode === "off") {
+    return (
+      <p className="max-w-xl text-sm">
+        Billing isn&apos;t set up yet. There is nothing to pay or manage here for now.
+      </p>
+    );
+  }
   return (
     <div className="grid max-w-xl gap-4">
       {billing.mode === "dev" && (
         <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-          Payments are off (USE_STRIPE is not true). Nothing can be charged; use the buttons below to try each state.
+          Payments are off on this development server (USE_STRIPE is not true). Nothing can be charged; use the buttons
+          below to try each state.
         </p>
       )}
-      {justCheckedOut && !billing.isLive && (
+      {billing.confirmingPayment && (
         <p className="text-sm">Thanks! Stripe is confirming your payment. Reload this page in a few seconds.</p>
       )}
       <SubscriptionStatus subscription={billing.subscription} />
@@ -56,7 +62,7 @@ function StripeButtons({ billing }: { billing: BillingView }) {
   const message = checkoutErrors?.message ?? portalErrors?.message;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {!billing.isLive && (
+      {billing.offersCheckout && (
         <form action={checkoutAction}>
           <Button type="submit" disabled={isStarting}>
             {isStarting ? "Opening Stripe..." : "Subscribe"}

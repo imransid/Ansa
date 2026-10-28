@@ -1,13 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // No "X-Powered-By: Next.js" on every answer: it only tells strangers what
+  // to probe for.
+  poweredByHeader: false,
   experimental: {
     serverActions: {
-      // Document uploads (step 16) are capped at 4 MB in services/documents.ts,
-      // under Vercel's 4.5 MB request limit. Everything else stays small.
+      // Document uploads (step 16) are capped at 4 MB (lib/document-files.ts),
+      // under Vercel's 4.5 MB request limit, and the upload form refuses a
+      // bigger file before sending it. Everything else stays small.
       bodySizeLimit: "5mb",
     },
   },

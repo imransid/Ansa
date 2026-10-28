@@ -1,23 +1,18 @@
+import { fileUnavailableResponse, privateFileResponse } from "@/lib/private-file-response";
 import { getSessionContext } from "@/lib/session";
 import { getDocumentForSession } from "@/services/documents";
 
 // Download one company document. Logged-in users of that company only;
-// everyone else gets 404. Always a download, never shown inline, never cached.
+// everyone else gets 404, and too many downloads 429. Always a download,
+// never shown inline, never cached.
 export async function GET(_request: Request, { params }: RouteContext<"/api/documents/[documentId]">) {
   const session = await getSessionContext();
-  const document = session ? await getDocumentForSession(session, (await params).documentId) : null;
-  if (!document) {
-    return new Response(null, { status: session ? 404 : 401 });
+  if (!session) {
+    return new Response(null, { status: 401 });
   }
-  if (document.access.kind === "signed-url") {
-    return new Response(null, { status: 302, headers: { location: document.access.url, "cache-control": "no-store" } });
+  const document = await getDocumentForSession(session, (await params).documentId);
+  if (document === "rate-limited" || document === null) {
+    return fileUnavailableResponse(document);
   }
-  return new Response(new Uint8Array(document.access.bytes), {
-    headers: {
-      "content-type": document.access.contentType,
-      "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(document.fileName)}`,
-      "x-content-type-options": "nosniff",
-      "cache-control": "private, no-store",
-    },
-  });
+  return privateFileResponse(document.access, document.fileName);
 }

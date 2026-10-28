@@ -1,9 +1,12 @@
 // Signup and user checks: each signup gets its own company, users stay inside
-// their company, and a request cannot pick its own company or role.
+// their company, a request cannot pick its own company or role, and names
+// can't carry line breaks into emails.
 
 import assert from "node:assert/strict";
 import { getCompanyById } from "@/db/companies";
 import { getUsersInCompany } from "@/db/users";
+import { signupSchema } from "@/lib/validation/auth";
+import { joinWithInviteSchema } from "@/lib/validation/invites";
 import {
   check,
   runId,
@@ -65,8 +68,9 @@ export async function runSignupChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("12 signups at the same moment all finish", async () => {
-    // If signups ever wait on each other for database connections, they hang
-    // forever instead of failing. Stop the whole run then: cleanup would hang too.
+    // If signups ever wait on each other for database connections, they fail
+    // once the pool's 10-second wait runs out (db/client.ts), or hang if that
+    // limit is ever removed. Stop the whole run then: cleanup would hang too.
     const timer = setTimeout(() => {
       console.log("FAIL  12 signups at the same moment all finish");
       console.log("      Timed out after 30s: signups are stuck waiting for database connections.");
@@ -87,5 +91,22 @@ export async function runSignupChecks(ownerA: TestUser, ownerB: TestUser) {
         password: testPassword,
       }),
     );
+  });
+
+  await check("names with line breaks or other control characters are refused", async () => {
+    const valid = { companyName: "Acme", name: "Ana", email: "ana@example.test", password: testPassword };
+    const badNames = [
+      ["name", "Ana\nYour account is locked"],
+      ["name", "Ana\u0000"],
+      ["companyName", "Acme\r\nBcc: someone@example.test"],
+      ["companyName", "Acme\tCo"],
+    ];
+    for (const [field, value] of badNames) {
+      assert.equal(signupSchema.safeParse({ ...valid, [field]: value }).success, false, `accepted ${field} ${JSON.stringify(value)}`);
+    }
+    const joinInput = { inviteToken: "a".repeat(43), name: "Bea\nCall us", email: valid.email, password: testPassword };
+    assert.equal(joinWithInviteSchema.safeParse(joinInput).success, false);
+    // Ordinary names, accents and spaces around them are fine (the spaces are trimmed).
+    assert.equal(signupSchema.safeParse({ ...valid, name: "  Zoë Ünal-O'Brien  " }).success, true);
   });
 }

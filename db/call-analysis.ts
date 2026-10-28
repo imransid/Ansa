@@ -1,9 +1,8 @@
 import "server-only";
 import { and, eq, lt, or, sql } from "drizzle-orm";
-import type { NewTicketInput } from "@/lib/validation/tickets";
 import { db } from "./client";
 import { calls, type CallOutcome, type DecisionSource } from "./schema";
-import { insertTicketWithNextNumber } from "./ticket-creation";
+import { insertTicketWithNextNumber, type TicketToCreate } from "./ticket-creation";
 
 export type CallToAnalyze = {
   vapiCallId: string;
@@ -17,12 +16,28 @@ export type StoredDecision = {
   source: DecisionSource;
   reasonCode: string;
   model: string | null;
+  // The SDK error's class name when asking Claude failed (a name only).
+  errorClass: string | null;
   issueEncrypted: string | null;
   explanationEncrypted: string | null;
+  // "solved" only: the customer's confirming sentence, encrypted (step 31).
+  evidenceEncrypted: string | null;
 };
 
 // An analysis that started this long ago is treated as dead and may be redone.
 export const STALE_ANALYSIS_MINUTES = 5;
+
+// A call still not decided 5+ minutes after it was saved (never analyzed) or
+// after its analysis started: its run was cut off. The Calls list marks it
+// "Stuck: analyze now" and its "Stuck" filter lists it (step 29), both from
+// this one condition, with the database's clock.
+export function isCallAnalysisStuck() {
+  const staleSince = sql`now() - make_interval(mins => ${STALE_ANALYSIS_MINUTES})`;
+  return or(
+    and(eq(calls.analysisStatus, "pending"), lt(calls.createdAt, staleSince)),
+    and(eq(calls.analysisStatus, "analyzing"), lt(calls.analysisStartedAt, staleSince)),
+  );
+}
 
 // Marks one call of one company as "analyzing" and returns what the analysis
 // needs. Returns undefined if the call is not this company's, is already
@@ -57,22 +72,23 @@ export async function claimCallForAnalysis(
   return claimed;
 }
 
-// Stores the decision for one call of one company that is being analyzed and,
-// when `ticket` is given, creates that call's ticket in the SAME transaction:
-// a call is never escalated without its ticket, and never gets two.
-// saved is false if the call was no longer "analyzing" (another run finished
-// first). ticketId / assignedToUserId describe the ticket created, if any.
+// What saveCallDecision did. saved is false if the call was no longer
+// "analyzing" (another run finished first). ticketId / assignedToUserId
+// describe the ticket created, if any.
 export type SavedDecision = {
   saved: boolean;
   ticketId: string | null;
   assignedToUserId: string | null;
 };
 
+// Stores the decision for one call of one company that is being analyzed and,
+// when `ticket` is given, creates that call's ticket in the SAME transaction:
+// a call is never escalated without its ticket, and never gets two.
 export async function saveCallDecision(
   companyId: string,
   callId: string,
   decision: StoredDecision,
-  ticket: NewTicketInput | null,
+  ticket: TicketToCreate | null,
 ): Promise<SavedDecision> {
   return db.transaction(async (tx) => {
     const saved = await tx
@@ -83,8 +99,10 @@ export async function saveCallDecision(
         aiDecisionSource: decision.source,
         aiReasonCode: decision.reasonCode,
         aiModel: decision.model,
+        aiErrorClass: decision.errorClass,
         aiIssueEncrypted: decision.issueEncrypted,
         aiExplanationEncrypted: decision.explanationEncrypted,
+        aiEvidenceEncrypted: decision.evidenceEncrypted,
         decidedAt: sql`now()`,
       })
       .where(

@@ -1,18 +1,22 @@
 import { z } from "zod";
-import { emailSchema } from "./auth";
+import { companyNameSchema } from "./auth";
+import { customerEmailSchema } from "./customer-email";
 
+// The Setup page's company name (owners only).
+export const companyNameSettingSchema = z.object({
+  companyName: companyNameSchema,
+});
+
+// The company's own addresses are checked like customer addresses
+// (./customer-email.ts): an international domain must work here too.
 export const replyToEmailSchema = z.object({
   // "" clears it.
-  replyToEmail: z.union([z.literal(""), emailSchema]).transform((value) => (value === "" ? null : value)),
+  replyToEmail: z.union([z.literal(""), customerEmailSchema]).transform((value) => (value === "" ? null : value)),
 });
 
-export const phoneLineSchema = z.object({
-  // Vapi's phone number id, as shown in the Vapi dashboard.
-  vapiPhoneNumberId: z.string().trim().regex(/^[A-Za-z0-9_-]{3,100}$/, "Paste the phone number id from Vapi"),
-});
-
+// An address the company's customers write to (display and loop detection only).
 export const inboundAddressSchema = z.object({
-  address: emailSchema,
+  address: customerEmailSchema,
 });
 
 export const documentIdSchema = z.object({

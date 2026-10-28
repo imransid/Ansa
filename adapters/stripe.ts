@@ -45,29 +45,42 @@ export async function createBillingPortalUrl(stripeCustomerId: string, returnUrl
   return session.url;
 }
 
-// The parsed event if the signature is valid for these exact bytes, else null.
-export function verifyStripeEvent(rawBody: Buffer, signatureHeader: string, secret: string): Stripe.Event | null {
+// True when the signature is valid for these exact bytes and was made in the
+// last 5 minutes (the signed timestamp stops replays). Parses nothing:
+// constructEvent would also parse the JSON, and the webhook rate-limits first.
+export function isSignedByStripe(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
   try {
-    return Stripe.webhooks.constructEvent(rawBody, signatureHeader, secret);
+    return Stripe.webhooks.signature?.verifyHeader(rawBody, signatureHeader, secret) === true;
   } catch {
-    return null;
+    return false;
   }
 }
 
+// A subscription as Stripe has it now, plus the company id in its metadata
+// (put there by createCheckoutUrl). Kept apart from the snapshot that gets
+// stored, so the metadata can never pick the company a row is written for.
+export type RetrievedSubscription = {
+  snapshot: SubscriptionSnapshot;
+  metadataCompanyId: string | undefined;
+};
+
 // The subscription as Stripe has it now. Webhooks can arrive late or out of
 // order, so we always store Stripe's current state, not the event's copy.
-export async function retrieveSubscription(subscriptionId: string): Promise<SubscriptionSnapshot & { companyId: string | undefined }> {
+export async function retrieveSubscription(subscriptionId: string): Promise<RetrievedSubscription> {
   const subscription = await stripeClient().subscriptions.retrieve(subscriptionId);
   const customer = subscription.customer;
   // Newer Stripe API versions keep the period end on each subscription item.
   const periodEnd = subscription.items.data[0]?.current_period_end;
   return {
-    stripeCustomerId: typeof customer === "string" ? customer : customer.id,
-    stripeSubscriptionId: subscription.id,
-    status: toOurStatus(subscription.status),
-    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
-    companyId: subscription.metadata.companyId,
+    snapshot: {
+      stripeCustomerId: typeof customer === "string" ? customer : customer.id,
+      stripeSubscriptionId: subscription.id,
+      status: toOurStatus(subscription.status),
+      currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    },
+    // Metadata values are strings; an empty one counts as missing.
+    metadataCompanyId: subscription.metadata.companyId || undefined,
   };
 }
 

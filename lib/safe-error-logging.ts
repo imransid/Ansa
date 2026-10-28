@@ -31,6 +31,14 @@ export function safeStackFrames(error: unknown): string[] {
     .map((line) => line.trim());
 }
 
+// describeErrorSafely, then the stack frames, one per line below it: the same
+// text the server prints for an Error passed to console.error. For code that
+// catches a failure and logs it itself. Code that handles call or email
+// content logs the class name only instead (Rule 1).
+export function describeErrorWithFrames(error: unknown): string {
+  return [describeErrorSafely(error), ...safeStackFrames(error).map((frame) => `    ${frame}`)].join("\n");
+}
+
 // Makes console.error and console.warn print errors the safe way. Installed
 // once at server start (instrumentation.ts), so it also covers errors that
 // Next.js and libraries log by themselves.
@@ -45,7 +53,7 @@ function safeLogArgument(argument: unknown): unknown {
   if (!(argument instanceof Error)) {
     return argument;
   }
-  return [describeErrorSafely(argument), ...safeStackFrames(argument).map((frame) => `    ${frame}`)].join("\n");
+  return describeErrorWithFrames(argument);
 }
 
 function describeOne(error: Error): string {

@@ -1,16 +1,23 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { AppHeader } from "@/components/app-header";
+import Link from "next/link";
 import { requireSessionContext } from "@/lib/session";
 import { getDashboardSummary } from "@/services/dashboard";
 import { listDocumentsForSession } from "@/services/documents";
 import { getSetupForSession } from "@/services/setup";
-import { InboundAddressForm, LinkedValues, PhoneLineForm } from "./channel-forms";
 import { Checklist } from "./checklist";
+import { CompanyNameForm } from "./company-name-form";
 import { DocumentsSection } from "./documents-section";
+import { EmailSection } from "./email-section";
+import { PhoneSection } from "./phone-section";
 import { ReplyToForm } from "./reply-to-form";
 
 export const metadata: Metadata = { title: "Setup - ansa" };
+
+// "Add to knowledge" reads a whole document (a PDF of up to 4 MB) inside this
+// page's server action: the host's default time limit can be as short as 10
+// seconds.
+export const maxDuration = 60;
 
 export default function SetupPage() {
   return (
@@ -23,7 +30,7 @@ export default function SetupPage() {
 }
 
 async function SetupContent() {
-  const session = await requireSessionContext();
+  const session = await requireSessionContext("/setup");
   const [summary, setup, documents] = await Promise.all([
     getDashboardSummary(session),
     getSetupForSession(session),
@@ -35,7 +42,6 @@ async function SetupContent() {
 
   return (
     <>
-      <AppHeader summary={summary} />
       <section className="grid gap-3">
         <h1 className="text-xl font-semibold">Setup</h1>
         {!isOwner && <p className="text-sm text-muted-foreground">Only owners can change these settings.</p>}
@@ -43,35 +49,42 @@ async function SetupContent() {
       </section>
 
       <section className="grid gap-3">
+        <h2 className="text-lg font-semibold">Company name</h2>
+        <p className="text-sm text-muted-foreground">
+          Customers see it in the sender of every email we send for you (&quot;{summary.companyName} via ansa&quot;).
+        </p>
+        {isOwner ? <CompanyNameForm current={summary.companyName} /> : <p className="text-sm">{summary.companyName}</p>}
+      </section>
+
+      <EmailSection setup={setup} isOwner={isOwner} />
+
+      <section className="grid gap-3">
         <h2 className="text-lg font-semibold">Reply-to address</h2>
         <p className="text-sm text-muted-foreground">
-          When a customer replies to a &quot;solved&quot; email, their reply goes here. Leave empty to send replies nowhere.
+          When a customer replies to a &quot;solved&quot; email, the reply goes to this address. Leave it empty and replies
+          go to your forwarding address, so they become new tickets here (not added to the solved one).
         </p>
-        {isOwner ? <ReplyToForm current={setup.replyToEmail} /> : <p className="text-sm">{setup.replyToEmail ?? "Not set"}</p>}
+        {isOwner ? (
+          <ReplyToForm current={setup.replyToEmail} />
+        ) : (
+          <p className="text-sm">{setup.replyToEmail ?? "Not set: replies go to the forwarding address"}</p>
+        )}
       </section>
 
-      <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">Phone numbers</h2>
-        <p className="text-sm text-muted-foreground">
-          Calls to these Vapi numbers belong to your company. Paste the phone number id from the Vapi dashboard.
-        </p>
-        <LinkedValues kind="phone" values={setup.phoneLines} canRemove={isOwner} />
-        {isOwner && <PhoneLineForm />}
-      </section>
+      <PhoneSection phoneLines={setup.phoneLines} />
 
       <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">Support email addresses</h2>
+        <h2 id="documents" className="text-lg font-semibold">
+          Documents
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Emails sent to these addresses become tickets. The address must receive mail through our email provider.
-        </p>
-        <LinkedValues kind="address" values={setup.inboundAddresses} canRemove={isOwner} />
-        {isOwner && <InboundAddressForm />}
-      </section>
-
-      <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">Documents</h2>
-        <p className="text-sm text-muted-foreground">
-          Your help articles, policies and price lists. Stored privately. The AI does not read them yet.
+          Your help articles, policies and price lists, stored privately. The AI never reads a file itself: &ldquo;Add
+          to knowledge&rdquo; (owners) turns its text into draft{" "}
+          <Link href="/knowledge" className="underline">
+            knowledge
+          </Link>{" "}
+          articles, used only once an owner approves them. Adding the same file again makes new drafts. A scanned PDF
+          has no text to add.
         </p>
         <DocumentsSection documents={documents} canManage={isOwner} />
       </section>

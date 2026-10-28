@@ -1,6 +1,8 @@
 // Call brain analysis checks (database, fake model): a decision is stored only
 // on the call and company it was asked about, a call is analyzed once at a
-// time, notes are encrypted, and nothing from the prompt or answer is logged.
+// time, notes are encrypted (also when "Analyze now" sends the id in
+// capitals), a transcript that can't be decrypted escalates, and nothing from
+// the prompt or answer is logged.
 // Every check uses a FAKE model. None of them call the real, paid API.
 
 import assert from "node:assert/strict";
@@ -8,6 +10,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { createPhoneLine } from "@/db/phone-lines";
 import { calls, companies } from "@/db/schema";
+import { encryptText } from "@/lib/encryption";
+import { callTranscriptContext } from "@/lib/encryption-contexts";
 import { analyzeCall, analyzeCallForSession } from "@/services/call-analysis";
 import { getCallForSession } from "@/services/calls";
 import { SOLVED_TRANSCRIPT, solvedAnswer } from "./brain-guard-checks";
@@ -36,6 +40,14 @@ export async function runBrainAnalysisChecks(ownerA: TestUser, ownerB: TestUser)
     // Already decided: not analyzed again.
     assert.equal(await analyzeCall(ownerA.companyId, callId, model.ask), "not-claimed");
     assert.equal(model.calls, 1);
+  });
+
+  await check("brain: 'Analyze now' with the call id in capitals stores notes the call page can still decrypt", async () => {
+    const callId = await saveTestCall(line.vapiPhoneNumberId, SOLVED_TRANSCRIPT);
+    const model = fakeModel(solvedAnswer("that fixed it, thank you so much"));
+    assert.deepEqual(await analyzeCallForSession(sessionFor(ownerA), { callId: callId.toUpperCase() }, model.ask), { ok: true });
+    const { logs, result: detail } = await captureConsole(() => getCallForSession(sessionFor(ownerA), callId));
+    assert.deepEqual([detail?.analysis.issue, detail?.analysis.evidence, logs], ["Router drops connection.", "That fixed it, thank you so much.", []]);
   });
 
   await check("brain: the prompt is only the slice, without company, caller or ids", async () => {
@@ -85,6 +97,20 @@ export async function runBrainAnalysisChecks(ownerA: TestUser, ownerB: TestUser)
     const stored = await row(callId);
     assert.equal(stored.aiOutcome, "needs_human");
     assert.equal(stored.aiReasonCode, "analysis_error");
+  });
+
+  await check("brain: a transcript that can't be decrypted escalates without asking the model, logging one fixed line", async () => {
+    const callId = await saveTestCall(line.vapiPhoneNumberId, SOLVED_TRANSCRIPT);
+    // Encrypted for another record, as after a DATA_ENCRYPTION_KEY mix-up.
+    const unreadable = encryptText(SOLVED_TRANSCRIPT, callTranscriptContext(ownerB.companyId, `other-${runId}`));
+    await db.update(calls).set({ transcriptEncrypted: unreadable }).where(eq(calls.id, callId));
+    const model = fakeModel(solvedAnswer("that fixed it, thank you so much"));
+    const { result, logs } = await captureConsole(() => analyzeCall(ownerA.companyId, callId, model.ask));
+    assert.equal(result, "decided");
+    assert.equal(model.calls, 0);
+    assert.deepEqual(logs, ["Could not decrypt stored text: check DATA_ENCRYPTION_KEY"]);
+    const stored = await row(callId);
+    assert.deepEqual([stored.aiOutcome, stored.aiReasonCode], ["needs_human", "transcript_unreadable"]);
   });
 
   await check("brain: a valid answer and a failed one log nothing about the call", async () => {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mail, PenLine, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -11,73 +12,99 @@ import {
 import { LocalDateTime } from "@/components/local-date-time";
 import type { TicketListItem } from "@/services/tickets";
 
-type TicketTableProps = {
-  tickets: TicketListItem[];
-  page: number;
-};
-
-export function TicketTable({ tickets, page }: TicketTableProps) {
-  if (tickets.length === 0 && page > 1) {
-    return (
-      <p className="rounded-lg border p-6 text-center text-muted-foreground">
-        Nothing on this page.{" "}
-        <Link href="/dashboard" className="underline">
-          Go to the first page
-        </Link>
-      </p>
-    );
-  }
-  if (tickets.length === 0) {
-    return (
-      <p className="rounded-lg border p-6 text-center text-muted-foreground">
-        No tickets yet. Tickets appear here when the AI can&apos;t solve a
-        customer&apos;s problem.
-      </p>
-    );
-  }
-
+// WHY a fixed layout: the table is exactly as wide as the page, whatever the
+// subjects say. Long text is cut with "..." (the full text shows when the
+// pointer rests on it, and on the ticket), so Status and Created never slide
+// out of view on a laptop (step 29). Narrow screens hide the less important
+// columns instead: phones keep #, Subject and Status.
+export function TicketTable({ tickets }: { tickets: TicketListItem[] }) {
   return (
-    <Table>
+    <Table className="table-fixed">
       <TableHeader>
         <TableRow>
-          <TableHead>#</TableHead>
+          <TableHead className="w-16">#</TableHead>
           <TableHead>Subject</TableHead>
-          <TableHead>Customer</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Assigned to</TableHead>
-          <TableHead>Channel</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Created</TableHead>
+          <TableHead className="w-20">Status</TableHead>
+          <TableHead className="hidden w-52 md:table-cell">Customer</TableHead>
+          <TableHead className="hidden w-28 lg:table-cell">Category</TableHead>
+          <TableHead className="hidden w-32 lg:table-cell">Assigned to</TableHead>
+          <TableHead className="hidden w-32 lg:table-cell">Created</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {tickets.map((ticket) => (
-          <TableRow key={ticket.id}>
-            <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-            <TableCell>
-              <Link href={`/tickets/${ticket.ticketNumber}`} className="hover:underline">
-                {ticket.subject}
-              </Link>
-            </TableCell>
-            <TableCell>{describeCustomer(ticket)}</TableCell>
-            <TableCell>{ticket.category ?? "-"}</TableCell>
-            <TableCell>{ticket.assigneeName ?? "Unassigned"}</TableCell>
-            <TableCell>
-              <Badge variant="outline">{ticket.channel}</Badge>
-            </TableCell>
-            <TableCell>
-              <Badge variant={ticket.status === "open" ? "default" : "secondary"}>
-                {ticket.status}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <LocalDateTime iso={ticket.createdAt.toISOString()} />
-            </TableCell>
-          </TableRow>
+          <TicketRow key={ticket.id} ticket={ticket} />
         ))}
       </TableBody>
     </Table>
   );
+}
+
+function TicketRow({ ticket }: { ticket: TicketListItem }) {
+  const customer = describeCustomer(ticket);
+  const assignee = ticket.assigneeName ?? "Unassigned";
+  // Two teammates can share a name: the email, on hover, tells them apart.
+  const assigneeDetails = ticket.assigneeEmail ? `${assignee} (${ticket.assigneeEmail})` : assignee;
+  return (
+    <TableRow>
+      <TableCell className="truncate font-medium">{ticket.ticketNumber}</TableCell>
+      <TableCell>
+        <Link href={`/tickets/${ticket.ticketNumber}`} title={ticket.subject} className="block truncate hover:underline">
+          {ticket.subject}
+        </Link>
+      </TableCell>
+      <TableCell>
+        <Badge variant={ticket.status === "open" ? "default" : "secondary"}>{ticket.status}</Badge>
+      </TableCell>
+      <TableCell className="hidden md:table-cell">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <ChannelIcon channel={ticket.channel} />
+          <span className="truncate" title={customer}>
+            {customer}
+          </span>
+        </span>
+      </TableCell>
+      <TableCell className="hidden truncate lg:table-cell" title={ticket.category ?? undefined}>
+        {ticket.category ?? "-"}
+      </TableCell>
+      <TableCell className="hidden truncate lg:table-cell" title={assigneeDetails}>
+        {assignee}
+      </TableCell>
+      <TableCell className="hidden truncate lg:table-cell">
+        <LocalDateTime iso={ticket.createdAt.toISOString()} dateOnly />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+const CHANNEL_NAMES: Record<TicketListItem["channel"], string> = {
+  phone: "Phone",
+  email: "Email",
+  // Typed in by a teammate (step 31).
+  manual: "Added by hand",
+};
+
+// The ticket's channel as a small icon, with its name for screen readers
+// and on hover.
+function ChannelIcon({ channel }: { channel: TicketListItem["channel"] }) {
+  const name = CHANNEL_NAMES[channel];
+  return (
+    <span title={name} className="shrink-0 text-muted-foreground">
+      <ChannelGlyph channel={channel} />
+      <span className="sr-only">{name}: </span>
+    </span>
+  );
+}
+
+function ChannelGlyph({ channel }: { channel: TicketListItem["channel"] }) {
+  switch (channel) {
+    case "phone":
+      return <Phone aria-hidden className="size-3.5" />;
+    case "email":
+      return <Mail aria-hidden className="size-3.5" />;
+    case "manual":
+      return <PenLine aria-hidden className="size-3.5" />;
+  }
 }
 
 // Shows the best thing we know about the customer: name, then email, then phone.

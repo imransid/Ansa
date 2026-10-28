@@ -1,0 +1,2 @@
+ALTER TABLE "social_connections" ADD COLUMN "renewal_started_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "social_connections" ADD CONSTRAINT "social_connections_renewal_only_connected" CHECK ("social_connections"."renewal_started_at" IS NULL OR "social_connections"."status" = 'connected');

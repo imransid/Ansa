@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { userRoleEnum, users } from "./auth";
 import { companies } from "./companies";
 
@@ -17,9 +17,8 @@ export const invites = pgTable(
     // SHA-256 of the token in the link. The token itself is never stored,
     // so someone reading the database cannot use pending invites.
     tokenHash: text("token_hash").notNull().unique(),
-    createdByUserId: text("created_by_user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
+    // Who created it: an owner of the same company (foreign key below).
+    createdByUserId: text("created_by_user_id").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
@@ -31,5 +30,14 @@ export const invites = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index("invites_company_id_idx").on(table.companyId)],
+  (table) => [
+    index("invites_company_id_idx").on(table.companyId),
+    // Postgres refuses a creator from another company, like every other column
+    // that points at a user (see tickets.ts).
+    foreignKey({
+      name: "invites_creator_in_same_company_fk",
+      columns: [table.companyId, table.createdByUserId],
+      foreignColumns: [users.companyId, users.id],
+    }),
+  ],
 );

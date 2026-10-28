@@ -32,10 +32,13 @@ export async function createMembershipForNewUser(
   return createCompanyForNewOwner(signupRequestBody);
 }
 
+// Says whether the signup came through an invite link (an inviteToken was sent).
 function hasInviteToken(body: unknown): boolean {
   return typeof body === "object" && body !== null && "inviteToken" in body;
 }
 
+// The inviting company and role, after using up the invite; throws for an
+// invite that can't be used.
 async function joinCompanyWithInviteToken(
   signupRequestBody: unknown,
   newUserEmail: string,
@@ -48,7 +51,8 @@ async function joinCompanyWithInviteToken(
 
   // Known gap: the invite is marked used before Better Auth saves the user.
   // If saving the user then fails, the invite is spent and the owner must make
-  // a new one. (An already-registered email is rejected before this runs.)
+  // a new one. (An address that already has an account never gets here:
+  // Better Auth answers it before this hook runs, and the invite stays pending.)
   const claimed = await claimInvite(
     hashInviteToken(parsed.data.inviteToken),
     newUserEmail,
@@ -59,6 +63,7 @@ async function joinCompanyWithInviteToken(
   return { companyId: claimed.companyId, role: claimed.role };
 }
 
+// Creates the new owner's company from the signup form; throws without a valid name.
 async function createCompanyForNewOwner(
   signupRequestBody: unknown,
 ): Promise<Membership> {

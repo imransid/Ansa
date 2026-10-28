@@ -1,10 +1,9 @@
 import { escapeHtml } from "@/lib/escape-html";
+import { toPlainSingleLine } from "@/lib/plain-text";
 
 type TicketSolvedEmailInput = {
   companyName: string;
-  customerName: string | null;
   ticketNumber: number;
-  ticketSubject: string;
 };
 
 export type RenderedEmail = {
@@ -13,30 +12,34 @@ export type RenderedEmail = {
   text: string;
 };
 
-// Builds the "your request has been solved" email sent to a customer.
-// It deliberately leaves out the ticket description: that holds call notes,
-// which must never leave the app (Rule 1).
+// Builds the "your request has been solved" email sent to a customer: the
+// same fixed text for everyone, with only the request number and the company
+// name filled in. It deliberately leaves out the customer's name and the
+// ticket's subject: on an email ticket whoever sent the email wrote both (a
+// forged sender can put a phishing line there), and a subject may be Claude's
+// note for the expert. The description holds call notes, which must never
+// leave the app (Rule 1).
 export function renderTicketSolvedEmail(input: TicketSolvedEmailInput): RenderedEmail {
-  const greetingName = input.customerName ?? "there";
+  const companyName = toPlainSingleLine(input.companyName);
   const subject = `Your request #${input.ticketNumber} has been solved`;
 
   const text = [
-    `Hi ${greetingName},`,
+    "Hello,",
     "",
-    `Good news: your request "${input.ticketSubject}" (#${input.ticketNumber}) has been solved by the ${input.companyName} team.`,
+    `Good news: your request #${input.ticketNumber} has been solved by the ${companyName} team.`,
     "",
     "If you still need help, just get in touch with us again.",
     "",
-    `${input.companyName} Support`,
+    `${companyName} Support`,
   ].join("\n");
 
   const html = `<!doctype html>
 <html>
   <body style="font-family: sans-serif; line-height: 1.5; color: #111;">
-    <p>Hi ${escapeHtml(greetingName)},</p>
-    <p>Good news: your request <strong>"${escapeHtml(input.ticketSubject)}"</strong> (#${input.ticketNumber}) has been solved by the ${escapeHtml(input.companyName)} team.</p>
+    <p>Hello,</p>
+    <p>Good news: your request #${input.ticketNumber} has been solved by the ${escapeHtml(companyName)} team.</p>
     <p>If you still need help, just get in touch with us again.</p>
-    <p>${escapeHtml(input.companyName)} Support</p>
+    <p>${escapeHtml(companyName)} Support</p>
   </body>
 </html>`;
 

@@ -1,16 +1,17 @@
+import { fileUnavailableResponse, privateFileResponse } from "@/lib/private-file-response";
 import { getSessionContext } from "@/lib/session";
 import { getRecordingForSession } from "@/services/call-recordings";
 
 // The call page's audio player plays from here. Logged-in users of the call's
-// company only; everyone else gets 404. Never cached.
+// company only; everyone else gets 404, and too many plays 429. Never cached.
 export async function GET(_request: Request, { params }: RouteContext<"/api/calls/[callId]/recording">) {
   const session = await getSessionContext();
-  const access = session ? await getRecordingForSession(session, (await params).callId) : null;
-  if (!access) {
-    return new Response(null, { status: session ? 404 : 401 });
+  if (!session) {
+    return new Response(null, { status: 401 });
   }
-  if (access.kind === "signed-url") {
-    return new Response(null, { status: 302, headers: { location: access.url, "cache-control": "no-store" } });
+  const access = await getRecordingForSession(session, (await params).callId);
+  if (access === "rate-limited" || access === null) {
+    return fileUnavailableResponse(access);
   }
-  return new Response(new Uint8Array(access.bytes), { headers: { "content-type": access.contentType, "cache-control": "private, no-store" } });
+  return privateFileResponse(access);
 }

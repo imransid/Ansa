@@ -14,7 +14,9 @@ export function AnalyzeNowButton({ callId }: { callId: string }) {
       <Button type="submit" variant="outline" size="sm" disabled={isAnalyzing}>
         {isAnalyzing ? "Analyzing..." : "Analyze now"}
       </Button>
-      <span className="text-sm text-muted-foreground">Sends part of the transcript to Claude (a paid API call).</span>
+      <span className="text-sm text-muted-foreground">
+        The AI reads the call again and decides whether it needs a ticket. This can take a minute.
+      </span>
       {errors?.message && (
         <p role="alert" className="text-sm text-destructive">
           {errors.message}

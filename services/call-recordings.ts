@@ -23,6 +23,7 @@ const FILE_EXTENSIONS: Record<string, string> = {
   "audio/webm": "webm",
 };
 
+// The hosts recordings may be copied from (VAPI_RECORDING_HOSTS), lowercase.
 export function allowedRecordingHosts(): string[] {
   return env.VAPI_RECORDING_HOSTS.split(",").map((host) => host.trim().toLowerCase()).filter(Boolean);
 }
@@ -63,14 +64,16 @@ export async function storeCallRecording(
 }
 
 // What the call page's player gets for one call of the session's company: a
-// 5-minute signed link (R2), or the bytes (dev). Null for other companies' calls.
-export async function getRecordingForSession(session: SessionContext, callId: unknown): Promise<PrivateFileAccess | null> {
+// 5-minute signed link (R2), or the bytes (dev). Null for an unknown call, a
+// call without a stored recording, or another company's call; "rate-limited"
+// after too many plays (the route answers 429, never a misleading 404).
+export async function getRecordingForSession(session: SessionContext, callId: unknown): Promise<PrivateFileAccess | "rate-limited" | null> {
   const parsed = callIdSchema.safeParse(callId);
   if (!parsed.success) {
     return null;
   }
   if (await isOverRateLimit("recording-views", session.userId, RATE_LIMITS.recordingViewsPerUser)) {
-    return null;
+    return "rate-limited";
   }
   const stored = await getStoredRecording(session.companyId, parsed.data);
   if (!stored) {

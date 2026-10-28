@@ -7,6 +7,7 @@ import { analyzeCall } from "./call-analysis";
 import { isCopyableRecordingUrl, storeCallRecording } from "./call-recordings";
 import { saveEndOfCallReport } from "./calls";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
+import { answerVapiToolCalls } from "./vapi-tool-calls";
 
 // LOGGING RULE for this file: webhook bodies contain call transcripts, phone
 // numbers and recording URLs. Never log the body, any part of it, a parse
@@ -30,6 +31,8 @@ export async function handleVapiWebhook(request: Request, runAfterResponse: RunA
   }
 }
 
+// Checks, parses and saves one Vapi request, in the order of the numbered
+// steps; may throw (handleVapiWebhook catches).
 async function processVapiWebhook(request: Request, runAfterResponse: RunAfterResponse): Promise<Response> {
   // 1. Raw bytes only, nothing decoded or parsed yet.
   const rawBody = await readRawBodyWithLimit(request, MAX_BODY_BYTES);
@@ -66,6 +69,11 @@ async function processVapiWebhook(request: Request, runAfterResponse: RunAfterRe
   if (!messageType.success) {
     console.warn("Vapi webhook rejected: not a Vapi message");
     return emptyResponse(400);
+  }
+  // A tool the assistant calls during a live call (step 35). Always 200 with
+  // one answer per tool call: Vapi ignores every other status.
+  if (messageType.data.message.type === "tool-calls") {
+    return Response.json(await answerVapiToolCalls(payload));
   }
   // Other events (status updates, live transcript pieces, ...) are not used yet.
   if (messageType.data.message.type !== "end-of-call-report") {
@@ -105,6 +113,7 @@ async function processVapiWebhook(request: Request, runAfterResponse: RunAfterRe
   return emptyResponse(200);
 }
 
+// The body as JSON, or null when it isn't JSON (never the parse error: it can quote the body).
 function parseJsonOrNull(rawBody: Buffer): unknown {
   try {
     return JSON.parse(rawBody.toString("utf8"));
@@ -113,6 +122,7 @@ function parseJsonOrNull(rawBody: Buffer): unknown {
   }
 }
 
+// An answer with only a status: Vapi reads nothing else.
 function emptyResponse(status: number): Response {
   return new Response(null, { status });
 }

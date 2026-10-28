@@ -2,6 +2,11 @@ import { z } from "zod";
 
 // Only used AFTER the Stripe webhook signature has been verified. Just the
 // fields we act on; everything else in the event is ignored.
+export const stripeEventSchema = z.object({
+  type: z.string().max(100),
+  data: z.object({ object: z.unknown() }),
+});
+
 export const checkoutCompletedSchema = z.object({
   mode: z.literal("subscription"),
   // Set by us to the company id when the checkout was created.

@@ -1,12 +1,23 @@
-# Runs on every push and pull request: types, lint, every tenant isolation
-# check against a fresh database, and a production build. All secrets below are
-# throwaway values made up for this run; no real service is called (emails go to
-# .dev-emails/, files to .dev-files/, and Claude is replaced by fakes).
+# Runs on every push and pull request: the migrations match db/schema, types,
+# lint, every tenant isolation check against a fresh database, and a production
+# build. All secrets below are throwaway values made up for this run; no real
+# service is called (emails go to .dev-emails/, files to .dev-files/, and
+# Claude is replaced by fakes). A second job reports known security advisories
+# in the production dependencies.
 name: checks
 
 on:
   push:
   pull_request:
+
+# The jobs only read the code.
+permissions:
+  contents: read
+
+# A newer push to the same branch stops the run still going for the older one.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checks:
@@ -27,9 +38,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -49,6 +60,20 @@ jobs:
             echo "CRON_SECRET=$(openssl rand -hex 32)"
           } > .env.local
 
+      # db/schema and db/migrations must agree. A schema change committed
+      # without `pnpm db:generate` would pass every step below (they migrate
+      # the SQL that exists) and then be missing in production. WHY the text
+      # test too: when drizzle-kit would have to ask (a renamed column), it
+      # can't without a terminal, so it writes nothing and still exits 0.
+      - name: Migrations match db/schema
+        run: |
+          pnpm db:generate --name schema_drift_check < /dev/null > "$RUNNER_TEMP/drift-check.log" 2>&1 || true
+          if ! grep -q "No schema changes" "$RUNNER_TEMP/drift-check.log" || [ -n "$(git status --porcelain --untracked-files=all -- db/migrations)" ]; then
+            grep -v "^    at " "$RUNNER_TEMP/drift-check.log" | tail -20
+            echo "db/schema and db/migrations differ: run pnpm db:generate and commit the migration it writes."
+            exit 1
+          fi
+
       - run: pnpm db:migrate
       # Route types (.next/types) are generated, not committed.
       - run: pnpm exec next typegen
@@ -56,3 +81,17 @@ jobs:
       - run: pnpm lint
       - run: pnpm check:tenant-isolation
       - run: pnpm build
+
+  # Known high or critical advisories in what production runs (dev tools such
+  # as drizzle-kit and the shadcn CLI are left out). Its own job, so a new
+  # advisory shows as a failed check without hiding how the other checks went.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: pnpm audit --prod --audit-level high

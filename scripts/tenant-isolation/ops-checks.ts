@@ -4,7 +4,7 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { outgoingEmails, rateLimits, verifications } from "@/db/schema";
 import { env } from "@/lib/env";
@@ -13,7 +13,9 @@ import { describeErrorSafely, installSafeErrorLogging } from "@/lib/safe-error-l
 import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { handleResendWebhook } from "@/services/inbound-email-webhook";
 import { handleCleanupRequest } from "@/services/maintenance";
-import { createTicketForCompany, markTicketSolvedForSession } from "@/services/tickets";
+import { longestRateLimitWindowSeconds } from "@/services/rate-limit";
+import { markTicketSolvedForSession } from "@/services/ticket-status";
+import { createTicketForCompany } from "@/services/tickets";
 import { captureConsole, check, runId, sessionFor, type TestUser } from "./helpers";
 
 const secretText = `+1555${runId}`;
@@ -25,8 +27,9 @@ function databaseLikeError(): Error {
 
 // Solves a new ticket of one company and pretends Resend sent its email with this id.
 async function sentEmailWithResendId(user: TestUser, resendId: string): Promise<string> {
-  const ticket = await createTicketForCompany(user.companyId, { subject: "Bounce check", description: "x", channel: "email", customerEmail: `bounce-${runId}@example.test` });
-  await markTicketSolvedForSession(sessionFor(user), { ticketId: ticket.id });
+  const customerEmail = `bounce-${runId}@example.test`;
+  const ticket = await createTicketForCompany(user.companyId, { subject: "Bounce check", description: "x", channel: "email", customerEmail });
+  await markTicketSolvedForSession(sessionFor(user), { ticketId: ticket.id, confirmedCustomerEmail: customerEmail });
   await db.update(outgoingEmails).set({ providerMessageId: resendId }).where(eq(outgoingEmails.ticketId, ticket.id));
   return ticket.id;
 }
@@ -54,18 +57,33 @@ export async function runOpsChecks(ownerA: TestUser, ownerB: TestUser) {
   await check("cleanup: off without a secret, refused with a wrong one, and deletes only stale rows", async () => {
     const secret = `cron-secret-${runId}-${randomUUID()}`;
     // "" stands for "CRON_SECRET not set" (undefined would fall back to the real setting).
+    // The stuck-work run is a fake here: the checks never call Claude or Resend
+    // (stuck-work-checks.ts tests the real one, with fakes inside).
+    const fakeRecovery = async () => ({ emails: 0, calls: 0, generations: 0 });
+    // So are the publishing queue's run (publishing-cron-checks.ts tests the
+    // real one) and the post numbers' (metrics-collection-checks.ts).
+    const fakePublishing = async () => ({ interrupted: 0, published: 0, failed: 0, needsAttention: 0, requeued: 0 });
+    const fakeMetrics = async () => ({ collected: 0, failed: 0, skipped: 0 });
     const call = (authorization?: string, cronSecret = secret) =>
-      handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers: authorization ? { authorization } : {} }), cronSecret);
+      handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers: authorization ? { authorization } : {} }), cronSecret, fakeRecovery, undefined, fakePublishing, fakeMetrics);
     assert.equal((await call(`Bearer ${secret}`, "")).status, 404);
     const refused = await captureConsole(async () => [(await call()).status, (await call(`Bearer ${secret}x`)).status, (await call(secret)).status]);
     assert.deepEqual(refused.result, [401, 401, 401]);
     assert.ok(refused.logs.every((line) => line === "Cleanup rejected: invalid secret"));
 
+    // Counters are kept a day longer than the longest window: one with an hour
+    // of that window left, and one whose window ended an hour ago, both stay.
+    const hour = 60 * 60 * 1000;
+    const longestWindow = longestRateLimitWindowSeconds() * 1000;
     const staleKey = `stale-${runId}`;
     const liveKey = `live-${runId}`;
+    const almostOverKey = `almost-over-${runId}`;
+    const justEndedKey = `just-ended-${runId}`;
     await db.insert(rateLimits).values([
-      { key: staleKey, attemptCount: 3, windowStartedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
+      { key: staleKey, attemptCount: 3, windowStartedAt: new Date(Date.now() - longestWindow - 48 * hour) },
       { key: liveKey, attemptCount: 3, windowStartedAt: new Date() },
+      { key: almostOverKey, attemptCount: 3, windowStartedAt: new Date(Date.now() - longestWindow + hour) },
+      { key: justEndedKey, attemptCount: 3, windowStartedAt: new Date(Date.now() - longestWindow - hour) },
     ]);
     const expiredId = `expired-${runId}`;
     await db.insert(verifications).values({ id: expiredId, identifier: `x-${runId}`, value: "x", expiresAt: new Date(Date.now() - 1000) });
@@ -73,10 +91,12 @@ export async function runOpsChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.equal(answer.status, 200);
     const counts = await answer.json();
     assert.ok(counts.rateLimitCounters >= 1 && counts.verifications >= 1, JSON.stringify(counts));
+    assert.deepEqual(counts.retried, { emails: 0, calls: 0, generations: 0 }, "the job did not run the stuck-work recovery");
     assert.equal((await db.select().from(rateLimits).where(eq(rateLimits.key, staleKey))).length, 0);
-    assert.equal((await db.select().from(rateLimits).where(eq(rateLimits.key, liveKey))).length, 1);
+    const keptKeys = [liveKey, almostOverKey, justEndedKey];
+    assert.equal((await db.select().from(rateLimits).where(inArray(rateLimits.key, keptKeys))).length, keptKeys.length);
     assert.equal((await db.select().from(verifications).where(eq(verifications.id, expiredId))).length, 0);
-    await db.delete(rateLimits).where(eq(rateLimits.key, liveKey));
+    await db.delete(rateLimits).where(inArray(rateLimits.key, keptKeys));
   });
 
   await check("bounces: a signed bounce or spam report marks only that company's sent email", async () => {

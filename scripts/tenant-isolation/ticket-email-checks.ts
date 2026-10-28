@@ -7,12 +7,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { outgoingEmails, tickets } from "@/db/schema";
 import { retryCustomerEmailForSession } from "@/services/customer-emails";
-import {
-  createTicketForCompany,
-  getTicketForSession,
-  markTicketSolvedForSession,
-  setCustomerEmailForSession,
-} from "@/services/tickets";
+import { markTicketSolvedForSession } from "@/services/ticket-status";
+import { createTicketForCompany, getTicketForSession, setCustomerEmailForSession } from "@/services/tickets";
 import { addTeammate, assertRefusedByConstraint, captureConsole, check, runId, sessionFor, type TestUser } from "./helpers";
 
 function phoneTicket(subject: string) {
@@ -74,13 +70,13 @@ export async function runTicketEmailChecks(ownerA: TestUser, ownerB: TestUser) {
   await check("ticket email: solving afterwards emails the new address; a solved ticket gets nothing sent", async () => {
     const ticket = await createTicketForCompany(ownerA.companyId, phoneTicket("Email then solve"));
     await setCustomerEmailForSession(sessionFor(memberA), { ticketId: ticket.id, customerEmail: customer, confirmed: "yes" });
-    await markTicketSolvedForSession(sessionFor(memberA), { ticketId: ticket.id });
+    await markTicketSolvedForSession(sessionFor(memberA), { ticketId: ticket.id, confirmedCustomerEmail: customer });
     const emails = await db.select().from(outgoingEmails).where(eq(outgoingEmails.ticketId, ticket.id));
     assert.equal(emails.length, 1);
     assert.equal(emails[0].toEmail, customer);
 
     const solvedFirst = await createTicketForCompany(ownerA.companyId, phoneTicket("Solve then email"));
-    await markTicketSolvedForSession(sessionFor(memberA), { ticketId: solvedFirst.id });
+    await markTicketSolvedForSession(sessionFor(memberA), { ticketId: solvedFirst.id, confirmedCustomerEmail: "" });
     await setCustomerEmailForSession(sessionFor(memberA), { ticketId: solvedFirst.id, customerEmail: customer, confirmed: "yes" });
     const none = await db.select().from(outgoingEmails).where(eq(outgoingEmails.ticketId, solvedFirst.id));
     assert.equal(none.length, 0, "adding an email to a solved ticket sent something");
@@ -91,7 +87,7 @@ export async function runTicketEmailChecks(ownerA: TestUser, ownerB: TestUser) {
     const second = `second-${runId}@example.test`;
     const ticket = await createTicketForCompany(ownerA.companyId, phoneTicket("Change after failure"));
     await setCustomerEmailForSession(sessionFor(ownerA), { ticketId: ticket.id, customerEmail: first, confirmed: "yes" });
-    await markTicketSolvedForSession(sessionFor(ownerA), { ticketId: ticket.id });
+    await markTicketSolvedForSession(sessionFor(ownerA), { ticketId: ticket.id, confirmedCustomerEmail: first });
     const [email] = await db.select().from(outgoingEmails).where(eq(outgoingEmails.ticketId, ticket.id));
     await db.update(outgoingEmails).set({ status: "failed" }).where(eq(outgoingEmails.id, email.id));
 

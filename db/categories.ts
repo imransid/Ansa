@@ -1,8 +1,13 @@
 import "server-only";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
-import { db } from "./client";
+import { and, asc, count, eq, isNull, ne, sql } from "drizzle-orm";
+import { ACTIVE_CATEGORIES_MAX } from "@/lib/form-limits";
+import { db, type DbTransaction } from "./client";
+import { lockCompanyRow } from "./company-lock";
 import { isUniqueViolation } from "./errors";
-import { categories, userCategories, users } from "./schema";
+import { routeUnassignedTicketsInCategories, type RoutedTicket } from "./routing";
+import { categories } from "./schema";
+
+// One company's categories. Who handles which one is in db/user-categories.ts.
 
 export type Category = {
   id: string;
@@ -10,9 +15,15 @@ export type Category = {
   archived: boolean;
 };
 
-export type UserCategoryLink = {
-  userId: string;
-  categoryId: string;
+export type CategoryCreation = "created" | "name-taken" | "limit-reached";
+
+export type CategoryArchiving = {
+  updated: boolean;
+  // A restore was refused: the company already has ACTIVE_CATEGORIES_MAX
+  // active categories.
+  limitReached: boolean;
+  // Tickets that waited in a restored category and were routed (step 29).
+  routedTickets: RoutedTicket[];
 };
 
 // Lists one company's categories, active ones first, then by name.
@@ -25,25 +36,39 @@ export async function getCategoriesForCompany(companyId: string): Promise<Catego
   return rows.map((row) => ({ id: row.id, name: row.name, archived: row.archivedAt !== null }));
 }
 
-// Names of one company's active categories, for the call brain and ticket menus.
-export async function getActiveCategoryNames(companyId: string): Promise<string[]> {
-  const rows = await db
-    .select({ name: categories.name })
+// One company's active categories by name, with their ids. The call brain and
+// email triage offer the names to Claude, then save the ticket by id, so a
+// rename while Claude thinks is followed (db/ticket-creation.ts).
+export async function getActiveCategories(companyId: string): Promise<{ id: string; name: string }[]> {
+  return db
+    .select({ id: categories.id, name: categories.name })
     .from(categories)
     .where(and(eq(categories.companyId, companyId), isNull(categories.archivedAt)))
     .orderBy(asc(categories.name));
-  return rows.map((row) => row.name);
 }
 
-// Adds a category to one company. Returns false if the name (in any letter
-// case) already exists there.
-export async function createCategory(companyId: string, name: string): Promise<boolean> {
-  const inserted = await db
-    .insert(categories)
-    .values({ companyId, name })
-    .onConflictDoNothing()
-    .returning({ id: categories.id });
-  return inserted.length > 0;
+// Names of one company's active categories, for ticket menus.
+export async function getActiveCategoryNames(companyId: string): Promise<string[]> {
+  return (await getActiveCategories(companyId)).map((category) => category.name);
+}
+
+// Adds a category to one company, unless the name (in any letter case)
+// already exists there, or the company already has ACTIVE_CATEGORIES_MAX
+// active ones.
+export async function createCategory(companyId: string, name: string): Promise<CategoryCreation> {
+  return db.transaction(async (tx) => {
+    // Two creations at the same moment count one after the other.
+    await lockCompanyRow(tx, companyId);
+    if ((await countOtherActiveCategories(tx, companyId, null)) >= ACTIVE_CATEGORIES_MAX) {
+      return "limit-reached";
+    }
+    const inserted = await tx
+      .insert(categories)
+      .values({ companyId, name })
+      .onConflictDoNothing()
+      .returning({ id: categories.id });
+    return inserted.length > 0 ? "created" : "name-taken";
+  });
 }
 
 // Renames one company's category. Tickets follow automatically (ON UPDATE
@@ -72,57 +97,38 @@ export async function renameCategory(companyId: string, categoryId: string, name
   }
 }
 
-// Archives (or restores) one company's category.
-export async function setCategoryArchived(companyId: string, categoryId: string, archived: boolean): Promise<boolean> {
-  const updated = await db
-    .update(categories)
-    .set({ archivedAt: archived ? sql`now()` : null })
-    .where(and(eq(categories.id, categoryId), eq(categories.companyId, companyId)))
-    .returning({ id: categories.id });
-  return updated.length > 0;
-}
-
-// Lists who handles which category in one company.
-export async function getUserCategoryLinks(companyId: string): Promise<UserCategoryLink[]> {
-  return db
-    .select({ userId: userCategories.userId, categoryId: userCategories.categoryId })
-    .from(userCategories)
-    .where(eq(userCategories.companyId, companyId));
-}
-
-// Replaces the categories one person handles. The user and every category
-// must belong to this company (checked here, and by the foreign keys), and
-// the categories must be active. Returns false, changing nothing, otherwise.
-export async function replaceUserCategories(
-  companyId: string,
-  userId: string,
-  categoryIds: string[],
-): Promise<boolean> {
+// Archives (or restores) one company's category. Restoring it routes the
+// company's open unassigned tickets in it, in the same transaction (step 29);
+// whoever gets one is returned, to be emailed after commit.
+export async function setCategoryArchived(companyId: string, categoryId: string, archived: boolean): Promise<CategoryArchiving> {
   return db.transaction(async (tx) => {
-    const person = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(and(eq(users.id, userId), eq(users.companyId, companyId)));
-    if (person.length === 0) {
-      return false;
+    // First: a restore routes tickets below, and routing must not run at the
+    // same time as another routing in this company (db/routing.ts). It also
+    // makes the count below and a creation at the same moment take turns.
+    await lockCompanyRow(tx, companyId);
+    if (!archived && (await countOtherActiveCategories(tx, companyId, categoryId)) >= ACTIVE_CATEGORIES_MAX) {
+      return { updated: false, limitReached: true, routedTickets: [] };
     }
-    if (categoryIds.length > 0) {
-      const usable = await tx
-        .select({ id: categories.id })
-        .from(categories)
-        .where(and(eq(categories.companyId, companyId), isNull(categories.archivedAt), inArray(categories.id, categoryIds)));
-      if (usable.length !== new Set(categoryIds).size) {
-        return false;
-      }
+    const updated = await tx
+      .update(categories)
+      .set({ archivedAt: archived ? sql`now()` : null })
+      .where(and(eq(categories.id, categoryId), eq(categories.companyId, companyId)))
+      .returning({ id: categories.id });
+    if (updated.length === 0) {
+      return { updated: false, limitReached: false, routedTickets: [] };
     }
-    await tx
-      .delete(userCategories)
-      .where(and(eq(userCategories.companyId, companyId), eq(userCategories.userId, userId)));
-    if (categoryIds.length > 0) {
-      await tx
-        .insert(userCategories)
-        .values([...new Set(categoryIds)].map((categoryId) => ({ companyId, userId, categoryId })));
-    }
-    return true;
+    const routedTickets = archived ? [] : await routeUnassignedTicketsInCategories(tx, companyId, [categoryId]);
+    return { updated: true, limitReached: false, routedTickets };
   });
+}
+
+// How many active categories one company has, leaving out exceptCategoryId
+// (the one being restored, which may be active already).
+async function countOtherActiveCategories(tx: DbTransaction, companyId: string, exceptCategoryId: string | null): Promise<number> {
+  const conditions = [eq(categories.companyId, companyId), isNull(categories.archivedAt)];
+  if (exceptCategoryId !== null) {
+    conditions.push(ne(categories.id, exceptCategoryId));
+  }
+  const [row] = await tx.select({ total: count() }).from(categories).where(and(...conditions));
+  return row?.total ?? 0;
 }

@@ -34,12 +34,22 @@ export async function getCompanyBilling(companyId: string): Promise<Subscription
 // live, so a late "old subscription canceled" event can't undo a new one.
 // Returns false when it was not saved for that reason.
 export async function saveCompanySubscription(companyId: string, snapshot: SubscriptionSnapshot): Promise<boolean> {
+  // Every column is named here, so company_id only ever comes from the
+  // companyId argument. Spreading the snapshot would let an object with extra
+  // fields (such as a company id read from Stripe's metadata) pick the company.
+  const subscription = {
+    stripeCustomerId: snapshot.stripeCustomerId,
+    stripeSubscriptionId: snapshot.stripeSubscriptionId,
+    status: snapshot.status,
+    currentPeriodEnd: snapshot.currentPeriodEnd,
+    cancelAtPeriodEnd: snapshot.cancelAtPeriodEnd,
+  };
   const saved = await db
     .insert(companyBilling)
-    .values({ companyId, ...snapshot })
+    .values({ ...subscription, companyId })
     .onConflictDoUpdate({
       target: companyBilling.companyId,
-      set: { ...snapshot, updatedAt: sql`now()` },
+      set: { ...subscription, updatedAt: sql`now()` },
       setWhere: or(
         eq(companyBilling.stripeSubscriptionId, snapshot.stripeSubscriptionId),
         not(inArray(companyBilling.status, LIVE_SUBSCRIPTION_STATUSES)),

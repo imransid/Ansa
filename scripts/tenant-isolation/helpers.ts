@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { createEmailVerificationToken } from "better-auth/api";
 import { userRoles, type UserRole } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
@@ -14,6 +15,11 @@ export const runId = randomUUID().slice(0, 8);
 export const testPassword = "isolation-test-password";
 // Every email address a check signed up with; cleanup.ts removes them.
 export const createdEmails: string[] = [];
+// Ids of accounts that joined through an invite without confirming. The app
+// itself may delete such an account during a check (an owner's Remove, or the
+// inbox owner's reset link), and then cleanup.ts can no longer find its id by
+// email to remove the emails the dev outbox wrote for it.
+export const unconfirmedAccountIds: string[] = [];
 let failures = 0;
 
 export type TestUser = {
@@ -36,13 +42,23 @@ type SignupBody = { name: string; email: string; password: string } & Record<
 
 // Calls Better Auth's signup the way a real request would, including fields its
 // types don't list (companyName, inviteToken, or a smuggled companyId / role).
+// Then confirms the address, as everyone who uses the app has done. Checks
+// that need an unconfirmed account call auth.api.signUpEmail themselves.
 export async function signUpWithBody(body: SignupBody): Promise<TestUser> {
   const { user } = await auth.api.signUpEmail({ body });
   const role = userRoles.find((knownRole) => knownRole === user.role);
   if (!user.companyId || !role) {
     throw new Error(`Signup for ${body.email} returned no company or an unknown role`);
   }
+  await confirmEmailAddress(user.email);
   return { id: user.id, email: user.email, companyId: user.companyId, role };
+}
+
+// Marks the address confirmed the way Better Auth does for a genuine link,
+// skipping the password step of the /verify-email page, so no session opens.
+async function confirmEmailAddress(email: string): Promise<void> {
+  const token = await createEmailVerificationToken((await auth.$context).secret, email);
+  await auth.api.verifyEmail({ query: { token } });
 }
 
 export async function signUpTestOwner(label: string): Promise<TestUser> {

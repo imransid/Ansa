@@ -113,7 +113,9 @@ export async function runRoutingChecks(ownerA: TestUser, ownerB: TestUser) {
     const transcript = "User: I was charged twice.\nAI: I can't refund that, I'll pass it on.";
     const needsHuman = (category: string) =>
       answer({ outcome: "needs_human", customer_issue: "Double charge.", resolution_evidence: "", reason: "Needs a refund.", ticket_subject: "Double charge", category });
-    const routedCall = await saveTestCall(line.vapiPhoneNumberId, transcript);
+    // Two different callers: calls from one caller count as one customer, and
+    // the second would follow the first ticket's expert (step 29).
+    const routedCall = await saveTestCall(line.vapiPhoneNumberId, transcript, "+1 555 0110 001");
     const model = fakeModel(needsHuman("Support"));
     await analyzeCall(ownerA.companyId, routedCall, model.ask);
     assert.ok(model.prompts[0].includes("- Support"), "categories were not offered to the model");
@@ -121,7 +123,7 @@ export async function runRoutingChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.equal(routedTicket.category, "Support");
     assert.equal(routedTicket.assignedAutomatically, true);
 
-    const inventedCall = await saveTestCall(line.vapiPhoneNumberId, transcript);
+    const inventedCall = await saveTestCall(line.vapiPhoneNumberId, transcript, "+1 555 0110 002");
     await analyzeCall(ownerA.companyId, inventedCall, fakeModel(needsHuman("Refunds desk")).ask);
     const [inventedTicket] = await db.select().from(tickets).where(eq(tickets.callId, inventedCall));
     assert.equal(inventedTicket.category, null);

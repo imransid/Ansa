@@ -35,6 +35,10 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").notNull().default(false),
     image: text("image"),
+    // Set = an owner removed this person from the team (db/team-members.ts).
+    // The row stays so tickets keep showing who worked on them, but the person
+    // can't log in, is logged out everywhere, and never gets tickets again.
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -107,7 +111,9 @@ export const accounts = pgTable(
   (table) => [index("accounts_user_id_idx").on(table.userId)],
 );
 
-// Short-lived tokens (email verification, password reset). Unused in step 1.
+// Better Auth's short-lived tokens: password reset links (step 22), stored only
+// as a SHA-256 hash (lib/auth.ts). Email confirmation links are signed tokens
+// and never stored here. The daily cleanup deletes expired rows (db/maintenance.ts).
 export const verifications = pgTable(
   "verifications",
   {

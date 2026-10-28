@@ -1,0 +1,1 @@
+CREATE INDEX "inbound_emails_company_id_received_at_idx" ON "inbound_emails" USING btree ("company_id","received_at");

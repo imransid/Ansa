@@ -19,7 +19,7 @@ const steps = [
   },
   {
     title: "The right person gets a ticket",
-    text: "With a short summary, sent to whoever handles that kind of request and has the fewest open tickets. When it's solved, the customer gets an email.",
+    text: "With a short summary, sent to whoever handles that kind of request and has the fewest open tickets. When it's solved, ansa emails the customer if it has their email address.",
   },
 ];
 
@@ -79,7 +79,8 @@ export default function LandingPage() {
       <section className="grid justify-items-start gap-4 rounded-lg border p-8">
         <h2 className="text-2xl font-semibold tracking-tight">Set up in an afternoon</h2>
         <p className="max-w-xl text-muted-foreground">
-          Create your company, invite your team, pick categories, and connect your phone number and support address.
+          Create your company, invite your team, pick categories, and forward your support email to the address ansa
+          gives you. We set up your phone number.
         </p>
         <Link href="/signup" className={buttonVariants({ size: "lg" })}>
           Create your account

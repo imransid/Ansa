@@ -47,3 +47,12 @@ next-env.d.ts
 # dev file storage (stand-in for the private R2 bucket)
 /.dev-files/
 /.dev-inbound/
+
+# dev social stand-in (posts are written here instead of published)
+/.dev-social/
+
+# database backups (pg_dump): they hold every company's data, so they are
+# written outside the repository (IMPLEMENTATION_PLAN.md, "Deploy and roll
+# back"); these patterns only catch one made here by mistake
+*.dump
+*.sql.gz

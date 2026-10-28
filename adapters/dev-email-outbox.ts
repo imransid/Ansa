@@ -1,6 +1,7 @@
 import "server-only";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { toDeliveryErrorCode } from "@/lib/delivery-error-code";
 import { escapeHtml } from "@/lib/escape-html";
 import type { EmailMessage, EmailSendResult } from "@/lib/send-email";
 
@@ -37,7 +38,8 @@ export async function writeToDevOutbox(message: EmailMessage): Promise<EmailSend
     await writeFile(path.join(OUTBOX_DIR, fileName), page, "utf8");
   } catch (error) {
     // For example a read-only disk in production with real email still off.
-    return { ok: false, error: `Could not write dev outbox file: ${error instanceof Error ? error.message : "unknown"}` };
+    // Only the file system's code ("EROFS"): its message holds the file path.
+    return { ok: false, error: toDeliveryErrorCode(error instanceof Error && "code" in error ? error.code : undefined) };
   }
 
   // Only the file name is logged, never the recipient or the content.

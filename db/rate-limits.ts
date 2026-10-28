@@ -1,5 +1,5 @@
 import "server-only";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./client";
 import { rateLimits } from "./schema";
 
@@ -26,4 +26,14 @@ export async function recordAttemptAndCount(
     .returning({ attemptCount: rateLimits.attemptCount });
 
   return row.attemptCount;
+}
+
+// Takes one attempt off this key's current count (never below zero). Used when
+// an attempt turns out not to count, like a login that worked. If the window
+// has rolled over since, it comes off the new window instead, which is harmless.
+export async function removeOneAttempt(key: string): Promise<void> {
+  await db
+    .update(rateLimits)
+    .set({ attemptCount: sql`greatest(${rateLimits.attemptCount} - 1, 0)` })
+    .where(eq(rateLimits.key, key));
 }

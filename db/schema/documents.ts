@@ -1,10 +1,11 @@
-import { foreignKey, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { companies } from "./companies";
 
 // A file an owner uploaded during setup (step 16): FAQs, policies, manuals.
-// The file itself is in PRIVATE storage (lib/file-storage.ts). The AI does not
-// read these yet; that needs its own step.
+// The file itself is in PRIVATE storage (lib/file-storage.ts). The AI never
+// reads the file: "Add to knowledge" (step 34) turns its text into draft
+// articles (knowledge.ts), which an owner approves.
 export const companyDocuments = pgTable(
   "company_documents",
   {
@@ -27,5 +28,11 @@ export const companyDocuments = pgTable(
       columns: [table.companyId, table.uploadedByUserId],
       foreignColumns: [users.companyId, users.id],
     }),
+    // The Setup page lists one company's documents newest first and counts
+    // them; without it that reads every company's documents.
+    index("company_documents_company_id_created_at_idx").on(table.companyId, table.createdAt),
+    // id is already unique. This pair lets knowledge_articles use a
+    // (company_id, source_document_id) foreign key.
+    unique("company_documents_company_id_id_unique").on(table.companyId, table.id),
   ],
 );

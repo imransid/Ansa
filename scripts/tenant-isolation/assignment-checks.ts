@@ -6,13 +6,8 @@ import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { tickets } from "@/db/schema";
-import {
-  assignTicketForSession,
-  createTicketForCompany,
-  getTicketForSession,
-  markTicketSolvedForSession,
-  reopenTicketForSession,
-} from "@/services/tickets";
+import { markTicketSolvedForSession, reopenTicketForSession } from "@/services/ticket-status";
+import { assignTicketForSession, createTicketForCompany, getTicketForSession } from "@/services/tickets";
 import { addTeammate, assertRefusedByConstraint, check, sessionFor, type TestUser } from "./helpers";
 
 function newTicket(subject: string) {
@@ -74,7 +69,7 @@ export async function runAssignmentChecks(ownerA: TestUser, ownerB: TestUser) {
     const sessionB = sessionFor(ownerB);
     assert.equal((await assignTicketForSession(sessionB, { ticketId: ticketA.id, assigneeUserId: ownerB.id })).ok, false);
     assert.equal((await assignTicketForSession(sessionB, { ticketId: ticketA.id, assigneeUserId: "" })).ok, false);
-    assert.equal((await markTicketSolvedForSession(sessionB, { ticketId: ticketA.id })).ok, false);
+    assert.equal((await markTicketSolvedForSession(sessionB, { ticketId: ticketA.id, confirmedCustomerEmail: "" })).ok, false);
     assert.equal((await reopenTicketForSession(sessionB, { ticketId: ticketA.id })).ok, false);
     const ticket = await readTicket(ownerA, ticketA.ticketNumber);
     assert.equal(ticket.status, "open");
@@ -82,7 +77,7 @@ export async function runAssignmentChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("a member can mark the ticket solved, and it records who and when", async () => {
-    const result = await markTicketSolvedForSession(sessionFor(memberA), { ticketId: ticketA.id });
+    const result = await markTicketSolvedForSession(sessionFor(memberA), { ticketId: ticketA.id, confirmedCustomerEmail: "" });
     assert.equal(result.ok, true);
     const ticket = await readTicket(ownerA, ticketA.ticketNumber);
     assert.equal(ticket.status, "solved");
@@ -91,7 +86,7 @@ export async function runAssignmentChecks(ownerA: TestUser, ownerB: TestUser) {
   });
 
   await check("solving an already solved ticket is refused", async () => {
-    const result = await markTicketSolvedForSession(sessionFor(ownerA), { ticketId: ticketA.id });
+    const result = await markTicketSolvedForSession(sessionFor(ownerA), { ticketId: ticketA.id, confirmedCustomerEmail: "" });
     assert.equal(result.ok, false);
   });
 
@@ -108,7 +103,7 @@ export async function runAssignmentChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.equal(ticket.status, "open");
     assert.equal(ticket.solvedAt, null);
     assert.equal(ticket.solvedByUserId, null);
-    const solvedAgain = await markTicketSolvedForSession(sessionFor(ownerA), { ticketId: ticketA.id });
+    const solvedAgain = await markTicketSolvedForSession(sessionFor(ownerA), { ticketId: ticketA.id, confirmedCustomerEmail: "" });
     assert.equal(solvedAgain.ok, true);
   });
 

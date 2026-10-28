@@ -4,7 +4,8 @@
 //
 // Run with: pnpm try:brain <callId>   (the id is in the call page's URL)
 //
-// Prints only the outcome, reason code, slice size and token usage. Never the
+// Prints only the outcome, reason code, slice size, token usage and, when the
+// request failed, the error's class name. Never the
 // transcript, the prompt or Claude's answer (Rule: never log those).
 
 import { eq } from "drizzle-orm";
@@ -46,7 +47,10 @@ async function main() {
   console.log(`Model: ${env.ANTHROPIC_MODEL}${env.ANTHROPIC_API_KEY ? "" : " (no ANTHROPIC_API_KEY set)"}`);
   const categoryNames = await getActiveCategoryNames(call.companyId);
   console.log(`Categories offered: ${categoryNames.length}`);
-  const { decision, askedModel, usage } = await computeCallDecision(transcript, call.endedReason, askClaudeForCallDecision, categoryNames);
+  const { decision, askedModel, usage, modelFailure } = await computeCallDecision(transcript, call.endedReason, askClaudeForCallDecision, categoryNames);
+  if (modelFailure) {
+    console.log(`Claude call failed: ${modelFailure}`);
+  }
   console.log(`Outcome: ${decision.outcome}`);
   console.log(`Decided by: ${decision.source}${askedModel ? "" : " (Claude was not asked)"}`);
   console.log(`Reason code: ${decision.reasonCode}`);

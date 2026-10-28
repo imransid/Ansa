@@ -1,14 +1,24 @@
 import "server-only";
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, isNull, notExists } from "drizzle-orm";
 import { db } from "./client";
-import { categories, companies, companyDocuments, inboundAddresses, phoneLines, users } from "./schema";
+import { getLastInboundEmail, type LastInboundEmail } from "./inbound-emails";
+import { getPhoneLinesWithLastCall, type PhoneLineOverview } from "./phone-lines";
+import { categories, companies, companyDocuments, inboundAddresses, userCategories, users } from "./schema";
+import { canTakeTickets } from "./users";
 
 export type SetupStatus = {
   replyToEmail: string | null;
-  phoneLines: string[];
+  // The secret part of the company's forwarding address (lib/forwarding-address.ts).
+  inboundToken: string;
+  lastInboundEmail: LastInboundEmail | null;
+  // Addresses the company's customers write to (display and loop detection only).
   inboundAddresses: string[];
+  phoneLines: PhoneLineOverview[];
   activeCategoryCount: number;
   memberCount: number;
+  // People who can take tickets but handle no active category: routing by
+  // category never picks them (step 29).
+  peopleWithoutCategories: number;
   documentCount: number;
 };
 
@@ -17,23 +27,50 @@ export async function setReplyToEmail(companyId: string, replyToEmail: string | 
   await db.update(companies).set({ replyToEmail }).where(eq(companies.id, companyId));
 }
 
-// Everything the setup checklist shows for one company.
+// Everything the setup page shows for one company.
 export async function getSetupStatus(companyId: string): Promise<SetupStatus> {
-  const [company] = await db.select({ replyToEmail: companies.replyToEmail }).from(companies).where(eq(companies.id, companyId));
-  const lines = await db.select({ id: phoneLines.vapiPhoneNumberId }).from(phoneLines).where(eq(phoneLines.companyId, companyId));
+  const [company] = await db
+    .select({ replyToEmail: companies.replyToEmail, inboundToken: companies.inboundToken })
+    .from(companies)
+    .where(eq(companies.id, companyId));
+  if (!company) {
+    throw new Error("The session's company does not exist");
+  }
   const addresses = await db.select({ address: inboundAddresses.address }).from(inboundAddresses).where(eq(inboundAddresses.companyId, companyId));
   const [activeCategories] = await db
     .select({ total: count() })
     .from(categories)
     .where(and(eq(categories.companyId, companyId), isNull(categories.archivedAt)));
-  const [members] = await db.select({ total: count() }).from(users).where(eq(users.companyId, companyId));
+  // People removed from the team don't count.
+  const [members] = await db
+    .select({ total: count() })
+    .from(users)
+    .where(and(eq(users.companyId, companyId), isNull(users.deactivatedAt)));
   const [documents] = await db.select({ total: count() }).from(companyDocuments).where(eq(companyDocuments.companyId, companyId));
   return {
-    replyToEmail: company?.replyToEmail ?? null,
-    phoneLines: lines.map((line) => line.id),
+    replyToEmail: company.replyToEmail,
+    inboundToken: company.inboundToken,
+    lastInboundEmail: (await getLastInboundEmail(companyId)) ?? null,
     inboundAddresses: addresses.map((row) => row.address),
+    phoneLines: await getPhoneLinesWithLastCall(companyId),
     activeCategoryCount: activeCategories?.total ?? 0,
     memberCount: members?.total ?? 0,
+    peopleWithoutCategories: await countPeopleWithoutCategories(companyId),
     documentCount: documents?.total ?? 0,
   };
+}
+
+// How many of one company's people who can take tickets (confirmed, not
+// removed) handle no active category.
+async function countPeopleWithoutCategories(companyId: string): Promise<number> {
+  const handlesAnActiveCategory = db
+    .select({ userId: userCategories.userId })
+    .from(userCategories)
+    .innerJoin(categories, and(eq(categories.id, userCategories.categoryId), eq(categories.companyId, userCategories.companyId)))
+    .where(and(eq(userCategories.companyId, companyId), eq(userCategories.userId, users.id), isNull(categories.archivedAt)));
+  const [people] = await db
+    .select({ total: count() })
+    .from(users)
+    .where(and(eq(users.companyId, companyId), canTakeTickets, notExists(handlesAnActiveCategory)));
+  return people?.total ?? 0;
 }
