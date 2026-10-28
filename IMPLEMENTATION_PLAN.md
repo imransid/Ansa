@@ -3319,6 +3319,11 @@ how to try it locally. Everything runs without outside accounts: `pnpm db:up`,
   valid login, a login ended elsewhere (session row deleted), a removed
   teammate whose session survived, a broken cookie and an expired session
   each settle after at most 2 page loads, on the page asked for or on
-  /login?next=<page>: no loop (10 of 10). Step 39's loop came from its
-  browser profile carrying cookies from a `next start` run into `next
-  dev`, as it said; no code change.
+  /login?next=<page>: no loop (10 of 10). Under `next dev` the loop came
+  back with a fresh browser profile (/, /signup and /login, up to 22 loads
+  in 7 s): on every load Turbopack's HMR sent "restart" for the app's
+  entry chunk list, with no project file changed. Its dev cache (.next/dev,
+  985 MB after the build's many dev runs on changing code) was stale:
+  deleted, the dev server rebuilt it and every page loaded once, and both
+  demo accounts logged in. So step 39's "cookies from a `next start` run"
+  was wrong; no code change, and the README says what to do.

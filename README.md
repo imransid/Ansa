@@ -25,6 +25,11 @@ pnpm db:migrate                 # create the tables
 pnpm dev                        # http://localhost:3000
 ```
 
+If a page keeps reloading itself under `pnpm dev` (the terminal repeats
+"Compiled in ..." and the same GET), the dev server's Turbopack cache is
+stale: stop `pnpm dev`, delete `.next/dev` and start it again. Production
+builds don't use that cache.
+
 Going to production: see [docs/going-live.md](docs/going-live.md).
 
 ## Useful commands
