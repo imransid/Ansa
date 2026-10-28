@@ -94,4 +94,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # This job installs nothing, so there is no pnpm store to cache:
+          # setup-node v5's automatic cache would fail the job saving it.
+          package-manager-cache: false
       - run: pnpm audit --prod --audit-level high
