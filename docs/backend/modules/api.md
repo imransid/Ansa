@@ -19,6 +19,7 @@ read strictly, and an unknown field (a "companyId") is refused.
   counter); answers `{"notice": ""}` or why the customer wasn't messaged.
 - The Inbox: see [inbox](inbox.md).
 - Settings → Posts for me: see [autopost](autopost.md).
+- Social accounts (Facebook Pages): see [socialconnect](socialconnect.md).
 **Tests:** `api_test.go` (live database, a real HTTP server): another
 secret = 403, no session = 401; the list with the decrypted address and the
 lines; accepting messages the customer once with ansa's fixed text; a

@@ -22,6 +22,7 @@ import (
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
+	"ansa/core/internal/socialconnect"
 	"ansa/core/internal/tenant"
 )
 
@@ -75,6 +76,7 @@ func newAPIWorld(t *testing.T) *apiWorld {
 	t.Cleanup(func() {
 		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = $1`, limiter.Key("customer-emails", companyID))
 	})
+	server.Social = &socialconnect.Connector{Pool: pool, Box: box, Log: logging.New(io.Discard), AppURL: "https://ansa.test", Development: true}
 	w.api = server
 	routes := http.NewServeMux()
 	server.Register(routes)

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"strings"
 	"testing"
 )
 
@@ -32,5 +34,28 @@ func TestPostForMeThroughCoresAPI(t *testing.T) {
 	}
 	if code, _ := w.call("POST", "/api/v1/settings/posts/now", "", screensSecret, w.cookie); code != 403 {
 		t.Fatalf("members can't post: %d", code)
+	}
+}
+
+func TestFacebookPagesThroughCoresAPI(t *testing.T) {
+	w := newAPIWorld(t)
+	if code, answer := w.call("POST", "/api/v1/social/facebook/connect", "", screensSecret, w.cookie); code != 409 || answer["error"] != "Facebook isn't set up on this development server: connect a stand-in account instead." {
+		t.Fatalf("development without the app: %d %v", code, answer)
+	}
+	if code, _ := w.call("POST", "/api/v1/social/facebook/stand-in", "", screensSecret, w.cookie); code != 200 {
+		t.Fatalf("stand-in: %d", code)
+	}
+	_, answer := w.call("GET", "/api/v1/social/facebook/callback?state=nobody&code=x", "", screensSecret, w.cookie)
+	if answer["location"] != "/cofounder/accounts?result=expired_state&platform=facebook" {
+		t.Fatalf("a return nobody started: %v", answer)
+	}
+	var id string
+	w.pool.QueryRow(context.Background(), `SELECT id FROM social_connections WHERE company_id = $1`, w.company.String()).Scan(&id)
+	if code, answer := w.call("POST", "/api/v1/social/connections/"+strings.ToUpper(id)+"/disconnect", "", screensSecret, w.cookie); code != 200 || answer["outcome"] != "disconnected" {
+		t.Fatalf("disconnect: %d %v", code, answer)
+	}
+	w.must(`UPDATE users SET role = 'member' WHERE company_id = $1`, w.company.String())
+	if code, _ := w.call("POST", "/api/v1/social/facebook/stand-in", "", screensSecret, w.cookie); code != 403 {
+		t.Fatalf("members can't connect: %d", code)
 	}
 }

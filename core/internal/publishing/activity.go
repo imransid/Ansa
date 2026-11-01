@@ -16,6 +16,12 @@ type Activity struct {
 	Action, ActorUserID, DraftID, JobID, ConnectionID, RuleID, Code string
 }
 
+// RecordActivityWithin writes activity rows of one company inside the
+// caller's transaction (the social accounts' connects and disconnects).
+func RecordActivityWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, entries ...Activity) error {
+	return recordWithin(ctx, tx, company, entries...)
+}
+
 // recordWithin writes activity rows of one company.
 func recordWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, entries ...Activity) error {
 	const insert = `

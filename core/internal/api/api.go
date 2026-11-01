@@ -28,6 +28,7 @@ import (
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
+	"ansa/core/internal/socialconnect"
 )
 
 // The screens send small JSON bodies.
@@ -64,6 +65,8 @@ type Server struct {
 	Inbound *inbound.Processor
 	// "Post for me", for "Post one now".
 	Posts *autopost.Writer
+	// Connecting Facebook Pages.
+	Social *socialconnect.Connector
 }
 
 // Register adds every endpoint.
@@ -80,6 +83,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerRequestEmails(routes)
 	s.registerEmails(routes)
 	s.registerPosts(routes)
+	s.registerSocial(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

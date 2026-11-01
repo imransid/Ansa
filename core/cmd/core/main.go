@@ -39,6 +39,7 @@ import (
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
 	"ansa/core/internal/social"
+	"ansa/core/internal/socialconnect"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tenant"
 	"ansa/core/internal/tickets"
@@ -100,7 +101,8 @@ func main() {
 		Assistant:   runner,
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
-		Outbox: deliverer, Inbound: processor, Posts: postWriter}
+		Outbox: deliverer, Inbound: processor, Posts: postWriter,
+		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
