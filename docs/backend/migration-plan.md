@@ -63,7 +63,7 @@
 | content studio edits and approvals, media library | db/content-draft*.ts, services/media-*.ts | ⬜ |
 | social connections: Facebook Pages (connect, return, stand-in, disconnect) | services/social-connect.ts, social-oauth-callback.ts, adapters/facebook.ts | ✅ core/internal/socialconnect |
 | social connections: LinkedIn, X, YouTube (OAuth, PKCE, renewals, revokes) | adapters/linkedin, x, youtube, services/social-tokens.ts | ⬜ |
-| publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
+| publishing queue: the checks of every platform and format, Facebook text and image posts, the queue page, a draft's Publish section, scheduling, Cancel / Publish now / Retry / Mark, auto-publish rules (in core's API) | services/publish-*.ts, publishing-pages.ts, draft-publishing.ts, autopublish-rules.ts, db/publish-*.ts, db/autopublish-rules.ts, adapters/facebook-posts.ts | ✅ core/internal/publishing (LinkedIn, X, YouTube plug in at senderFor) |
 | post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
 | publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
 | knowledge search and the AI's article slice (the assistant reads them) | db/knowledge-search.ts, lib/knowledge/search-query.ts, prompt-slice.ts | ✅ core/internal/knowledge |
