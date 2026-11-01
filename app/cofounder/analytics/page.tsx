@@ -2,9 +2,12 @@ import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ANALYTICS_PERIOD_LABELS } from "@/lib/analytics/kinds";
+import { isCoreOn } from "@/lib/core-api";
+import { getAnalyticsPageFromCore } from "@/lib/core-views/analytics";
 import { METRICS_READ_DAYS, X_METRICS_READ_DAYS } from "@/lib/metric-definitions";
 import { describePostsStillNeeded } from "@/lib/performance-review/readiness";
 import { requireSessionContext } from "@/lib/session";
+import { parseAnalyticsPeriod } from "@/lib/validation/list-queries";
 import { getAnalyticsPageForSession, type AnalyticsPage } from "@/services/analytics-page";
 import { JobList } from "../publishing/job-list";
 import { CollectionStatus } from "./collection-status";
@@ -41,7 +44,8 @@ export default function AnalyticsPageRoute({ searchParams }: PageProps<"/cofound
 async function AnalyticsContent({ searchParams }: Pick<PageProps<"/cofounder/analytics">, "searchParams">) {
   const urlQuery = await searchParams;
   const session = await requireSessionContext("/cofounder/analytics");
-  const page = await getAnalyticsPageForSession(session, urlQuery);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const page = isCoreOn() ? await getAnalyticsPageFromCore(parseAnalyticsPeriod(urlQuery)) : await getAnalyticsPageForSession(session, urlQuery);
   const periodLabel = ANALYTICS_PERIOD_LABELS[page.period].toLowerCase();
 
   return (
