@@ -2,6 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { isCoreOn } from "@/lib/core-api";
+import {
+  actOnPublishJobThroughCore,
+  createAutopublishRuleThroughCore,
+  markJobPublishedThroughCore,
+  planCalendarThroughCore,
+  scheduleDraftThroughCore,
+  switchAutopublishRuleThroughCore,
+} from "@/lib/core-views/publishing-actions";
 import { withTypedValues, type FormErrors, type FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import { createAutopublishRuleForSession, setAutopublishRuleForSession } from "@/services/autopublish-rules";
@@ -19,6 +28,8 @@ import { scheduleDraftForSession } from "@/services/publish-scheduling";
 // call a service (which checks company, role, input and rate limits),
 // refresh the Co-Founder's pages. A post due now is sent after the answer,
 // through Next's after(), within the page's 300 seconds (maxDuration).
+// With the new backend switched on (lib/core-api.ts) each goes to core
+// instead, which sends such a post itself right after its answer.
 
 const runAfterResponse = (task: () => Promise<unknown>) => after(task);
 
@@ -34,27 +45,41 @@ export async function scheduleDraftAction(_previous: FormErrors | undefined, for
     scheduledFor: formData.get("scheduledFor"),
     withoutApproval: formData.get("withoutApproval"),
   };
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await scheduleDraftThroughCore(input));
+  }
   return refreshOrReturnErrors(await scheduleDraftForSession(session, input, runAfterResponse));
 }
 
 export async function cancelPublishJobAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await actOnPublishJobThroughCore(formData.get("jobId"), "cancel"));
+  }
   return refreshOrReturnErrors(await cancelPublishJobForSession(session, { jobId: formData.get("jobId") }));
 }
 
 export async function publishJobNowAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await actOnPublishJobThroughCore(formData.get("jobId"), "publish-now"));
+  }
   return refreshOrReturnErrors(await publishJobNowForSession(session, { jobId: formData.get("jobId") }, runAfterResponse));
 }
 
 export async function retryPublishJobAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await actOnPublishJobThroughCore(formData.get("jobId"), "retry"));
+  }
   return refreshOrReturnErrors(await retryPublishJobForSession(session, { jobId: formData.get("jobId") }, runAfterResponse));
 }
 
 export async function markJobPublishedAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
-  const result = await markJobPublishedForSession(session, { jobId: formData.get("jobId"), postUrl: formData.get("postUrl") });
+  const result = isCoreOn()
+    ? await markJobPublishedThroughCore(formData.get("jobId"), formData.get("postUrl"))
+    : await markJobPublishedForSession(session, { jobId: formData.get("jobId"), postUrl: formData.get("postUrl") });
   if (!result.ok) {
     return withTypedValues(result.errors, formData, ["postUrl"]);
   }
@@ -64,12 +89,17 @@ export async function markJobPublishedAction(_previous: FormErrors | undefined, 
 
 export async function markJobNotPublishedAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await actOnPublishJobThroughCore(formData.get("jobId"), "mark-not-published"));
+  }
   return refreshOrReturnErrors(await markJobNotPublishedForSession(session, { jobId: formData.get("jobId") }));
 }
 
 export async function createAutopublishRuleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
-  const result = await createAutopublishRuleForSession(session, { platform: formData.get("platform"), pillar: formData.get("pillar") });
+  const result = isCoreOn()
+    ? await createAutopublishRuleThroughCore(formData.get("platform"), formData.get("pillar"))
+    : await createAutopublishRuleForSession(session, { platform: formData.get("platform"), pillar: formData.get("pillar") });
   if (!result.ok) {
     return withTypedValues(result.errors, formData, ["platform", "pillar"]);
   }
@@ -79,18 +109,26 @@ export async function createAutopublishRuleAction(_previous: FormErrors | undefi
 
 export async function enableAutopublishRuleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await switchAutopublishRuleThroughCore(formData.get("ruleId"), true));
+  }
   return refreshOrReturnErrors(await setAutopublishRuleForSession(session, { ruleId: formData.get("ruleId") }, true));
 }
 
 export async function disableAutopublishRuleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await switchAutopublishRuleThroughCore(formData.get("ruleId"), false));
+  }
   return refreshOrReturnErrors(await setAutopublishRuleForSession(session, { ruleId: formData.get("ruleId") }, false));
 }
 
 // "Plan the next 2 weeks": the browser's own timezone (its onSubmit sets it).
 export async function planCalendarAction(_previous: CalendarPlanResult | undefined, formData: FormData): Promise<CalendarPlanResult> {
   const session = await requireSessionContext();
-  const result = await planNextTwoWeeksForSession(session, { timeZone: formData.get("timeZone") });
+  const result = isCoreOn()
+    ? await planCalendarThroughCore(formData.get("timeZone"))
+    : await planNextTwoWeeksForSession(session, { timeZone: formData.get("timeZone") });
   if (result.ok) {
     refreshCoFounderPages();
   }
