@@ -69,7 +69,10 @@ backend, stop it and run plain `pnpm dev`.
   `whsec_` and base64 in development), `make simulate-inbound-email
   TO=<your login email>`. Every tool: [modules/commands.md](modules/commands.md).
 
-## What still runs on the old backend
-The hidden marketing pages (interview, strategy, studio, media, calendar,
-queue, analytics) and LinkedIn, X and YouTube. Whether they move to core or
-go away is the owner's decision (build step 57).
+## The marketing pages
+Settings → "Social media posts" and the older pages (Overview, Interview,
+Profile, Strategy, Calendar, Content studio, Media, Queue, Accounts,
+Analytics) run on core too, LinkedIn, X and YouTube included (stand-in
+accounts in development: their posts are files in `.dev-social/`). Fake post
+numbers for a stand-in's published post: `make simulate-post-metrics
+JOB=<publish job id> NUMBERS="views=120 reactions=8"`.
