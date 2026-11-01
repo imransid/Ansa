@@ -114,7 +114,7 @@ func scheduleWithin(ctx context.Context, tx database.Tx, company tenant.CompanyI
 // readScheduleInputWithin reads what deciding a schedule needs, after the
 // draft's row is locked, and the covering rule's id ("" = none).
 func readScheduleInputWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, draft *drafts.Draft, r ScheduleRequest) (ScheduleInput, string, error) {
-	facts, err := drafts.ConfirmedFactsWithin(ctx, tx, company)
+	facts, err := drafts.ConfirmedFacts(ctx, tx, company)
 	if err != nil {
 		return ScheduleInput{}, "", err
 	}

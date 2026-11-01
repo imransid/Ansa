@@ -18,6 +18,7 @@ read strictly, and an unknown field (a "companyId") is refused.
   anyone in the company (120 changes per 10 minutes per person, the old
   counter); answers `{"notice": ""}` or why the customer wasn't messaged.
 - The Inbox: see [inbox](inbox.md).
+- Settings → Posts for me: see [autopost](autopost.md).
 **Tests:** `api_test.go` (live database, a real HTTP server): another
 secret = 403, no session = 401; the list with the decrypted address and the
 lines; accepting messages the customer once with ansa's fixed text; a

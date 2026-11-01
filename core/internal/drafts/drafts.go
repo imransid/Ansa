@@ -108,9 +108,14 @@ func LockWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, d
 	return &d, nil
 }
 
-// ConfirmedFactsWithin are the company's confirmed business facts by topic.
-func ConfirmedFactsWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID) (map[string]string, error) {
-	rows, err := tx.Query(ctx, `SELECT topic, confirmed_value FROM business_facts WHERE company_id = $1 AND confirmed_value IS NOT NULL`, company.String())
+// Querier is a pool or a transaction.
+type Querier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
+// ConfirmedFacts are the company's confirmed business facts by topic.
+func ConfirmedFacts(ctx context.Context, q Querier, company tenant.CompanyID) (map[string]string, error) {
+	rows, err := q.Query(ctx, `SELECT topic, confirmed_value FROM business_facts WHERE company_id = $1 AND confirmed_value IS NOT NULL`, company.String())
 	if err != nil {
 		return nil, err
 	}

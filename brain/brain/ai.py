@@ -26,6 +26,9 @@ ASSISTANT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30
 # Triaging a customer email (a summary, a subject and a category).
 EMAIL_TRIAGE = UseSettings(effort="medium", max_tokens=4_000, timeout_seconds=45, max_retries=1)
 
+# "Post for me": one short Facebook post from the business's own details.
+AUTOPOST = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=60, max_retries=1)
+
 # "Read my menu": a whole menu copied into a list (long answers, a photo or a PDF).
 MENU_READING = UseSettings(effort="low", max_tokens=16_000, timeout_seconds=120, max_retries=1)
 

@@ -59,7 +59,7 @@ func readSnapshot(ctx context.Context, pool *database.Pool, claim *Claim) (*snap
 	if err != nil {
 		return nil, err
 	}
-	facts, err := drafts.ConfirmedFactsWithin(ctx, tx, claim.Company)
+	facts, err := drafts.ConfirmedFacts(ctx, tx, claim.Company)
 	if err != nil {
 		return nil, err
 	}

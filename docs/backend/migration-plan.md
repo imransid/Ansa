@@ -58,7 +58,7 @@
 ## Phase 4: posting and marketing
 | Module | Old code | Status |
 |---|---|---|
-| Post for me (topic brain, writer, checks) | lib/autopost/, services/autopost*.ts | ⬜ |
+| Post for me (topic brain, writer, checks, switch, page) | lib/autopost/, services/autopost*.ts | ✅ core/internal/autopost, brain/brain/posts |
 | content drafts (create, read, claims check) | db/content-draft*.ts | ✅ core/internal/drafts |
 | content studio edits and approvals, media library | db/content-draft*.ts, services/media-*.ts | ⬜ |
 | social connections (OAuth per platform) | adapters/linkedin, facebook, x, youtube | ⬜ |

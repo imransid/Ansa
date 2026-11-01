@@ -21,6 +21,11 @@ from brain.email.triage import read_answer as read_triage_answer
 from brain.menu.reading import JSON_SCHEMA as MENU_JSON_SCHEMA
 from brain.menu.reading import SAMPLE_ITEMS, MenuReadRequest, build_content, read_rows
 from brain.menu.reading import SYSTEM_PROMPT as MENU_SYSTEM_PROMPT
+from brain.posts.autopost import JSON_SCHEMA as POST_JSON_SCHEMA
+from brain.posts.autopost import SYSTEM_PROMPT as POST_SYSTEM_PROMPT
+from brain.posts.autopost import PostRequest
+from brain.posts.autopost import build_prompt as build_post_prompt
+from brain.posts.autopost import read_answer as read_post_answer
 from brain.security import SIGNATURE_HEADER, TIMESTAMP_HEADER, is_signed_by_core
 from brain.settings import Settings, load_settings
 
@@ -81,7 +86,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """A received email's summary, subject and category (or why not)."""
         return triage_email(request, active_asker)
 
+    @app.post("/v1/posts/write")
+    def posts_write(request: PostRequest) -> dict:
+        """One "Post for me" post about what core's topic brain chose (core
+        checks it before it can go out). Never the post in a log."""
+        return write_post(request, asker_for(request.engine, active.development))
+
     return app
+
+
+def write_post(request: PostRequest, asker) -> dict:
+    if asker is None:
+        return {"kind": "failed", "reason": "model_unavailable"}
+    result = asker(POST_SYSTEM_PROMPT, build_post_prompt(request), POST_JSON_SCHEMA, ai.AUTOPOST, request.api_key)
+    if result.kind == "unavailable":
+        return {"kind": "failed", "reason": "model_unavailable"}
+    if result.kind != "ok":
+        return {"kind": "failed", "reason": "model_failed", "error_name": result.error_name or result.kind}
+    post = read_post_answer(result.output_text)
+    return {"kind": "ok", **post} if post is not None else {"kind": "failed", "reason": "unusable_answer"}
 
 
 def triage_email(request: TriageRequest, asker) -> dict:

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"ansa/core/internal/assistant"
+	"ansa/core/internal/autopost"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/database"
 	"ansa/core/internal/httpserver"
@@ -61,6 +62,8 @@ type Server struct {
 	Outbox *outbox.Deliverer
 	// Received emails, for the Emails page's "Process again" and "Make a ticket anyway".
 	Inbound *inbound.Processor
+	// "Post for me", for "Post one now".
+	Posts *autopost.Writer
 }
 
 // Register adds every endpoint.
@@ -76,6 +79,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerRequests(routes)
 	s.registerRequestEmails(routes)
 	s.registerEmails(routes)
+	s.registerPosts(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

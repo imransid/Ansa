@@ -20,6 +20,14 @@ const NewCompanyName = "New business"
 var businessTypes = []string{"restaurant", "cafe", "bakery", "takeaway", "food_truck", "bar", "catering",
 	"shop", "beauty", "health", "fitness", "services", "property", "other"}
 
+// BusinessTypeLabels are the words setup shows (and "Post for me" sends the AI).
+var BusinessTypeLabels = map[string]string{
+	"restaurant": "Restaurant", "cafe": "Café", "bakery": "Bakery", "takeaway": "Takeaway", "food_truck": "Food truck",
+	"bar": "Bar", "catering": "Catering", "shop": "Shop or online store", "beauty": "Salon, barber or beauty",
+	"health": "Clinic or health practice", "fitness": "Gym or fitness studio", "services": "Services, freelance or agency",
+	"property": "Estate agent", "other": "Something else",
+}
+
 // StepsFor is the steps of a business ("business") or a person ("personal").
 func StepsFor(kind string) []string {
 	if kind == "personal" {

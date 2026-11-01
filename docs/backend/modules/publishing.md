@@ -72,6 +72,14 @@ app needs App Review for pages_manage_posts first.
 files in `.dev-social/facebook/<time>-<job>.json` ("NOT published
 anywhere"); production fails them "platform_not_set_up".
 
+**Rules and archiving (`rules.go`):** `SetAnyPillarRule` switches a
+platform's "any pillar" auto-publish rule on in an owner's name or off
+(made switched off first when missing; "rule_created", "rule_enabled",
+"rule_disabled" in the activity log): only an owner's explicit switch
+calls it with on ("Post for me" in Automatic). `ArchiveDraft` archives a
+draft (anyone active in the company; not a published one): its approval
+gone and its waiting posts canceled ("draft_archived").
+
 **Logging:** "publishing: failed / delayed / held back / needs attention"
 with a code only; never a token, the post's text or a platform's words.
 

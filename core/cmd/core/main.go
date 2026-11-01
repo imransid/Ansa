@@ -18,6 +18,7 @@ import (
 	"ansa/core/internal/api"
 	"ansa/core/internal/assignments"
 	"ansa/core/internal/assistant"
+	"ansa/core/internal/autopost"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/chat"
 	"ansa/core/internal/config"
@@ -89,6 +90,8 @@ func main() {
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
 	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
+	// Two AI answers at most per post, each up to 60 s a try with one retry.
+	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 130*time.Second), Log: log}
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions:    &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
 		Orders:      &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
@@ -97,7 +100,7 @@ func main() {
 		Assistant:   runner,
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
-		Outbox: deliverer, Inbound: processor}
+		Outbox: deliverer, Inbound: processor, Posts: postWriter}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
@@ -112,7 +115,7 @@ func main() {
 	}
 	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, FacebookAppSecret: cfg.FacebookAppSecret,
 		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
-	go schedule.Run(workCtx, log, scheduledTasks(pool, publisher))
+	go schedule.Run(workCtx, log, scheduledTasks(pool, publisher, postWriter))
 	go func() {
 		log.Info("core started")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -151,13 +154,16 @@ func chatSender(cfg config.Config, pool *database.Pool, box *secure.Box) *chat.S
 
 // scheduledTasks is core's periodic work, each claimed in the database so
 // several core processes never do it twice.
-func scheduledTasks(pool *database.Pool, publisher *publishing.Runner) []schedule.Task {
+func scheduledTasks(pool *database.Pool, publisher *publishing.Runner, postWriter *autopost.Writer) []schedule.Task {
 	return []schedule.Task{
 		{Name: "assistant catch-up", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return assistant.QueueDueReplies(ctx, pool)
 		}},
 		{Name: "publishing queue", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return publisher.RunDue(ctx, "")
+		}},
+		{Name: "post for me", Every: time.Minute, Run: func(ctx context.Context) (int, error) {
+			return postWriter.RunDue(ctx, "", time.Now())
 		}},
 	}
 }
