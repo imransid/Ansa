@@ -12,3 +12,5 @@ company.
 | Hand back jobs cut off while running | internal/jobs/store.go | A worker that died leaves its job "running": after its lease, the job is queued again (or failed past its tries). Ids only. |
 | Find a Telegram account by its business connection id | internal/telegram/store.go | The id Telegram sends names the company; returns that company and account id only. |
 | Claim a conversation whose "answer if I haven't within N minutes" is due | internal/assistant/catchup.go | The catch-up serves every company: the claim clears the due time and returns the company and conversation ids; the reply job then runs with that company. |
+| Claim a Telegram link code by its hash; find the code a Telegram user claimed | internal/telegram/linkstore.go | The code ansa made names its company (only its hash is stored); returns that code's id, company and maker only. |
+| Update the Telegram account a business connection id names; find which company an account is tied to | internal/telegram/linkstore.go, linking.go | Telegram's connection id names the one company a code tied it to; only that row (its company id) is read or changed. |

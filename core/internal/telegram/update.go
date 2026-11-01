@@ -52,6 +52,7 @@ type User struct {
 	FirstName string
 	LastName  string
 	Username  string
+	IsBot     bool
 }
 
 // BusinessConnection says ansa's bot was added to (or changed on) an account.
@@ -195,6 +196,7 @@ type rawUser struct {
 	FirstName string       `json:"first_name"`
 	LastName  string       `json:"last_name"`
 	Username  string       `json:"username"`
+	IsBot     bool         `json:"is_bot"`
 }
 
 func (u *rawUser) parse() (User, error) {
@@ -205,7 +207,7 @@ func (u *rawUser) parse() (User, error) {
 	if !ok || len(u.FirstName) > 1000 || len(u.LastName) > 1000 || len(u.Username) > 100 {
 		return User{}, ErrNotAnUpdate
 	}
-	return User{ID: id, FirstName: u.FirstName, LastName: u.LastName, Username: u.Username}, nil
+	return User{ID: id, FirstName: u.FirstName, LastName: u.LastName, Username: u.Username, IsBot: u.IsBot}, nil
 }
 
 type rawChat struct {

@@ -63,7 +63,7 @@ func main() {
 	worker := newWorker(cfg, pool, box, limiter, log)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
-	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret})
+	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
 	workCtx, stopWork := context.WithCancel(context.Background())

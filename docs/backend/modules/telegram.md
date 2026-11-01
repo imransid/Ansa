@@ -19,8 +19,23 @@ integers, texts capped) → handle. An update ansa can't read is answered 200.
 - Messages deleted in Telegram are deleted in ansa.
 - The company comes ONLY from the business connection id (a cross-company
   read listed in `CROSS_COMPANY.md`).
-- Still on the old backend (`links.go` answers 200 and changes nothing): the
-  link codes and `business_connection` updates that tie an account to a company.
+- Connecting (`links.go`, `linkstore.go`, `linking.go`): an owner's
+  "Connect Telegram" makes a one-time code (32 random bytes; only its
+  SHA-256 is stored; 10 minutes). The owner's `/start <code>` in the bot's own
+  chat CLAIMS it in one UPDATE with their Telegram user id (at most 10
+  messages to the bot per user per 10 minutes). The chatbot that same user
+  adds in Telegram (a `business_connection` within the hour) is then tied to
+  the code's company in ONE transaction: the company row lock first, the
+  code's maker read again (still a confirmed, active owner), the code locked
+  and unused. A chatbot added before the Start waits an hour in
+  `telegram_pending_connections` (Telegram's ids and the name only; it
+  belongs to no company) and the Start ties it. An account tied to another
+  company is refused; a company's account removed in Telegram is replaced.
+  Later `business_connection` updates set the status (removed, added back,
+  reply permission, name). The bot tells the owner what happened in its own
+  chat (fixed notes, sent after the answer, best effort). The code goes from
+  ansa to Telegram, never back: a leaked code can at worst tie the leaker's
+  own account to the owner's company, never take a business's chats.
 **Sending (`send.go`):** `Send(token, chatID, text, businessConnectionID)`:
 one request with a 15-second limit, no redirects (the token is in the
 address); only `ok`, the message id and the HTTP status are read; 429 =
@@ -30,4 +45,10 @@ answer or a 5xx = `unclear` (Telegram may have it: never sent again by itself).
 **Tests:** `update_test.go`; `webhook_test.go` (live database): a wrong or
 missing secret saves nothing; a customer message is saved once, encrypted,
 with one reply job; the business's own message, the bot's echo and deletions;
-`send_test.go`: sent, rate limited, unclear, a wrong token.
+`send_test.go`: sent, rate limited, unclear, a wrong token; `links_test.go`
+(live database): Start then chatbot connects the code's company, once; a
+chatbot added first waits for the Start; a stranger is told how to connect;
+a made-up code connects nothing; an owner made a member meanwhile connects
+nothing.
+**Still on the old backend:** making the code (the "Connect Telegram"
+button: with the screens' API) and the operator's `telegram:webhook` script.

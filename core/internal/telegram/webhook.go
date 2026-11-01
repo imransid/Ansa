@@ -37,6 +37,10 @@ type Webhook struct {
 	Log     *logging.Logger
 	// TELEGRAM_WEBHOOK_SECRET; empty: every request is refused.
 	Secret string
+	// ansa's bot, for its notes to an owner ("" = no notes).
+	BotToken string
+	// Tests catch the bot's notes here instead of sending them.
+	Notify func(chatID, text string)
 }
 
 // ServeHTTP checks, in this order: size, the secret (constant time), the
