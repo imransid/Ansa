@@ -46,12 +46,12 @@ func TestSettingsAssistantAndTheTryBox(t *testing.T) {
 	if code, answer := w.call("POST", "/api/v1/settings/assistant/engine", `{"engine":"claude_code"}`, screensSecret, w.cookie); code != 400 || !strings.Contains(answer["error"].(string), "only be used while developing") {
 		t.Fatalf("Claude Code needs the brain's say-so: %d %v", code, answer)
 	}
-	code, answer = w.call("POST", "/api/v1/settings/assistant/away", `{"timeZone":"Mars/Base","awayHours":{"mon":[{"opens":"18:00","closes":"02:00"}]},"replyGraceMinutes":7}`, screensSecret, w.cookie)
+	code, answer = w.call("POST", "/api/v1/settings/assistant/away", `{"timeZone":"Mars/Base","hours":{"mon":[{"opens":"18:00","closes":"02:00"}]},"replyGraceMinutes":7}`, screensSecret, w.cookie)
 	fields, _ := answer["fields"].(map[string]any)
 	if code != 400 || fields["timeZone"] == nil || fields["mon"] == nil || fields["replyGraceMinutes"] == nil {
 		t.Fatalf("away problems: %d %v", code, answer)
 	}
-	if code, _ := w.call("POST", "/api/v1/settings/assistant/away", `{"timeZone":"Europe/Rome","awayHours":{"mon":[{"opens":"18:00","closes":"00:00"}]},"replyGraceMinutes":10}`, screensSecret, w.cookie); code != 200 {
+	if code, _ := w.call("POST", "/api/v1/settings/assistant/away", `{"timeZone":"Europe/Rome","hours":{"mon":[{"opens":"18:00","closes":"00:00"}]},"replyGraceMinutes":10}`, screensSecret, w.cookie); code != 200 {
 		t.Fatal("away hours saved")
 	}
 

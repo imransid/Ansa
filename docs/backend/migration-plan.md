@@ -78,7 +78,7 @@
 |---|---|---|
 | sign up, login, email confirm, reset, sessions | services/auth.ts, signup.ts, password-reset.ts (Better Auth) | ⬜ |
 | team, invites, roles | db/team-members.ts, invites.ts | ⬜ |
-| setup and settings | services/restaurant-setup.ts, assistant-settings.ts | ⬜ |
+| setup and settings | services/restaurant-setup.ts, assistant-settings.ts | ✅ core/internal/setup, settings (in core's API) |
 | billing (Stripe) | services/billing.ts, stripe-webhook.ts | ⬜ |
 | cleanup, health, monitoring | services/maintenance.ts, health.ts | ⬜ |
 
@@ -93,6 +93,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Inbox: list, conversation page, take over, hand back, reply, drafts, important, what ansa did | ✅ in core's API |
 | Home: status card and its switches, while you were away, getting started, needs you | ✅ in core's API (business numbers with their modules) |
 | Settings → Assistant: texts, reply mode, alerts, AI engine and own key, away hours; Try your assistant | ✅ in core's API |
+| /welcome and Settings → What it knows: every setup section, finish | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

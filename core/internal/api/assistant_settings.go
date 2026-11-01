@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"regexp"
 	"strings"
@@ -9,11 +8,11 @@ import (
 
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/home"
-	"ansa/core/internal/hours"
 	"ansa/core/internal/plaintext"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 	"ansa/core/internal/settings"
+	"ansa/core/internal/setup"
 )
 
 // "Try your assistant": 20 tries per 10 minutes per person (each is a paid AI call).
@@ -151,30 +150,19 @@ func (s *Server) saveEngine(w http.ResponseWriter, r *http.Request, body []byte,
 	s.answerSaved(w, outcome, err, "Only owners can change the AI engine.")
 }
 
-// saveAway: {timeZone, awayHours: {mon: [{opens, closes}], ...}, replyGraceMinutes: 5|10|15|30|60|null}.
+// saveAway: {timeZone, hours: {mon: [{opens, closes}], ...}, replyGraceMinutes: 5|10|15|30|60|null}.
 func (s *Server) saveAway(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
-	var input struct {
-		TimeZone          string                   `json:"timeZone"`
-		AwayHours         map[string][]hours.Range `json:"awayHours"`
-		ReplyGraceMinutes *int                     `json:"replyGraceMinutes"`
-	}
-	if !readJSON(body, &input) {
+	var week setup.Week
+	if !readJSON(body, &week) {
 		problem(w, http.StatusBadRequest, "Something went wrong. Reload the page.")
 		return
 	}
-	week, fields := hours.ReadWeek(input.AwayHours)
-	if !hours.KnownTimeZone(input.TimeZone) {
-		fields["timeZone"] = "Choose a time zone from the list."
-	}
-	if g := input.ReplyGraceMinutes; g != nil && *g != 5 && *g != 10 && *g != 15 && *g != 30 && *g != 60 {
-		fields["replyGraceMinutes"] = "Choose how long ansa waits for you."
-	}
+	typed, fields := week.Check(true)
 	if len(fields) > 0 {
 		fieldProblems(w, fields)
 		return
 	}
-	stored, _ := json.Marshal(week)
-	outcome, err := settings.SaveAway(r.Context(), s.Pool, who.CompanyID, who.UserID, input.TimeZone, stored, input.ReplyGraceMinutes)
+	outcome, err := setup.SaveAway(r.Context(), s.Pool, who.CompanyID, who.UserID, week.TimeZone, typed, week.ReplyGraceMinutes, 0)
 	s.answerSaved(w, outcome, err, "Only owners say when ansa answers.")
 }
 

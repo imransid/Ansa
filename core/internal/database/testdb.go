@@ -53,7 +53,7 @@ var cleanupOrder = []string{
 	"core_jobs", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "tickets",
 	"user_categories", "categories",
 	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings", "social_connections",
-	"away_summary_reads", "users",
+	"away_summary_reads", "business_facts", "users",
 }
 
 // TestOwner adds a confirmed owner to a test company and returns their id.

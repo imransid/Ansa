@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/hours"
 	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
 )
@@ -23,9 +24,10 @@ const (
 	NotAllowed = "not-allowed"
 )
 
-// asOwner runs write inside one transaction while the person is a
-// confirmed, active owner.
-func asOwner(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, write func(tx database.Tx) error) (string, error) {
+// AsOwner runs write inside one transaction while the person is a
+// confirmed, active owner: the company row lock first, then the person read
+// again (the old asRestaurantOwner). Every owner-only setting write uses it.
+func AsOwner(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, write func(tx database.Tx) error) (string, error) {
 	outcome := Saved
 	err := database.InTx(ctx, pool, func(tx database.Tx) error {
 		if err := team.LockCompanyWithin(ctx, tx, company); err != nil {
@@ -43,7 +45,7 @@ func asOwner(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 
 // SetStatus: "Pause ansa" ("paused") or "Turn ansa on" ("on").
 func SetStatus(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, status string) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
+	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const upsert = `
 			INSERT INTO assistant_settings (company_id, status, updated_by_user_id) VALUES ($1, $2, $3)
 			ON CONFLICT (company_id) DO UPDATE SET status = $2, updated_by_user_id = $3, updated_at = now()`
@@ -54,7 +56,7 @@ func SetStatus(ctx context.Context, pool *database.Pool, company tenant.CompanyI
 
 // SetAway: "I'm away" (since now) or "I'm back".
 func SetAway(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, away bool) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
+	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const upsert = `
 			INSERT INTO assistant_settings (company_id, away_since, updated_by_user_id) VALUES ($1, CASE WHEN $2 THEN now() END, $3)
 			ON CONFLICT (company_id) DO UPDATE SET away_since = CASE WHEN $2 THEN now() END, updated_by_user_id = $3, updated_at = now()`
@@ -65,7 +67,7 @@ func SetAway(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 
 // SetAnswerWhen: "always" or "when_away" (only when I'm away).
 func SetAnswerWhen(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, answerWhen string) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
+	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const upsert = `
 			INSERT INTO assistant_settings (company_id, answer_when, updated_by_user_id) VALUES ($1, $2, $3)
 			ON CONFLICT (company_id) DO UPDATE SET answer_when = $2, updated_by_user_id = $3, updated_at = now()`
@@ -82,7 +84,7 @@ type Assistant struct {
 
 // SaveAssistant saves on or paused, the reply mode, the two texts and the email alerts.
 func SaveAssistant(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, a Assistant) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
+	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const upsert = `
 			INSERT INTO assistant_settings (company_id, status, reply_mode, instructions, holding_reply, alert_by_email, updated_by_user_id)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -102,7 +104,7 @@ type KeyChange struct {
 
 // SaveEngine saves which AI answers, and the business's own key.
 func SaveEngine(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, engine string, key KeyChange) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
+	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const upsert = `
 			INSERT INTO assistant_settings (company_id, ai_engine, updated_by_user_id) VALUES ($1, $2, $3)
 			ON CONFLICT (company_id) DO UPDATE SET ai_engine = $2, updated_by_user_id = $3, updated_at = now()`
@@ -121,21 +123,6 @@ func SaveEngine(ctx context.Context, pool *database.Pool, company tenant.Company
 	})
 }
 
-// SaveAway saves a person's weekly away hours (as jsonb, in the shape the
-// old backend writes), their time zone, and how long ansa waits for them to
-// answer first (nil: it doesn't step in while they're available).
-func SaveAway(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, timeZone string, awayHours []byte, graceMinutes *int) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
-		const upsert = `
-			INSERT INTO assistant_settings (company_id, time_zone, away_hours, reply_grace_minutes, updated_by_user_id)
-			VALUES ($1, $2, $3::jsonb, $4, $5)
-			ON CONFLICT (company_id) DO UPDATE SET time_zone = $2, away_hours = $3::jsonb, reply_grace_minutes = $4,
-				updated_by_user_id = $5, updated_at = now()`
-		_, err := tx.Exec(ctx, upsert, company.String(), timeZone, string(awayHours), graceMinutes, actorUserID)
-		return err
-	})
-}
-
 // View is Settings → Assistant as saved (defaults when nothing is yet).
 type View struct {
 	Status            string          `json:"status"`
@@ -149,7 +136,16 @@ type View struct {
 	ReplyGraceMinutes *int            `json:"replyGraceMinutes"`
 	Engine            string          `json:"engine"`
 	// The last four characters of the business's own key ("" = none). Never the key.
-	KeyHint string `json:"keyHint"`
+	KeyHint          string          `json:"keyHint"`
+	OpeningHours     json.RawMessage `json:"openingHours"`
+	TakesOrders      bool            `json:"takesOrders"`
+	Delivery         bool            `json:"delivery"`
+	DeliveryNote     string          `json:"deliveryNote"`
+	DeliveryFeeCents int64           `json:"deliveryFeeCents"`
+	Pickup           bool            `json:"pickup"`
+	PaymentNote      string          `json:"paymentNote"`
+	Currency         *string         `json:"currency"`
+	PublicPhone      *string         `json:"publicPhone"`
 }
 
 // DefaultHoldingReply is the holding reply until an owner writes their own.
@@ -157,17 +153,29 @@ const DefaultHoldingReply = "Thank you for your message. Our team will get back 
 
 // Read reads the company's assistant settings.
 func Read(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (View, error) {
-	v := View{Status: "on", ReplyMode: "automatic", HoldingReply: DefaultHoldingReply, AlertByEmail: true, AnswerWhen: "always", Engine: "api_key", AwayHours: json.RawMessage("null")}
+	v := View{Status: "on", ReplyMode: "automatic", HoldingReply: DefaultHoldingReply, AlertByEmail: true, AnswerWhen: "always", Engine: "api_key",
+		AwayHours: json.RawMessage("null"), OpeningHours: json.RawMessage("null"), TakesOrders: true, Pickup: true}
 	const statement = `
 		SELECT status, reply_mode, instructions, holding_reply, alert_by_email, answer_when, time_zone,
-			COALESCE(away_hours::text, 'null'), reply_grace_minutes, ai_engine, COALESCE(anthropic_key_hint, '')
+			COALESCE(away_hours::text, 'null'), reply_grace_minutes, ai_engine, COALESCE(anthropic_key_hint, ''),
+			COALESCE(opening_hours::text, 'null'), takes_orders, delivery, delivery_note, delivery_fee_cents, pickup, payment_note, currency, public_phone
 		FROM assistant_settings WHERE company_id = $1`
-	var awayHours string
+	var awayHours, openingHours string
 	err := pool.QueryRow(ctx, statement, company.String()).Scan(&v.Status, &v.ReplyMode, &v.Instructions, &v.HoldingReply, &v.AlertByEmail,
-		&v.AnswerWhen, &v.TimeZone, &awayHours, &v.ReplyGraceMinutes, &v.Engine, &v.KeyHint)
+		&v.AnswerWhen, &v.TimeZone, &awayHours, &v.ReplyGraceMinutes, &v.Engine, &v.KeyHint,
+		&openingHours, &v.TakesOrders, &v.Delivery, &v.DeliveryNote, &v.DeliveryFeeCents, &v.Pickup, &v.PaymentNote, &v.Currency, &v.PublicPhone)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return v, nil
 	}
-	v.AwayHours = json.RawMessage(awayHours)
+	// Hours in a shape this code doesn't write are shown as not set.
+	v.AwayHours, v.OpeningHours = shapedHours(awayHours), shapedHours(openingHours)
 	return v, err
+}
+
+// shapedHours keeps stored hours only in the shape this code writes.
+func shapedHours(raw string) json.RawMessage {
+	if _, ok := hours.Parse([]byte(raw)); !ok {
+		return json.RawMessage("null")
+	}
+	return json.RawMessage(raw)
 }
