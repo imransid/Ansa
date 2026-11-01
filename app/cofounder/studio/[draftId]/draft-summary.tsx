@@ -2,7 +2,7 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { CONTENT_FORMAT_LABELS } from "@/lib/content-studio/formats";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
-import type { ContentDraftPage } from "@/services/content-drafts";
+import type { ContentDraftPage } from "@/lib/types/content-drafts";
 import { DraftStatusBadge } from "../draft-status-badge";
 
 // The top of a draft's page (step 38): its topic as the page's heading,

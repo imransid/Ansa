@@ -6,7 +6,8 @@ import { isCoreOn } from "@/lib/core-api";
 import { askCoreForStripePage, simulateSubscriptionThroughCore } from "@/lib/core-views/billing";
 import type { FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import { openBillingPortalForSession, simulateSubscriptionForSession, startCheckoutForSession, type RedirectResult } from "@/services/billing";
+import type { RedirectResult } from "@/lib/types/billing";
+import { openBillingPortalForSession, simulateSubscriptionForSession, startCheckoutForSession } from "@/services/billing";
 
 // Thin, like every action: services/billing.ts checks owner role and rate limits.
 // Each uses the new backend when it is switched on (lib/core-api.ts), else

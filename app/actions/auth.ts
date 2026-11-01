@@ -15,12 +15,9 @@ import {
 import { withTypedValues, type FormErrors, type FormResult } from "@/lib/form-result";
 import { KNOWN_DEVICE_COOKIE_NAME, knownDeviceCookieOptions } from "@/lib/known-device";
 import { destinationAfterLogin } from "@/lib/login-redirect";
+import type { ResetPasswordResult } from "@/lib/types/password-reset";
 import { confirmEmailWithPassword, logIn, logOut } from "@/services/auth";
-import {
-  requestPasswordReset,
-  resetPasswordWithToken,
-  type ResetPasswordResult,
-} from "@/services/password-reset";
+import { requestPasswordReset, resetPasswordWithToken } from "@/services/password-reset";
 import { signUpCompanyOwner } from "@/services/signup";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,

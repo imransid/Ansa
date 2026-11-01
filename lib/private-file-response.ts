@@ -1,5 +1,5 @@
 import "server-only";
-import type { PrivateFileAccess } from "@/lib/file-storage";
+import type { PrivateFileAccess } from "@/lib/types/file-storage";
 
 // The HTTP answers of the routes that serve private files (call recordings,
 // company documents, the media library), after their login and company

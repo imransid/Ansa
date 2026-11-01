@@ -2,9 +2,9 @@ import { Badge } from "@/components/ui/badge";
 import { formatNumber } from "@/lib/analytics/format";
 import { SIMULATED_LABEL } from "@/lib/analytics/kinds";
 import type { MetricTotal } from "@/lib/analytics/totals";
+import type { PlatformTotals } from "@/lib/analytics/totals";
 import { metricColumns, metricLabel } from "@/lib/metric-definitions";
 import { SOCIAL_PLATFORM_LABELS, type SocialPlatform } from "@/lib/social-platforms";
-import type { PlatformTotals } from "@/services/analytics-page";
 
 // The period's totals per platform (step 42): each number the platform
 // has, added up over its posts' latest numbers. One it doesn't give says

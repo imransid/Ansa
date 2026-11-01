@@ -14,6 +14,7 @@ import {
 } from "@/lib/core-views/menu";
 import { withTypedValues, type FormErrors, type SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
+import type { MenuReadingOutcome } from "@/lib/types/menu-reading";
 import {
   addCheckedMenuReadingForSession,
   addMenuItemForSession,
@@ -22,7 +23,7 @@ import {
   setMenuItemAvailabilityForSession,
   updateMenuItemForSession,
 } from "@/services/menu";
-import { readMenuForSession, type MenuReadingOutcome } from "@/services/menu-reading";
+import { readMenuForSession } from "@/services/menu-reading";
 
 // Thin, like every action: the services check the person, the input and the
 // rate limits. A refused form gets back what was typed. Each uses the new

@@ -1,6 +1,6 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
-import type { OrderView } from "@/services/orders";
+import type { OrderView } from "@/lib/types/orders";
 
 // The Orders page through the new backend (core's GET /api/v1/orders),
 // in the shape the page already reads.

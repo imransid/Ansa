@@ -1,8 +1,8 @@
 import { FilterLinks } from "@/components/filter-links";
 import { SearchBox } from "@/components/search-box";
 import { buildListUrl } from "@/lib/pagination";
+import type { KnowledgeStatusCounts } from "@/lib/types/knowledge-articles";
 import { knowledgeStatusFilters, type KnowledgeListQuery, type KnowledgeStatusFilter } from "@/lib/validation/list-queries";
-import type { KnowledgeStatusCounts } from "@/services/knowledge";
 
 const FILTER_LABELS: Record<KnowledgeStatusFilter, string> = {
   all: "All",

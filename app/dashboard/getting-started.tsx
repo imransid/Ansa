@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Check, ChevronRight } from "lucide-react";
-import type { GettingStartedStep } from "@/services/home";
+import type { GettingStartedStep } from "@/lib/types/home";
 
 // Home's "Getting started" (the "easy to use" pass of 2026-11-01): the few
 // things that make ansa answer at all, each a link to the one page that does

@@ -7,7 +7,8 @@ import { canManageBusinessProfile, canManageMarketingStrategy } from "@/lib/cofo
 import { isCoreOn } from "@/lib/core-api";
 import { getCoFounderOverviewFromCore } from "@/lib/core-views/cofounder-overview";
 import { requireSessionContext } from "@/lib/session";
-import { getCoFounderOverviewForSession, type CoFounderNextStep, type CoFounderOverview } from "@/services/cofounder-overview";
+import type { CoFounderNextStep, CoFounderOverview } from "@/lib/types/cofounder-overview";
+import { getCoFounderOverviewForSession } from "@/services/cofounder-overview";
 import { GettingStartedChecklist } from "./getting-started";
 import { ProfileCompletionSummary } from "./profile-completion";
 

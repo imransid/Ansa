@@ -3,7 +3,7 @@ import { finishSetupAction } from "@/app/actions/restaurant-setup";
 import { ActionButtonForm } from "@/components/restaurant-setup/action-button-form";
 import { RestaurantSummary } from "@/components/restaurant-setup/restaurant-summary";
 import { buttonVariants } from "@/components/ui/button";
-import type { RestaurantProfile } from "@/services/restaurant-setup";
+import type { RestaurantProfile } from "@/lib/types/restaurant-setup";
 
 // Setup's last step: everything the owner entered, read back, and the button
 // that finishes setup and opens Home.

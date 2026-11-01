@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CONTENT_FORMAT_LABELS } from "@/lib/content-studio/formats";
 import { describeJobError } from "@/lib/publishing/job-errors";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
-import type { PublishJobListItem } from "@/services/publishing-pages";
+import type { PublishJobListItem } from "@/lib/types/publish-jobs";
 import { JobActions } from "./job-actions";
 import { JobStatusBadge } from "./job-status-badge";
 

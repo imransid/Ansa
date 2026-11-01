@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LocalDateTime } from "@/components/local-date-time";
-import type { TicketListItem } from "@/services/tickets";
+import type { TicketListItem } from "@/lib/types/tickets";
 
 // WHY a fixed layout: the table is exactly as wide as the page, whatever the
 // subjects say. Long text is cut with "..." (the full text shows when the

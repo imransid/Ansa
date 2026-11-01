@@ -5,8 +5,8 @@ import type { FormErrors, FormResult } from "@/lib/form-result";
 import { buildLoginUrl } from "@/lib/login-redirect";
 import type { SessionContext } from "@/lib/session";
 import { SOCIAL_PLATFORM_FACTS, type SocialPlatform } from "@/lib/social-platforms";
+import type { AccessLifetime, ConnectionView, PlatformView, SocialAccountsPage } from "@/lib/types/social-accounts";
 import { socialConnectionInputSchema, socialPlatformSchema } from "@/lib/validation/social";
-import type { AccessLifetime, ConnectionView, PlatformView, SocialAccountsPage } from "@/services/social-accounts";
 
 // The company's social accounts through the new backend (core's
 // /api/v1/social and /api/v1/cofounder/accounts), every platform: the

@@ -1,7 +1,7 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
 import { callPath } from "@/lib/core-views/calls";
-import type { PrivateFileAccess } from "@/lib/file-storage";
+import type { PrivateFileAccess } from "@/lib/types/file-storage";
 
 // A recording through the new backend: a signed link (R2), or in
 // development the bytes as base64.

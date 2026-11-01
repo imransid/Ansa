@@ -5,7 +5,8 @@ import { isCoreOn } from "@/lib/core-api";
 import { makePlanThroughCore, setSupportTrendsThroughCore } from "@/lib/core-views/cofounder-strategy";
 import type { SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import { makeMarketingPlanForSession, type MarketingPlanResult } from "@/services/marketing-plan";
+import type { MarketingPlanResult } from "@/lib/types/marketing-plan";
+import { makeMarketingPlanForSession } from "@/services/marketing-plan";
 import { setSupportTrendsForSession } from "@/services/marketing-strategy";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,

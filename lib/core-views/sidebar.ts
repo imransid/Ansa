@@ -1,7 +1,7 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
-import type { AssistantGlance } from "@/services/assistant-settings";
-import type { DashboardSummary } from "@/services/dashboard";
+import type { AssistantGlance } from "@/lib/types/assistant-settings";
+import type { DashboardSummary } from "@/lib/types/dashboard";
 
 // The sidebar's foot through the new backend (core's GET /api/v1/glance),
 // in the shapes it already reads: who you are and your company, what ansa

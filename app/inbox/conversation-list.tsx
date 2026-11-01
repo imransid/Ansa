@@ -3,7 +3,7 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot } from "@/components/status-dot";
 import { CHANNEL_LABELS } from "@/lib/conversations";
 import { contactLabel, isUnverifiedSender } from "@/lib/inbox";
-import type { InboxRow } from "@/services/conversations";
+import type { InboxRow } from "@/lib/types/conversations";
 
 // The Inbox's rows (step 47): who, on which channel, the newest entry, when,
 // and what waits (an open request) or who has it (a person took it over).

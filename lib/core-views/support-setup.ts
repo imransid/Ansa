@@ -3,9 +3,9 @@ import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import { EMPTY_FILE_MESSAGE, MAX_DOCUMENT_BYTES, TOO_BIG_MESSAGE } from "@/lib/document-files";
 import type { FormResult } from "@/lib/form-result";
+import type { CompanyDocument, DocumentDownload } from "@/lib/types/documents";
+import type { SetupOverview } from "@/lib/types/setup";
 import { documentIdSchema } from "@/lib/validation/setup";
-import type { CompanyDocument, DocumentDownload } from "@/services/documents";
-import type { SetupOverview } from "@/services/setup";
 
 // The Setup page ("Phone, email and documents") and the document download
 // through the new backend (core's /api/v1/settings/support and

@@ -1,6 +1,6 @@
 import { labelAssigneeOptions, type AssigneeOption } from "@/lib/assignee-menu";
 import type { TicketView } from "@/lib/core-views/tickets";
-import type { AssignableUser } from "@/services/team";
+import type { AssignableUser } from "@/lib/types/users";
 
 // The "Assigned to" menu: everyone who can take tickets, with the email next
 // to a name two people share (lib/assignee-menu.ts). A solved ticket may still

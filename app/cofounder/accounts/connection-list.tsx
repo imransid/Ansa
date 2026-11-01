@@ -1,7 +1,7 @@
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { SOCIAL_ACCOUNT_KIND_LABELS, SOCIAL_CONNECTION_STATUS_LABELS } from "@/lib/social-platforms";
-import type { AccessLifetime, ConnectionView, PlatformView } from "@/services/social-accounts";
+import type { AccessLifetime, ConnectionView, PlatformView } from "@/lib/types/social-accounts";
 import { ConnectButton, StandInConnectButton } from "./connect-buttons";
 import { DisconnectButton } from "./disconnect-button";
 

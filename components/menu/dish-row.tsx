@@ -2,8 +2,8 @@ import { deleteMenuItemAction, moveMenuItemAction, setMenuItemAvailabilityAction
 import { ConfirmButton } from "@/components/confirm-button";
 import { StatusDot } from "@/components/status-dot";
 import { formatPrice, priceForEditing } from "@/lib/menu";
-import type { MenuItemRow } from "@/services/menu";
 import { ActionButton } from "@/components/action-button";
+import type { MenuItemRow } from "@/lib/types/menu";
 import { DishForm } from "./dish-form";
 
 type DishRowProps = {

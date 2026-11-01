@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { SUPPORT_TREND_DAYS } from "@/lib/marketing-plan/limits";
-import type { ShownPlan } from "@/services/marketing-strategy";
+import type { ShownPlan } from "@/lib/types/marketing-strategy";
 
 // What one version was made from (step 37), so it stays clear later what it
 // was based on: the confirmed facts as they were then, the knowledge

@@ -11,8 +11,8 @@ import {
 import { LocalDateTime } from "@/components/local-date-time";
 import { formatCallDuration } from "@/lib/format-duration";
 import { buildListUrl } from "@/lib/pagination";
+import type { CallListItem } from "@/lib/types/calls";
 import type { CallListQuery, CallOutcomeFilter } from "@/lib/validation/list-queries";
-import type { CallListItem } from "@/services/calls";
 import { DecisionBadge } from "./decision-badge";
 
 // What an empty filter says (step 29).

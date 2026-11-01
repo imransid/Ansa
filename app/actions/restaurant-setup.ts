@@ -8,13 +8,9 @@ import { finishSetupStepThroughCore, saveSetupSectionThroughCore } from "@/lib/c
 import { withTypedValues, type SaveState } from "@/lib/form-result";
 import { hoursFieldName, RANGES_PER_DAY, WEEKDAYS } from "@/lib/opening-hours";
 import { requireSessionContext } from "@/lib/session";
+import type { SetupSection } from "@/lib/types/restaurant-setup";
 import { saveAssistantSettingsForSession } from "@/services/assistant-settings";
-import {
-  completeChannelsStepForSession,
-  finishSetupForSession,
-  saveSetupSectionForSession,
-  type SetupSection,
-} from "@/services/restaurant-setup";
+import { completeChannelsStepForSession, finishSetupForSession, saveSetupSectionForSession } from "@/services/restaurant-setup";
 
 // Thin, like every action: the services check the owner, the input and the
 // rate limit. Each section form says where it was sent from (a hidden

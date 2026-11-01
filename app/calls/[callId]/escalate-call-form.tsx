@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { ESCALATION_NOTE_MAX_LENGTH } from "@/lib/ticket-limits";
-import type { CategoryChoice } from "@/services/categories";
+import type { CategoryChoice } from "@/lib/types/categories";
 
 type EscalateCallFormProps = {
   callId: string;

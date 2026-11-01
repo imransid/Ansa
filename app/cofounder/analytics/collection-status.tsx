@@ -1,5 +1,5 @@
 import { LocalDateTime } from "@/components/local-date-time";
-import type { MetricsActivity } from "@/services/analytics-page";
+import type { MetricsActivity } from "@/lib/types/post-metrics-reads";
 
 // When the company's post numbers were last read (step 42): from a
 // platform, the last try at all, and in development the last simulation.

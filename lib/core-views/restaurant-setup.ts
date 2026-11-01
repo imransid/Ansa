@@ -4,7 +4,7 @@ import { callCore } from "@/lib/core-api";
 import type { FormErrors } from "@/lib/form-result";
 import { hoursFieldName, RANGES_PER_DAY, WEEKDAYS } from "@/lib/opening-hours";
 import type { CompanyKind, SetupStepKey } from "@/lib/restaurant-setup";
-import type { RestaurantProfile, SetupSection } from "@/services/restaurant-setup";
+import type { RestaurantProfile, SetupSection } from "@/lib/types/restaurant-setup";
 
 // The setup at /welcome, Settings → What it knows and Settings → Assistant
 // through the new backend (core's GET /api/v1/setup and POST

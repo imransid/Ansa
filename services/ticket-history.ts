@@ -7,15 +7,16 @@ import { decryptForDisplay, encryptText } from "@/lib/encryption";
 import { ticketNoteContext } from "@/lib/encryption-contexts";
 import type { FormResult } from "@/lib/form-result";
 import type { SessionContext } from "@/lib/session";
+import { HISTORY_LIMIT } from "@/lib/types/ticket-history";
 import { ticketNoteSchema } from "@/lib/validation/tickets";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
 // A ticket's notes and history (step 30). Notes are internal: written by the
 // team for the team, never emailed to anyone, never logged.
 
-// How many of a ticket's newest entries the ticket page shows. Notes are
-// limited per person (ticket-changes), not per ticket, so a page must stop somewhere.
-export const HISTORY_LIMIT = 200;
+// How many of a ticket's newest entries the ticket page shows: one number
+// for this service and the page (lib/types/ticket-history.ts).
+export { HISTORY_LIMIT };
 
 export type TicketHistoryEntry = {
   id: string;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
-import type { SameCustomerTicket } from "@/services/tickets";
+import type { SameCustomerTicket } from "@/lib/types/same-customer";
 
 // The customer's other open tickets (same phone number or email, step 29),
 // so whoever picks this one up sees the whole story and nobody calls the

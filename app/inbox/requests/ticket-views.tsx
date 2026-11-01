@@ -1,8 +1,8 @@
 import { FilterLinks } from "@/components/filter-links";
 import { SearchBox } from "@/components/search-box";
 import { buildListUrl } from "@/lib/pagination";
+import type { TicketViewCounts } from "@/lib/types/tickets";
 import { ticketViews, type TicketListQuery, type TicketView } from "@/lib/validation/list-queries";
-import type { TicketViewCounts } from "@/services/tickets";
 
 const VIEW_LABELS: Record<TicketView, string> = {
   open: "Open",

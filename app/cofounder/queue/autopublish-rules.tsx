@@ -1,7 +1,7 @@
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
-import type { AutopublishRuleListItem } from "@/services/publishing-pages";
+import type { AutopublishRuleListItem } from "@/lib/types/autopublish-rules";
 import { NewRuleForm } from "./new-rule-form";
 import { DisableRuleButton, EnableRuleButton } from "./rule-buttons";
 

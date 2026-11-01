@@ -1,11 +1,13 @@
 import "server-only";
 import type { AnalyticsPeriod, PostMetricSource } from "@/lib/analytics/kinds";
+import type { PlatformTotals } from "@/lib/analytics/totals";
 import { callCore } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import { toPublishJobListItem, type CorePublishJob } from "@/lib/core-views/queue";
 import type { PostMetricValues } from "@/lib/metric-definitions";
-import type { AnalyticsPage, MetricsActivity, PlatformTotals, ShownPost, ShownReview } from "@/services/analytics-page";
-import type { PerformanceReviewResult } from "@/services/performance-review";
+import type { AnalyticsPage, ShownPost, ShownReview } from "@/lib/types/analytics-page";
+import type { PerformanceReviewResult } from "@/lib/types/performance-review";
+import type { MetricsActivity } from "@/lib/types/post-metrics-reads";
 
 // The Co-Founder's Analytics page and "Review performance" through the new
 // backend (core's /api/v1/cofounder/analytics), in the shapes the page and

@@ -2,12 +2,10 @@ import "server-only";
 import { callCore } from "@/lib/core-api";
 import { coreFormErrors } from "@/lib/core-views/restaurant-setup";
 import type { FormErrors } from "@/lib/form-result";
-import type { getAutopostPageForSession, PostedSlot } from "@/services/autopost";
+import type { AutopostPage, PostedSlot } from "@/lib/types/autopost";
 
 // Settings → Posts for me through the new backend (core's
 // /api/v1/settings/posts), in the shapes the page and its forms already read.
-
-type AutopostPage = Awaited<ReturnType<typeof getAutopostPageForSession>>;
 
 type CoreSlot = Omit<PostedSlot, "postAt"> & { postAt: string };
 

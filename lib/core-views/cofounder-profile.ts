@@ -3,9 +3,10 @@ import { callCore } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import { asFormResult } from "@/lib/core-views/ticket-actions";
 import type { FormResult } from "@/lib/form-result";
-import type { BusinessProfile, ProfileTopic } from "@/services/business-profile";
-import type { FactSuggestionResult } from "@/services/fact-suggestions";
-import type { Interview, InterviewAnswerResult, InterviewMessage } from "@/services/onboarding-interview";
+import type { BusinessProfile, ProfileTopic } from "@/lib/types/business-profile";
+import type { FactSuggestionResult } from "@/lib/types/fact-suggestions";
+import type { Interview, InterviewAnswerResult } from "@/lib/types/onboarding-interview";
+import type { InterviewMessage } from "@/lib/types/onboarding-turn";
 
 // The Co-Founder's business profile and interview through the new backend
 // (core's /api/v1/cofounder/profile and /interview), in the shapes the

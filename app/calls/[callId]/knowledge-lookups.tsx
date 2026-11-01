@@ -5,7 +5,8 @@ import { isCoreOn } from "@/lib/core-api";
 import { getCallLookupsFromCore } from "@/lib/core-views/calls";
 import { MAX_CALL_LOOKUPS_SHOWN } from "@/lib/knowledge/limits";
 import type { SessionContext } from "@/lib/session";
-import { listKnowledgeLookupsForCallForSession, type CallKnowledgeLookup } from "@/services/knowledge-lookups";
+import type { CallKnowledgeLookup } from "@/lib/types/knowledge-lookups";
+import { listKnowledgeLookupsForCallForSession } from "@/services/knowledge-lookups";
 
 type KnowledgeLookupsProps = {
   session: SessionContext;

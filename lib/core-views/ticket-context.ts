@@ -1,9 +1,9 @@
 import "server-only";
-import type { CustomerEmailSummary } from "@/services/customer-emails";
-import type { OriginalEmail } from "@/services/inbound-emails";
-import type { RelatedArticle } from "@/services/knowledge-search";
-import type { TicketHistory, TicketHistoryEntry } from "@/services/ticket-history";
-import type { SameCustomerTicket } from "@/services/tickets";
+import type { OriginalEmail } from "@/lib/types/inbound-emails";
+import type { RelatedArticle } from "@/lib/types/knowledge-search";
+import type { CustomerEmailSummary } from "@/lib/types/outgoing-emails";
+import type { SameCustomerTicket } from "@/lib/types/same-customer";
+import type { TicketHistory, TicketHistoryEntry } from "@/lib/types/ticket-history";
 
 // What core's request page (GET /api/v1/requests/{number}) sends around the
 // request itself, in the shapes the ticket page's sections already read: its

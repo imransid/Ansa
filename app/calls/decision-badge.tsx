@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { CallListItem } from "@/services/calls";
+import type { CallListItem } from "@/lib/types/calls";
 
 type DecisionBadgeProps = Pick<CallListItem, "analysisStatus" | "aiOutcome"> & {
   // A teammate escalated the "solved" call to a ticket (step 31).

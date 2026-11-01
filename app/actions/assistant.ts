@@ -5,8 +5,9 @@ import { isCoreOn } from "@/lib/core-api";
 import { saveAiEngineThroughCore, testAssistantThroughCore } from "@/lib/core-views/assistant";
 import type { SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
+import type { AssistantTestResult } from "@/lib/types/assistant-test";
 import { saveAiEngineForSession } from "@/services/assistant-engine-settings";
-import { testAssistantForSession, type AssistantTestResult } from "@/services/assistant-test";
+import { testAssistantForSession } from "@/services/assistant-test";
 
 // Thin, like every action (step 49): the services check the person, the
 // input and the rate limits. The API key is never sent back to the form,

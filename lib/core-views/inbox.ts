@@ -5,8 +5,8 @@ import { getRequestPageFromCore, type TicketView } from "@/lib/core-views/ticket
 import type { FormResult } from "@/lib/form-result";
 import type { InboxView } from "@/lib/inbox";
 import type { CompanyKind } from "@/lib/restaurant-setup";
-import type { ConversationEntryView, ConversationPage } from "@/services/conversation-page";
-import type { InboxRow } from "@/services/conversations";
+import type { ConversationEntryView, ConversationPage } from "@/lib/types/conversation-page";
+import type { InboxRow } from "@/lib/types/conversations";
 
 // The Inbox and one conversation's page through the new backend (core's
 // /api/v1/inbox and /api/v1/conversations), in the shapes the pages and

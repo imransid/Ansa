@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
-import type { UndeliveredCustomerEmail } from "@/services/undelivered-emails";
+import type { UndeliveredCustomerEmail } from "@/lib/types/undelivered-emails";
 
 // Customer "solved" emails that never reached the customer (step 27). Shown
 // only when there are some: each one is a customer who was never told their

@@ -3,7 +3,7 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { KNOWLEDGE_KIND_LABELS, KNOWLEDGE_STATUS_LABELS, type KnowledgeStatus } from "@/lib/knowledge/kinds";
-import type { KnowledgeArticleListItem } from "@/services/knowledge";
+import type { KnowledgeArticleListItem } from "@/lib/types/knowledge-articles";
 
 const STATUS_BADGES: Record<KnowledgeStatus, "default" | "secondary" | "outline"> = {
   approved: "default",

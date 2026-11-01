@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LocalDateTime } from "@/components/local-date-time";
-import type { PendingInvite } from "@/services/team";
+import type { PendingInvite } from "@/lib/types/invites";
 
 type PendingInvitesTableProps = {
   invites: PendingInvite[];

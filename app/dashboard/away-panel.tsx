@@ -5,9 +5,7 @@ import { ActionButton } from "@/components/action-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { HANDOVER_REASON_TEXT } from "@/lib/assistant/reasons";
 import { contactLabel } from "@/lib/inbox";
-import type { getAwaySummaryForSession } from "@/services/away";
-
-type AwaySummary = Awaited<ReturnType<typeof getAwaySummaryForSession>>;
+import type { AwaySummary } from "@/lib/types/away";
 
 // "While you were away": what ansa did since you last pressed "Got it",
 // each conversation once, the ones that need you first in the words.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ContentDraftPage } from "@/services/content-drafts";
+import type { ContentDraftPage } from "@/lib/types/content-drafts";
 
 // What the AI's text was written from (step 38), so it stays clear later
 // what it was based on: the confirmed facts as they were then, the

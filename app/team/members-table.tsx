@@ -7,8 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Category, TeamCategories } from "@/services/categories";
-import type { CompanyUser } from "@/services/team";
+import type { Category, TeamCategories } from "@/lib/types/categories";
+import type { CompanyUser } from "@/lib/types/users";
 import { MemberCategories } from "./member-categories";
 import { RemoveTeammateButton, TeammateRoleButton } from "./teammate-controls";
 

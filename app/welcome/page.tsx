@@ -13,7 +13,8 @@ import { getRestaurantProfileFromCore } from "@/lib/core-views/restaurant-setup"
 import { currencyOptions, timeZoneOptions } from "@/lib/locale-options";
 import { NEW_COMPANY_NAME, setupStepNumber, setupStepsFor, stepToShow, type CompanyKind, type SetupStepKey } from "@/lib/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
-import { getRestaurantProfileForSession, type RestaurantProfile } from "@/services/restaurant-setup";
+import type { RestaurantProfile } from "@/lib/types/restaurant-setup";
+import { getRestaurantProfileForSession } from "@/services/restaurant-setup";
 import { ChannelsStep } from "./channels-step";
 import { ReadyStep } from "./ready-step";
 

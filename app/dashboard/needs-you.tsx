@@ -7,8 +7,8 @@ import { countWithNoun, OVERVIEW_WINDOW_DAYS } from "@/lib/business-overview";
 import { CHANNEL_LABELS } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
 import { buildListUrl } from "@/lib/pagination";
-import type { BusinessOverview } from "@/services/business-overview";
-import type { InboxRow } from "@/services/conversations";
+import type { BusinessOverview } from "@/lib/types/business-overview";
+import type { InboxRow } from "@/lib/types/conversations";
 import { NumberLink } from "./number-link";
 
 type NeedsYouProps = {

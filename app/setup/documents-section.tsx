@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { checkDocumentFile, DOCUMENT_EXTENSIONS_FOR_PICKER } from "@/lib/document-files";
 import { formatFileSize } from "@/lib/format-file-size";
 import { NO_CUSTOMER_DATA_IMPORT_NOTICE } from "@/lib/knowledge/limits";
-import type { CompanyDocument } from "@/services/documents";
+import type { CompanyDocument } from "@/lib/types/documents";
 import { AddToKnowledgeButton } from "./add-to-knowledge-button";
 
 // Where a file is stored never reaches the page (the new backend doesn't send it).

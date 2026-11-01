@@ -8,8 +8,8 @@ import { PUBLISH_JOB_STATUS_LABELS, type PublishJobStatus } from "@/lib/publishi
 import { CALENDAR_DAYS } from "@/lib/publishing/limits";
 import { addDays, isKnownTimeZone, localDateOf, localTimeOf, weekdayOf } from "@/lib/publishing/schedule-time";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
+import type { CalendarItem } from "@/lib/types/publishing-pages";
 import { cn } from "@/lib/utils";
-import type { CalendarItem } from "@/services/publishing-pages";
 
 // The calendar's days (step 41): today and the next weeks in the VIEWER's
 // own timezone, each with its posts (scheduled, out, or that didn't go out)

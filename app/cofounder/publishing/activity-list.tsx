@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { describeActivity } from "@/lib/publishing/activity-text";
-import type { ActivityListItem } from "@/services/publishing-pages";
+import type { ActivityListItem } from "@/lib/types/cofounder-activity";
 
 type ActivityListProps = {
   entries: ActivityListItem[];

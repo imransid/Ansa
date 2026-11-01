@@ -1,6 +1,6 @@
 import { LocalDateTime } from "@/components/local-date-time";
 import { describeTicketActivity, historyNamesItsCreator } from "@/lib/ticket-history-text";
-import { HISTORY_LIMIT, type TicketHistory, type TicketHistoryEntry } from "@/services/ticket-history";
+import { HISTORY_LIMIT, type TicketHistory, type TicketHistoryEntry } from "@/lib/types/ticket-history";
 import { NoteForm } from "./note-form";
 
 type TicketHistorySectionProps = {

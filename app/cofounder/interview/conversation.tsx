@@ -1,7 +1,8 @@
 import { LocalDateTime } from "@/components/local-date-time";
 import { INTERVIEW_MESSAGES_SHOWN } from "@/lib/cofounder/limits";
+import type { Interview } from "@/lib/types/onboarding-interview";
+import type { InterviewMessage } from "@/lib/types/onboarding-turn";
 import { cn } from "@/lib/utils";
-import type { Interview, InterviewMessage } from "@/services/onboarding-interview";
 
 // The interview so far (step 36), oldest first and the newest at the bottom,
 // like a chat: the Co-Founder's questions on the left, the owners' answers

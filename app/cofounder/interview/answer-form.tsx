@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { INTERVIEW_ANSWER_MAX_LENGTH } from "@/lib/cofounder/limits";
-import type { InterviewAnswerResult } from "@/services/onboarding-interview";
+import type { InterviewAnswerResult } from "@/lib/types/onboarding-interview";
 
 type AnswerFormProps = {
   // Only while the page shows the first question: the topic it asks about

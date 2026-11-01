@@ -1,6 +1,6 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
-import type { CalendarItem, CalendarPage } from "@/services/publishing-pages";
+import type { CalendarItem, CalendarPage } from "@/lib/types/publishing-pages";
 
 // The Co-Founder's calendar page through the new backend (core's GET
 // /api/v1/cofounder/calendar), in the shape the page already reads: the

@@ -1,7 +1,7 @@
 import { setAssistantStatusAction, setAwayAction } from "@/app/actions/away";
 import { ActionButton } from "@/components/action-button";
 import { briefingSentence } from "@/lib/home-briefing";
-import type { Presence } from "@/services/away";
+import type { Presence } from "@/lib/types/away";
 
 type StatusCardProps = {
   presence: Presence;

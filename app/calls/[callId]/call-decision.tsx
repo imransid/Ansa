@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { describeReason, isModelFailureReason } from "@/lib/call-brain/reasons";
 import { LocalDateTime } from "@/components/local-date-time";
-import type { CallDetail } from "@/services/calls";
-import type { CategoryChoice } from "@/services/categories";
+import type { CallDetail } from "@/lib/types/calls";
+import type { CategoryChoice } from "@/lib/types/categories";
 import { DecisionBadge } from "../decision-badge";
 import { AnalyzeNowButton } from "./analyze-now-button";
 import { EscalateCallForm } from "./escalate-call-form";

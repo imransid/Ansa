@@ -1,6 +1,6 @@
 import { countWithNoun, formatOverviewCount, OVERVIEW_WINDOW_DAYS } from "@/lib/business-overview";
 import { buildListUrl } from "@/lib/pagination";
-import type { BusinessOverview, CofounderOverviewNumbers } from "@/services/business-overview";
+import type { BusinessOverview, CofounderOverviewNumbers } from "@/lib/types/business-overview";
 import { NumberLink } from "./number-link";
 
 // A business's numbers on Home (step 43; since the "easy to use" pass of

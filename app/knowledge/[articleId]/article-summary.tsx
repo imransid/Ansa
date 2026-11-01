@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { KNOWLEDGE_KIND_LABELS, KNOWLEDGE_STATUS_LABELS } from "@/lib/knowledge/kinds";
-import type { KnowledgeArticlePage } from "@/services/knowledge";
+import type { KnowledgeArticlePage } from "@/lib/types/knowledge";
 import { describeAudiences } from "../article-table";
 
 // The top of an article's page: its title, status and what that means for

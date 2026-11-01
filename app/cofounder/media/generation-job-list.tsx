@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { describeGenerationError } from "@/lib/media/error-codes";
 import { DEV_STAND_IN_PROVIDER, JOB_STATUS_LABELS, MEDIA_KIND_LABELS, type MediaGenerationJobStatus } from "@/lib/media/kinds";
 import { mediaLibraryLink } from "@/lib/media/library-link";
-import type { GenerationJobListEntry } from "@/services/media-generation-jobs";
+import type { GenerationJobListEntry } from "@/lib/types/media-generation-jobs";
 import { CancelGenerationButton, StartGenerationNowButton } from "./generation-job-buttons";
 
 const STATUS_BADGES: Record<MediaGenerationJobStatus, "default" | "secondary" | "outline" | "destructive"> = {

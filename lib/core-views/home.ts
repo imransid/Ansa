@@ -2,19 +2,15 @@ import "server-only";
 import { callCore } from "@/lib/core-api";
 import { coreFormErrors } from "@/lib/core-views/restaurant-setup";
 import type { FormErrors } from "@/lib/form-result";
-import type { getAwaySummaryForSession, Presence } from "@/services/away";
-import type { BusinessOverview } from "@/services/business-overview";
-import type { getAssistantActivityForSession, InboxRow } from "@/services/conversations";
-import type { FirstRunHints } from "@/services/dashboard";
-import type { GettingStartedStep, getNeedsYouForSession } from "@/services/home";
+import type { AwaySummary, Presence } from "@/lib/types/away";
+import type { BusinessOverview } from "@/lib/types/business-overview";
+import type { ActivityRow, InboxRow } from "@/lib/types/conversations";
+import type { FirstRunHints } from "@/lib/types/dashboard";
+import type { GettingStartedStep, NeedsYou } from "@/lib/types/home";
 
 // Home through the new backend (core's GET /api/v1/home), in the shapes
 // Home's parts already read, and the owner's switches (core's
 // /api/v1/assistant/* and /api/v1/home/away-summary/seen).
-
-type AwaySummary = Awaited<ReturnType<typeof getAwaySummaryForSession>>;
-type ActivityRow = Awaited<ReturnType<typeof getAssistantActivityForSession>>[number];
-type NeedsYou = Awaited<ReturnType<typeof getNeedsYouForSession>>;
 
 // Everything Home shows: what ansa does now, the business's numbers, the
 // customer emails never delivered, the first-run hint, what's left to set

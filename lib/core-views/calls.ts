@@ -3,12 +3,12 @@ import { cache } from "react";
 import { callCore } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormResult } from "@/lib/form-result";
+import type { CallDetail, CallListItem, CallOutcomeCounts } from "@/lib/types/calls";
+import type { CategoryChoice } from "@/lib/types/categories";
+import type { CallKnowledgeLookups } from "@/lib/types/knowledge-lookups";
+import type { CreatedTicketResult } from "@/lib/types/manual-tickets";
 import type { CallListQuery } from "@/lib/validation/list-queries";
 import { callIdSchema } from "@/lib/validation/vapi";
-import type { CallDetail, CallListItem, CallOutcomeCounts } from "@/services/calls";
-import type { CategoryChoice } from "@/services/categories";
-import type { CreatedTicketResult } from "@/services/manual-tickets";
-import type { CallKnowledgeLookups } from "@/services/knowledge-lookups";
 
 // The Calls list, a call's page and its actions through the new backend
 // (core's /api/v1/calls), in the shapes the pages already read.

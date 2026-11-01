@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { buildListUrl } from "@/lib/pagination";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
+import type { ContentDraftStatusCounts } from "@/lib/types/content-drafts";
 import type { ContentDraftListQuery } from "@/lib/validation/list-queries";
-import type { ContentDraftStatusCounts } from "@/services/content-drafts";
 
 type StudioListEmptyProps = {
   query: ContentDraftListQuery;

@@ -4,7 +4,7 @@ import { startTransition, useActionState, useState, type FormEvent } from "react
 import { setUserCategoriesAction } from "@/app/actions/categories";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Category } from "@/services/categories";
+import type { Category } from "@/lib/types/categories";
 
 type MemberCategoriesProps = {
   userId: string;
