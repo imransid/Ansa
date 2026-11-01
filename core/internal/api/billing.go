@@ -50,6 +50,8 @@ func (s *Server) billingPage(w http.ResponseWriter, r *http.Request, _ []byte, w
 
 // checkout: {"url"} of Stripe's payment page, never while a plan is live.
 func (s *Server) checkout(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+	// Up to two Stripe requests (20 s each).
+	allowLongAnswer(w, 60*time.Second)
 	switch s.BillingMode {
 	case "dev":
 		problem(w, http.StatusConflict, "Payments are off (USE_STRIPE). Use the simulate buttons.")
@@ -81,6 +83,8 @@ func (s *Server) checkout(w http.ResponseWriter, r *http.Request, _ []byte, who 
 
 // billingPortal: {"url"} of Stripe's page to change card, see invoices or cancel.
 func (s *Server) billingPortal(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+	// Up to two Stripe requests (20 s each).
+	allowLongAnswer(w, 60*time.Second)
 	current, err := billing.Read(r.Context(), s.Pool, who.CompanyID)
 	if err != nil {
 		s.failed(w, "portal", err)

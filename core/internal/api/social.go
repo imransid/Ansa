@@ -77,6 +77,8 @@ func (s *Server) connectFacebookStandIn(w http.ResponseWriter, r *http.Request, 
 // query by the screens. Always {"location"}: the Accounts page with a
 // result code (and how many Pages), never a token, the code or the state.
 func (s *Server) facebookCallback(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+	// Several Graph requests in a row (up to 15 s each), as the old route's 90 s.
+	allowLongAnswer(w, 90*time.Second)
 	result, count := "rate_limited", 0
 	over, err := s.Limiter.Over(r.Context(), "social-accounts", who.UserID, socialAccountChanges)
 	if err == nil && !over {
