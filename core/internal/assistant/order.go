@@ -9,7 +9,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/orders"
-	"ansa/core/internal/tickets"
+	"ansa/core/internal/team"
 )
 
 // OrderAlertJobKind tells the owners a customer placed an order.
@@ -118,7 +118,7 @@ func (r *Runner) saveFixedAndSend(ctx context.Context, turn conversations.Turn, 
 	var target chat.Target
 	err = database.InTx(ctx, r.Pool, func(tx database.Tx) error {
 		if lockCompany {
-			if err := tickets.LockCompanyWithin(ctx, tx, turn.CompanyID); err != nil {
+			if err := team.LockCompanyWithin(ctx, tx, turn.CompanyID); err != nil {
 				return err
 			}
 		}

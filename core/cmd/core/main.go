@@ -78,7 +78,8 @@ func main() {
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions: &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
 		Orders:   &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
-		Replies:  &inbox.Replies{Pool: pool, Box: box, Sender: sender}}
+		Replies:  &inbox.Replies{Pool: pool, Box: box, Sender: sender},
+		Brain:    brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 5*time.Second)}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

@@ -52,4 +52,5 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/session/` | Who is asking: Better Auth's session, read by core | [session](../docs/backend/modules/session.md) |
 | `internal/api/` | The API for the screens (signed, logged in) | [api](../docs/backend/modules/api.md) |
 | `internal/inbox/` | The Inbox: lists, a conversation's page, a person's work | [inbox](../docs/backend/modules/inbox.md) |
-| `internal/team/` | A person's role, read again inside a write | [inbox](../docs/backend/modules/inbox.md) |
+| `internal/team/` | A person's role, read again inside a write; the company row lock | [inbox](../docs/backend/modules/inbox.md) |
+| `internal/home/`, `internal/settings/` | Home's reads; the owner's switches | [home](../docs/backend/modules/home.md) |

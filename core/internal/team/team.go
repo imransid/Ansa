@@ -28,3 +28,12 @@ func RoleWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, u
 	}
 	return role, err
 }
+
+// LockCompanyWithin takes the company row lock that every numbering,
+// routing and owner-setting transaction takes FIRST (the old
+// lockCompanyRow): they run one at a time per company, always in the same
+// order (the company, then the person), so they never deadlock.
+func LockCompanyWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID) error {
+	_, err := tx.Exec(ctx, `SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE`, company.String())
+	return err
+}

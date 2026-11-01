@@ -14,6 +14,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/plaintext"
+	"ansa/core/internal/team"
 	"ansa/core/internal/tickets"
 )
 
@@ -56,7 +57,7 @@ func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info con
 	var target chat.Target
 	holdingSaved := false
 	err = database.InTx(ctx, r.Pool, func(tx database.Tx) error {
-		if err := tickets.LockCompanyWithin(ctx, tx, turn.CompanyID); err != nil {
+		if err := team.LockCompanyWithin(ctx, tx, turn.CompanyID); err != nil {
 			return err
 		}
 		gate, err := GateWithin(ctx, tx, turn, GateOptions{Lock: true, AllowHandled: h.Reason == "send_failed"})

@@ -1,7 +1,7 @@
 // Package tickets makes and routes requests ("Needs you"), as the old
 // db/ticket-creation.ts and db/routing.ts. Every function runs inside the
 // caller's transaction, which took the company row lock FIRST
-// (LockCompanyWithin): numbering and routing then run one at a time per
+// (team.LockCompanyWithin): numbering and routing then run one at a time per
 // company, and two routings can't both pick the same "least busy" expert.
 package tickets
 
@@ -30,13 +30,6 @@ type Created struct {
 	ID         string
 	Number     int
 	AssigneeID string
-}
-
-// LockCompanyWithin takes the company row lock every numbering and routing
-// transaction takes first (the old lockCompanyRow).
-func LockCompanyWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID) error {
-	_, err := tx.Exec(ctx, `SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE`, company.String())
-	return err
 }
 
 // CreateChatTicketWithin numbers, saves and routes a chat request. The

@@ -6,6 +6,7 @@ import (
 
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
 )
 
@@ -35,7 +36,7 @@ func TestAChatRequestIsNumberedAndGoesToTheLeastBusyExpertOfItsCategory(t *testi
 
 	var first, second Created
 	err := database.InTx(ctx, pool, func(tx database.Tx) error {
-		if err := LockCompanyWithin(ctx, tx, company); err != nil {
+		if err := team.LockCompanyWithin(ctx, tx, company); err != nil {
 			return err
 		}
 		var err error

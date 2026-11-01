@@ -5,6 +5,8 @@ requests and never touches the database.
 Run: BRAIN_SHARED_SECRET=... .venv/bin/uvicorn brain.app:create_app --factory --host 127.0.0.1 --port 8090
 """
 
+import os
+
 from fastapi import FastAPI, Request, Response
 
 from brain import ai, claude_code
@@ -42,6 +44,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def ping() -> dict[str, str]:
         """A signed no-op: core uses it to check the connection at start."""
         return {"status": "ok"}
+
+    @app.post("/v1/status")
+    async def status() -> dict[str, bool]:
+        """What the brain can answer with: ansa's own key, and Claude Code
+        (development only). Core shows it as "the AI is ready". Never the key."""
+        return {"ansa_key": bool(os.environ.get("ANTHROPIC_API_KEY")), "claude_code": active.development}
 
     # A plain def on purpose: FastAPI runs it in a worker thread, so a model
     # call that takes seconds never holds up the other requests.

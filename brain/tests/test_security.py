@@ -41,3 +41,12 @@ def test_a_body_over_the_cap_is_refused():
     client = TestClient(create_app(Settings(shared_secret=SECRET)))
     body = b"x" * (512 * 1024 + 1)
     assert client.post("/v1/ping", content=body, headers=sign(body, int(time.time()))).status_code == 413
+
+
+def test_the_status_says_what_the_brain_can_answer_with_never_the_key(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret-value")
+    client = TestClient(create_app(Settings(shared_secret=SECRET, development=True)))
+    body = b"{}"
+    answer = client.post("/v1/status", content=body, headers=sign(body, int(time.time())))
+    assert answer.json() == {"ansa_key": True, "claude_code": True}
+    assert "sk-ant" not in answer.text

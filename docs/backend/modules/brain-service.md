@@ -8,3 +8,7 @@ switched off.
 **Routes today:** `GET /health`, `POST /v1/ping` (signed no-op).
 **Tests:** `brain/tests/test_security.py`: the signature matches core's; only
 signed, fresh requests pass; a body over the cap is refused.
+**`POST /v1/status` (signed):** what the brain can answer with,
+`{"ansa_key": bool, "claude_code": bool}`: whether ansa's own key is set and
+whether Claude Code is allowed (development). Never the key. Core shows it
+as "the AI is ready" on Home.

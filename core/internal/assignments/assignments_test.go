@@ -13,6 +13,7 @@ import (
 	"ansa/core/internal/email"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
 	"ansa/core/internal/tickets"
 )
@@ -30,7 +31,7 @@ func TestTheExpertRoutingPicksIsEmailedOnceWithoutCustomerDetails(t *testing.T) 
 	turn, _ := conversations.InsertCustomerMessage(ctx, pool, company, conversations.ContactKey{Channel: conversations.ChannelStandIn, ExternalID: "as"}, conversations.IncomingMessage{ID: messageID, BodyEncrypted: "v1:x:y:z", ChannelMessageID: "as1"})
 	name := "Ana Customer"
 	err := database.InTx(ctx, pool, func(tx database.Tx) error {
-		if err := tickets.LockCompanyWithin(ctx, tx, company); err != nil {
+		if err := team.LockCompanyWithin(ctx, tx, company); err != nil {
 			return err
 		}
 		_, err := tickets.CreateChatTicketWithin(ctx, tx, company, tickets.NewChatTicket{Subject: "Cold\npizza", Description: "They complained.", CategoryID: categoryID, CustomerName: &name, ConversationID: turn.ConversationID})

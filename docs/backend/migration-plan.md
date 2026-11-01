@@ -91,6 +91,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | the API's frame: the screens' signature, the session, JSON (`core/internal/api`) | ✅ |
 | Orders page: list and status changes | ✅ in core's API; the page switches with the others |
 | Inbox: list, conversation page, take over, hand back, reply, drafts, important, what ansa did | ✅ in core's API |
+| Home: status card and its switches, while you were away, getting started, needs you | ✅ in core's API (business numbers with their modules) |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

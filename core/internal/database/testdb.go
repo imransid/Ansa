@@ -33,11 +33,16 @@ func TestCompany(t *testing.T, pool *Pool) string {
 		t.Fatalf("making a test company: %v", err)
 	}
 	t.Cleanup(func() {
-		// Children before parents (foreign keys), then the company.
+		// Children before parents (foreign keys), then the company. A table
+		// missing from the list shows here, not as rows left behind.
 		for _, table := range cleanupOrder {
-			pool.Exec(ctx, `DELETE FROM `+table+` WHERE company_id = $1`, id)
+			if _, err := pool.Exec(ctx, `DELETE FROM `+table+` WHERE company_id = $1`, id); err != nil {
+				t.Errorf("cleaning %s: %v", table, err)
+			}
 		}
-		pool.Exec(ctx, `DELETE FROM companies WHERE id = $1`, id)
+		if _, err := pool.Exec(ctx, `DELETE FROM companies WHERE id = $1`, id); err != nil {
+			t.Errorf("cleaning the company (a table missing from cleanupOrder?): %v", err)
+		}
 	})
 	return id
 }
@@ -48,7 +53,7 @@ var cleanupOrder = []string{
 	"core_jobs", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "tickets",
 	"user_categories", "categories",
 	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings", "social_connections",
-	"users",
+	"away_summary_reads", "users",
 }
 
 // TestOwner adds a confirmed owner to a test company and returns their id.
