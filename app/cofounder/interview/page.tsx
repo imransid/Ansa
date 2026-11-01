@@ -4,6 +4,8 @@ import Link from "next/link";
 import { startOverInterviewAction } from "@/app/actions/cofounder";
 import { ConfirmButton } from "@/components/confirm-button";
 import { canManageBusinessProfile } from "@/lib/cofounder/permissions";
+import { isCoreOn } from "@/lib/core-api";
+import { getInterviewFromCore } from "@/lib/core-views/cofounder-profile";
 import { requireSessionContext } from "@/lib/session";
 import { getInterviewForSession } from "@/services/onboarding-interview";
 import { AnswerForm } from "./answer-form";
@@ -34,10 +36,11 @@ export default function InterviewPage() {
 // database, so it goes on where it was left. Owners answer; members read.
 async function InterviewContent() {
   const session = await requireSessionContext("/cofounder/interview");
-  const interview = await getInterviewForSession(session);
-  // Hiding the box and the button is only for a tidy page: the services
-  // and /db refuse members.
-  const isOwner = canManageBusinessProfile(session.role);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  // Hiding the box and the button is only for a tidy page: both refuse members.
+  const { interview, isOwner } = isCoreOn()
+    ? await getInterviewFromCore()
+    : { interview: await getInterviewForSession(session), isOwner: canManageBusinessProfile(session.role) };
   const hasMessages = interview.messages.length > 0;
 
   return (
