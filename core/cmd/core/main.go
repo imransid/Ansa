@@ -24,6 +24,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/email"
 	"ansa/core/internal/httpserver"
+	"ansa/core/internal/inbox"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/messenger"
@@ -76,7 +77,8 @@ func main() {
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions: &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
-		Orders:   &orders.StatusChange{Pool: pool, Box: box, Sender: sender}}
+		Orders:   &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
+		Replies:  &inbox.Replies{Pool: pool, Box: box, Sender: sender}}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

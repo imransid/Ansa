@@ -10,6 +10,7 @@ import (
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/secure"
+	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
 )
 
@@ -77,13 +78,11 @@ func (c *StatusChange) Change(ctx context.Context, company tenant.CompanyID, act
 	outcome, refusal := ChangeDone, ""
 	var target chat.Target
 	err = database.InTx(ctx, c.Pool, func(tx database.Tx) error {
-		var role string
-		err := tx.QueryRow(ctx, `SELECT role FROM users WHERE company_id = $1 AND id = $2 AND email_verified = true AND deactivated_at IS NULL FOR SHARE`, company.String(), actorUserID).Scan(&role)
-		if errors.Is(err, pgx.ErrNoRows) {
-			outcome = ChangeNotAllowed
-			return nil
-		}
-		if err != nil {
+		role, err := team.RoleWithin(ctx, tx, company, actorUserID)
+		if err != nil || role == "" {
+			if role == "" {
+				outcome = ChangeNotAllowed
+			}
 			return err
 		}
 		const update = `

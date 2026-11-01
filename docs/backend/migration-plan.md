@@ -28,7 +28,7 @@
 ## Phase 1: chats
 | Module | Old code | Status |
 |---|---|---|
-| conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | 🔨 saving messages done |
+| conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | ✅ saving (conversations), the Inbox, the page, take over, hand back, replies, important (inbox) |
 | chat delivery (one door) | lib/chat-delivery.ts | ✅ Telegram, Messenger and the stand-in |
 | Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | 🔨 webhook, messages, deletions, sending, connecting by link code done; making the code moves with the screens' API |
 | Messenger | services/messenger-*.ts, adapters/messenger.ts | ✅ core/internal/messenger, social (switching a Page's messages on moves with the social connect flow) |
@@ -45,7 +45,7 @@
 | "a ticket is yours" email | services/assignment-notifications.ts | ✅ core/internal/assignments |
 | email out (the one door) | lib/send-email.ts, adapters/resend.ts, dev-email-outbox.ts | ✅ core/internal/email (customer "solved" emails with phase 5) |
 | AI engine (own key, ansa's, Claude Code in development) | services/assistant-engine.ts, adapters/claude-code.ts | ✅ core sends it; brain/brain/claude_code.py |
-| Ask me first drafts (send, edit, discard), test box | services/assistant-drafts.ts, -test.ts | 🔨 drafts are saved; the person's actions move with the screens' API |
+| Ask me first drafts (send, edit, discard), test box | services/assistant-drafts.ts, -test.ts | 🔨 Send, Edit (a reply replacing it) and Discard done (inbox); the test box next |
 
 ## Phase 3: menu and orders
 | Module | Old code | Status |
@@ -90,6 +90,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | core reads Better Auth's session itself (`core/internal/session`) | ✅ |
 | the API's frame: the screens' signature, the session, JSON (`core/internal/api`) | ✅ |
 | Orders page: list and status changes | ✅ in core's API; the page switches with the others |
+| Inbox: list, conversation page, take over, hand back, reply, drafts, important, what ansa did | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

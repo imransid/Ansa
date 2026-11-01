@@ -51,3 +51,5 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/schedule/` | Periodic work inside the service | [schedule](../docs/backend/modules/schedule.md) |
 | `internal/session/` | Who is asking: Better Auth's session, read by core | [session](../docs/backend/modules/session.md) |
 | `internal/api/` | The API for the screens (signed, logged in) | [api](../docs/backend/modules/api.md) |
+| `internal/inbox/` | The Inbox: lists, a conversation's page, a person's work | [inbox](../docs/backend/modules/inbox.md) |
+| `internal/team/` | A person's role, read again inside a write | [inbox](../docs/backend/modules/inbox.md) |

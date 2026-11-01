@@ -14,6 +14,7 @@ import (
 	"ansa/core/internal/chat"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/ratelimit"
@@ -63,7 +64,8 @@ func newAPIWorld(t *testing.T) *apiWorld {
 	t.Cleanup(func() { pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = $1`, limiter.Key("inbox-changes", owner)) })
 	sender := &chat.Sender{StandInsAllowed: true, StandInDir: w.outbox}
 	server := &Server{Pool: pool, Box: box, Limiter: limiter, Log: logging.New(io.Discard), Secret: screensSecret,
-		Sessions: &session.Reader{Pool: pool, Secret: authSecret}, Orders: &orders.StatusChange{Pool: pool, Box: box, Sender: sender}}
+		Sessions: &session.Reader{Pool: pool, Secret: authSecret}, Orders: &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
+		Replies: &inbox.Replies{Pool: pool, Box: box, Sender: sender}}
 	routes := http.NewServeMux()
 	server.Register(routes)
 	w.server = httptest.NewServer(routes)

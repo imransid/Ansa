@@ -17,6 +17,7 @@ import (
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/httpserver"
+	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/ratelimit"
@@ -38,14 +39,16 @@ type Server struct {
 	Limiter  *ratelimit.Limiter
 	Log      *logging.Logger
 	// SCREENS_SHARED_SECRET; empty: every request is refused.
-	Secret string
-	Orders *orders.StatusChange
+	Secret  string
+	Orders  *orders.StatusChange
+	Replies *inbox.Replies
 }
 
 // Register adds every endpoint.
 func (s *Server) Register(routes *http.ServeMux) {
 	routes.HandleFunc("GET /api/v1/orders", s.withSession(s.listOrders))
 	routes.HandleFunc("POST /api/v1/orders/{id}/status", s.withSession(s.changeOrderStatus))
+	s.registerInbox(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

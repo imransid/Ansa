@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/team"
 )
 
 // linkAccount ties a Telegram account to the company of the code its owner
@@ -21,13 +22,11 @@ func linkAccount(ctx context.Context, pool *database.Pool, code claimedCode, fac
 		if _, err := tx.Exec(ctx, `SELECT id FROM companies WHERE id = $1 FOR NO KEY UPDATE`, company); err != nil {
 			return err
 		}
-		var role string
-		err := tx.QueryRow(ctx, `SELECT role FROM users WHERE company_id = $1 AND id = $2 AND email_verified = true AND deactivated_at IS NULL FOR SHARE`, company, code.CreatedByUserID).Scan(&role)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && role != "owner") {
-			outcome = linkNotAllowed
-			return nil
-		}
-		if err != nil {
+		role, err := team.RoleWithin(ctx, tx, code.CompanyID, code.CreatedByUserID)
+		if err != nil || role != "owner" {
+			if err == nil {
+				outcome = linkNotAllowed
+			}
 			return err
 		}
 		var open string
