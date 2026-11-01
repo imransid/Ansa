@@ -116,6 +116,28 @@ def test_the_draft_uses_its_own_settings():
     assert (use.effort, use.max_tokens, use.timeout_seconds, use.max_retries, key) == ("medium", 12_000, 120, 1, None)
 
 
+def test_the_request_core_sends_is_read(monkeypatch):
+    """The exact keys core's studio/inputs.go writes (a contract between the two)."""
+    import brain.app as app_module
+
+    monkeypatch.setattr(app_module, "active_asker", asker(GOOD))
+    core_request = {
+        "platform": {"key": "linkedin", "name": "LinkedIn", "accepted_formats": "text posts, posts with an image and videos", "title_max": 0,
+                     "text_label": "Post text", "text_max": 3000, "text_counting": "characters", "refuses_angle_brackets": False,
+                     "hashtags_max": 10, "hashtags_recommended": 0, "feed_cut": {"characters": 210, "more_label": "...see more"}},
+        "format": "post", "format_name": "Text post", "topic": "Our bread",
+        "pillar": {"name": "Craft", "description": None, "example_topics": []},
+        "campaign": {"name": "Winter", "objective": None, "timing": None, "call_to_action": None},
+        "plan": {"positioning": "Neighbourhood bakery", "audiences": [{"name": "Locals", "needs": "Fresh bread", "where_to_reach": "Facebook"}]},
+        "facts": [{"topic": "description", "label": "What the business does", "value": "A bakery"}],
+        "words_to_avoid": [], "knowledge_slice": "", "topic_keys": TOPICS,
+    }
+    client = TestClient(create_app(Settings(shared_secret=SECRET)))
+    body = json.dumps(core_request).encode()
+    answer = client.post("/v1/content/draft", content=body, headers=sign(body, int(time.time())))
+    assert answer.status_code == 200 and answer.json() == {"kind": "ok", "draft": GOOD}
+
+
 def test_an_unknown_field_is_refused():
     client = TestClient(create_app(Settings(shared_secret=SECRET)))
     body = json.dumps({**request().model_dump(), "company_id": "x"}).encode()
