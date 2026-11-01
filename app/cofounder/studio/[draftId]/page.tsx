@@ -3,8 +3,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canReviewContentDrafts } from "@/lib/cofounder/permissions";
-import { getSessionContext, requireSessionContext } from "@/lib/session";
-import { getContentDraftPageForSession } from "@/services/content-drafts";
+import { isCoreOn } from "@/lib/core-api";
+import { getDraftPublishingFromCore } from "@/lib/core-views/draft-publishing";
+import { getContentDraftPageFromCore } from "@/lib/core-views/studio-draft";
+import { getSessionContext, requireSessionContext, type SessionContext } from "@/lib/session";
+import { getContentDraftPageForSession, type ContentDraftPage } from "@/services/content-drafts";
 import { getDraftPublishingForSession } from "@/services/draft-publishing";
 import { DraftClaims } from "./draft-claims";
 import { DraftMadeFrom } from "./draft-made-from";
@@ -14,6 +17,17 @@ import { DraftWorkspace } from "./draft-workspace";
 
 // One read per request: the tab title and the page both need the draft.
 const readDraft = cache(getContentDraftPageForSession);
+const readDraftFromCore = cache(getContentDraftPageFromCore);
+
+// The draft, and whether this person approves and rejects it (an owner):
+// from the new backend when it is switched on (lib/core-api.ts), else services/.
+async function readDraftForPage(session: SessionContext, draftId: string): Promise<{ draft: ContentDraftPage; canReview: boolean } | null> {
+  if (isCoreOn()) {
+    return readDraftFromCore(draftId);
+  }
+  const draft = await readDraft(session, draftId);
+  return draft ? { draft, canReview: canReviewContentDrafts(session.role) } : null;
+}
 
 // "Regenerate" asks Claude inside this page's server action (up to about 4
 // minutes), "Make the image with the AI" has it made right after the
@@ -30,10 +44,11 @@ export async function generateMetadata({ params }: PageProps<"/cofounder/studio/
   if (!session) {
     return { title: "Draft - ansa" };
   }
-  const draft = await readDraft(session, draftId);
-  if (!draft) {
+  const found = await readDraftForPage(session, draftId);
+  if (!found) {
     return { title: "Draft not found - ansa" };
   }
+  const { draft } = found;
   const topic = draft.topic.length > 60 ? `${draft.topic.slice(0, 60).trimEnd()}...` : draft.topic;
   return { title: `${topic} - Studio - ansa` };
 }
@@ -57,12 +72,16 @@ export default function ContentDraftPage({ params }: PageProps<"/cofounder/studi
 async function DraftContent({ params }: Pick<PageProps<"/cofounder/studio/[draftId]">, "params">) {
   const { draftId } = await params;
   const session = await requireSessionContext(`/cofounder/studio/${encodeURIComponent(draftId)}`);
-  const draft = await readDraft(session, draftId);
+  const found = await readDraftForPage(session, draftId);
   // Unknown id, bad id, or another company's draft: all look the same (../not-found.tsx).
-  if (!draft) {
+  if (!found) {
     notFound();
   }
-  const publishing = await getDraftPublishingForSession(session, draft);
+  const { draft, canReview } = found;
+  const publishing = isCoreOn() ? await getDraftPublishingFromCore(draft.id) : await getDraftPublishingForSession(session, draft);
+  if (!publishing) {
+    notFound();
+  }
 
   return (
     <>
@@ -85,8 +104,8 @@ async function DraftContent({ params }: Pick<PageProps<"/cofounder/studio/[draft
           fields: draft.fields,
           editedByHand: draft.editedByHand,
         }}
-        // Hiding Approve and Reject is only for a tidy page: the services and /db refuse members.
-        isOwner={canReviewContentDrafts(session.role)}
+        // Hiding Approve and Reject is only for a tidy page: the services and /db (or core) refuse members.
+        isOwner={canReview}
         wordsToAvoid={draft.review.wordsToAvoid}
         businessName={draft.businessName}
         planChoices={draft.planChoices}

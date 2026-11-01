@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { canManageBusinessProfile } from "@/lib/cofounder/permissions";
+import { isCoreOn } from "@/lib/core-api";
+import { getNewDraftOptionsFromCore } from "@/lib/core-views/studio";
 import { requireSessionContext } from "@/lib/session";
 import { getNewDraftOptionsForSession } from "@/services/content-drafts";
 import { MissingFacts } from "../../missing-facts";
@@ -31,7 +33,8 @@ export default function NewDraftPage() {
 // doesn't.
 async function NewDraftContent() {
   const session = await requireSessionContext("/cofounder/studio/new");
-  const options = await getNewDraftOptionsForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const options = isCoreOn() ? await getNewDraftOptionsFromCore() : await getNewDraftOptionsForSession(session);
   const aiCanWrite = options.missingForAi.length === 0;
 
   return (
