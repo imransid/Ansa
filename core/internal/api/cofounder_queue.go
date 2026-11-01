@@ -96,8 +96,12 @@ func (s *Server) scheduleDraft(w http.ResponseWriter, r *http.Request, body []by
 	}
 	now := time.Now()
 	if at != nil {
-		if when := publishing.CheckScheduleTime(*at, now); when != "ok" {
-			fieldProblems(w, map[string]string{"scheduledFor": map[string]string{"past": "That time has passed: pick a later one, or Now.", "too_far": "Pick a time within the next year."}[when]})
+		switch publishing.CheckScheduleTime(*at, now) {
+		case "past":
+			fieldProblems(w, map[string]string{"scheduledFor": "That time has passed: pick a later one, or Now."})
+			return
+		case "too_far":
+			fieldProblems(w, map[string]string{"scheduledFor": "Pick a time within the next year."})
 			return
 		}
 	}
