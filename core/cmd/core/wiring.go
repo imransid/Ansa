@@ -64,11 +64,10 @@ func fileStore(cfg config.Config) *files.Store {
 	return store
 }
 
-// vapiSigning is how Vapi signs its webhooks (the VAPI_* settings).
+// vapiSigning is how Vapi signs its webhooks (the VAPI_* settings; the
+// simulators sign with the same function).
 func vapiSigning(cfg config.Config) calls.Signing {
-	return calls.Signing{Secret: cfg.VapiWebhookSecret, SignatureHeader: cfg.VapiSignatureHeader, TimestampHeader: cfg.VapiTimestampHeader,
-		Algorithm: cfg.VapiSignatureAlgorithm, Payload: cfg.VapiSignaturePayload, Encoding: cfg.VapiSignatureEncoding,
-		Prefix: cfg.VapiSignaturePrefix, TimestampUnit: cfg.VapiTimestampUnit, ToleranceSeconds: cfg.VapiToleranceSeconds}
+	return calls.SigningFrom(cfg)
 }
 
 // chatSender is the one door for messages to customers.

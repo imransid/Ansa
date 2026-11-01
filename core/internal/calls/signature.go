@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"ansa/core/internal/config"
 )
 
 // Signing is how Vapi signs (settings, so the first real call can be
@@ -44,6 +46,14 @@ type Signing struct {
 }
 
 var digitsOnly = regexp.MustCompile(`^\d{1,16}$`)
+
+// SigningFrom is how Vapi signs, read from the VAPI_* settings: the
+// webhook checks with it and the simulators sign with it, so they agree.
+func SigningFrom(cfg config.Config) Signing {
+	return Signing{Secret: cfg.VapiWebhookSecret, SignatureHeader: cfg.VapiSignatureHeader, TimestampHeader: cfg.VapiTimestampHeader,
+		Algorithm: cfg.VapiSignatureAlgorithm, Payload: cfg.VapiSignaturePayload, Encoding: cfg.VapiSignatureEncoding,
+		Prefix: cfg.VapiSignaturePrefix, TimestampUnit: cfg.VapiTimestampUnit, ToleranceSeconds: cfg.VapiToleranceSeconds}
+}
 
 // Valid: the signature matches these exact bytes (and, when the timestamp
 // is signed, the request is recent: a captured one can't be replayed).

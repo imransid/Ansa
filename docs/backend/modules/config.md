@@ -33,7 +33,15 @@ stand-in, and production refuses the stand-in, so generation is off there:
 see [media](media.md)). The checks of each group
 live in `checks.go`. See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
+**The command-line tools' settings file (`file.go`):** `FillFromFile`
+sets each `NAME=value` line of `../.env.core` that the environment doesn't
+set already (a missing file is fine; a bad line sets nothing and is named by
+its number, never its value), so a setting given on the command line wins:
+`DATABASE_URL="<direct url>" make link-phone-line ...` never falls back to the
+file's local database ([commands](commands.md)). The service itself
+(`make run`) reads the environment only.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are
 named, never shown; real email needs its sender; production needs real email
 and an https address; `social_test.go`: half a social app's pair stops the
-server, named never shown.
+server, named never shown; `file_test.go`: the file never overrides the
+environment; quotes and comments; a bad line sets nothing.

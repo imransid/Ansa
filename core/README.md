@@ -15,20 +15,62 @@ database. Read `docs/backend/README.md` first.
 3. In development, emails and stand-in chat replies are files in the
    repository's `.dev-emails/` and `.dev-messages/` (as the old backend's).
 4. Try the assistant without Telegram: with core running, from `core/`:
-   `make simulate OWNER=you@example.com NAME="Lena" TEXT="Are you open tonight?"`
+   `make simulate-message OWNER=you@example.com NAME="Lena" TEXT="Are you open tonight?"`
    (development and a local database only). The answer appears in
    `.dev-messages/` and in the Inbox.
 
 ## Test it
-From `core/`: `make check` (formatting, `go vet`, every test). The tests use
-TEST_DATABASE_URL: a local database of its own (`ansa_test`), never the one a
-running core uses; `.env.core.example` says how to make it.
+From `core/`: `make check` (formatting, `go vet`, every test; one folder:
+`make test PKG=./internal/commands/`). The tests use TEST_DATABASE_URL: a
+local database of its own (`ansa_test`), never the one a running core uses;
+`.env.core.example` says how to make it. The tests that answer for Telegram
+with a fake refuse to run while TELEGRAM_BOT_TOKEN is set.
+
+## Commands
+Run from `core/` (`make <target>`, or `go run ./cmd/operator ...` /
+`go run ./cmd/simulate ...`). Each reads the environment first, then
+`../.env.core` for what it doesn't set, so a setting on the command line
+wins. A company is found only by a confirmed, active owner's address; a
+command that changes something prints the company and changes nothing
+without `YES=1` (`--yes`). Every command, its flags and its guards:
+[commands](../docs/backend/modules/commands.md).
+
+ansa's operator (development and production):
+| make | Does |
+|---|---|
+| `link-phone-line OWNER= NUMBER= [YES=1]` | Links a Vapi number to the owner's company |
+| `unlink-phone-line OWNER= NUMBER= [YES=1]` | Unlinks it (only before its first call) |
+| `show-forwarding-address OWNER=` | Prints the company's forwarding address (needs INBOUND_EMAIL_DOMAIN) |
+| `replace-forwarding-address OWNER= [YES=1]` | A new forwarding address; the old one stops at once |
+| `telegram-webhook ACTION=set URL=https://<core's public address>` or `ACTION=remove` | Points ansa's bot at core's webhook, or takes it off |
+
+Development tools (refused in production and outside a local database;
+`CORE=<address>` for a local core other than CORE_LISTEN_ADDR's):
+| make | Does |
+|---|---|
+| `simulate-message OWNER= NAME= TEXT=` (or `simulate`) | A stand-in chat customer's message |
+| `simulate-telegram OWNER= NAME= TEXT=` | A message to the stand-in Telegram account |
+| `simulate-messenger OWNER= NAME= TEXT=` | A message to the stand-in Facebook Page |
+| `telegram-poll` | Reads a real development bot's updates without a public address |
+| `simulate-vapi-call NUMBER= [VARIANT=all]` | Made-up calls (and bad requests) to the running core |
+| `simulate-vapi-tool-call NUMBER= QUESTION= [CALL=] [END_CALL=1]` | The live assistant's knowledge search |
+| `simulate-solved-call OWNER= NUMBER=` | A call the AI marked solved (a stand-in for the brain) |
+| `try-brain OWNER= CALL=` | The brain's verdict on a stored call, saved nowhere |
+| `simulate-inbound-email TO= [VARIANT=]` | A made-up customer email through the forwarding address |
+| `simulate-email-bounce FILE= [KIND=]` | A delivery problem for an email in `.dev-emails/` |
+| `simulate-post-metrics JOB= NUMBERS=` | Simulated numbers for a stand-in's post |
+| `seed-tickets OWNER=` | Sample requests |
+
+Not needed any more: `pnpm assistant:catch-up` (core's scheduler runs the
+catch-up every 15 seconds).
 
 ## Folders
 | Folder | What | Docs |
 |---|---|---|
 | `cmd/core/` | Starts the service | this page |
-| `cmd/simulate/` | A stand-in customer's message, for trying core by hand; simulated numbers for a stand-in's post (`post-metrics`) | this page, [analytics](../docs/backend/modules/analytics.md) |
+| `cmd/operator/` | ansa's operator commands | [commands](../docs/backend/modules/commands.md) |
+| `cmd/simulate/` | The development tools (stand-in messages, made-up calls and emails, telegram-poll, try-brain, sample requests, simulated numbers) | [commands](../docs/backend/modules/commands.md), [analytics](../docs/backend/modules/analytics.md) |
+| `internal/commands/` | What the commands share: the company of an owner's address, `--yes`, the development guard, their statements | [commands](../docs/backend/modules/commands.md) |
 | `internal/config/` | Settings, checked at start | [config](../docs/backend/modules/config.md) |
 | `internal/logging/` | Safe JSON logs | [logging](../docs/backend/modules/logging.md) |
 | `internal/secure/` | Encryption of stored text | [secure](../docs/backend/modules/secure.md) |

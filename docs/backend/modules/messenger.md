@@ -39,6 +39,8 @@ in, saved once, reply and name queued, the contact id; ansa's own echo
 skipped, the Page's own saved, a Page in two companies decides nothing; the
 setup check; sending, the window-closed code and the name through a fake
 Graph API.
+**Development:** `make simulate-messenger` (from `core/`) brings a
+customer's message to the development stand-in Page, saved with the same
+functions this webhook saves with ([commands](commands.md)).
 **Still on the old backend:** switching a Page's messages on for ansa's app
-after it connects (`subscribed_apps`: with the social connect flow), and
-`pnpm simulate:messenger`.
+after it connects (`subscribed_apps`: with the social connect flow).
