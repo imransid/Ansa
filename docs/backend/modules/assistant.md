@@ -17,4 +17,9 @@ sending, drafting or handing over.
 won, 3 for dinars, 2 for most); a minus is no price.
 **AI label:** "I'm the AI assistant for <business>." / "I'm <name>'s AI
 assistant.", ansa's own first line of the first automated message.
-**Tests:** `checks_test.go`.
+**Gate (`gate.go`, the old `gateWithin`'s order):** not found → paused →
+taken over by a person → the message handled already → a request open in the
+conversation → a newer customer message (it gets its own run) → may. Read
+again, with the conversation row locked, inside the transaction that saves.
+`MarkHandledWithin` records the message as answered (never answered twice).
+**Tests:** `checks_test.go`; `gate_test.go` (live database).
