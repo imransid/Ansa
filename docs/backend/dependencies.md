@@ -9,7 +9,8 @@ attacker (the 2025 npm worms are the reminder). Add one only with a line here.
 | github.com/jackc/pgx/v5 | The PostgreSQL driver and pool (parameterized queries only) |
 | golang.org/x/text | NFKC normalisation for safe email sender names; `encoding/htmlindex` decodes a web page in the charset its server names ("Import a web page") (Go's own extended packages; pgx needs it too) |
 | golang.org/x/net | `idna`: an international email domain converted to ASCII as browsers do (Go's own extended packages) |
-| golang.org/x/crypto, golang.org/x/sync | Pulled in by pgx (Go's own extended packages) |
+| golang.org/x/crypto | `scrypt`: passwords in Better Auth's own format, so existing passwords keep working (Go's own extended packages; pgx pulls it in too) |
+| golang.org/x/sync | Pulled in by pgx (Go's own extended packages) |
 
 ## brain (Python), exact versions in `brain/requirements.txt`
 | Package | Why |

@@ -23,3 +23,5 @@ company.
 | List the companies with "Post for me" on | internal/autopost/store.go | The runs serve every company that has it on: ids and their posting settings only; each post is then written through company-scoped paths. |
 | Claim the next post due for its numbers | internal/postmetrics/collector.go | The collector serves every company: one UPDATE claims one published post (a scalar SKIP LOCKED subquery) and returns its ids; the read then runs with its own company. |
 | Delete expired connection attempts, used-up Telegram link codes, finished jobs past 30 days | internal/maintenance/cleanup.go | Housekeeping by age alone: nobody can use such a row any more; nothing is read. |
+| Find an account by its address (login, confirming) | internal/accounts/login.go | An address belongs to one account across companies (users.email is unique); only that person's own row and password are read. |
+| Check, preview and claim an invite by its token's hash | internal/accounts/signup.go | Only ansa makes invite tokens (only their hash is stored); the token names its company; only that invite's row (and its company's name for the preview) is read or changed. |

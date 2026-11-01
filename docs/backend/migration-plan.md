@@ -81,8 +81,8 @@
 ## Phase 6: accounts and money
 | Module | Old code | Status |
 |---|---|---|
-| sign up, login, email confirm, reset, sessions | services/auth.ts, signup.ts, password-reset.ts (Better Auth) | ⬜ |
-| team, invites, roles, removing, categories | db/team-members.ts, invites.ts, categories.ts, user-categories.ts | ✅ core/internal/teammates (joining through an invite moves with login) |
+| sign up, joining through an invite, login, email confirm, reset, account, sessions (Better Auth's formats kept) | services/auth.ts, signup.ts, password-reset.ts, account.ts (Better Auth) | ✅ core/internal/accounts |
+| team, invites, roles, removing, categories | db/team-members.ts, invites.ts, categories.ts, user-categories.ts | ✅ core/internal/teammates (joining: core/internal/accounts) |
 | setup and settings | services/restaurant-setup.ts, assistant-settings.ts | ✅ core/internal/setup, settings (in core's API) |
 | Phone, email and documents (the old /setup): reply-to, support addresses, documents | services/setup.ts, documents.ts | ✅ core/internal/supportsetup, documents |
 | private file storage (development folder, R2 with signed links) | lib/file-storage.ts, adapters/r2.ts | ✅ core/internal/files |

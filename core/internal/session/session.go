@@ -53,6 +53,12 @@ func (r *Reader) FromRequest(ctx context.Context, request *http.Request) (*Sessi
 	return find(ctx, r.Pool, token)
 }
 
+// Token is the session token of the request's correctly signed cookie, or ""
+// (logging out ends exactly that login).
+func (r *Reader) Token(request *http.Request) string {
+	return r.tokenOf(request)
+}
+
 // tokenOf is the session token of a correctly signed cookie, or "".
 func (r *Reader) tokenOf(request *http.Request) string {
 	for _, name := range cookieNames {

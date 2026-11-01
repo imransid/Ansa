@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"ansa/core/internal/accounts"
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/autopost"
 	"ansa/core/internal/brainclient"
@@ -77,6 +78,8 @@ type Server struct {
 	EmailFrom string
 	// "Import a web page" fetches only through it.
 	WebFetcher *safefetch.Fetcher
+	// Logins, signups, resets and one's own account.
+	Accounts *accounts.Service
 }
 
 // Register adds every endpoint.
@@ -97,6 +100,8 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerTeam(routes)
 	s.registerSupport(routes)
 	s.registerKnowledge(routes)
+	s.registerAuth(routes)
+	s.registerAccount(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

@@ -89,6 +89,27 @@ func Remove(ctx context.Context, pool *database.Pool, company tenant.CompanyID, 
 	return removed, err
 }
 
+// RemoveUnconfirmed deletes an account of the company that never confirmed
+// its address (its own password reset link does this for someone who joined
+// through an invite: the address may be a typo, its inbox a stranger's),
+// the company row lock first (its open requests are routed again). False:
+// it was confirmed meanwhile, or isn't there.
+func RemoveUnconfirmed(ctx context.Context, pool *database.Pool, company tenant.CompanyID, userID string) (bool, error) {
+	removed := false
+	err := database.InTx(ctx, pool, func(tx database.Tx) error {
+		if err := team.LockCompanyWithin(ctx, tx, company); err != nil {
+			return err
+		}
+		err := deleteUnconfirmedWithin(ctx, tx, company, userID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		removed = err == nil
+		return err
+	})
+	return removed, err
+}
+
 // deactivateWithin marks a confirmed teammate removed and ends everything
 // they could still use.
 func deactivateWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, userID string) error {
