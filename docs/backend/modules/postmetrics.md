@@ -21,7 +21,7 @@ read_insights, which ansa doesn't ask for).
 at most 20 posts a round. A post is due when published 1 hour to 30 days
 ago, with Facebook's id (one an owner marked published by hand has none),
 on a real Page (never the development stand-in: its numbers come from
-`pnpm simulate:post-metrics`), and not tried in the last 20 hours. It is
+`make simulate-post-metrics`), and not tried in the last 20 hours. It is
 CLAIMED in ONE UPDATE (`metrics_attempted_at = now`, a scalar SKIP LOCKED
 subquery, the longest waiting first; listed in CROSS_COMPANY.md);
 `updated_at` is untouched (the queue sorts by it).

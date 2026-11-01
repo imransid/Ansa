@@ -24,15 +24,16 @@
 | database | core/internal/database | Connection pool, transactions, the company-in-every-query test | ✅ |
 | ratelimit | core/internal/ratelimit | Counters in PostgreSQL, HMAC keys shared with the old backend | ✅ |
 | jobs | core/internal/jobs | Job queue in PostgreSQL (`SKIP LOCKED`), retries, hand-back (table `core_jobs`, migration 0048) | ✅ |
+| command-line tools | core/cmd/operator, core/cmd/simulate, core/internal/commands | Every `scripts/*.ts` the operator and developers ran (link and unlink a phone line, the forwarding address, the Telegram webhook; every simulator, telegram:poll, seed:tickets, try:brain), as `make` targets of the same names ([commands](modules/commands.md)); `assistant:catch-up` isn't needed (core's scheduler) | ✅ |
 
 ## Phase 1: chats
 | Module | Old code | Status |
 |---|---|---|
 | conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | ✅ saving (conversations), the Inbox, the page, take over, hand back, replies, important (inbox) |
 | chat delivery (one door) | lib/chat-delivery.ts | ✅ Telegram, Messenger and the stand-in |
-| Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | ✅ telegram, channels (the operator's `telegram:webhook` script remains) |
+| Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | ✅ telegram, channels; the operator's `telegram-webhook` and the development `telegram-poll` (cmd/operator, cmd/simulate) |
 | Messenger | services/messenger-*.ts, adapters/messenger.ts | ✅ core/internal/messenger, social (switching a Page's messages on moves with the social connect flow) |
-| development stand-ins | adapters/dev-chat-outbox.ts, scripts/simulate-*.ts | 🔨 the stand-in chat and `cmd/simulate message` done; Telegram and Messenger stand-in simulators next |
+| development stand-ins | adapters/dev-chat-outbox.ts, scripts/simulate-*.ts | ✅ the stand-in chat; `cmd/simulate` message, telegram, messenger and every other simulator ([commands](modules/commands.md)) |
 
 ## Phase 2: the assistant
 | Module | Old code | Status |

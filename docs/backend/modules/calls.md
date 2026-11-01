@@ -12,8 +12,9 @@ account yet): the field paths and the signing follow Vapi's docs.
 **The webhook (`webhook.go`, `signature.go`, `POST /webhooks/vapi`):** the
 order every webhook keeps: at most 1 MB, raw bytes, Vapi's signature
 (HMAC over "{timestamp}.{body}" or "{body}", every part a VAPI_* setting,
-compared in constant time; a signed timestamp must be within the
-tolerance; no secret = every request refused), 10,000 a minute per IP (a
+read by `SigningFrom`, which the simulators sign with too; compared in
+constant time; a signed timestamp must be within the tolerance; no secret
+= every request refused), 10,000 a minute per IP (a
 ceiling: all of Vapi's traffic shares it), then JSON. Only two message
 types matter:
 - `end-of-call-report`: the company comes ONLY from `phone_lines` (Vapi's
@@ -92,6 +93,11 @@ VAPI_TIMESTAMP_TOLERANCE_SECONDS, VAPI_RECORDING_HOSTS (the old defaults).
 **Logging rule:** never a transcript, a question, an answer, a recording's
 address or a file key; fixed lines and class names only.
 
+**A dry run (`try.go`, `TryDecision`):** the development tool `try-brain`
+asks the brain about a stored call of the company exactly as the analysis
+does (the same request and checks), without claiming the call or saving
+anything; codes and names only ([commands](commands.md)).
+
 **Tests:** `webhook_test.go` (unsigned = 401 and nothing saved; a signed
 report saved once, encrypted, in the caller's conversation, its analysis
 queued; an unknown line ignored; the live search answers from the
@@ -100,7 +106,8 @@ and an empty question, and searches nothing for an unknown line),
 `analysis_test.go` (a "needs_human" makes its request in the conversation
 with the category by id; a decided call isn't analyzed again; a "solved"
 keeps the customer's sentence and is escalated once, its verdict kept; a
-silent brain and an unproven "solved" escalate), `api/calls_test.go` (the
+silent brain and an unproven "solved" escalate), `try_test.go` (a dry run
+claims and saves nothing; another company's call isn't found), `api/calls_test.go` (the
 list and its counts, stuck, a search by digits; another company's call is
 404 and can't be escalated), `knowledge/callanswer_test.go` (one escaped
 line; a long piece cut after a sentence). The brain's rules:

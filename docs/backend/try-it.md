@@ -45,8 +45,10 @@ backend, stop it and run plain `pnpm dev`.
 - Home: the status card and its button, "Needs you", "What ansa did", the
   numbers.
 - A customer message without Telegram: in a 4th terminal,
-  `cd core && make simulate OWNER=<your login email> NAME="Lena" TEXT="Are you open tonight?"`.
-  The answer appears in `.dev-messages/` and in the Inbox.
+  `cd core && make simulate-message OWNER=<your login email> NAME="Lena" TEXT="Are you open tonight?"`.
+  The answer appears in `.dev-messages/` and in the Inbox. With a stand-in
+  Telegram account or Facebook Page connected (Connections), `make
+  simulate-telegram` and `make simulate-messenger` take the same arguments.
 - An order through the stand-in chat (ask for two dishes from your menu,
   answer "yes"), then Orders: Accept, Ready, Done.
 - Settings → Assistant (Try your assistant), What it knows, Menu (Read my
@@ -57,7 +59,15 @@ backend, stop it and run plain `pnpm dev`.
 - Team (invite link, roles, categories), Saved answers (knowledge), Phone,
   email and documents, Account (name, password), Billing (simulate).
 - Log out and log in again; "Forgot password" (the link is in `.dev-emails/`).
-- Calls: no Vapi account yet, so the list stays empty until a real call.
+- Calls: no Vapi account yet. Link a made-up number (`make link-phone-line
+  OWNER=<your login email> NUMBER=pn-local-test YES=1`), set
+  VAPI_WEBHOOK_SECRET in `.env.core` and restart core, then `make
+  simulate-vapi-call NUMBER=pn-local-test` (a call a person must follow up)
+  or `make simulate-solved-call OWNER=<your login email>
+  NUMBER=pn-local-test` (one the AI marked solved, to try "Escalate").
+- A customer email: with RESEND_WEBHOOK_SECRET in `.env.core` (any
+  `whsec_` and base64 in development), `make simulate-inbound-email
+  TO=<your login email>`. Every tool: [modules/commands.md](modules/commands.md).
 
 ## What still runs on the old backend
 The hidden marketing pages (interview, strategy, studio, media, calendar,

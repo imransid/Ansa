@@ -136,7 +136,7 @@ brain: newest first, the periods, another company's posts and reviews
 never shown, the problems, no AI below 5 posts, for a member, past the
 limit or without a time zone, what the brain gets, exactly what the check
 kept saved, every failure saving nothing); `api/cofounder_analytics_test.go`;
-`cmd/simulate/postmetrics_test.go` (the guard); brain
+`cmd/simulate/main_test.go` (the guard and the usage, [commands](commands.md)); brain
 `tests/test_analytics.py` (the prompt, rules and schema equal the old
 ones, `tests/golden/performance_review.json`; the settings; the strict
 reading; the reasons; only core's signed request with known numbers).

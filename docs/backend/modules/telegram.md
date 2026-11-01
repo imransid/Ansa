@@ -41,6 +41,13 @@ one request with a 15-second limit, no redirects (the token is in the
 address); only `ok`, the message id and the HTTP status are read; 429 =
 `rate_limited`, 401/404 = `bot_rejected`, other refusals = `refused`; no
 answer or a 5xx = `unclear` (Telegram may have it: never sent again by itself).
+**The bot's own setup (`botapi.go`):** `SetWebhook` (core's address, the
+secret as `secret_token`, the four kinds of updates ansa reads in
+`UpdateTypes`, 40 connections) and `DeleteWebhook`, for the operator's
+`telegram-webhook`; `GetUpdates` (25-second long polls; 409 = a webhook is
+set) for the development `telegram-poll`, which hands each update to this
+webhook's handler in its own process ([commands](commands.md)). Read by
+status, `ok` and the updates only, never Telegram's own words.
 **Settings:** TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, TELEGRAM_WEBHOOK_SECRET (all or none).
 **Tests:** `update_test.go`; `webhook_test.go` (live database): a wrong or
 missing secret saves nothing; a customer message is saved once, encrypted,
@@ -49,6 +56,8 @@ with one reply job; the business's own message, the bot's echo and deletions;
 (live database): Start then chatbot connects the code's company, once; a
 chatbot added first waits for the Start; a stranger is told how to connect;
 a made-up code connects nothing; an owner made a member meanwhile connects
-nothing.
+nothing; `botapi_test.go` (a fake Bot API; refused while TELEGRAM_BOT_TOKEN
+is set): the webhook's address, secret and updates, refusals by status, the
+updates read and a webhook that stops polling.
 **Still on the old backend:** making the code (the "Connect Telegram"
-button: with the screens' API) and the operator's `telegram:webhook` script.
+button: with the screens' API).

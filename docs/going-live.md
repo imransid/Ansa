@@ -116,16 +116,18 @@ Neon keeps point-in-time backups; check the retention on your plan.
    by ansa, `c-<32 random characters>@<INBOUND_EMAIL_DOMAIN>`, shown on
    its Setup page. It forwards its support mailbox there. Only that address
    decides which company an email belongs to; the support addresses companies
-   list never do. To look one up from your machine, give the production domain
-   too (the script refuses to print an address without it):
-   `INBOUND_EMAIL_DOMAIN=<production domain> DATABASE_URL="<direct url>" pnpm show:forwarding-address owner@theircompany.com`.
+   list never do. To look one up from your machine, from `core/`, give the
+   production domain too (the command refuses to print an address without it;
+   settings on the command line win over `.env.core`):
+   `INBOUND_EMAIL_DOMAIN=<production domain> DATABASE_URL="<direct url>" make show-forwarding-address OWNER=owner@theircompany.com`.
    The address is not secret (it is the Reply-To of the company's "solved"
    emails). If one gets spam, give that company a new one with the same
-   settings: `... pnpm replace:forwarding-address owner@theircompany.com`. It
+   settings: `... make replace-forwarding-address OWNER=owner@theircompany.com`. It
    prints the company's name and changes nothing; check it, then run it again
-   with `--yes`. The old address stops working at once, so the company must
-   forward to the new one (Gmail asks to confirm it again). Both scripts take
-   only the address of an owner who confirmed it and was not removed.
+   with `YES=1`. The old address stops working at once, so the company must
+   forward to the new one (Gmail asks to confirm it again). Both commands take
+   only the address of an owner who confirmed it and was not removed
+   (docs/backend/modules/commands.md).
 5. Before launch, test one REAL forward: set up forwarding from a Gmail or
    Google Workspace mailbox to a forwarding address (Gmail's confirmation email
    must show up as a ticket; click its link there), then forward one email. In
@@ -197,16 +199,16 @@ Neon keeps point-in-time backups; check the retention on your plan.
    and an end-of-call report refused there is lost: Vapi doesn't retry.
 6. You link each company's number; owners can't (the numbers live in your Vapi
    account, and whoever holds an id gets its calls). Copy the number's id from
-   the Vapi dashboard, then from your machine:
-   `DATABASE_URL="<direct url>" pnpm link:phone-line owner@theircompany.com <vapiPhoneNumberId>`.
+   the Vapi dashboard, then from your machine, from `core/`:
+   `DATABASE_URL="<direct url>" make link-phone-line OWNER=owner@theircompany.com NUMBER=<vapiPhoneNumberId>`.
    Use the address of the company's owner, who confirmed it and was not
    removed: any other account with it (for example an invite another company
    sent to that address) is refused, because whoever holds the link gets the
-   number's transcripts and caller numbers. The script prints the company's
+   number's transcripts and caller numbers. The command prints the company's
    name and links nothing: check it is the company that asked, then run the
-   same command again with `--yes`. A wrong link is undone with `pnpm
-   unlink:phone-line` (same arguments, `--yes` too), but only before the
-   number has calls. The company's Setup page lists the number
+   same command again with `YES=1`. A wrong link is undone with `make
+   unlink-phone-line` (same arguments, `YES=1` too), but only before the
+   number has calls. The company's Connections page lists the number
    with its last call: a number that shows no calls after a test call is linked
    wrong.
 7. Knowledge during calls (step 35), **NOT TESTED against a real Vapi
@@ -291,9 +293,10 @@ Neon keeps point-in-time backups; check the retention on your plan.
       in lib/validation/vapi-tool-calls.ts). The call's page then lists
       "Knowledge the AI looked up during the call".
 
-   Without Vapi: `pnpm simulate:vapi-tool-call <vapiPhoneNumberId>
-   "<question>"` asks the running app as the assistant would, and Knowledge >
-   "Test what the AI finds" shows the exact line the assistant gets.
+   Without Vapi (development, from `core/`): `make simulate-vapi-tool-call
+   NUMBER=<vapiPhoneNumberId> QUESTION="<question>"` asks the running core as
+   the assistant would, and Knowledge > "Test what the AI finds" shows the
+   exact line the assistant gets.
 
 ## 5. Claude
 
@@ -312,8 +315,9 @@ The Anthropic SDK's own logging and tracing are switched off in code
 (adapters/claude.ts), so `ANTHROPIC_LOG=debug` or the
 `ANTHROPIC_OPEN_TELEMETRY_*` settings change nothing: transcripts, customer
 emails and Claude's answers never reach your logs that way. To see why calls
-escalate, read the reason code on the call page, or run `pnpm try:brain
-<callId>` on your own machine (it prints only the outcome and reason code).
+escalate, read the reason code on the call page, or run `make try-brain
+OWNER=<owner email> CALL=<callId>` from `core/` on your own machine, against
+a local copy (it prints only the outcome and reason code, and saves nothing).
 
 Calls and emails each have their own request settings in
 adapters/claude-settings.ts (read by adapters/claude.ts, the only file that
@@ -637,8 +641,8 @@ the first real read of each platform, compare the numbers on the Analytics
 page with the platform's own (docs/research/social-publishing-apis.md,
 section 5, says what is NOT CONFIRMED). An account the platform stops
 accepting is marked for reconnecting, as publishing does. In development
-no number is ever read: `pnpm simulate:post-metrics <publish job id>
-views=120 reactions=8` gives a stand-in's post simulated ones (refused
+no number is ever read: `make simulate-post-metrics JOB=<publish job id>
+NUMBERS="views=120 reactions=8"` (from `core/`) gives a stand-in's post simulated ones (refused
 outside a local database), and "Review performance" works on them.
 
 **LinkedIn** (`LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`)
@@ -798,16 +802,18 @@ the bot, and ansa's webhook saves them in the Inbox.
    token), `TELEGRAM_BOT_USERNAME` (without `@`, ends in `bot`) and
    `TELEGRAM_WEBHOOK_SECRET` (`openssl rand -hex 32`). All three or none.
    Production without them says Telegram isn't set up yet.
-4. **Point the bot at ansa** once the app is deployed: with the production
-   settings in the environment, run `pnpm telegram:webhook set`. It uses
-   `BETTER_AUTH_URL` + `/api/webhooks/telegram` (https only) and asks
+4. **Point the bot at ansa** once core is deployed: with the production
+   TELEGRAM_ settings in the environment, from `core/` run `make
+   telegram-webhook ACTION=set URL=https://<core's public address>`. It sets
+   that address + `/webhooks/telegram` (https only) with the secret, and asks
    Telegram for the four kinds of updates ansa reads. A request without the
-   secret header gets `401`; the logs say `Telegram webhook rejected: wrong
-   secret`.
+   secret header gets `401`; core's log says `telegram webhook rejected` with
+   the code `wrong_secret`.
 5. **Development** uses a bot of its own (a second `/newbot`), never the
-   production one: `pnpm telegram:poll` reads it without a public address,
-   and Telegram refuses that while the bot has a webhook
-   (`pnpm telegram:webhook remove`). The checks refuse to run while
+   production one: `make telegram-poll` (from `core/`) reads it without a
+   public address, and Telegram refuses that while the bot has a webhook
+   (`make telegram-webhook ACTION=remove`). The checks, and core's tests
+   that answer for Telegram with a fake, refuse to run while
    `TELEGRAM_BOT_TOKEN` is set: comment the three lines out first.
 6. **Check it** with ansa's own test company (section 11): Connect
    Telegram, Start, add the chatbot, a message from another Telegram
