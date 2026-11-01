@@ -89,7 +89,9 @@ func TestAnotherCompanysPostsNeverShowAndTheProblemsDo(t *testing.T) {
 	cutOff := w.job("x", "Cut off", "", "publishing", "11 minutes", false)
 	w.job("x", "Still sending", "", "publishing", "1 minute", false)
 
-	page, err := ReadPage(ctx, pool, w.company, false, "30", time.Now())
+	// A minute on: the rows were changed by the database's clock a moment
+	// ago, and the period ends at this one's "now".
+	page, err := ReadPage(ctx, pool, w.company, false, "30", time.Now().Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}

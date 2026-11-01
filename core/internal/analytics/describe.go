@@ -178,3 +178,21 @@ func formatNumber(value float64) string {
 	}
 	return text
 }
+
+func findPost(input ReviewInput, label string) *ReviewPost {
+	for index := range input.Posts {
+		if input.Posts[index].Label == label {
+			return &input.Posts[index]
+		}
+	}
+	return nil
+}
+
+func findGroup(input ReviewInput, label string) *ReviewGroup {
+	for index := range input.Groups {
+		if input.Groups[index].Label == label {
+			return &input.Groups[index]
+		}
+	}
+	return nil
+}
