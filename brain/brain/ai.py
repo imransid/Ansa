@@ -23,6 +23,9 @@ class UseSettings:
 # The restaurant assistant's reply to a customer (who is waiting in a chat).
 ASSISTANT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30, max_retries=1)
 
+# "Read my menu": a whole menu copied into a list (long answers, a photo or a PDF).
+MENU_READING = UseSettings(effort="low", max_tokens=16_000, timeout_seconds=120, max_retries=1)
+
 
 @dataclass(frozen=True)
 class ModelResult:
@@ -33,8 +36,9 @@ class ModelResult:
     error_name: str = ""
 
 
-def ask(system_prompt: str, prompt: str, json_schema: dict[str, Any], use: UseSettings, api_key: str | None = None) -> ModelResult:
-    """Asks the model once for a JSON answer following json_schema."""
+def ask(system_prompt: str, prompt: str | list[dict[str, Any]], json_schema: dict[str, Any], use: UseSettings, api_key: str | None = None) -> ModelResult:
+    """Asks the model once for a JSON answer following json_schema. The prompt
+    is text, or content blocks (a photo or a PDF first, then text)."""
     key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         return ModelResult(kind="unavailable")

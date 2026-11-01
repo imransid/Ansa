@@ -82,7 +82,8 @@ func main() {
 		Orders:    &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
 		Replies:   &inbox.Replies{Pool: pool, Box: box, Sender: sender},
 		Brain:     brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 5*time.Second),
-		Assistant: runner}
+		Assistant: runner,
+		MenuBrain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

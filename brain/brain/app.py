@@ -13,11 +13,16 @@ from brain import ai, claude_code
 from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
+from brain.menu.reading import JSON_SCHEMA as MENU_JSON_SCHEMA
+from brain.menu.reading import SAMPLE_ITEMS, MenuReadRequest, build_content, read_rows
+from brain.menu.reading import SYSTEM_PROMPT as MENU_SYSTEM_PROMPT
 from brain.security import SIGNATURE_HEADER, TIMESTAMP_HEADER, is_signed_by_core
 from brain.settings import Settings, load_settings
 
 # The biggest request core sends (one conversation's slice and the company's details).
 MAX_BODY_BYTES = 512 * 1024
+# A menu to read: a photo or a PDF of up to 4 MB, as base64.
+MENU_BODY_BYTES = 6 * 1024 * 1024
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -30,7 +35,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.url.path == "/health":
             return await call_next(request)
         body = await request.body()
-        if len(body) > MAX_BODY_BYTES:
+        cap = MENU_BODY_BYTES if request.url.path == "/v1/menu/read" else MAX_BODY_BYTES
+        if len(body) > cap:
             return Response(status_code=413)
         if not is_signed_by_core(active.shared_secret, request.headers.get(TIMESTAMP_HEADER), request.headers.get(SIGNATURE_HEADER), body):
             return Response(status_code=401)
@@ -59,7 +65,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         Never the prompt or the model's raw text in a log."""
         return decide_reply(request, asker_for(request.engine, active.development))
 
+    @app.post("/v1/menu/read")
+    def menu_read(request: MenuReadRequest) -> dict:
+        """A menu read into rows for the owner to check (core prices them). Without
+        a key: the development sample, or unavailable in production."""
+        return read_menu(request, active_asker, active.development)
+
     return app
+
+
+def read_menu(request: MenuReadRequest, asker, development: bool) -> dict:
+    content = build_content(request)
+    if content is None:
+        return {"kind": "failed", "reason": "nothing_to_read"}
+    result = asker(MENU_SYSTEM_PROMPT, content, MENU_JSON_SCHEMA, ai.MENU_READING, None)
+    if result.kind == "unavailable":
+        return {"kind": "stand_in", "rows": SAMPLE_ITEMS} if development else {"kind": "failed", "reason": "model_unavailable"}
+    if result.kind != "ok":
+        return {"kind": "failed", "reason": "model_failed", "error_name": result.error_name or result.kind}
+    rows = read_rows(result.output_text)
+    return {"kind": "ok", "rows": rows} if rows is not None else {"kind": "failed", "reason": "unusable_answer"}
 
 
 # The model the endpoint asks; tests replace it with a fake (never the real API in a test).

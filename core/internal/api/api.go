@@ -48,6 +48,8 @@ type Server struct {
 	Brain *brainclient.Client
 	// The assistant, for "Try your assistant".
 	Assistant *assistant.Runner
+	// The brain with a time long enough to read a whole menu (120 s a try).
+	MenuBrain *brainclient.Client
 }
 
 // Register adds every endpoint.
@@ -67,8 +69,14 @@ type handler func(w http.ResponseWriter, r *http.Request, body []byte, who *sess
 // withSession checks, in this order: the body's size, the screens'
 // signature, the session.
 func (s *Server) withSession(h handler) http.HandlerFunc {
+	return s.withSessionUpTo(maxBodyBytes, h)
+}
+
+// withSessionUpTo is withSession for an endpoint that takes a bigger body
+// (a menu's photo).
+func (s *Server) withSessionUpTo(maxBytes int64, h handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := httpserver.ReadBody(r, maxBodyBytes)
+		body, err := httpserver.ReadBody(r, maxBytes)
 		if err == httpserver.ErrTooLarge {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
@@ -137,4 +145,11 @@ func readJSON(body []byte, into any) bool {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(into) == nil
+}
+
+// allowLongAnswer lets one endpoint that waits for the AI answer later than
+// the server's 30-second default (only those endpoints; everything else
+// keeps the short limit).
+func allowLongAnswer(w http.ResponseWriter, d time.Duration) {
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(d))
 }

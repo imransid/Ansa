@@ -2,11 +2,17 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"ansa/core/internal/brainclient"
 	"ansa/core/internal/menu"
+	"ansa/core/internal/ratelimit"
 )
 
 func TestTheMenuThroughCoresAPI(t *testing.T) {
@@ -62,5 +68,29 @@ func TestNotAvailableTodayEndsAtTheBusinesssMidnight(t *testing.T) {
 	end := menu.EndOfLocalDay(rome, now)
 	if got := end.In(rome).Format("2006-01-02 15:04"); got != "2026-10-25 00:00" {
 		t.Fatalf("the next midnight in Rome: %s", got)
+	}
+}
+
+func TestReadingAMenuSavesNothing(t *testing.T) {
+	w := newAPIWorld(t)
+	w.must(`INSERT INTO assistant_settings (company_id, currency) VALUES ($1, 'EUR')`, w.company.String())
+	brain := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		io.WriteString(rw, `{"kind":"stand_in","rows":[{"category":"Pizzas","name":"Margherita","description":"","price":"9.50"}]}`)
+	}))
+	defer brain.Close()
+	w.serverAPI().MenuBrain = brainclient.New(brain.URL, strings.Repeat("s", 40), 5*time.Second)
+	t.Cleanup(func() {
+		w.pool.Exec(context.Background(), `DELETE FROM rate_limits WHERE key = $1`, ratelimit.New(w.pool, authSecret).Key("menu-readings", w.company.String()))
+	})
+	if code, answer := w.call("POST", "/api/v1/menu/read", `{"fileName":"menu.jpg","data":"`+base64.StdEncoding.EncodeToString([]byte("<svg>"))+`"}`, screensSecret, w.cookie); code != 400 || !strings.Contains(answer["error"].(string), "Upload a photo") {
+		t.Fatalf("not a photo: %d %v", code, answer)
+	}
+	code, answer := w.call("POST", "/api/v1/menu/read", `{"text":"Margherita 9.50"}`, screensSecret, w.cookie)
+	items, _ := answer["items"].([]any)
+	if code != 200 || len(items) != 1 || answer["standIn"] != true || items[0].(map[string]any)["priceCents"] != 950.0 {
+		t.Fatalf("read: %d %v", code, answer)
+	}
+	if w.count(`SELECT count(*) FROM catalog_items WHERE company_id = $1`) != 0 {
+		t.Fatal("reading saves nothing")
 	}
 }

@@ -191,6 +191,7 @@ func (s *Server) tryAssistant(w http.ResponseWriter, r *http.Request, body []byt
 		problem(w, http.StatusTooManyRequests, "Too many tests. Try again in a few minutes.")
 		return
 	}
+	allowLongAnswer(w, 3*time.Minute)
 	result, err := s.Assistant.Try(r.Context(), who.CompanyID, text)
 	if err != nil {
 		s.failed(w, "assistant try", err)

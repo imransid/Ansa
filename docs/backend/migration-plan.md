@@ -51,7 +51,7 @@
 | Module | Old code | Status |
 |---|---|---|
 | menu, "Not available today" | db/menu.ts | ✅ core/internal/menu (in core's API) |
-| menu reading (brain) | lib/menu-reading/ | ⬜ |
+| menu reading (brain) | lib/menu-reading/, services/menu-reading.ts | ✅ core/internal/menureading, brain/brain/menu (PDFs go to the model as themselves) |
 | orders: pricing, summary, placing, taking back, new-order alerts | lib/orders.ts, order-steps.ts, db/order-proposals.ts, services/assistant-order.ts, order-alerts.ts | ✅ core/internal/orders, assistant/order.go, alerts/orders.go |
 | the Orders page's status changes and messages | services/orders.ts, db/order-status.ts | ⬜ with the screens' API (phase 7) |
 

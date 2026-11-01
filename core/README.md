@@ -55,4 +55,4 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/team/` | A person's role, read again inside a write; the company row lock | [inbox](../docs/backend/modules/inbox.md) |
 | `internal/home/`, `internal/settings/` | Home's reads; the owner's switches | [home](../docs/backend/modules/home.md) |
 | `internal/setup/` | /welcome and Settings → What it knows | [setup](../docs/backend/modules/setup.md) |
-| `internal/menu/` | The menu: dishes, prices, availability | [menu](../docs/backend/modules/menu.md) |
+| `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |

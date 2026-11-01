@@ -56,8 +56,10 @@ type Typed struct {
 
 // Fields is a typed dish cleaned, its price in smallest units.
 type Fields struct {
-	Category, Name, Description string
-	PriceCents                  int64
+	Category    string `json:"category"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	PriceCents  int64  `json:"priceCents"`
 }
 
 // Check cleans a typed dish and prices it in the currency; problems by

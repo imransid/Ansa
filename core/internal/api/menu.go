@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"ansa/core/internal/menu"
+	"ansa/core/internal/menureading"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 )
@@ -30,6 +32,7 @@ func (s *Server) registerMenu(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/menu/items/{id}/move", s.withSession(s.menuChange(true, s.moveDish)))
 	routes.HandleFunc("POST /api/v1/menu/items/{id}/availability", s.withSession(s.menuChange(false, s.dishAvailability)))
 	routes.HandleFunc("POST /api/v1/menu/reading/confirm", s.withSession(s.menuChange(true, s.confirmReading)))
+	routes.HandleFunc("POST /api/v1/menu/read", s.withSessionUpTo(menuReadBodyBytes, s.readMenuWithAI))
 }
 
 // readMenu: GET /api/v1/menu, everyone reads it.
@@ -176,4 +179,57 @@ func firstProblem(problems map[string]string) string {
 		}
 	}
 	return "check it"
+}
+
+// A menu read with the AI: 20 an hour per business (the old counter).
+var menuReadings = ratelimit.Rule{MaxAttempts: 20, Window: time.Hour}
+
+// A photo of up to 4 MB as base64, and the JSON around it.
+const menuReadBodyBytes = 6 << 20
+
+// readMenuWithAI: POST /api/v1/menu/read {"text"} or {"fileName", "data": base64},
+// owners. Nothing is saved: the list comes back for the owner to check.
+func (s *Server) readMenuWithAI(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
+	if !who.IsOwner() {
+		problem(w, http.StatusForbidden, menuRefusals[menu.NotAllowed])
+		return
+	}
+	var input struct {
+		Text     string `json:"text"`
+		FileName string `json:"fileName"`
+		Data     string `json:"data"`
+	}
+	if !readJSON(body, &input) {
+		problem(w, http.StatusBadRequest, menureading.NothingGiven)
+		return
+	}
+	source := menureading.Source{Text: input.Text, FileName: input.FileName}
+	if input.Data != "" {
+		file, err := base64.StdEncoding.DecodeString(input.Data)
+		if err != nil {
+			problem(w, http.StatusBadRequest, menureading.WrongFile)
+			return
+		}
+		source.File = file
+	}
+	currency, err := menu.Currency(r.Context(), s.Pool, who.CompanyID)
+	if err != nil || currency == "" {
+		if err != nil {
+			s.failed(w, "menu read", err)
+			return
+		}
+		problem(w, http.StatusBadRequest, "Choose your currency in What it knows first: ansa reads the prices in it.")
+		return
+	}
+	if over, err := s.Limiter.Over(r.Context(), "menu-readings", who.CompanyID.String(), menuReadings); err != nil || over {
+		problem(w, http.StatusTooManyRequests, "Your business has read 20 menus in the last hour. Try again later, or type the dishes.")
+		return
+	}
+	allowLongAnswer(w, 5*time.Minute)
+	result, problemText := menureading.Read(r.Context(), s.MenuBrain, source, currency)
+	if problemText != "" {
+		problem(w, http.StatusBadRequest, problemText)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
