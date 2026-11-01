@@ -30,3 +30,4 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/jobs/` | The job queue and its worker | [jobs](../docs/backend/modules/jobs.md) |
 | `internal/conversations/` | Contacts, conversations, messages | [conversations](../docs/backend/modules/conversations.md) |
 | `internal/telegram/` | The Telegram Business channel | [telegram](../docs/backend/modules/telegram.md) |
+| `internal/chat/` | The one door for sending to customers | [chat](../docs/backend/modules/chat.md) |
