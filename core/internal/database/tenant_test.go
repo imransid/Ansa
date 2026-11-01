@@ -25,12 +25,12 @@ const crossCompanyMarker = "-- cross-company:"
 
 var sqlString = regexp.MustCompile("(?s)`([^`]*)`")
 
-// Every SQL statement in every store.go that names a tenant table names
-// company_id too, unless it is a listed cross-company read.
+// Every SQL statement in every Go file of core (tests aside) that names a
+// tenant table names company_id too, unless it is a listed cross-company read.
 func TestEveryTenantQueryNamesTheCompany(t *testing.T) {
 	root := filepath.Join("..")
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || filepath.Base(path) != "store.go" {
+		if err != nil || info.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") || filepath.Base(path) == "testdb.go" {
 			return err
 		}
 		source, readErr := os.ReadFile(path)

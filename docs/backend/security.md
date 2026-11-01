@@ -14,7 +14,7 @@ These rules are not optional. A change that breaks one is a bug, even if it
   company), never from the request body.
 - Cross-company reads (scheduled jobs that find due work) are listed in
   `core/internal/database/CROSS_COMPANY.md` and return ids only.
-- Test: `core/internal/database/tenant_test.go` reads every SQL statement and
+- Test: `core/internal/database/tenant_test.go` reads every SQL statement in core and
   fails if one touching a company table has no `company_id` condition.
 
 ## 2. Secrets
