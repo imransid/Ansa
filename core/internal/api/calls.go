@@ -93,8 +93,10 @@ func (s *Server) callPage(w http.ResponseWriter, r *http.Request, _ []byte, who 
 	writeJSON(w, http.StatusOK, map[string]any{"call": call, "lookups": lookups, "moreLookupsNotShown": more, "categories": categories})
 }
 
-// analyzeCallNow: "Analyze now" on a call never analyzed, or stuck.
+// analyzeCallNow: "Analyze now" on a call never analyzed, or stuck. The
+// answer waits for the AI (up to 60 s a try, 2 retries).
 func (s *Server) analyzeCallNow(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+	allowLongAnswer(w, 270*time.Second)
 	id := strings.ToLower(r.PathValue("id"))
 	if !uuidPattern.MatchString(id) {
 		problem(w, http.StatusNotFound, "Unknown call.")
