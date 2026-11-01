@@ -16,6 +16,7 @@ from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
 from brain.calls.decision import decide as decide_call
 from brain.cofounder.interview import InterviewTurnRequest, answer_turn
+from brain.cofounder.plan import MarketingPlanRequest, make_plan
 from brain.cofounder.suggestions import FactSuggestionRequest, suggest_facts
 from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
@@ -116,6 +117,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/cofounder/fact-suggestions")
     def cofounder_fact_suggestions(request: FactSuggestionRequest) -> dict:
         return suggest_facts(request, active_asker)
+
+    @app.post("/v1/cofounder/marketing-plan")
+    def cofounder_marketing_plan(request: MarketingPlanRequest) -> dict:
+        return make_plan(request, active_asker)
 
     return app
 

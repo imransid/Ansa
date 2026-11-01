@@ -7,4 +7,5 @@ import "net/http"
 // (/api/v1/cofounder/...). The AI's answers come from s.CofounderBrain.
 func (s *Server) registerCofounder(routes *http.ServeMux) {
 	s.registerCofounderProfile(routes)
+	s.registerCofounderStrategy(routes)
 }
