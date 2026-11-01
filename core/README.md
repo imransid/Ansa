@@ -40,3 +40,4 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/email/`, `internal/plaintext/` | The one door for sending email; one plain line | [email](../docs/backend/modules/email.md) |
 | `internal/alerts/` | Telling the owners a conversation needs them | [alerts](../docs/backend/modules/alerts.md) |
 | `internal/assignments/` | "A ticket is yours" emails | [assignments](../docs/backend/modules/assignments.md) |
+| `internal/schedule/` | Periodic work inside the service | [schedule](../docs/backend/modules/schedule.md) |

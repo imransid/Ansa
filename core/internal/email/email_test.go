@@ -14,12 +14,12 @@ import (
 func TestTheSenderNameCanNeverPoseAsAnAddress(t *testing.T) {
 	s := &Sender{FromAddress: "hello@ansa.example"}
 	cases := map[string]string{
-		"Luigi's":               `"Luigi's via ansa" <hello@ansa.example>`,
-		"security＠bank.com":     `"security bank.com via ansa" <hello@ansa.example>`,
-		`Evil" <boss@x.com>`:    `"Evil boss x.com via ansa" <hello@ansa.example>`,
-		"=?UTF-8?Q?a=40b.com?=": `"UTF-8?Q?a=40b.com via ansa" <hello@ansa.example>`,
-		"@@@":                   `"ansa" <hello@ansa.example>`,
-		"Line\nbreak\u202eexe.jpg":   `"Line breakexe.jpg via ansa" <hello@ansa.example>`,
+		"Luigi's":                  `"Luigi's via ansa" <hello@ansa.example>`,
+		"security＠bank.com":        `"security bank.com via ansa" <hello@ansa.example>`,
+		`Evil" <boss@x.com>`:       `"Evil boss x.com via ansa" <hello@ansa.example>`,
+		"=?UTF-8?Q?a=40b.com?=":    `"UTF-8?Q?a=40b.com via ansa" <hello@ansa.example>`,
+		"@@@":                      `"ansa" <hello@ansa.example>`,
+		"Line\nbreak\u202eexe.jpg": `"Line breakexe.jpg via ansa" <hello@ansa.example>`,
 	}
 	for name, want := range cases {
 		if got := s.FromHeader(name); got != want {

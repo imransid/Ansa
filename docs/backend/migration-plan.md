@@ -37,7 +37,7 @@
 ## Phase 2: the assistant
 | Module | Old code | Status |
 |---|---|---|
-| when ansa answers (gate, away, catch-up) | db/assistant-runs.ts, lib/assistant/availability.ts | 🔨 gate, away rules, waiting done; the catch-up's claim next |
+| when ansa answers (gate, away, catch-up) | db/assistant-runs.ts, lib/assistant/availability.ts | ✅ gate.go, availability.go, catchup.go (run every 15 s by core's scheduler) |
 | reply thinking (brain) | lib/assistant/prompt.ts, answer.ts | ✅ brain/brain/assistant |
 | reply checks (core) | lib/assistant/reply-checks.ts | ✅ core/internal/assistant/checks.go |
 | the reply run (job `assistant.reply`) | services/assistant-reply.ts | ✅ core/internal/assistant/reply.go, send.go |

@@ -87,3 +87,14 @@ paused is quiet without asking the brain; Ask me first saves a draft; an
 important person is handed over without the brain; "when away" waits, then
 the catch-up's run answers; the brain down = the holding reply; an own key
 that can't be read is never replaced by ansa's.
+
+**Catch-up (`catchup.go`, the old `services/assistant-due.ts`):** every 15 s
+(core's scheduler, see [schedule](schedule.md)) core claims the
+conversations whose "if I haven't answered within N minutes" is due, of every
+company (one cross-company claim, listed in `CROSS_COMPANY.md`: its due time
+cleared in ONE UPDATE, SKIP LOCKED), and in the same transaction queues the
+reply job for the customer's newest message with `coverAfterNoReply`,
+unless a person or the business's own app answered after it. Up to 50 a
+round. Unlike the old backend, this needs no outside scheduler: core runs
+all the time. Test: `catchup_test.go` (only the conversation nobody answered
+is queued, once).

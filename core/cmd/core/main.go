@@ -26,6 +26,7 @@ import (
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
+	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tickets"
@@ -74,6 +75,7 @@ func main() {
 			worker.Run(workCtx)
 		}()
 	}
+	go schedule.Run(workCtx, log, scheduledTasks(pool))
 	go func() {
 		log.Info("core started")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -103,6 +105,16 @@ func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter 
 	worker.Handle(assistant.AlertJobKind, alerter.HandleJob)
 	worker.Handle(tickets.AssignedJobKind, notifier.HandleJob)
 	return worker
+}
+
+// scheduledTasks is core's periodic work, each claimed in the database so
+// several core processes never do it twice.
+func scheduledTasks(pool *database.Pool) []schedule.Task {
+	return []schedule.Task{
+		{Name: "assistant catch-up", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
+			return assistant.QueueDueReplies(ctx, pool)
+		}},
+	}
 }
 
 // healthCheck answers 200 when the database answers, 503 when it doesn't:
