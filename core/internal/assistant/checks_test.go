@@ -54,3 +54,12 @@ func TestTheAILabelSaysWhoItWorksFor(t *testing.T) {
 		t.Errorf("only the first message: %q", got)
 	}
 }
+
+func TestMoneyIsWrittenAsTheMenuShowsIt(t *testing.T) {
+	cases := map[string]string{FormatMoney(950, "EUR"): "€9.50", FormatMoney(120000, "JPY"): "¥120,000", FormatMoney(120000, "BDT"): "BDT 1,200.00", FormatMoney(5, "USD"): "$0.05"}
+	for got, want := range cases {
+		if got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+}
