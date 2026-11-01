@@ -112,7 +112,7 @@ def clean_reply_text(text: str) -> str:
     """Line breaks kept (at most one empty line in a row); other control and
     invisible format characters removed but the zero-width joiner; trimmed."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    text = "".join(ch for ch in text if ch == "\n" or ch == "‍" or not _is_control_or_format(ch))
+    text = "".join(ch for ch in text if ch == "\n" or ch == "\u200d" or not _is_control_or_format(ch))
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 

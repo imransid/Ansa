@@ -90,3 +90,27 @@ def test_the_endpoint_needs_cores_signature_and_answers_a_decision(monkeypatch):
     assert client.post("/v1/assistant/reply", content=body, headers={"Content-Type": "application/json"}).status_code == 401
     ok = client.post("/v1/assistant/reply", content=body, headers={"Content-Type": "application/json", "X-Ansa-Timestamp": now, "X-Ansa-Signature": signature})
     assert ok.status_code == 200 and ok.json() == {"kind": "no_reply"}
+
+
+def test_claude_code_is_development_only_and_locked_down():
+    from brain import claude_code
+    from brain.app import asker_for, claude_code_asker
+
+    assert asker_for("claude_code", development=False) is None
+    assert decide_reply(request(engine="claude_code"), asker_for("claude_code", False)) == {"kind": "failed", "reason": "model_unavailable"}
+    assert asker_for("claude_code", development=True) is claude_code_asker
+    seen = {}
+
+    def fake_run(args, stdin_text, folder, env):
+        seen.update(args=args, stdin=stdin_text, env=env)
+        return 0, json.dumps({"subtype": "success", "structured_output": {"action": "no_reply"}}).encode()
+
+    parent = {"PATH": "/bin", "HOME": "/h", "DATABASE_URL": "secret", "BRAIN_SHARED_SECRET": "secret", "ANTHROPIC_API_KEY": "secret"}
+    result = claude_code.ask_claude_code("system", "the conversation", {"type": "object"}, "low", run=fake_run, parent_env=parent)
+    assert result.kind == "ok" and json.loads(result.output_text) == {"action": "no_reply"}
+    assert seen["stdin"] == "the conversation" and "the conversation" not in seen["args"]
+    assert "secret" not in seen["env"].values() and seen["env"]["PATH"] == "/bin"
+    assert seen["args"][seen["args"].index("--tools") + 1] == "" and "--no-session-persistence" in seen["args"]
+    assert claude_code.read_result('{"subtype": "error_max_turns"}').kind == "truncated"
+    assert claude_code.read_result('{"subtype": "success", "structured_output": null}').kind == "unexpected_stop"
+    assert claude_code.read_result("not json").error_name == "ClaudeCodeUnreadable"

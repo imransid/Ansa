@@ -14,7 +14,11 @@ assistant opens when it hands a conversation to a person.
   joined first); assigned automatically, `routed_to_user_id` kept as
   routing's first pick, and a `routed` history row with the category. A chat
   request has no phone or email, so same-customer routing never applies to it.
+- Whoever routing picks is emailed: `QueueAssignedEmailWithin` queues the
+  `ticket.assigned` job in the same transaction (see
+  [assignments](assignments.md)).
 **Tests:** `tickets_test.go` (live database): the least busy confirmed expert
 gets it; no category = unassigned; numbers follow; the history row.
+`assignments_test.go` covers the email the routing queues.
 **Still on the old backend:** typed-in tickets, call and email tickets,
 same-customer routing, reassigning, solving, notes and history pages (Phase 5).

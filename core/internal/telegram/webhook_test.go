@@ -32,7 +32,7 @@ func newFixture(t *testing.T) *fixture {
 	companyID := database.TestCompany(t, pool)
 	owner := database.TestOwner(t, pool, companyID)
 	company, _ := tenant.FromTrustedSource(companyID)
-	bcID, _ := newUUID()
+	bcID, _ := conversations.NewID()
 	_, err := pool.Exec(context.Background(), `
 		INSERT INTO channel_connections (company_id, channel, external_id, account_telegram_id, account_chat_id, display_name, connected_by_user_id)
 		VALUES ($1, 'telegram', $2, '9001', '9001', 'Luigi', $3)`, companyID, bcID, owner)

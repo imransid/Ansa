@@ -12,7 +12,20 @@ import (
 	"ansa/core/internal/tenant"
 )
 
+// queryer is a pool or a transaction.
+type queryer interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 func insertJob(ctx context.Context, pool *database.Pool, company tenant.CompanyID, job NewJob, payload []byte) (string, error) {
+	return insertJobOn(ctx, pool, company, job, payload)
+}
+
+func insertJobWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, job NewJob, payload []byte) (string, error) {
+	return insertJobOn(ctx, tx, company, job, payload)
+}
+
+func insertJobOn(ctx context.Context, db queryer, company tenant.CompanyID, job NewJob, payload []byte) (string, error) {
 	const statement = `
 		INSERT INTO core_jobs (company_id, kind, payload, run_after, max_attempts, dedupe_key)
 		VALUES ($1, $2, $3, COALESCE($4, now()), $5, NULLIF($6, ''))
@@ -22,7 +35,7 @@ func insertJob(ctx context.Context, pool *database.Pool, company tenant.CompanyI
 		runAfter = &job.RunAfter
 	}
 	var id string
-	err := pool.QueryRow(ctx, statement, company.String(), job.Kind, payload, runAfter, job.MaxAttempts, job.DedupeKey).Scan(&id)
+	err := db.QueryRow(ctx, statement, company.String(), job.Kind, payload, runAfter, job.MaxAttempts, job.DedupeKey).Scan(&id)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		return "", ErrDuplicate

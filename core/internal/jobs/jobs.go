@@ -68,6 +68,22 @@ func Enqueue(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 	return insertJob(ctx, pool, company, job, payload)
 }
 
+// EnqueueWithin saves a job inside the caller's transaction: it exists only
+// if the work that needs it was saved too.
+func EnqueueWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, job NewJob) (string, error) {
+	if company.IsZero() || !kindPattern.MatchString(job.Kind) {
+		return "", errors.New("jobs: a job needs a company and a kind like assistant.reply")
+	}
+	payload, err := json.Marshal(job.Payload)
+	if err != nil {
+		return "", errors.New("jobs: the payload can't be written as JSON")
+	}
+	if job.MaxAttempts == 0 {
+		job.MaxAttempts = 5
+	}
+	return insertJobWithin(ctx, tx, company, job, payload)
+}
+
 // Backoff is the wait before try n+1: 30 s, 2 min, 8 min, 32 min, then 2 h.
 func Backoff(attempt int) time.Duration {
 	wait := 30 * time.Second

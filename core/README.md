@@ -10,7 +10,10 @@ database. Read `docs/backend/README.md` first.
    - `DATABASE_URL`: the same database as the old backend (`.env.local`).
    - `DATA_ENCRYPTION_KEY`: the same key as the old backend's.
    - `BRAIN_SHARED_SECRET`: `openssl rand -hex 32`, the same value for the brain.
-2. From `core/`: `make run`. Check it: `curl -i http://127.0.0.1:8080/health`.
+2. Start the brain first (see `brain/README.md`), then from `core/`:
+   `make run`. Check it: `curl -i http://127.0.0.1:8080/health`.
+3. In development, emails and stand-in chat replies are files in the
+   repository's `.dev-emails/` and `.dev-messages/` (as the old backend's).
 
 ## Test it
 From `core/`: `make check` (formatting, `go vet`, every test).
@@ -31,3 +34,9 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/conversations/` | Contacts, conversations, messages | [conversations](../docs/backend/modules/conversations.md) |
 | `internal/telegram/` | The Telegram Business channel | [telegram](../docs/backend/modules/telegram.md) |
 | `internal/chat/` | The one door for sending to customers | [chat](../docs/backend/modules/chat.md) |
+| `internal/hours/` | Opening and away hours | [hours](../docs/backend/modules/hours.md) |
+| `internal/assistant/` | The assistant: when it answers, the brain's slice, checks, replies, handovers | [assistant](../docs/backend/modules/assistant.md) |
+| `internal/tickets/` | Making and routing requests | [tickets](../docs/backend/modules/tickets.md) |
+| `internal/email/`, `internal/plaintext/` | The one door for sending email; one plain line | [email](../docs/backend/modules/email.md) |
+| `internal/alerts/` | Telling the owners a conversation needs them | [alerts](../docs/backend/modules/alerts.md) |
+| `internal/assignments/` | "A ticket is yours" emails | [assignments](../docs/backend/modules/assignments.md) |

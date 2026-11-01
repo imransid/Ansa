@@ -7,7 +7,7 @@ Run: BRAIN_SHARED_SECRET=... .venv/bin/uvicorn brain.app:create_app --factory --
 
 from fastapi import FastAPI, Request, Response
 
-from brain import ai
+from brain import ai, claude_code
 from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
@@ -43,11 +43,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """A signed no-op: core uses it to check the connection at start."""
         return {"status": "ok"}
 
+    # A plain def on purpose: FastAPI runs it in a worker thread, so a model
+    # call that takes seconds never holds up the other requests.
     @app.post("/v1/assistant/reply")
-    async def assistant_reply(request: ReplyRequest) -> dict:
+    def assistant_reply(request: ReplyRequest) -> dict:
         """One answer to a customer's newest message, as a decision for core.
         Never the prompt or the model's raw text in a log."""
-        return decide_reply(request, active_asker)
+        return decide_reply(request, asker_for(request.engine, active.development))
 
     return app
 
@@ -57,9 +59,22 @@ def active_asker(system_prompt: str, prompt: str, schema: dict, use: ai.UseSetti
     return ai.ask(system_prompt, prompt, schema, use, api_key)
 
 
+def claude_code_asker(system_prompt: str, prompt: str, schema: dict, use: ai.UseSettings, api_key: str | None) -> ai.ModelResult:
+    return claude_code.ask_claude_code(system_prompt, prompt, schema, use.effort)
+
+
+def asker_for(engine: str, development: bool):
+    """The model for this business's engine, or None when it isn't allowed here."""
+    if engine == "claude_code":
+        return claude_code_asker if development else None
+    return active_asker
+
+
 def decide_reply(request: ReplyRequest, asker) -> dict:
     """Asks the model and reads its answer; any failure is a decision core
     turns into the holding reply and an alert."""
+    if asker is None:
+        return {"kind": "failed", "reason": "model_unavailable"}
     system_prompt, prompt, schema = build_request(request)
     result = asker(system_prompt, prompt, schema, ai.ASSISTANT_REPLY, request.api_key)
     if result.kind == "unavailable":

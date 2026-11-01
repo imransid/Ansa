@@ -15,7 +15,10 @@ type BrainRequest struct {
 	Knowledge    string     `json:"knowledge"`
 	Categories   []string   `json:"categories"`
 	Conversation []Line     `json:"conversation"`
-	APIKey       *string    `json:"api_key"`
+	// "api_key" (the business's own key below, or ansa's when nil) or
+	// "claude_code" (development only: the brain refuses it in production).
+	Engine string  `json:"engine"`
+	APIKey *string `json:"api_key"`
 }
 
 type Business struct {

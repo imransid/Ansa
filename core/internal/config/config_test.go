@@ -41,3 +41,20 @@ func TestBadSettingsAreNamedNeverShown(t *testing.T) {
 		t.Fatalf("a value leaked into the message: %v", err)
 	}
 }
+
+func TestEmailSettingsGoTogether(t *testing.T) {
+	values := map[string]string{"SEND_REAL_EMAIL": "true", "RESEND_API_KEY": "re_secret_value"}
+	for name, value := range good {
+		values[name] = value
+	}
+	_, err := Load(settings(values))
+	if err == nil || !strings.Contains(err.Error(), "EMAIL_FROM") || strings.Contains(err.Error(), "re_secret_value") {
+		t.Fatalf("real email needs its sender, named never shown: %v", err)
+	}
+	values["ANSA_ENV"] = "production"
+	values["SEND_REAL_EMAIL"] = ""
+	_, err = Load(settings(values))
+	if err == nil || !strings.Contains(err.Error(), "SEND_REAL_EMAIL") || !strings.Contains(err.Error(), "APP_URL") {
+		t.Fatalf("production needs real email and an https address: %v", err)
+	}
+}

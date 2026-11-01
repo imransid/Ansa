@@ -7,7 +7,8 @@ attacker (the 2025 npm worms are the reminder). Add one only with a line here.
 | Module | Why |
 |---|---|
 | github.com/jackc/pgx/v5 | The PostgreSQL driver and pool (parameterized queries only) |
-| golang.org/x/crypto, golang.org/x/text | Pulled in by pgx (Go's own extended packages) |
+| golang.org/x/text | NFKC normalisation for safe email sender names (Go's own extended packages; pgx needs it too) |
+| golang.org/x/crypto | Pulled in by pgx (Go's own extended packages) |
 
 ## brain (Python), exact versions in `brain/requirements.txt`
 | Package | Why |

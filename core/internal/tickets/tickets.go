@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/jobs"
 	"ansa/core/internal/tenant"
 )
 
@@ -62,8 +63,28 @@ func CreateChatTicketWithin(ctx context.Context, tx database.Tx, company tenant.
 	if category == nil {
 		return created, nil
 	}
-	created.AssigneeID, err = routeByCategory(ctx, tx, company, id, *category)
-	return created, err
+	if created.AssigneeID, err = routeByCategory(ctx, tx, company, id, *category); err != nil || created.AssigneeID == "" {
+		return created, err
+	}
+	return created, QueueAssignedEmailWithin(ctx, tx, company, id, created.AssigneeID)
+}
+
+// AssignedJobKind emails a person that a ticket is now theirs.
+const AssignedJobKind = "ticket.assigned"
+
+// AssignedPayload names the ticket and the person it was given to.
+type AssignedPayload struct {
+	TicketID   string `json:"ticketId"`
+	AssigneeID string `json:"assigneeId"`
+}
+
+// QueueAssignedEmailWithin queues the "ticket is yours" email in the
+// assignment's own transaction, so it exists only if the assignment does.
+// Every path that routes or assigns calls it (never for assigning yourself).
+func QueueAssignedEmailWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, ticketID, assigneeID string) error {
+	payload := AssignedPayload{TicketID: ticketID, AssigneeID: assigneeID}
+	_, err := jobs.EnqueueWithin(ctx, tx, company, jobs.NewJob{Kind: AssignedJobKind, Payload: payload})
+	return err
 }
 
 func currentCategoryName(ctx context.Context, tx database.Tx, company tenant.CompanyID, categoryID string) (*string, error) {

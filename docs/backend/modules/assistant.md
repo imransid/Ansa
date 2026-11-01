@@ -1,9 +1,48 @@
 # assistant (core/internal/assistant)
 
-**What:** core's side of the assistant: the checks every proposed reply
-passes before it reaches a customer, ansa's AI label, and (next) the
-`assistant.reply` job: when ansa may answer, what it sends the brain, and
-sending, drafting or handing over.
+**What:** core's side of the assistant: the `assistant.reply` job (when
+ansa may answer, what it sends the brain, the checks every proposed reply
+passes, and sending, drafting or handing over to a person), as the old
+`services/assistant-reply.ts` and `assistant-handover.ts`.
+
+**One run (`reply.go`, `Runner.Answer`), in this order:**
+1. The gate (below), read before anything else: not "may" = quiet.
+2. When ansa answers (`availability.go`, the old `decideCover`): "always",
+   or "when_away" while you said you're away or it is one of your away hours;
+   otherwise it waits `reply_grace_minutes` (`assistant_due_at` set, the
+   catch-up looks again; outcome "waiting") or leaves it to you. The
+   catch-up's own run (`coverAfterNoReply`) skips this step.
+3. The customer's hourly limit (20 per conversation: past it, quiet and the
+   message counts as handled), then the slice (`GatherInputs`).
+4. An important person goes to a person at once (`important_person`), no AI.
+5. The business's hourly limit (200: past it, `reply_limit`).
+6. The brain (`POST /v1/assistant/reply`, signed). Its answer is checked
+   again by core: a reply must pass the checks below; an unknown kind is
+   `unusable_answer`; the brain down is `model_failed`; an own key that
+   can't be read is `model_unavailable` (ansa's key never replaces it).
+   Order answers hand over (`order`) until orders move (phase 3).
+7. A reply that passes is saved in ONE transaction that checks the gate
+   again with the conversation locked: "sending" (Automatic) or a "draft"
+   (Ask me first; a waiting draft is discarded), the AI label on the first
+   automated message, the "replied" / "drafted" line, the message marked
+   handled. Then it is sent (`chat.Sender`) and its result recorded. A
+   reply the channel refuses or fails asks a person (`send_failed`, no
+   holding reply: the channel can't take one).
+The same message is never answered twice: a retried job finds it handled.
+Channels queue the job 1.5 s after the message, so a burst gets one answer.
+
+**Handover (`handover.go`):** ONE transaction, the company row lock first
+(as every routing), the gate again: the business's holding reply (never the
+AI's text; with the AI label when first) saved "sending" when the channel
+can take it, a request (`tickets.CreateChatTicketWithin`: the AI's subject
+cleaned to one plain line, else "<Channel> conversation needs you"; the
+reason's words, then the AI's summary; its category only when it names an
+active one exactly; routed, and whoever routing picks is emailed by the
+`ticket.assigned` job), the "handed_over" line with the reason, the message
+handled, and the `owner.alert` job (starts 20 s later, so it can say whether
+the holding reply arrived; see [alerts](alerts.md)). Then the holding reply
+is sent. While the request is open the assistant stays quiet. Reasons and
+their words: `reasons.go`.
 **Checks (`checks.go`, the same rules as the old `lib/assistant/reply-checks.ts`):**
 - every amount written with a currency mark (symbols, ISO codes, the words
   for the common ones; before or after the number) must be a menu price or
@@ -32,7 +71,19 @@ owner's instructions; active category names; the newest 20 messages of this
 one conversation, decrypted (drafts, discarded and failed ones never reached
 the customer). Never an id. Also what core checks the reply against (menu
 prices plus the delivery fee, the owner's own texts). Knowledge articles join
-when the knowledge module moves (until then `knowledge` is empty).
+when the knowledge module moves (until then `knowledge` is empty). The
+engine goes too: "api_key" with the business's own key decrypted
+(`KeyContext`: `assistant-anthropic-key:<company>`) or nil for ansa's own
+(the brain holds it), or "claude_code" (development only, refused by the
+brain in production).
 **Tests:** `checks_test.go`; `gate_test.go`; `inputs_test.go` (live database:
 only available dishes, labelled; the fee; "Tuesday 19:30, open until
-midnight"; the decrypted conversation; no id in the request).
+midnight"; the decrypted conversation; no id in the request);
+`reply_test.go` (live database, a fake brain, never the real model): a reply
+goes out once with the AI label; a made-up price is never sent and a person
+is asked (holding reply, request, line, alert queued) and the assistant then
+stays quiet; the AI's own request keeps its cleaned subject and category;
+paused is quiet without asking the brain; Ask me first saves a draft; an
+important person is handed over without the brain; "when away" waits, then
+the catch-up's run answers; the brain down = the holding reply; an own key
+that can't be read is never replaced by ansa's.

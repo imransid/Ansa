@@ -30,6 +30,9 @@ type Inputs struct {
 	ReplyMode    string
 	// Menu labels (M1...) to the dish's name and price, for orders.
 	Menu []MenuChoice
+	// The business saved its own key and it can't be read: ansa's key is
+	// never used in its place (nobody pays unaware), so no AI answers.
+	KeyUnreadable bool
 }
 
 // MenuChoice is one available dish as the brain's menu labels it.
@@ -40,12 +43,12 @@ type MenuChoice struct {
 }
 
 type settingsRow struct {
-	Currency, DeliveryNote, PaymentNote, Instructions, HoldingReply, ReplyMode string
-	Delivery, Pickup, TakesOrders                                              bool
-	DeliveryFeeCents                                                           int64
-	TimeZone, PublicPhone, KeyEncrypted                                        *string
-	OpeningHours, AwayHours                                                    []byte
-	AwaySince                                                                  *time.Time
+	Currency, DeliveryNote, PaymentNote, Instructions, HoldingReply, ReplyMode, AIEngine string
+	Delivery, Pickup, TakesOrders                                                        bool
+	DeliveryFeeCents                                                                     int64
+	TimeZone, PublicPhone, KeyEncrypted                                                  *string
+	OpeningHours, AwayHours                                                              []byte
+	AwaySince                                                                            *time.Time
 }
 
 // GatherInputs reads one company's slice for an answer in this conversation.
@@ -106,14 +109,25 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		prices = append(prices, fee)
 	}
 	request.Hours = hoursFor(kind, settings, now)
+	request.Engine = settings.AIEngine
+	keyUnreadable := false
+	if settings.AIEngine == "api_key" && settings.KeyEncrypted != nil {
+		key, err := box.Decrypt(*settings.KeyEncrypted, KeyContext(company))
+		if err != nil {
+			keyUnreadable = true
+		} else {
+			request.APIKey = &key
+		}
+	}
 	return &Inputs{
-		Request:      request,
-		Checks:       CheckData{Currency: settings.Currency, MenuPrices: prices, OwnerTexts: []string{settings.Instructions, settings.DeliveryNote, settings.PaymentNote, facts["description"]}},
-		Name:         name,
-		Kind:         kind,
-		HoldingReply: settings.HoldingReply,
-		ReplyMode:    settings.ReplyMode,
-		Menu:         choices,
+		KeyUnreadable: keyUnreadable,
+		Request:       request,
+		Checks:        CheckData{Currency: settings.Currency, MenuPrices: prices, OwnerTexts: []string{settings.Instructions, settings.DeliveryNote, settings.PaymentNote, facts["description"]}},
+		Name:          name,
+		Kind:          kind,
+		HoldingReply:  settings.HoldingReply,
+		ReplyMode:     settings.ReplyMode,
+		Menu:          choices,
 	}, nil
 }
 
@@ -161,15 +175,21 @@ func readSettings(ctx context.Context, pool *database.Pool, company tenant.Compa
 	const statement = `
 		SELECT COALESCE(currency, 'EUR'), delivery_note, payment_note, instructions, holding_reply, reply_mode,
 			delivery, pickup, takes_orders, delivery_fee_cents, time_zone, public_phone, anthropic_key_encrypted,
-			opening_hours, away_hours, away_since
+			opening_hours, away_hours, away_since, ai_engine
 		FROM assistant_settings WHERE company_id = $1`
-	s := settingsRow{Currency: "EUR", Pickup: true, TakesOrders: true, ReplyMode: "automatic", HoldingReply: defaultHoldingReply}
+	s := settingsRow{Currency: "EUR", Pickup: true, TakesOrders: true, ReplyMode: "automatic", HoldingReply: defaultHoldingReply, AIEngine: "api_key"}
 	err := pool.QueryRow(ctx, statement, company.String()).Scan(&s.Currency, &s.DeliveryNote, &s.PaymentNote, &s.Instructions, &s.HoldingReply, &s.ReplyMode,
-		&s.Delivery, &s.Pickup, &s.TakesOrders, &s.DeliveryFeeCents, &s.TimeZone, &s.PublicPhone, &s.KeyEncrypted, &s.OpeningHours, &s.AwayHours, &s.AwaySince)
+		&s.Delivery, &s.Pickup, &s.TakesOrders, &s.DeliveryFeeCents, &s.TimeZone, &s.PublicPhone, &s.KeyEncrypted, &s.OpeningHours, &s.AwayHours, &s.AwaySince, &s.AIEngine)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return s, nil
 	}
 	return s, err
+}
+
+// KeyContext ties a business's own Claude key to its company (the old
+// anthropicKeyContext): a copy in another company's row can't be read.
+func KeyContext(company tenant.CompanyID) string {
+	return "assistant-anthropic-key:" + company.String()
 }
 
 // The holding reply until an owner writes their own (lib/restaurant-setup.ts).

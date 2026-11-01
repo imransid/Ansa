@@ -1,0 +1,70 @@
+package alerts
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"ansa/core/internal/assistant"
+	"ansa/core/internal/conversations"
+	"ansa/core/internal/database"
+	"ansa/core/internal/email"
+	"ansa/core/internal/jobs"
+	"ansa/core/internal/logging"
+	"ansa/core/internal/ratelimit"
+	"ansa/core/internal/tenant"
+)
+
+func TestOwnersAreToldWhoWhereAndWhyNeverTheMessages(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	database.TestOwner(t, pool, companyID)
+	if _, err := pool.Exec(ctx, `INSERT INTO users (id, company_id, role, name, email, email_verified) VALUES (gen_random_uuid()::text, $1, 'owner', 'Unconfirmed', gen_random_uuid()::text || '@core-test.example', false)`, companyID); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	name := "Ana\nBaker"
+	messageID, _ := conversations.NewID()
+	turn, err := conversations.InsertCustomerMessage(ctx, pool, company, conversations.ContactKey{Channel: conversations.ChannelStandIn, ExternalID: "alert", DisplayName: &name},
+		conversations.IncomingMessage{ID: messageID, BodyEncrypted: "v1:secret:secret:secret", ChannelMessageID: "a1"})
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	folder := t.TempDir()
+	limiter := ratelimit.New(pool, "core-test-secret")
+	t.Cleanup(func() {
+		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = $1`, limiter.Key("owner-alerts", companyID))
+	})
+	alerter := &Alerter{Pool: pool, Limiter: limiter, Email: &email.Sender{DevFolder: folder}, AppURL: "http://localhost:3000", Log: logging.New(io.Discard)}
+	payload, _ := json.Marshal(assistant.AlertPayload{ConversationID: turn.ConversationID, Reason: "complaint"})
+	job := &jobs.Job{ID: "11111111-1111-4111-8111-111111111111", CompanyID: company, Kind: assistant.AlertJobKind, Payload: payload}
+	if err := alerter.HandleJob(ctx, job); err != nil {
+		t.Fatalf("HandleJob: %v", err)
+	}
+	files, _ := os.ReadDir(filepath.Join(folder, ".dev-emails"))
+	if len(files) != 1 {
+		t.Fatalf("one email, to the confirmed owner only: %d", len(files))
+	}
+	page, _ := os.ReadFile(filepath.Join(folder, ".dev-emails", files[0].Name()))
+	text := string(page)
+	for _, want := range []string{"Ana Baker needs you on Stand-in chat. They complained.", "No reply reached them.", "/inbox/" + turn.ConversationID, "core test company via ansa"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("the email lacks %q", want)
+		}
+	}
+	if strings.Contains(text, "secret") {
+		t.Fatal("the customer's message never goes into an alert")
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO assistant_settings (company_id, alert_by_email) VALUES ($1, false)`, companyID); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	alerter.HandleJob(ctx, job)
+	if files, _ := os.ReadDir(filepath.Join(folder, ".dev-emails")); len(files) != 1 {
+		t.Fatal("no email while 'alert by email' is off")
+	}
+}

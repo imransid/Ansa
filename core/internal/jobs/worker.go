@@ -34,7 +34,8 @@ func (w *Worker) Handle(kind string, handler Handler) {
 	w.handlers[kind] = handler
 }
 
-// Run works until ctx is canceled.
+// Run works until ctx is canceled. Several Runs may share one Worker: each
+// claim takes a different job (SKIP LOCKED).
 func (w *Worker) Run(ctx context.Context) {
 	for ctx.Err() == nil {
 		worked, err := w.RunOnce(ctx)
@@ -61,16 +62,20 @@ func (w *Worker) RunOnce(ctx context.Context) (bool, error) {
 	if !known {
 		return true, markFailed(ctx, w.pool, job, "unknown_kind", true)
 	}
-	jobCtx, cancel := context.WithTimeout(ctx, w.Lease)
+	// Stopping the service stops the claiming, never a job halfway (a send
+	// cut off can't tell whether the customer got it): the job keeps its own
+	// time, its lease.
+	keepGoing := context.WithoutCancel(ctx)
+	jobCtx, cancel := context.WithTimeout(keepGoing, w.Lease)
 	defer cancel()
 	started := time.Now()
 	if runErr := runSafely(jobCtx, handler, job); runErr != nil {
 		var failure *Failure
 		permanent := errors.As(runErr, &failure) && failure.Permanent
 		w.log.Warn("jobs: try failed", logging.Code(safeCode(runErr)), logging.Count("attempt", job.Attempt), logging.Took(time.Since(started)))
-		return true, markFailed(ctx, w.pool, job, safeCode(runErr), permanent)
+		return true, markFailed(keepGoing, w.pool, job, safeCode(runErr), permanent)
 	}
-	return true, markDone(ctx, w.pool, job)
+	return true, markDone(keepGoing, w.pool, job)
 }
 
 // runSafely turns a handler's panic into a failed try instead of a dead worker.

@@ -2,10 +2,8 @@ package telegram
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -131,7 +129,7 @@ func (h *Webhook) handleDeleted(ctx context.Context, deleted *DeletedMessages) e
 }
 
 func (h *Webhook) encryptedMessage(company tenant.CompanyID, text, channelMessageID string) (conversations.IncomingMessage, error) {
-	id, err := newUUID()
+	id, err := conversations.NewID()
 	if err != nil {
 		return conversations.IncomingMessage{}, err
 	}
@@ -140,9 +138,16 @@ func (h *Webhook) encryptedMessage(company tenant.CompanyID, text, channelMessag
 }
 
 // enqueueReply asks the assistant to answer this message, once.
+// ReplySettle is how long a reply waits for more messages.
+const ReplySettle = 1500 * time.Millisecond
+
 func enqueueReply(ctx context.Context, pool *database.Pool, turn *conversations.Turn) error {
 	payload := map[string]string{"conversationId": turn.ConversationID, "triggerMessageId": turn.TriggerMessageID}
-	_, err := jobs.Enqueue(ctx, pool, turn.CompanyID, jobs.NewJob{Kind: ReplyJobKind, Payload: payload, DedupeKey: "reply:" + turn.TriggerMessageID})
+	// Customers often send a few messages in a row: the answer starts a
+	// moment later, so one answer covers them all (an older message's run
+	// then stays quiet).
+	job := jobs.NewJob{Kind: ReplyJobKind, Payload: payload, RunAfter: time.Now().Add(ReplySettle), DedupeKey: "reply:" + turn.TriggerMessageID}
+	_, err := jobs.Enqueue(ctx, pool, turn.CompanyID, job)
 	if err == jobs.ErrDuplicate {
 		return nil
 	}
@@ -177,14 +182,4 @@ func clientIP(r *http.Request) string {
 		return forwarded
 	}
 	return r.RemoteAddr
-}
-
-func newUUID() (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
 }

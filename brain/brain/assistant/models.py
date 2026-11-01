@@ -64,5 +64,7 @@ class ReplyRequest(Strict):
     knowledge: str = Field(default="", max_length=10_000)
     categories: list[str] = Field(default_factory=list, max_length=200)
     conversation: list[Line] = Field(max_length=40)
-    # The business's own Claude key (decrypted by core), or None for ansa's.
+    # Which AI answers: the Claude API (the business's own key, decrypted by
+    # core, or None for ansa's), or Claude Code on this computer (development only).
+    engine: Literal["api_key", "claude_code"] = "api_key"
     api_key: str | None = Field(default=None, max_length=300)

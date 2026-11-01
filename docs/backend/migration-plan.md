@@ -37,11 +37,15 @@
 ## Phase 2: the assistant
 | Module | Old code | Status |
 |---|---|---|
-| when ansa answers (gate, away, catch-up) | db/assistant-runs.ts, lib/assistant/availability.ts | 🔨 gate done |
+| when ansa answers (gate, away, catch-up) | db/assistant-runs.ts, lib/assistant/availability.ts | 🔨 gate, away rules, waiting done; the catch-up's claim next |
 | reply thinking (brain) | lib/assistant/prompt.ts, answer.ts | ✅ brain/brain/assistant |
 | reply checks (core) | lib/assistant/reply-checks.ts | ✅ core/internal/assistant/checks.go |
-| handover, holding reply, owner alerts | services/assistant-handover.ts, owner-alerts.ts | ⬜ |
-| Ask me first drafts, test box, AI engine | services/assistant-drafts.ts, -test.ts, -engine*.ts | ⬜ |
+| the reply run (job `assistant.reply`) | services/assistant-reply.ts | ✅ core/internal/assistant/reply.go, send.go |
+| handover, holding reply, owner alerts | services/assistant-handover.ts, owner-alerts.ts | ✅ handover.go, core/internal/alerts |
+| "a ticket is yours" email | services/assignment-notifications.ts | ✅ core/internal/assignments |
+| email out (the one door) | lib/send-email.ts, adapters/resend.ts, dev-email-outbox.ts | ✅ core/internal/email (customer "solved" emails with phase 5) |
+| AI engine (own key, ansa's, Claude Code in development) | services/assistant-engine.ts, adapters/claude-code.ts | ✅ core sends it; brain/brain/claude_code.py |
+| Ask me first drafts (send, edit, discard), test box | services/assistant-drafts.ts, -test.ts | 🔨 drafts are saved; the person's actions move with the screens' API |
 
 ## Phase 3: menu and orders
 | Module | Old code | Status |

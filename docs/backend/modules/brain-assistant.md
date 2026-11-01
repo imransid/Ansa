@@ -14,6 +14,16 @@ addresses hidden, the owner's with secret numbers hidden.
 (`output_config.format: json_schema`), effort low, 3,000 tokens, 30 s, one
 retry; the business's own key when core sends one, else ansa's; on an error
 only the class name is kept (never its text).
+**Claude Code (`claude_code.py`, DEVELOPMENT ONLY):** when core sends
+`engine: "claude_code"` and the brain runs with `ANSA_ENV=development`, the
+answer comes from `claude -p` on this computer's Claude Code login (Anthropic
+doesn't allow a product to run on a claude.ai login: in production the brain
+answers `model_unavailable`). Locked down as the old adapter: no tools, no
+MCP, no settings, CLAUDE.md or memory, no saved session, an empty temporary
+folder, only PATH, HOME, USER, LOGNAME, LANG and TMPDIR passed on (never a
+secret), the conversation on stdin, 90 s. `CLAUDE_CODE_PATH` names the program.
+**Threads:** the reply endpoint is a plain `def`, so FastAPI runs it in a
+worker thread: a model call that takes seconds never holds up other requests.
 **Answer (`answer.py`):** read strictly: exactly the schema's fields;
 `reply` (1–1,500 characters, cleaned), `needs_person` (a reason from the
 allowed list, a one-line subject, a summary, a category), `no_reply`,
@@ -24,4 +34,6 @@ core then sends the holding reply, never the model's text.
 **Core's checks (prices, links, refunds) run in core, not here.**
 **Tests:** `tests/test_assistant.py` (a fake model): the prompt's contents,
 escaping and hiding; a person's prompt; strict reading; failures; the
-endpoint needs core's signature.
+endpoint needs core's signature; Claude Code is refused outside development,
+gets the conversation on stdin only and none of the brain's secrets (a fake
+program: nothing is ever run).
