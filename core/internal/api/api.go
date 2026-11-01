@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"ansa/core/internal/assistant"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/database"
 	"ansa/core/internal/httpserver"
@@ -45,6 +46,8 @@ type Server struct {
 	Replies *inbox.Replies
 	// The brain, for what it can answer with (Home's "the AI is ready").
 	Brain *brainclient.Client
+	// The assistant, for "Try your assistant".
+	Assistant *assistant.Runner
 }
 
 // Register adds every endpoint.
@@ -53,6 +56,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/orders/{id}/status", s.withSession(s.changeOrderStatus))
 	s.registerInbox(routes)
 	s.registerHome(routes)
+	s.registerAssistantSettings(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

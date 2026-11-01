@@ -61,9 +61,12 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 	if err != nil {
 		return nil, err
 	}
-	lines, err := conversationLines(ctx, pool, box, company, conversationID)
-	if err != nil {
-		return nil, err
+	// No conversation (the owner's test box): its caller puts the typed message in.
+	lines := []Line{}
+	if conversationID != "" {
+		if lines, err = conversationLines(ctx, pool, box, company, conversationID); err != nil {
+			return nil, err
+		}
 	}
 	categories, err := activeCategories(ctx, pool, company)
 	if err != nil {
@@ -101,7 +104,7 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		prices = append(prices, fee)
 	}
 	request.Hours = hoursFor(kind, settings, now)
-	if takesOrders {
+	if takesOrders && conversationID != "" {
 		if err := describeOrders(ctx, pool, company, conversationID, choices, &request.Orders); err != nil {
 			return nil, err
 		}

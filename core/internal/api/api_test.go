@@ -32,6 +32,7 @@ const (
 // a placed order, and core's API on a test server.
 type apiWorld struct {
 	t       *testing.T
+	api     *Server
 	pool    *database.Pool
 	company tenant.CompanyID
 	cookie  string
@@ -66,6 +67,7 @@ func newAPIWorld(t *testing.T) *apiWorld {
 	server := &Server{Pool: pool, Box: box, Limiter: limiter, Log: logging.New(io.Discard), Secret: screensSecret,
 		Sessions: &session.Reader{Pool: pool, Secret: authSecret}, Orders: &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
 		Replies: &inbox.Replies{Pool: pool, Box: box, Sender: sender}}
+	w.api = server
 	routes := http.NewServeMux()
 	server.Register(routes)
 	w.server = httptest.NewServer(routes)
@@ -137,4 +139,15 @@ func TestAcceptingTellsTheCustomerOnceAndASecondPressFindsItChanged(t *testing.T
 	if code, _ := w.call("POST", path, `{"change":"accept","companyId":"x"}`, screensSecret, w.cookie); code != 404 {
 		t.Fatal("an unknown field is refused: the company only ever comes from the session")
 	}
+}
+
+// serverAPI is the API behind the test server (a test may give it more parts).
+func (w *apiWorld) serverAPI() *Server { return w.api }
+
+func (w *apiWorld) count(statement string) int {
+	var n int
+	if err := w.pool.QueryRow(context.Background(), statement, w.company.String()).Scan(&n); err != nil {
+		w.t.Fatalf("count: %v", err)
+	}
+	return n
 }

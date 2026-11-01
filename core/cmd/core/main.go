@@ -68,7 +68,9 @@ func main() {
 
 	limiter := ratelimit.New(pool, cfg.AuthSecret)
 	sender := chatSender(cfg, pool, box)
-	worker := newWorker(cfg, pool, box, limiter, sender, log)
+	runner := &assistant.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, Chat: sender,
+		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout)}
+	worker := newWorker(cfg, pool, box, limiter, runner, log)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
@@ -76,10 +78,11 @@ func main() {
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
-		Sessions: &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
-		Orders:   &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
-		Replies:  &inbox.Replies{Pool: pool, Box: box, Sender: sender},
-		Brain:    brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 5*time.Second)}
+		Sessions:  &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
+		Orders:    &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
+		Replies:   &inbox.Replies{Pool: pool, Box: box, Sender: sender},
+		Brain:     brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 5*time.Second),
+		Assistant: runner}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
@@ -104,13 +107,8 @@ func main() {
 }
 
 // newWorker registers every job core runs.
-func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, sender *chat.Sender, log *logging.Logger) *jobs.Worker {
+func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, runner *assistant.Runner, log *logging.Logger) *jobs.Worker {
 	mail := &email.Sender{Real: cfg.SendRealEmail, ResendKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder, FromAddress: cfg.EmailFrom}
-	runner := &assistant.Runner{
-		Pool: pool, Box: box, Limiter: limiter, Log: log,
-		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout),
-		Chat:  sender,
-	}
 	alerter := &alerts.Alerter{Pool: pool, Limiter: limiter, Email: mail, TelegramToken: cfg.TelegramBotToken, AppURL: cfg.AppURL, Log: log}
 	notifier := &assignments.Notifier{Pool: pool, Email: mail, AppURL: cfg.AppURL, Log: log}
 	worker := jobs.NewWorker(pool, log)

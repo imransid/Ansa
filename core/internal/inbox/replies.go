@@ -3,12 +3,11 @@ package inbox
 import (
 	"context"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"ansa/core/internal/chat"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/plaintext"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
@@ -27,19 +26,16 @@ type Replies struct {
 // CleanReply is the reply as typed (a line break counted once, stored as
 // "\n"), trimmed; "" with a reason in words when it can't be sent.
 func CleanReply(text string) (string, string) {
-	text = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n"))
+	cleaned, problem := plaintext.Note(text, ReplyMaxLength)
 	switch {
-	case text == "":
-		return "", "Write a reply first."
-	case utf8.RuneCountInString(text) > ReplyMaxLength:
+	case problem != "" && strings.HasPrefix(problem, "At most"):
 		return "", "A reply can be at most 4,000 characters."
+	case problem != "":
+		return "", problem
+	case cleaned == "":
+		return "", "Write a reply first."
 	}
-	for _, r := range text {
-		if unicode.IsControl(r) && r != '\n' && r != '\t' {
-			return "", "Remove the invisible control characters from the text."
-		}
-	}
-	return text, ""
+	return cleaned, ""
 }
 
 // Reply saves a person's reply "sending" (encrypted), then sends it and

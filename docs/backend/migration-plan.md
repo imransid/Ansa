@@ -45,7 +45,7 @@
 | "a ticket is yours" email | services/assignment-notifications.ts | ✅ core/internal/assignments |
 | email out (the one door) | lib/send-email.ts, adapters/resend.ts, dev-email-outbox.ts | ✅ core/internal/email (customer "solved" emails with phase 5) |
 | AI engine (own key, ansa's, Claude Code in development) | services/assistant-engine.ts, adapters/claude-code.ts | ✅ core sends it; brain/brain/claude_code.py |
-| Ask me first drafts (send, edit, discard), test box | services/assistant-drafts.ts, -test.ts | 🔨 Send, Edit (a reply replacing it) and Discard done (inbox); the test box next |
+| Ask me first drafts (send, edit, discard), test box | services/assistant-drafts.ts, -test.ts | ✅ inbox (drafts), assistant/try.go (the test box) |
 
 ## Phase 3: menu and orders
 | Module | Old code | Status |
@@ -92,6 +92,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Orders page: list and status changes | ✅ in core's API; the page switches with the others |
 | Inbox: list, conversation page, take over, hand back, reply, drafts, important, what ansa did | ✅ in core's API |
 | Home: status card and its switches, while you were away, getting started, needs you | ✅ in core's API (business numbers with their modules) |
+| Settings → Assistant: texts, reply mode, alerts, AI engine and own key, away hours; Try your assistant | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over
