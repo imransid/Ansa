@@ -7,6 +7,7 @@ inside the Next.js app. Start here, then read the other files in this order:
 2. [security.md](security.md): the rules that keep every company's data safe. Read before writing any code.
 3. [conventions.md](conventions.md): how code is written here, so anyone can read and extend it.
 4. [migration-plan.md](migration-plan.md): what moves from the old backend, in which order, and where we are.
+5. [try-it.md](try-it.md): run the screens on the new backend on your laptop, and what to try.
 5. [modules/](modules/): one page per module: what it does, its rules, its tests.
 
 ## In one picture

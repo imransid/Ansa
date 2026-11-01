@@ -53,7 +53,7 @@
 | menu, "Not available today" | db/menu.ts | ✅ core/internal/menu (in core's API) |
 | menu reading (brain) | lib/menu-reading/, services/menu-reading.ts | ✅ core/internal/menureading, brain/brain/menu (PDFs go to the model as themselves) |
 | orders: pricing, summary, placing, taking back, new-order alerts | lib/orders.ts, order-steps.ts, db/order-proposals.ts, services/assistant-order.ts, order-alerts.ts | ✅ core/internal/orders, assistant/order.go, alerts/orders.go |
-| the Orders page's status changes and messages | services/orders.ts, db/order-status.ts | ⬜ with the screens' API (phase 7) |
+| the Orders page's status changes and messages | services/orders.ts, db/order-status.ts | ✅ core/internal/orders (in core's API) |
 
 ## Phase 4: posting and marketing
 | Module | Old code | Status |
@@ -106,7 +106,10 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Connections: Telegram link, stand-in, disconnect; Pages, forwarding address, phone lines | ✅ in core's API |
 | All requests, a request's page, every action, solving with the email, New request | ✅ in core's API |
 | Emails page: the list, Process again, Make a ticket anyway | ✅ in core's API |
-| the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
+| the screens' side: one helper that signs and calls core (`lib/core-api.ts`), one view file per area (`lib/core-views/`) | ✅ behind the switch: CORE_API_URL and SCREENS_SHARED_SECRET set = every switched page and action calls core; unset = the old services, unchanged |
+| Calls page: list, a call, Analyze now, Escalate, the recording | ✅ in core's API |
+| Screens switched (869cd05): logins, account, billing; Home, Settings, setup, Post for me; Inbox, requests, Emails; menu, Connections, Team, knowledge, the old Setup page | ✅ (the second round, the last reads and the Calls screens: 🔨) |
+| The hidden marketing pages (interview, strategy, studio, media, calendar, queue, analytics) and LinkedIn, X, YouTube | ⬜ the owner decides: move them to core or remove them (step 57) |
 
 ## Phase 8: switch-over
 Deploy core and brain, point the webhooks at core, watch, then remove the old
