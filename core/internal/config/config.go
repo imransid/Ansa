@@ -85,6 +85,9 @@ type Config struct {
 	// periodic work (publishing, Post for me, numbers, catch-up, cleanup):
 	// a second core beside a running one, or a preview.
 	SchedulerOff bool
+	// ansa's app on LinkedIn, X and YouTube (GOOGLE_), each pair both or
+	// neither (social.go): connecting accounts, posting, their numbers.
+	LinkedInClientID, LinkedInClientSecret, XClientID, XClientSecret, GoogleClientID, GoogleClientSecret string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -126,7 +129,8 @@ func Load(getenv Getenv) (Config, error) {
 		SchedulerOff:          getenv("CORE_SCHEDULER") == "off",
 	}
 	readVapi(&cfg, getenv)
-	var problems []string
+	readSocialApps(&cfg, getenv)
+	problems := socialAppProblems(cfg)
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
 		problems = append(problems, "DATABASE_URL must be a postgres:// address")
 	}

@@ -23,9 +23,14 @@ production requires it; otherwise `<ANSA_DEV_FOLDER>/.dev-files/`), USE_STRIPE (
 STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID), the VAPI_* settings (how Vapi signs and where
 recordings come from: see [calls](calls.md)), CORE_SCHEDULER (exactly "off":
 this process serves requests and runs jobs but none of the periodic work: a
-second core beside a running one, or a preview). The checks of each group
+second core beside a running one, or a preview), LINKEDIN_CLIENT_ID /
+_SECRET, X_CLIENT_ID / _SECRET and GOOGLE_CLIENT_ID / _SECRET (ansa's app on
+LinkedIn, X and YouTube, each pair both or neither, `social.go`: without one,
+development offers a stand-in account and production says the platform isn't
+set up; see [platforms](platforms.md)). The checks of each group
 live in `checks.go`. See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are
 named, never shown; real email needs its sender; production needs real email
-and an https address.
+and an https address; `social_test.go`: half a social app's pair stops the
+server, named never shown.
