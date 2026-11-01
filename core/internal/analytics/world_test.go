@@ -95,7 +95,8 @@ func (w *world) job(platform, topic, pillar, status, ago string, standIn bool) s
 	return jobID
 }
 
-// numbers saves a snapshot of a post, collected `ago`, as "name=value" pairs.
+// numbers saves a snapshot of a post, collected `ago` (a Postgres
+// interval): the numbers given, the rest NULL.
 func (w *world) numbers(jobID, source, ago string, values map[string]int64) {
 	columns := map[string]*int64{}
 	for _, column := range MetricColumns {

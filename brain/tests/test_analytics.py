@@ -5,7 +5,8 @@ import time
 from fastapi.testclient import TestClient
 
 from brain import ai
-from brain.analytics.review import JSON_SCHEMA, SYSTEM_PROMPT, ReviewRequest, build_prompt, read_answer, review_performance
+from brain.analytics.answer import read_answer
+from brain.analytics.review import JSON_SCHEMA, SYSTEM_PROMPT, ReviewRequest, build_prompt, review_performance
 from brain.app import create_app
 from brain.settings import Settings
 from tests.test_security import SECRET, sign
