@@ -32,6 +32,9 @@ EMAIL_TRIAGE = UseSettings(effort="medium", max_tokens=4_000, timeout_seconds=45
 # "Post for me": one short Facebook post from the business's own details.
 AUTOPOST = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=60, max_retries=1)
 
+# The content studio: one social media post written from the confirmed facts.
+CONTENT_DRAFT = UseSettings(effort="medium", max_tokens=12_000, timeout_seconds=120, max_retries=1)
+
 # "Read my menu": a whole menu copied into a list (long answers, a photo or a PDF).
 MENU_READING = UseSettings(effort="low", max_tokens=16_000, timeout_seconds=120, max_retries=1)
 

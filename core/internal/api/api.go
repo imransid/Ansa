@@ -87,6 +87,8 @@ type Server struct {
 	// Billing: "stripe", "dev" or "off", and ansa's Stripe account.
 	BillingMode string
 	Stripe      *billing.Stripe
+	// The content studio and the media library (cofounder_studio.go).
+	Studio *StudioServices
 }
 
 // Register adds every endpoint.
@@ -111,6 +113,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerAccount(routes)
 	s.registerBilling(routes)
 	s.registerCalls(routes)
+	s.registerStudio(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

@@ -38,6 +38,7 @@ import (
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
 	"ansa/core/internal/socialconnect"
+	"ansa/core/internal/studio"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tickets"
 )
@@ -110,6 +111,8 @@ func main() {
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
+	// The content studio's AI drafts: two tries of up to 120 s at the brain.
+	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second), Limiter: limiter, Log: log}}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

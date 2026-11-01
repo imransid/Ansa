@@ -14,6 +14,7 @@ from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
+from brain.content.draft import DraftRequest, write_draft
 from brain.calls.decision import decide as decide_call
 from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
@@ -105,6 +106,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """One "Post for me" post about what core's topic brain chose (core
         checks it before it can go out). Never the post in a log."""
         return write_post(request, asker_for(request.engine, active.development))
+
+    @app.post("/v1/content/draft")
+    def content_draft(request: DraftRequest) -> dict:
+        """One content studio draft (core cleans it and marks its claims).
+        Never the facts or the draft in a log."""
+        return write_draft(request, active_asker)
 
     return app
 
