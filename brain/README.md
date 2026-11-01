@@ -27,5 +27,6 @@ state. Read `docs/backend/README.md` first.
 | `brain/ai.py` | The only door to the AI model | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
 | `brain/claude_code.py` | Development only: Claude Code on this computer | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
 | `brain/assistant/` | The reply's prompt, answer and models | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
+| `brain/email/` | Triaging a customer email (the customer's own words only) | [email-in](../docs/backend/modules/email-in.md) |
 | `brain/menu/` | Reading a menu (a photo, a PDF or text) into rows | [menu](../docs/backend/modules/menu.md) |
 | `brain/text.py` | Escaping and hiding secrets in prompts | [brain-assistant](../docs/backend/modules/brain-assistant.md) |

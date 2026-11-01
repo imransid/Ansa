@@ -24,6 +24,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/email"
 	"ansa/core/internal/httpserver"
+	"ansa/core/internal/inbound"
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
@@ -31,6 +32,7 @@ import (
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
 	"ansa/core/internal/ratelimit"
+	"ansa/core/internal/resend"
 	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
@@ -75,12 +77,17 @@ func main() {
 	deliverer := &outbox.Deliverer{Pool: pool, Limiter: limiter, Email: mail, ForwardingDomain: cfg.ForwardingDomain()}
 	worker := newWorker(cfg, pool, box, limiter, runner, mail, log)
 	worker.Handle(tickets.DeliverJobKind, deliverer.HandleJob)
+	processor := &inbound.Processor{Pool: pool, Box: box, Limiter: limiter, Log: log,
+		Fetcher: &resend.Fetcher{Real: cfg.SendRealEmail, APIKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder},
+		Brain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout), EmailFrom: cfg.EmailFrom, ForwardingDomain: cfg.ForwardingDomain()}
+	worker.Handle(resend.ProcessJobKind, processor.HandleJob)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
 	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken}
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
+	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions:    &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
 		Orders:      &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
@@ -89,7 +96,7 @@ func main() {
 		Assistant:   runner,
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
-		Outbox: deliverer}
+		Outbox: deliverer, Inbound: processor}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

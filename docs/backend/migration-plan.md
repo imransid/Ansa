@@ -70,7 +70,7 @@
 |---|---|---|
 | tickets, routing, categories, notes, history | db/ticket*.ts, db/routing.ts | ✅ every person's action on requests, typed-in requests, same-customer routing (in core's API) |
 | calls (Vapi webhook, call brain, recordings) | services/vapi-*.ts, lib/call-brain/ | ⬜ |
-| email in (Resend webhook, filters, triage) | services/inbound-email-*.ts, lib/email-triage/ | ⬜ |
+| email in (Resend webhook, filters, triage) | services/inbound-email-*.ts, lib/email-triage/ | ✅ core/internal/resend, inbound; brain/brain/email (the stuck-email run moves with maintenance) |
 | email out (outbox, solved emails) | services/customer-emails.ts, lib/send-email.ts | ✅ core/internal/outbox (now retried on its own within minutes) |
 
 ## Phase 6: accounts and money
@@ -97,6 +97,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Menu: dishes, order, availability, "Looks right" | ✅ in core's API |
 | Connections: Telegram link, stand-in, disconnect; Pages, forwarding address, phone lines | ✅ in core's API |
 | All requests, a request's page, every action, solving with the email, New request | ✅ in core's API |
+| Emails page: the list, Process again, Make a ticket anyway | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

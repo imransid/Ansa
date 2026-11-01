@@ -16,3 +16,5 @@ company.
 | Update the Telegram account a business connection id names; find which company an account is tied to | internal/telegram/linkstore.go, linking.go | Telegram's connection id names the one company a code tied it to; only that row (its company id) is read or changed. |
 | Find the one company that has a Facebook Page connected | internal/messenger/store.go | The Page id Meta signed names the company, only when exactly one has it; returns the company and connection ids only. |
 | Find who a session cookie belongs to | internal/session/session.go | The session token names one person; returns their id, company, role, name and address, and only their own company is used after. |
+| Find the company of a forwarding address's token | internal/resend/webhook.go | Only ansa makes forwarding addresses; the token names the company, only when exactly one matches; ids only. |
+| Record a delivery problem on a sent email by Resend's id | internal/resend/webhook.go | Resend's id names one sent email of one company; only that row changes. |

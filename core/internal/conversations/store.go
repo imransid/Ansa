@@ -110,3 +110,29 @@ func touchConversation(ctx context.Context, tx database.Tx, company tenant.Compa
 	_, err := tx.Exec(ctx, statement, company.String(), conversationID, fromCustomer)
 	return err
 }
+
+// LinkInboundEmailWithin makes a received email (and its request) an entry
+// of its sender's conversation: a link, never a copy of the email, and
+// ansa's "email_made_request" line.
+func LinkInboundEmailWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, contact ContactKey, inboundEmailID, ticketID string) error {
+	conversationID, err := conversationForContact(ctx, tx, company, contact)
+	if err != nil {
+		return err
+	}
+	companyText, conversation := company.String(), conversationID
+	if _, err := tx.Exec(ctx, `INSERT INTO messages (company_id, conversation_id, direction, author, inbound_email_id) VALUES ($1, $2, 'in', 'customer', $3)`,
+		companyText, conversation, inboundEmailID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE inbound_emails SET conversation_id = $2 WHERE company_id = $1 AND id = $3`, companyText, conversation, inboundEmailID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE tickets SET conversation_id = $2 WHERE company_id = $1 AND id = $3`, companyText, conversation, ticketID); err != nil {
+		return err
+	}
+	if err := touchConversation(ctx, tx, company, conversation, false); err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO assistant_activity (company_id, conversation_id, action) VALUES ($1, $2, 'email_made_request')`, companyText, conversation)
+	return err
+}

@@ -23,6 +23,9 @@ class UseSettings:
 # The restaurant assistant's reply to a customer (who is waiting in a chat).
 ASSISTANT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30, max_retries=1)
 
+# Triaging a customer email (a summary, a subject and a category).
+EMAIL_TRIAGE = UseSettings(effort="medium", max_tokens=4_000, timeout_seconds=45, max_retries=1)
+
 # "Read my menu": a whole menu copied into a list (long answers, a photo or a PDF).
 MENU_READING = UseSettings(effort="low", max_tokens=16_000, timeout_seconds=120, max_retries=1)
 

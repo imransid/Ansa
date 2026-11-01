@@ -45,6 +45,8 @@ type Config struct {
 	SendRealEmail bool
 	EmailFrom     string
 	ResendAPIKey  string
+	// Resend's webhook signing secret ("whsec_..."); empty: the webhook refuses all.
+	ResendWebhookSecret string
 	// The domain of every company's forwarding address
 	// (c-<token>@INBOUND_EMAIL_DOMAIN). Never change it once companies forward
 	// to it. Required with real email; development: inbound.ansa.test.
@@ -87,6 +89,7 @@ func Load(getenv Getenv) (Config, error) {
 		DevFolder:             withDefault(getenv("ANSA_DEV_FOLDER"), ".."),
 		ScreensSharedSecret:   getenv("SCREENS_SHARED_SECRET"),
 		InboundEmailDomain:    strings.ToLower(strings.TrimSpace(getenv("INBOUND_EMAIL_DOMAIN"))),
+		ResendWebhookSecret:   getenv("RESEND_WEBHOOK_SECRET"),
 		FacebookAppID:         getenv("FACEBOOK_APP_ID"),
 		FacebookAppSecret:     getenv("FACEBOOK_APP_SECRET"),
 		MessengerVerifyToken:  getenv("MESSENGER_VERIFY_TOKEN"),
@@ -145,6 +148,9 @@ func emailAndLinkProblems(cfg Config) []string {
 	}
 	if cfg.SendRealEmail && (!strings.Contains(cfg.EmailFrom, "@") || cfg.ResendAPIKey == "" || cfg.InboundEmailDomain == "") {
 		problems = append(problems, "SEND_REAL_EMAIL needs EMAIL_FROM (an address), RESEND_API_KEY and INBOUND_EMAIL_DOMAIN")
+	}
+	if cfg.ResendWebhookSecret != "" && !strings.HasPrefix(cfg.ResendWebhookSecret, "whsec_") {
+		problems = append(problems, `RESEND_WEBHOOK_SECRET must be Resend's signing secret (it starts with "whsec_")`)
 	}
 	if cfg.InboundEmailDomain != "" && !domainPattern.MatchString(cfg.InboundEmailDomain) {
 		problems = append(problems, "INBOUND_EMAIL_DOMAIN must be a domain name like inbound.yourdomain.com")

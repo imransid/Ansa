@@ -19,6 +19,7 @@ import (
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/database"
 	"ansa/core/internal/httpserver"
+	"ansa/core/internal/inbound"
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
@@ -58,6 +59,8 @@ type Server struct {
 	ForwardingDomain string
 	// The outbox, for a request's Retry.
 	Outbox *outbox.Deliverer
+	// Received emails, for the Emails page's "Process again" and "Make a ticket anyway".
+	Inbound *inbound.Processor
 }
 
 // Register adds every endpoint.
@@ -72,6 +75,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerChannels(routes)
 	s.registerRequests(routes)
 	s.registerRequestEmails(routes)
+	s.registerEmails(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

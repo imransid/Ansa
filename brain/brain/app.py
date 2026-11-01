@@ -13,6 +13,11 @@ from brain import ai, claude_code
 from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
+from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
+from brain.email.triage import TriageRequest
+from brain.email.triage import build_prompt as build_triage_prompt
+from brain.email.triage import json_schema as triage_schema
+from brain.email.triage import read_answer as read_triage_answer
 from brain.menu.reading import JSON_SCHEMA as MENU_JSON_SCHEMA
 from brain.menu.reading import SAMPLE_ITEMS, MenuReadRequest, build_content, read_rows
 from brain.menu.reading import SYSTEM_PROMPT as MENU_SYSTEM_PROMPT
@@ -71,7 +76,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         a key: the development sample, or unavailable in production."""
         return read_menu(request, active_asker, active.development)
 
+    @app.post("/v1/email/triage")
+    def email_triage(request: TriageRequest) -> dict:
+        """A received email's summary, subject and category (or why not)."""
+        return triage_email(request, active_asker)
+
     return app
+
+
+def triage_email(request: TriageRequest, asker) -> dict:
+    result = asker(TRIAGE_SYSTEM_PROMPT, build_triage_prompt(request), triage_schema(request.categories), ai.EMAIL_TRIAGE, None)
+    if result.kind == "unavailable":
+        return {"kind": "failed", "reason": "model_unavailable"}
+    if result.kind != "ok":
+        return {"kind": "failed", "reason": "model_failed", "error_name": result.error_name or result.kind}
+    answer = read_triage_answer(result.output_text, request.categories)
+    return {"kind": "ok", **answer} if answer is not None else {"kind": "failed", "reason": "unusable_answer"}
 
 
 def read_menu(request: MenuReadRequest, asker, development: bool) -> dict:

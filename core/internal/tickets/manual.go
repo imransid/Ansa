@@ -126,3 +126,43 @@ func sameCustomerAssignee(ctx context.Context, tx database.Tx, company tenant.Co
 	}
 	return expert, err
 }
+
+// NewEmailRequest is a request made from a received email. The category
+// is the AI's choice by name (an active one, read now: renamed or archived
+// meanwhile = none).
+type NewEmailRequest struct {
+	Subject, Description, CategoryID, CategoryName string
+	CustomerName, CustomerEmail                    string
+}
+
+// CreateEmailTicketWithin numbers and saves an email's request (channel
+// "email") inside the caller's transaction, which took the company row
+// lock first, and routes it as every new request. Returns its id.
+func CreateEmailTicketWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, r NewEmailRequest) (string, error) {
+	var number int
+	if err := tx.QueryRow(ctx, `UPDATE companies SET last_ticket_number = last_ticket_number + 1 WHERE id = $1 RETURNING last_ticket_number`, company.String()).Scan(&number); err != nil {
+		return "", err
+	}
+	category, err := currentCategoryName(ctx, tx, company, r.CategoryID)
+	if err != nil {
+		return "", err
+	}
+	if category == nil && r.CategoryName != "" {
+		var name string
+		err := tx.QueryRow(ctx, `SELECT name FROM categories WHERE company_id = $1 AND name = $2 AND archived_at IS NULL FOR KEY SHARE`, company.String(), r.CategoryName).Scan(&name)
+		if err == nil {
+			category = &name
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
+	}
+	const insert = `
+		INSERT INTO tickets (company_id, ticket_number, subject, description, channel, category, customer_name, customer_email)
+		VALUES ($1, $2, $3, $4, 'email', $5, NULLIF($6, ''), NULLIF($7, ''))
+		RETURNING id`
+	var id string
+	if err := tx.QueryRow(ctx, insert, company.String(), number, r.Subject, r.Description, category, r.CustomerName, r.CustomerEmail).Scan(&id); err != nil {
+		return "", err
+	}
+	return id, routeNewWithin(ctx, tx, company, id, "", NewRequest{CustomerEmail: r.CustomerEmail})
+}

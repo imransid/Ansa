@@ -44,6 +44,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/hours/` | Opening and away hours | [hours](../docs/backend/modules/hours.md) |
 | `internal/assistant/` | The assistant: when it answers, the brain's slice, checks, replies, handovers | [assistant](../docs/backend/modules/assistant.md) |
 | `internal/tickets/` | Requests: making, routing, the list, a request's page and every change | [tickets](../docs/backend/modules/tickets.md), [requests](../docs/backend/modules/requests.md) |
+| `internal/resend/`, `internal/inbound/` | Email in: Resend's webhook, fetching, turning an email into a request | [email-in](../docs/backend/modules/email-in.md) |
 | `internal/outbox/`, `internal/addresses/` | Customer emails (the "solved" email); customer addresses | [requests](../docs/backend/modules/requests.md) |
 | `internal/orders/`, `internal/money/` | Orders written up and priced by ansa; amounts in smallest units | [orders](../docs/backend/modules/orders.md) |
 | `internal/email/`, `internal/plaintext/` | The one door for sending email; one plain line | [email](../docs/backend/modules/email.md) |
