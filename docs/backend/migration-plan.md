@@ -62,7 +62,8 @@
 | content drafts (create, read, claims check) | db/content-draft*.ts | ✅ core/internal/drafts |
 | content studio edits and approvals, media library | db/content-draft*.ts, services/media-*.ts | ⬜ |
 | social connections: Facebook Pages (connect, return, stand-in, disconnect) | services/social-connect.ts, social-oauth-callback.ts, adapters/facebook.ts | ✅ core/internal/socialconnect |
-| social connections: LinkedIn, X, YouTube (OAuth, PKCE, renewals, revokes) | adapters/linkedin, x, youtube, services/social-tokens.ts | ⬜ |
+| social connections: LinkedIn, X, YouTube (OAuth, PKCE, renewals, revokes), the Accounts page | adapters/linkedin, x, youtube, services/social-tokens.ts, social-accounts.ts | ✅ core/internal/socialconnect, social (Renewer.Prepare, RevokeRemoved), platforms (not tried against the real platforms: no app yet) |
+| LinkedIn, X, YouTube connectors: posting (text, one image, YouTube videos), X's and YouTube's numbers, the stand-in, metric definitions | adapters/linkedin*, x*, youtube*, dev-social.ts, lib/metric-definitions.ts | ✅ core/internal/platforms (plain functions; not yet wired into the publishing queue or the numbers collector) |
 | publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
 | post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
 | publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |

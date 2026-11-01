@@ -37,7 +37,7 @@ func (s *Server) channelsPage(w http.ResponseWriter, r *http.Request, _ []byte, 
 	}
 	facebookMode := "not-set-up"
 	if s.Social != nil {
-		facebookMode = s.Social.Mode()
+		facebookMode = s.Social.Mode("facebook")
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"page": page, "canManage": who.IsOwner(), "telegramMode": s.telegramMode(), "facebookMode": facebookMode})
 }

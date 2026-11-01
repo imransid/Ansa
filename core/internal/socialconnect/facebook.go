@@ -33,13 +33,6 @@ var graphClient = &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*h
 
 var pageIDPattern = regexp.MustCompile(`^\d{1,30}$`)
 
-// Account is one account a platform authorized: for Facebook, one Page.
-type Account struct {
-	ExternalID, DisplayName, Kind string
-	Scopes                        []string
-	AccessToken                   string
-}
-
 // authorizeURL is the consent screen's address: no PKCE (Facebook's flow
 // documents none), the state proving the return answers this attempt.
 func authorizeURL(appID, redirectURI, state string) string {

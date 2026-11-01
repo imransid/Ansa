@@ -25,6 +25,7 @@ import (
 	"ansa/core/internal/logging"
 	"ansa/core/internal/maintenance"
 	"ansa/core/internal/messenger"
+	"ansa/core/internal/platforms"
 	"ansa/core/internal/postmetrics"
 	"ansa/core/internal/publishing"
 	"ansa/core/internal/ratelimit"
@@ -141,4 +142,14 @@ func waitForStop(server *http.Server, stopWork context.CancelFunc, working *sync
 		log.Warn("core stopped with jobs still running: they are handed back after their lease")
 	}
 	log.Info("core stopped")
+}
+
+// socialPlatforms is how core reaches LinkedIn, X and YouTube: ansa's app
+// on each (both settings or neither), and the development stand-in's folder.
+func socialPlatforms(cfg config.Config) *platforms.Connectors {
+	return &platforms.Connectors{Development: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), Apps: map[string]platforms.App{
+		"linkedin": {ClientID: cfg.LinkedInClientID, ClientSecret: cfg.LinkedInClientSecret},
+		"x":        {ClientID: cfg.XClientID, ClientSecret: cfg.XClientSecret},
+		"youtube":  {ClientID: cfg.GoogleClientID, ClientSecret: cfg.GoogleClientSecret},
+	}}
 }

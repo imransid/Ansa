@@ -19,7 +19,8 @@ read strictly, and an unknown field (a "companyId") is refused.
   counter); answers `{"notice": ""}` or why the customer wasn't messaged.
 - The Inbox: see [inbox](inbox.md).
 - Settings → Posts for me: see [autopost](autopost.md).
-- Social accounts (Facebook Pages): see [socialconnect](socialconnect.md).
+- Social accounts (Facebook Pages, LinkedIn, X, YouTube) and the Accounts
+  page (`GET /api/v1/cofounder/accounts`): see [socialconnect](socialconnect.md).
 - The Team page: see [teammates](teammates.md).
 - Phone, email and documents: see [documents](documents.md).
 - Saved answers (the knowledge base): see [knowledge](knowledge.md).

@@ -74,19 +74,19 @@ func TestAnOwnersLoginConnectsTheirPagesOnceWithEncryptedTokens(t *testing.T) {
 	fakeGraph(t, append(append([]string{}, postingScopes...), messagingScopes...), &subscribed)
 	c, company, owner := newConnector(t)
 	ctx := context.Background()
-	address, outcome, err := c.Start(ctx, company, owner)
+	address, outcome, err := c.Start(ctx, company, owner, "facebook")
 	if err != nil || outcome != "started" {
 		t.Fatalf("start: %s %v", outcome, err)
 	}
 	state := stateOf(t, address)
-	if result, _, _ := c.Complete(ctx, company, owner, true, url.Values{"state": {"made-up"}, "code": {"good-code"}}); result != "expired_state" {
+	if result, _, _ := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {"made-up"}, "code": {"good-code"}}); result != "expired_state" {
 		t.Fatalf("a state nobody started: %s", result)
 	}
-	result, count, err := c.Complete(ctx, company, owner, true, url.Values{"state": {state}, "code": {"good-code"}})
+	result, count, err := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {state}, "code": {"good-code"}})
 	if err != nil || result != "connected" || count != 1 || subscribed != 1 {
 		t.Fatalf("connected: %s %d %v (subscribed %d)", result, count, err, subscribed)
 	}
-	if again, _, _ := c.Complete(ctx, company, owner, true, url.Values{"state": {state}, "code": {"good-code"}}); again != "expired_state" {
+	if again, _, _ := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {state}, "code": {"good-code"}}); again != "expired_state" {
 		t.Fatal("a state works once")
 	}
 	var id, name, stored string
@@ -97,7 +97,7 @@ func TestAnOwnersLoginConnectsTheirPagesOnceWithEncryptedTokens(t *testing.T) {
 	if token, err := social.PageToken(ctx, c.Pool, c.Box, company, id); err != nil || token != "page-token" {
 		t.Fatalf("the Page's token, read for its connection: %v", err)
 	}
-	if outcome, _ := Disconnect(ctx, c.Pool, company, owner, id); outcome != "disconnected" {
+	if outcome, _, _ := Disconnect(ctx, c.Pool, company, owner, id); outcome != "disconnected" {
 		t.Fatalf("disconnect: %s", outcome)
 	}
 	var status string
@@ -113,16 +113,16 @@ func TestAnUntickedPostingPermissionOrADenialConnectsNothing(t *testing.T) {
 	fakeGraph(t, []string{"pages_show_list", "pages_read_engagement"}, &subscribed)
 	c, company, owner := newConnector(t)
 	ctx := context.Background()
-	address, _, _ := c.Start(ctx, company, owner)
-	if result, _, _ := c.Complete(ctx, company, owner, true, url.Values{"state": {stateOf(t, address)}, "code": {"good-code"}}); result != "missing_permission" {
+	address, _, _ := c.Start(ctx, company, owner, "facebook")
+	if result, _, _ := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {stateOf(t, address)}, "code": {"good-code"}}); result != "missing_permission" {
 		t.Fatalf("missing permission: %s", result)
 	}
-	address, _, _ = c.Start(ctx, company, owner)
-	if result, _, _ := c.Complete(ctx, company, owner, true, url.Values{"state": {stateOf(t, address)}, "error": {"access_denied"}}); result != "denied" {
+	address, _, _ = c.Start(ctx, company, owner, "facebook")
+	if result, _, _ := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {stateOf(t, address)}, "error": {"access_denied"}}); result != "denied" {
 		t.Fatalf("denied: %s", result)
 	}
-	address, _, _ = c.Start(ctx, company, owner)
-	if result, _, _ := c.Complete(ctx, company, owner, false, url.Values{"state": {stateOf(t, address)}, "code": {"good-code"}}); result != "not_owner" {
+	address, _, _ = c.Start(ctx, company, owner, "facebook")
+	if result, _, _ := c.Complete(ctx, company, owner, false, "facebook", url.Values{"state": {stateOf(t, address)}, "code": {"good-code"}}); result != "not_owner" {
 		t.Fatalf("made a member meanwhile: %s", result)
 	}
 	var connections int
@@ -135,17 +135,17 @@ func TestAnUntickedPostingPermissionOrADenialConnectsNothing(t *testing.T) {
 func TestTheStandInConnectsOnlyInDevelopmentWithoutTheApp(t *testing.T) {
 	c, company, owner := newConnector(t)
 	ctx := context.Background()
-	if outcome, _ := c.ConnectStandIn(ctx, company, owner); outcome != "not-set-up" {
+	if outcome, _ := c.ConnectStandIn(ctx, company, owner, "facebook"); outcome != "not-set-up" {
 		t.Fatal("with ansa's Meta app, no stand-in")
 	}
 	c.AppID, c.AppSecret, c.Development = "", "", true
-	if _, outcome, _ := c.Start(ctx, company, owner); outcome != "not-set-up" {
+	if _, outcome, _ := c.Start(ctx, company, owner, "facebook"); outcome != "not-set-up" {
 		t.Fatal("no app: no consent screen")
 	}
-	if outcome, err := c.ConnectStandIn(ctx, company, owner); err != nil || outcome != "connected" {
+	if outcome, err := c.ConnectStandIn(ctx, company, owner, "facebook"); err != nil || outcome != "connected" {
 		t.Fatalf("stand-in: %s %v", outcome, err)
 	}
-	if outcome, _ := c.ConnectStandIn(ctx, company, owner); outcome != "connected" {
+	if outcome, _ := c.ConnectStandIn(ctx, company, owner, "facebook"); outcome != "connected" {
 		t.Fatal("connecting it again renews it")
 	}
 	var standIns int
@@ -154,7 +154,7 @@ func TestTheStandInConnectsOnlyInDevelopmentWithoutTheApp(t *testing.T) {
 		t.Fatalf("one stand-in Page: %d", standIns)
 	}
 	c.Development = false
-	if c.Mode() != "not-set-up" {
+	if c.Mode("facebook") != "not-set-up" {
 		t.Fatal("production without the app: not set up")
 	}
 }
