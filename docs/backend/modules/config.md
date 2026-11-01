@@ -15,7 +15,11 @@ repository's root by default), FACEBOOK_APP_ID / FACEBOOK_APP_SECRET
 MESSENGER_VERIFY_TOKEN (Meta's one-time setup check, 32-256 letters, digits,
 _ or -), SCREENS_SHARED_SECRET (signs the screens' requests to core's API, at
 least 32 characters), INBOUND_EMAIL_DOMAIN (forwarding addresses' domain;
-required with real email), RESEND_WEBHOOK_SECRET (Resend's "whsec_..." signing secret). See `core/.env.core.example`.
+required with real email), RESEND_WEBHOOK_SECRET (Resend's "whsec_..." signing secret),
+USE_R2_STORAGE (exactly "true" keeps private files in Cloudflare R2, then
+needs R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET;
+production requires it; otherwise `<ANSA_DEV_FOLDER>/.dev-files/`). The
+checks of each group live in `checks.go`. See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are
 named, never shown; real email needs its sender; production needs real email

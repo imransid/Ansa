@@ -84,6 +84,8 @@
 | sign up, login, email confirm, reset, sessions | services/auth.ts, signup.ts, password-reset.ts (Better Auth) | ⬜ |
 | team, invites, roles, removing, categories | db/team-members.ts, invites.ts, categories.ts, user-categories.ts | ✅ core/internal/teammates (joining through an invite moves with login) |
 | setup and settings | services/restaurant-setup.ts, assistant-settings.ts | ✅ core/internal/setup, settings (in core's API) |
+| Phone, email and documents (the old /setup): reply-to, support addresses, documents | services/setup.ts, documents.ts | ✅ core/internal/supportsetup, documents |
+| private file storage (development folder, R2 with signed links) | lib/file-storage.ts, adapters/r2.ts | ✅ core/internal/files |
 | billing (Stripe) | services/billing.ts, stripe-webhook.ts | ⬜ |
 | cleanup, health | services/maintenance.ts, health.ts | ✅ core/internal/maintenance (hourly), GET /health |
 | monitoring and alerts (a log service, an uptime monitor) | docs/going-live.md | ⬜ a choice for the owner |

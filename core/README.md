@@ -60,6 +60,8 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/channels/` | Settings → Connections | [channels](../docs/backend/modules/channels.md) |
 | `internal/publishing/`, `internal/drafts/`, `internal/contentrules/` | The publishing queue (Facebook text posts); content drafts; what a post may say | [publishing](../docs/backend/modules/publishing.md), [contentrules](../docs/backend/modules/contentrules.md) |
 | `internal/autopost/` | "Post for me": the topic brain, posting times, writing, ansa's checks, the switch | [autopost](../docs/backend/modules/autopost.md) |
+| `internal/files/` | Private file storage: the development folder or R2 (signed requests and links) | [files](../docs/backend/modules/files.md) |
+| `internal/documents/`, `internal/supportsetup/` | Phone, email and documents: uploads, downloads, reply-to and support addresses | [documents](../docs/backend/modules/documents.md) |
 | `internal/teammates/` | The Team page: invites, roles, removing someone, categories | [teammates](../docs/backend/modules/teammates.md) |
 | `internal/maintenance/` | Hourly cleanup of rows nobody can use any more | [maintenance](../docs/backend/modules/maintenance.md) |
 | `internal/knowledge/` | Searching approved articles; the escaped slice the AI reads | [knowledge](../docs/backend/modules/knowledge.md) |

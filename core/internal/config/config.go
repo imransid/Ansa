@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"regexp"
 	"strings"
 )
 
@@ -64,6 +63,11 @@ type Config struct {
 	// Where development stand-ins write (.dev-emails, .dev-messages): the
 	// repository's root by default, the folder the old backend writes to.
 	DevFolder string
+	// Private files go to Cloudflare R2 only when USE_R2_STORAGE is exactly
+	// "true" (then all four R2_ settings are required); otherwise to
+	// <DevFolder>/.dev-files. Production requires R2.
+	UseR2                                                   bool
+	R2AccountID, R2AccessKeyID, R2SecretAccessKey, R2Bucket string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -93,6 +97,11 @@ func Load(getenv Getenv) (Config, error) {
 		FacebookAppID:         getenv("FACEBOOK_APP_ID"),
 		FacebookAppSecret:     getenv("FACEBOOK_APP_SECRET"),
 		MessengerVerifyToken:  getenv("MESSENGER_VERIFY_TOKEN"),
+		UseR2:                 getenv("USE_R2_STORAGE") == "true",
+		R2AccountID:           getenv("R2_ACCOUNT_ID"),
+		R2AccessKeyID:         getenv("R2_ACCESS_KEY_ID"),
+		R2SecretAccessKey:     getenv("R2_SECRET_ACCESS_KEY"),
+		R2Bucket:              getenv("R2_BUCKET"),
 	}
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
@@ -127,6 +136,7 @@ func Load(getenv Getenv) (Config, error) {
 	}
 	problems = append(problems, emailAndLinkProblems(cfg)...)
 	problems = append(problems, metaProblems(cfg)...)
+	problems = append(problems, storageProblems(cfg)...)
 	if cfg.ScreensSharedSecret != "" && len(cfg.ScreensSharedSecret) < 32 {
 		problems = append(problems, "SCREENS_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)")
 	}
@@ -134,44 +144,6 @@ func Load(getenv Getenv) (Config, error) {
 		return Config{}, errors.New("settings: " + strings.Join(problems, "; "))
 	}
 	return cfg, nil
-}
-
-// emailAndLinkProblems checks the screens' address and the email settings.
-func emailAndLinkProblems(cfg Config) []string {
-	var problems []string
-	app, err := url.Parse(cfg.AppURL)
-	if err != nil || app.Host == "" || (app.Scheme != "https" && !(app.Scheme == "http" && cfg.Environment == "development")) {
-		problems = append(problems, "APP_URL must be the screens' https address (http only in development)")
-	}
-	if cfg.Environment == "production" && !cfg.SendRealEmail {
-		problems = append(problems, `SEND_REAL_EMAIL must be "true" in production`)
-	}
-	if cfg.SendRealEmail && (!strings.Contains(cfg.EmailFrom, "@") || cfg.ResendAPIKey == "" || cfg.InboundEmailDomain == "") {
-		problems = append(problems, "SEND_REAL_EMAIL needs EMAIL_FROM (an address), RESEND_API_KEY and INBOUND_EMAIL_DOMAIN")
-	}
-	if cfg.ResendWebhookSecret != "" && !strings.HasPrefix(cfg.ResendWebhookSecret, "whsec_") {
-		problems = append(problems, `RESEND_WEBHOOK_SECRET must be Resend's signing secret (it starts with "whsec_")`)
-	}
-	if cfg.InboundEmailDomain != "" && !domainPattern.MatchString(cfg.InboundEmailDomain) {
-		problems = append(problems, "INBOUND_EMAIL_DOMAIN must be a domain name like inbound.yourdomain.com")
-	}
-	return problems
-}
-
-var domainPattern = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
-
-var verifyTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{32,256}$`)
-
-// metaProblems checks ansa's Meta app settings.
-func metaProblems(cfg Config) []string {
-	var problems []string
-	if (cfg.FacebookAppID == "") != (cfg.FacebookAppSecret == "") {
-		problems = append(problems, "FACEBOOK_APP_ID and FACEBOOK_APP_SECRET must be set together")
-	}
-	if cfg.MessengerVerifyToken != "" && !verifyTokenPattern.MatchString(cfg.MessengerVerifyToken) {
-		problems = append(problems, "MESSENGER_VERIFY_TOKEN must be 32 to 256 letters, digits, _ or - (openssl rand -hex 32)")
-	}
-	return problems
 }
 
 // ForwardingDomain is the domain forwarding addresses are on.

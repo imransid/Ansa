@@ -19,6 +19,7 @@ import (
 	"ansa/core/internal/autopost"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/database"
+	"ansa/core/internal/files"
 	"ansa/core/internal/httpserver"
 	"ansa/core/internal/inbound"
 	"ansa/core/internal/inbox"
@@ -69,6 +70,10 @@ type Server struct {
 	Social *socialconnect.Connector
 	// The app's own address (invite links).
 	AppURL string
+	// Private file storage (documents), and ansa's own sending address
+	// (never a company's reply-to or support address).
+	Files     *files.Store
+	EmailFrom string
 }
 
 // Register adds every endpoint.
@@ -87,6 +92,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerPosts(routes)
 	s.registerSocial(routes)
 	s.registerTeam(routes)
+	s.registerSupport(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

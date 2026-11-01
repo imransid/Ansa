@@ -21,6 +21,7 @@ read strictly, and an unknown field (a "companyId") is refused.
 - Settings → Posts for me: see [autopost](autopost.md).
 - Social accounts (Facebook Pages): see [socialconnect](socialconnect.md).
 - The Team page: see [teammates](teammates.md).
+- Phone, email and documents: see [documents](documents.md).
 **Tests:** `api_test.go` (live database, a real HTTP server): another
 secret = 403, no session = 401; the list with the decrypted address and the
 lines; accepting messages the customer once with ansa's fixed text; a
