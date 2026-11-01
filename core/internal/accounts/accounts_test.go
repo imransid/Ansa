@@ -84,7 +84,8 @@ func newAccountsWorld(t *testing.T) *accountsWorld {
 	t.Cleanup(func() {
 		ctx := context.Background()
 		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = ANY($1)`, limiter.usedKeys())
-		rows, _ := pool.Query(ctx, `SELECT DISTINCT company_id FROM users WHERE email LIKE '%@accounts-test.example'`)
+		pattern := "%@" + testDomain
+		rows, _ := pool.Query(ctx, `SELECT DISTINCT company_id FROM users WHERE email LIKE $1`, pattern)
 		var companies []string
 		for rows.Next() {
 			var id string
@@ -92,27 +93,34 @@ func newAccountsWorld(t *testing.T) *accountsWorld {
 			companies = append(companies, id)
 		}
 		rows.Close()
-		for _, statement := range []string{
-			`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@accounts-test.example')`,
-			`DELETE FROM accounts WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@accounts-test.example')`,
-			`DELETE FROM verifications WHERE value IN (SELECT id FROM users WHERE email LIKE '%@accounts-test.example')`,
-			`DELETE FROM invites WHERE email LIKE '%@accounts-test.example'`,
-			`DELETE FROM users WHERE email LIKE '%@accounts-test.example' AND company_id::text = ANY($1)`,
-			`DELETE FROM companies WHERE id::text = ANY($1) AND name = 'New business'`,
-		} {
-			if strings.Contains(statement, "$1") {
-				pool.Exec(ctx, statement, companies)
-			} else {
-				pool.Exec(ctx, statement)
-			}
+		cleanups := []struct {
+			statement string
+			args      []any
+		}{
+			{`DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE $1)`, []any{pattern}},
+			{`DELETE FROM accounts WHERE user_id IN (SELECT id FROM users WHERE email LIKE $1)`, []any{pattern}},
+			{`DELETE FROM verifications WHERE value IN (SELECT id FROM users WHERE email LIKE $1)`, []any{pattern}},
+			{`DELETE FROM invites WHERE email LIKE $1`, []any{pattern}},
+			{`DELETE FROM users WHERE email LIKE $1 AND company_id::text = ANY($2)`, []any{pattern, companies}},
+			{`DELETE FROM companies WHERE id::text = ANY($1) AND name = 'New business'`, []any{companies}},
+		}
+		for _, cleanup := range cleanups {
+			pool.Exec(ctx, cleanup.statement, cleanup.args...)
 		}
 	})
 	return w
 }
 
+// testDomain is this test run's own address domain: two runs on the same
+// database at once (two checks side by side) never clean up each other's people.
+var testDomain = func() string {
+	id, _ := conversations.NewID()
+	return id[:12] + ".accounts-test.example"
+}()
+
 func address() string {
 	id, _ := conversations.NewID()
-	return id[:8] + "@accounts-test.example"
+	return id[:8] + "@" + testDomain
 }
 
 var linkToken = regexp.MustCompile(`#([A-Za-z0-9_.-]+)`)
