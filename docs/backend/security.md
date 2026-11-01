@@ -21,7 +21,11 @@ These rules are not optional. A change that breaks one is a bug, even if it
 - All secrets come from environment variables, checked at start
   (`core/internal/config`): a missing or malformed one stops the process with
   a message naming the setting, never its value.
-- Never in code, logs, error messages, URLs or the brain's requests.
+- Never in code, logs, error messages, URLs or the brain's requests, with ONE
+  exception: a business's own AI key (stored encrypted) is decrypted by core
+  and sent to the brain inside the signed request that uses it, over the
+  private connection; the brain uses it for that one model call and never
+  stores or logs it.
 
 ## 3. Logging
 - Logs are JSON lines with a fixed message and safe fields only (an error's
