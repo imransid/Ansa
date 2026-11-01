@@ -66,13 +66,15 @@ var cleanupOrder = []string{
 	"away_summary_reads", "business_facts", "invites", "company_billing", "users",
 }
 
-// TestOwner adds a confirmed owner to a test company and returns their id.
+// TestOwner adds a confirmed owner to a test company and returns their id:
+// 32 letters and digits, as Better Auth makes them (never a uuid, so a
+// statement that casts a person's id to uuid fails in the tests too).
 func TestOwner(t *testing.T, pool *Pool, companyID string) string {
 	t.Helper()
 	var id string
 	err := pool.QueryRow(context.Background(), `
 		INSERT INTO users (id, company_id, role, name, email, email_verified)
-		VALUES (gen_random_uuid()::text, $1, 'owner', 'Core Test Owner', gen_random_uuid()::text || '@core-test.example', true)
+		VALUES (substr(md5(random()::text) || md5(random()::text), 1, 32), $1, 'owner', 'Core Test Owner', gen_random_uuid()::text || '@core-test.example', true)
 		RETURNING id`, companyID).Scan(&id)
 	if err != nil {
 		t.Fatalf("making a test owner: %v", err)

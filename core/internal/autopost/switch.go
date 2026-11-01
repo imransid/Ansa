@@ -38,7 +38,7 @@ func Save(ctx context.Context, pool *database.Pool, company tenant.CompanyID, ac
 	outcome, err := settings.AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const update = `
 			UPDATE assistant_settings SET autopost_enabled = $2, autopost_frequency = $3, autopost_time = $4, autopost_mode = $5,
-				autopost_enabled_by_user_id = CASE WHEN $2 THEN $6::uuid END, autopost_enabled_at = CASE WHEN $2 THEN now() END,
+				autopost_enabled_by_user_id = CASE WHEN $2 THEN $6::text END, autopost_enabled_at = CASE WHEN $2 THEN now() END,
 				updated_by_user_id = $6, updated_at = now()
 			WHERE company_id = $1`
 		tag, err := tx.Exec(ctx, update, company.String(), c.Enabled, c.Frequency, c.Clock, c.Mode, actorUserID)

@@ -43,14 +43,15 @@ func insertJobOn(ctx context.Context, db queryer, company tenant.CompanyID, job 
 	return id, err
 }
 
-// claimNext takes the next due job of any company, or nil when none is due.
-func claimNext(ctx context.Context, pool *database.Pool) (*Job, error) {
+// claimNext takes the next due job of any company (or of onlyCompany: the
+// tests keep to theirs), or nil when none is due.
+func claimNext(ctx context.Context, pool *database.Pool, onlyCompany string) (*Job, error) {
 	const statement = `
 		-- cross-company: workers serve every company; the job then runs with its own company.
 		UPDATE core_jobs SET status = 'running', claimed_at = now(), attempts = attempts + 1
 		WHERE id = (
 			SELECT id FROM core_jobs
-			WHERE status = 'queued' AND run_after <= now()
+			WHERE status = 'queued' AND run_after <= now() AND ($1 = '' OR company_id::text = $1)
 			ORDER BY run_after
 			FOR UPDATE SKIP LOCKED
 			LIMIT 1
@@ -58,7 +59,7 @@ func claimNext(ctx context.Context, pool *database.Pool) (*Job, error) {
 		RETURNING id, company_id, kind, payload, attempts`
 	var job Job
 	var company string
-	err := pool.QueryRow(ctx, statement).Scan(&job.ID, &company, &job.Kind, &job.Payload, &job.Attempt)
+	err := pool.QueryRow(ctx, statement, onlyCompany).Scan(&job.ID, &company, &job.Kind, &job.Payload, &job.Attempt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

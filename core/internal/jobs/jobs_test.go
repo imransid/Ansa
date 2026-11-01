@@ -20,6 +20,7 @@ func setup(t *testing.T) (*database.Pool, tenant.CompanyID, *Worker) {
 	}
 	var logs bytes.Buffer
 	worker := NewWorker(pool, logging.New(&logs))
+	worker.OnlyCompany = company.String()
 	return pool, company, worker
 }
 

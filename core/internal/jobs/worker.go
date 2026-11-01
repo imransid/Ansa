@@ -22,6 +22,10 @@ type Worker struct {
 	Lease time.Duration
 	// How long to wait when nothing is due.
 	Idle time.Duration
+	// OnlyCompany (tests only): claim this company's jobs alone, so a test's
+	// worker never runs the jobs other tests (other packages, run at the same
+	// time on the same database) are waiting for. "" in production: every company.
+	OnlyCompany string
 }
 
 // NewWorker makes a worker with a 10-minute lease and a 1-second idle wait.
@@ -54,7 +58,7 @@ func (w *Worker) RunOnce(ctx context.Context) (bool, error) {
 	if _, err := handBackStuck(ctx, w.pool, w.Lease); err != nil {
 		return false, err
 	}
-	job, err := claimNext(ctx, w.pool)
+	job, err := claimNext(ctx, w.pool, w.OnlyCompany)
 	if err != nil || job == nil {
 		return false, err
 	}
