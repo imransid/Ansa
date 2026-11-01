@@ -40,7 +40,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/telegram/` | The Telegram Business channel | [telegram](../docs/backend/modules/telegram.md) |
 | `internal/chat/` | The one door for sending to customers | [chat](../docs/backend/modules/chat.md) |
 | `internal/messenger/` | The Facebook Messenger channel | [messenger](../docs/backend/modules/messenger.md) |
-| `internal/social/` | The only place a social account's token is decrypted | [social](../docs/backend/modules/social.md) |
+| `internal/social/` | The only place a social account's token is decrypted; renewing tokens before a platform call; revoking | [social](../docs/backend/modules/social.md) |
 | `internal/hours/` | Opening and away hours | [hours](../docs/backend/modules/hours.md) |
 | `internal/assistant/` | The assistant: when it answers, the brain's slice, checks, replies, handovers | [assistant](../docs/backend/modules/assistant.md) |
 | `internal/tickets/` | Requests: making, routing, the list, a request's page and every change | [tickets](../docs/backend/modules/tickets.md), [requests](../docs/backend/modules/requests.md) |
@@ -70,6 +70,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/safefetch/` | Fetching a typed web address without reaching anything private | [safefetch](../docs/backend/modules/safefetch.md) |
 | `internal/postmetrics/` | Reading published posts' numbers (Facebook) | [postmetrics](../docs/backend/modules/postmetrics.md) |
 | `internal/analytics/` | The Analytics page, what each number means, Review performance (every cited number checked), simulated numbers | [analytics](../docs/backend/modules/analytics.md) |
-| `internal/socialconnect/` | Connecting Facebook Pages (Facebook's sign-in), disconnecting | [socialconnect](../docs/backend/modules/socialconnect.md) |
+| `internal/socialconnect/` | Connecting and disconnecting social accounts (Facebook Pages, LinkedIn, X, YouTube); the Accounts page | [socialconnect](../docs/backend/modules/socialconnect.md) |
+| `internal/platforms/` | LinkedIn, X and YouTube: signing in, renewing, revoking, posting, numbers, the stand-in | [platforms](../docs/backend/modules/platforms.md) |
 | `internal/calls/`, `internal/download/` | Phone calls: Vapi's webhook, the live knowledge search, the AI's decision, the Calls page; downloads from allowed hosts | [calls](../docs/backend/modules/calls.md) |
 | `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |

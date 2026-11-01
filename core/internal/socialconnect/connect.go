@@ -1,9 +1,11 @@
 // Package socialconnect connects and disconnects a company's social
 // accounts (the old services/social-connect.ts, social-oauth-callback.ts,
-// social-account-saving.ts, social-disconnect.ts, db/oauth-states.ts):
-// today Facebook Pages (posts and Messenger, one login for both). LinkedIn,
-// X and YouTube move with the content studio. Owners only. No answer, log
-// or address ever holds a token, the code, the state or a platform's words.
+// social-account-saving.ts, social-disconnect.ts, social-accounts.ts,
+// db/oauth-states.ts, db/social-connections.ts): Facebook Pages (posts and
+// Messenger, one login for both), LinkedIn members, X accounts and YouTube
+// channels, and the Accounts page. Owners connect and disconnect; members
+// read. No answer, log or address ever holds a token, the code, the state
+// or a platform's words.
 package socialconnect
 
 import (
@@ -12,35 +14,49 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"net/url"
-	"regexp"
 
+	"ansa/core/internal/contentrules"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/platforms"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/tenant"
 )
 
 // The development stand-in's account id on every platform.
-const standInAccountID = "dev:stand-in"
+const standInAccountID = contentrules.StandInAccountID
 
-// Connector connects Facebook Pages.
+// Account is one account a platform authorized: a Facebook Page, a
+// LinkedIn member, an X account, a YouTube channel.
+type Account = platforms.Account
+
+// Connector connects social accounts.
 type Connector struct {
 	Pool *database.Pool
 	Box  *secure.Box
 	Log  *logging.Logger
 	// ansa's Meta app (both or neither), and the app's own address (the
-	// platform sends the owner back to <AppURL>/api/social/facebook/callback).
+	// platform sends the owner back to <AppURL>/api/social/<platform>/callback).
 	AppID, AppSecret, AppURL string
 	Development              bool
+	// LinkedIn, X and YouTube (their apps, requests and stand-in); nil: none set up.
+	Platforms *platforms.Connectors
 }
 
-// Mode is "real" (ansa's Meta app is set), "stand-in" (development
-// without it: a stand-in Page connects at once) or "not-set-up".
-func (c *Connector) Mode() string {
+// IsPlatform says whether ansa connects this platform.
+func IsPlatform(platform string) bool {
+	return contentrules.Takes(contentrules.Platforms, platform)
+}
+
+// Mode is "real" (ansa's app on the platform is set), "stand-in"
+// (development without it: a stand-in account connects at once) or
+// "not-set-up".
+func (c *Connector) Mode(platform string) string {
 	switch {
-	case c.AppID != "" && c.AppSecret != "":
+	case platform == "facebook" && c.AppID != "" && c.AppSecret != "":
+		return "real"
+	case platform != "facebook" && c.Platforms != nil && c.Platforms.Mode(platform) == "real":
 		return "real"
 	case c.Development:
 		return "stand-in"
@@ -48,112 +64,67 @@ func (c *Connector) Mode() string {
 	return "not-set-up"
 }
 
-func (c *Connector) redirectURI() string {
-	return c.AppURL + "/api/social/facebook/callback"
+// redirectURI is where the platform sends the owner back: the consent
+// screen and the code exchange must send the very same address, and it is
+// registered with the platform's app.
+func (c *Connector) redirectURI(platform string) string {
+	return c.AppURL + "/api/social/" + platform + "/callback"
 }
 
 // Start saves a connection attempt (owners: the role read again; only the
-// state's SHA-256 hash is stored, for 10 minutes) and gives the consent
-// screen's address to send the owner to. "not-allowed" or "not-set-up"
-// instead of an address.
-func (c *Connector) Start(ctx context.Context, company tenant.CompanyID, actorUserID string) (address, outcome string, err error) {
-	if c.Mode() != "real" {
+// state's SHA-256 hash is stored, for 10 minutes; X and YouTube's PKCE
+// verifier encrypted) and gives the consent screen's address to send the
+// owner to. "not-allowed" or "not-set-up" instead of an address.
+func (c *Connector) Start(ctx context.Context, company tenant.CompanyID, actorUserID, platform string) (address, outcome string, err error) {
+	if !IsPlatform(platform) || c.Mode(platform) != "real" {
 		return "", "not-set-up", nil
 	}
-	state, err := newState()
+	state, err := randomText()
 	if err != nil {
 		return "", "", err
 	}
-	saved, err := createAttempt(ctx, c.Pool, company, actorUserID, hashState(state))
+	verifier := ""
+	if platforms.UsesPKCE(platform) {
+		if verifier, err = randomText(); err != nil {
+			return "", "", err
+		}
+	}
+	saved, err := createAttempt(ctx, c.Pool, c.Box, company, actorUserID, platform, hashState(state), verifier)
 	if err != nil || !saved {
 		return "", "not-allowed", err
 	}
-	return authorizeURL(c.AppID, c.redirectURI(), state), "started", nil
+	if platform == "facebook" {
+		return authorizeURL(c.AppID, c.redirectURI(platform), state), "started", nil
+	}
+	return c.Platforms.AuthorizeURL(platform, c.redirectURI(platform), state, pkceChallenge(verifier)), "started", nil
 }
 
-// ConnectStandIn connects the development stand-in Page at once (no
-// consent screen): only on a development server without ansa's Meta app.
-// Connecting it again renews it. "connected", "not-allowed" or "not-set-up".
-func (c *Connector) ConnectStandIn(ctx context.Context, company tenant.CompanyID, actorUserID string) (string, error) {
-	if c.Mode() != "stand-in" {
+// ConnectStandIn connects a platform's development stand-in account at
+// once (no consent screen): only on a development server without the
+// platform's app. Connecting it again renews it. "connected",
+// "not-allowed" or "not-set-up".
+func (c *Connector) ConnectStandIn(ctx context.Context, company tenant.CompanyID, actorUserID, platform string) (string, error) {
+	if !IsPlatform(platform) || c.Mode(platform) != "stand-in" {
 		return "not-set-up", nil
 	}
-	token, err := conversations.NewID()
+	if platform == "facebook" {
+		token, err := conversations.NewID()
+		if err != nil {
+			return "", err
+		}
+		account := Account{ExternalID: standInAccountID, DisplayName: "Development stand-in (Facebook)", Kind: "page", Scopes: allScopes, AccessToken: "dev-stand-in-" + token}
+		return saveAccounts(ctx, c.Pool, c.Box, company, actorUserID, platform, []Account{account})
+	}
+	account, err := platforms.StandInAccount(platform, contentrules.PlatformLabels[platform], platforms.Scopes(platform))
 	if err != nil {
 		return "", err
 	}
-	account := Account{ExternalID: standInAccountID, DisplayName: "Development stand-in (Facebook)", Kind: "page", Scopes: allScopes, AccessToken: "dev-stand-in-" + token}
-	return saveAccounts(ctx, c.Pool, c.Box, company, actorUserID, []Account{account})
+	return saveAccounts(ctx, c.Pool, c.Box, company, actorUserID, platform, []Account{account})
 }
 
-// The "error" values meaning the person said no: OAuth's own, and
-// Facebook's names for it.
-var denials = map[string]bool{"access_denied": true, "user_cancelled_login": true, "user_cancelled_authorize": true, "user_denied": true}
-
-var noControlCharacters = regexp.MustCompile(`^[^\x00-\x1f\x7f]+$`)
-
-// Complete answers the owner's return from Facebook's consent screen, in
-// this order: the state CLAIMED in one UPDATE (this person, company and
-// platform, unused, unexpired: two returns with one state connect once),
-// the platform's error, the code, the owner, the app; then the code
-// exchanged and the Pages saved, and each Page that allowed messages
-// switched on for ansa's webhook. A result code (connected, denied,
-// provider_error, expired_state, missing_code, not_owner, not_set_up,
-// exchange_failed, missing_permission, no_pages) and how many Pages.
-func (c *Connector) Complete(ctx context.Context, company tenant.CompanyID, actorUserID string, isOwner bool, query url.Values) (string, int, error) {
-	state := query.Get("state")
-	if state == "" || len(state) > 500 || !noControlCharacters.MatchString(state) {
-		return "expired_state", 0, nil
-	}
-	claimed, err := claimAttempt(ctx, c.Pool, company, actorUserID, hashState(state))
-	if err != nil || !claimed {
-		return "expired_state", 0, err
-	}
-	if query.Has("error") {
-		if denials[query.Get("error")] {
-			return "denied", 0, nil
-		}
-		return "provider_error", 0, nil
-	}
-	code := query.Get("code")
-	switch {
-	case code == "" || len(code) > 4000 || !noControlCharacters.MatchString(code):
-		return "missing_code", 0, nil
-	case !isOwner:
-		return "not_owner", 0, nil
-	case c.Mode() != "real":
-		return "not_set_up", 0, nil
-	}
-	accounts, failure := facebookPages(ctx, c.AppID, c.AppSecret, c.redirectURI(), code)
-	if failure != "" {
-		return failure, 0, nil
-	}
-	outcome, err := saveAccounts(ctx, c.Pool, c.Box, company, actorUserID, accounts)
-	if err != nil || outcome != "connected" {
-		if outcome == "not-allowed" {
-			return "not_owner", 0, err
-		}
-		return "exchange_failed", 0, err
-	}
-	c.switchOnMessages(ctx, accounts)
-	return "connected", len(accounts), nil
-}
-
-// switchOnMessages: best effort; a Page Meta refuses keeps its posts, and
-// the log says so (fixed words).
-func (c *Connector) switchOnMessages(ctx context.Context, pages []Account) {
-	for _, page := range pages {
-		if !contains(page.Scopes, "pages_messaging") || !contains(page.Scopes, "pages_manage_metadata") {
-			continue
-		}
-		if !subscribeToMessages(ctx, c.AppSecret, page) {
-			c.Log.Warn("socialconnect: messenger messages not switched on for a page", logging.Code("subscribe_refused"))
-		}
-	}
-}
-
-// newState is 32 random bytes, base64url (43 characters).
-func newState() (string, error) {
+// randomText is 32 random bytes, base64url (43 characters): a state (X
+// allows up to 500) or a PKCE verifier (43 to 128).
+func randomText() (string, error) {
 	random := make([]byte, 32)
 	if _, err := rand.Read(random); err != nil {
 		return "", err
@@ -166,4 +137,20 @@ func newState() (string, error) {
 func hashState(state string) string {
 	sum := sha256.Sum256([]byte(state))
 	return hex.EncodeToString(sum[:])
+}
+
+// pkceChallenge is a verifier's S256 challenge (RFC 7636): base64url of
+// its SHA-256; "" without a verifier.
+func pkceChallenge(verifier string) string {
+	if verifier == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+// pkceContext ties an attempt's encrypted verifier to its company and
+// attempt (the old oauthPkceVerifierContext).
+func pkceContext(company tenant.CompanyID, attemptID string) string {
+	return "oauth-pkce-verifier:" + company.String() + ":" + attemptID
 }

@@ -4,9 +4,10 @@
 // adapter. Tokens are stored encrypted with the context
 // "social-<kind>-token:<company>:<connection>", as the old backend wrote them.
 //
-// Today it reads Facebook Page tokens (Messenger and posts). Page tokens
-// don't run out, so nothing is renewed here; renewing X's and Google's
-// tokens moves with their publishing.
+// It reads Facebook Page tokens (Messenger and posts: PageToken,
+// PageForPosting), gets any connection ready for a platform call, its
+// token renewed first when it runs out soon (Renewer.Prepare, renewal.go),
+// and has X and Google take back what a disconnect removed (RevokeRemoved).
 package social
 
 import (

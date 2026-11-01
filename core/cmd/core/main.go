@@ -110,7 +110,8 @@ func main() {
 		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: storage, EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
-		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
+		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction(),
+			Platforms: socialPlatforms(cfg)}}
 	// "Review performance": two tries of up to 120 s, and the SDK's waits.
 	screensAPI.Reviews = &analytics.Reviewer{Pool: pool, Limiter: limiter, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
 	screensAPI.Register(routes)
