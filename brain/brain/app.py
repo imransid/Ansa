@@ -10,6 +10,7 @@ import os
 from fastapi import FastAPI, Request, Response
 
 from brain import ai, claude_code
+from brain.analytics.review import ReviewRequest, review_performance
 from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
@@ -105,6 +106,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """One "Post for me" post about what core's topic brain chose (core
         checks it before it can go out). Never the post in a log."""
         return write_post(request, asker_for(request.engine, active.development))
+
+    @app.post("/v1/analytics/review")
+    def analytics_review(request: ReviewRequest) -> dict:
+        """A review of one period's post numbers (core checks every number
+        it cites). Never the numbers or the answer in a log."""
+        return review_performance(request, active_asker)
 
     return app
 

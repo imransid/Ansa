@@ -35,6 +35,9 @@ AUTOPOST = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=60, max_r
 # "Read my menu": a whole menu copied into a list (long answers, a photo or a PDF).
 MENU_READING = UseSettings(effort="low", max_tokens=16_000, timeout_seconds=120, max_retries=1)
 
+# "Review performance": findings that cite one period's post numbers (the owner waits on the page).
+PERFORMANCE_REVIEW = UseSettings(effort="medium", max_tokens=8_000, timeout_seconds=120, max_retries=1)
+
 
 @dataclass(frozen=True)
 class ModelResult:

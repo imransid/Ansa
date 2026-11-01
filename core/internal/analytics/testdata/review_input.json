@@ -1,0 +1,269 @@
+{
+ "period": {
+  "days": 30,
+  "start": "2026-10-02T10:20:30.123Z",
+  "end": "2026-11-01T10:20:30.123Z"
+ },
+ "timeZone": "Asia/Kolkata",
+ "postCount": 9,
+ "postsLeftOut": 2,
+ "simulated": true,
+ "posts": [
+  {
+   "label": "P1",
+   "platform": "linkedin",
+   "format": "post",
+   "pillar": "",
+   "topic": "Post 1",
+   "weekday": "Sunday",
+   "hour": "00:00",
+   "simulated": false,
+   "numbers": {
+    "views": 100,
+    "reactions": 4
+   }
+  },
+  {
+   "label": "P2",
+   "platform": "x",
+   "format": "post",
+   "pillar": "Lunch ideas",
+   "topic": "Top 5 breads <b>\"fresh\"</b> & 'warm'",
+   "weekday": "Monday",
+   "hour": "09:00",
+   "simulated": true,
+   "numbers": {
+    "views": 40,
+    "reactions": 2,
+    "shares": 0
+   }
+  },
+  {
+   "label": "P3",
+   "platform": "linkedin",
+   "format": "image_post",
+   "pillar": "Pillar 123-45-6789",
+   "topic": "Card 4111 1111 1111 1111 refund story 🙂 and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more and more",
+   "weekday": "Thursday",
+   "hour": "05:00",
+   "simulated": true,
+   "numbers": {
+    "comments": 2
+   }
+  },
+  {
+   "label": "P4",
+   "platform": "youtube",
+   "format": "video",
+   "pillar": "Behind the oven",
+   "topic": "Oven tour",
+   "weekday": "Thursday",
+   "hour": "05:00",
+   "simulated": false,
+   "numbers": {
+    "views": 7,
+    "reactions": 1,
+    "comments": 3
+   }
+  },
+  {
+   "label": "P5",
+   "platform": "facebook",
+   "format": "post",
+   "pillar": "Behind the oven",
+   "topic": "Ünïcödé “quotes”",
+   "weekday": "Saturday",
+   "hour": "17:00",
+   "simulated": false,
+   "numbers": {
+    "reactions": 9,
+    "comments": 1,
+    "shares": 2
+   }
+  },
+  {
+   "label": "P6",
+   "platform": "linkedin",
+   "format": "post",
+   "pillar": "Ábc",
+   "topic": "Sorting",
+   "weekday": "Sunday",
+   "hour": "13:00",
+   "simulated": false,
+   "numbers": {
+    "views": 33,
+    "reactions": 3
+   }
+  },
+  {
+   "label": "P7",
+   "platform": "linkedin",
+   "format": "post",
+   "pillar": "abc",
+   "topic": "Sorting 2",
+   "weekday": "Monday",
+   "hour": "13:00",
+   "simulated": false,
+   "numbers": {
+    "views": 34
+   }
+  }
+ ],
+ "groups": [
+  {
+   "kind": "platform",
+   "name": "LinkedIn",
+   "numbers": {
+    "posts": 4,
+    "views_total": 167,
+    "views_posts": 3,
+    "views_per_post": 55.7,
+    "reactions_total": 7,
+    "reactions_posts": 2,
+    "reactions_per_post": 3.5,
+    "comments_total": 2,
+    "comments_posts": 1,
+    "comments_per_post": 2
+   },
+   "label": "G1"
+  },
+  {
+   "kind": "platform",
+   "name": "Facebook",
+   "numbers": {
+    "posts": 1,
+    "reactions_total": 9,
+    "reactions_posts": 1,
+    "reactions_per_post": 9,
+    "comments_total": 1,
+    "comments_posts": 1,
+    "comments_per_post": 1,
+    "shares_total": 2,
+    "shares_posts": 1,
+    "shares_per_post": 2
+   },
+   "label": "G2"
+  },
+  {
+   "kind": "platform",
+   "name": "X",
+   "numbers": {
+    "posts": 1,
+    "views_total": 40,
+    "views_posts": 1,
+    "views_per_post": 40,
+    "reactions_total": 2,
+    "reactions_posts": 1,
+    "reactions_per_post": 2,
+    "shares_total": 0,
+    "shares_posts": 1,
+    "shares_per_post": 0
+   },
+   "label": "G3"
+  },
+  {
+   "kind": "platform",
+   "name": "YouTube",
+   "numbers": {
+    "posts": 1,
+    "views_total": 7,
+    "views_posts": 1,
+    "views_per_post": 7,
+    "reactions_total": 1,
+    "reactions_posts": 1,
+    "reactions_per_post": 1,
+    "comments_total": 3,
+    "comments_posts": 1,
+    "comments_per_post": 3
+   },
+   "label": "G4"
+  },
+  {
+   "kind": "pillar",
+   "name": "Behind the oven",
+   "numbers": {
+    "posts": 2,
+    "views_total": 7,
+    "views_posts": 1,
+    "views_per_post": 7,
+    "reactions_total": 10,
+    "reactions_posts": 2,
+    "reactions_per_post": 5,
+    "comments_total": 4,
+    "comments_posts": 2,
+    "comments_per_post": 2,
+    "shares_total": 2,
+    "shares_posts": 1,
+    "shares_per_post": 2
+   },
+   "label": "G5"
+  },
+  {
+   "kind": "pillar",
+   "name": "Lunch ideas",
+   "numbers": {
+    "posts": 1,
+    "views_total": 40,
+    "views_posts": 1,
+    "views_per_post": 40,
+    "reactions_total": 2,
+    "reactions_posts": 1,
+    "reactions_per_post": 2,
+    "shares_total": 0,
+    "shares_posts": 1,
+    "shares_per_post": 0
+   },
+   "label": "G6"
+  },
+  {
+   "kind": "pillar",
+   "name": "Pillar 123-45-6789",
+   "numbers": {
+    "posts": 1,
+    "comments_total": 2,
+    "comments_posts": 1,
+    "comments_per_post": 2
+   },
+   "label": "G7"
+  },
+  {
+   "kind": "pillar",
+   "name": "abc",
+   "numbers": {
+    "posts": 1,
+    "views_total": 34,
+    "views_posts": 1,
+    "views_per_post": 34
+   },
+   "label": "G8"
+  },
+  {
+   "kind": "pillar",
+   "name": "Ábc",
+   "numbers": {
+    "posts": 1,
+    "views_total": 33,
+    "views_posts": 1,
+    "views_per_post": 33,
+    "reactions_total": 3,
+    "reactions_posts": 1,
+    "reactions_per_post": 3
+   },
+   "label": "G9"
+  },
+  {
+   "kind": "no_pillar",
+   "name": "",
+   "numbers": {
+    "posts": 1,
+    "views_total": 100,
+    "views_posts": 1,
+    "views_per_post": 100,
+    "reactions_total": 4,
+    "reactions_posts": 1,
+    "reactions_per_post": 4
+   },
+   "label": "G10"
+  }
+ ]
+}

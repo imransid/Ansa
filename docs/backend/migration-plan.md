@@ -65,6 +65,7 @@
 | social connections: LinkedIn, X, YouTube (OAuth, PKCE, renewals, revokes) | adapters/linkedin, x, youtube, services/social-tokens.ts | ⬜ |
 | publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
 | post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
+| the Analytics page, what each number means, Review performance, simulated numbers | services/analytics-page.ts, performance-review.ts, post-metrics-simulation.ts, lib/analytics/, lib/performance-review/, lib/metric-definitions.ts | ✅ core/internal/analytics (in core's API), brain/brain/analytics, `cmd/simulate post-metrics` (the planner's reading of the newest review moves with the plans) |
 | publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
 | knowledge search and the AI's article slice (the assistant reads them) | db/knowledge-search.ts, lib/knowledge/search-query.ts, prompt-slice.ts | ✅ core/internal/knowledge |
 | knowledge base: writing, approving, imports (documents incl. PDF via the brain, web pages via safefetch), the Knowledge page | db/knowledge*.ts, lib/knowledge/, lib/safe-fetch.ts | ✅ core/internal/knowledge, safefetch; brain/brain/documents |

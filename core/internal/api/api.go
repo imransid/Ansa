@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"ansa/core/internal/accounts"
+	"ansa/core/internal/analytics"
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/autopost"
 	"ansa/core/internal/billing"
@@ -87,6 +88,8 @@ type Server struct {
 	// Billing: "stripe", "dev" or "off", and ansa's Stripe account.
 	BillingMode string
 	Stripe      *billing.Stripe
+	// The Analytics page's "Review performance".
+	Reviews *analytics.Reviewer
 }
 
 // Register adds every endpoint.
@@ -111,6 +114,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerAccount(routes)
 	s.registerBilling(routes)
 	s.registerCalls(routes)
+	s.registerAnalytics(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

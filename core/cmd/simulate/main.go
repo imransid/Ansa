@@ -5,6 +5,9 @@
 // conversation. The running core answers it like a real chat (its reply is
 // a file in .dev-messages/).
 //
+// With post-metrics, it saves made-up numbers for a development stand-in's
+// published post instead (postmetrics.go).
+//
 // It writes to the database directly, so it refuses to run outside
 // development or against a database that isn't on this computer.
 //
@@ -40,6 +43,9 @@ func main() {
 }
 
 func run(args []string) error {
+	if len(args) > 0 && args[0] == "post-metrics" {
+		return runPostMetrics(args[1:])
+	}
 	if len(args) != 4 || args[0] != "message" || strings.TrimSpace(args[3]) == "" {
 		return errors.New(usage)
 	}

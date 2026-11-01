@@ -26,7 +26,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | Folder | What | Docs |
 |---|---|---|
 | `cmd/core/` | Starts the service | this page |
-| `cmd/simulate/` | A stand-in customer's message, for trying core by hand | this page |
+| `cmd/simulate/` | A stand-in customer's message, for trying core by hand; simulated numbers for a stand-in's post (`post-metrics`) | this page, [analytics](../docs/backend/modules/analytics.md) |
 | `internal/config/` | Settings, checked at start | [config](../docs/backend/modules/config.md) |
 | `internal/logging/` | Safe JSON logs | [logging](../docs/backend/modules/logging.md) |
 | `internal/secure/` | Encryption of stored text | [secure](../docs/backend/modules/secure.md) |
@@ -69,6 +69,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/knowledge/` | The knowledge base: articles, approvals, search, the AI's slice, imports | [knowledge](../docs/backend/modules/knowledge.md) |
 | `internal/safefetch/` | Fetching a typed web address without reaching anything private | [safefetch](../docs/backend/modules/safefetch.md) |
 | `internal/postmetrics/` | Reading published posts' numbers (Facebook) | [postmetrics](../docs/backend/modules/postmetrics.md) |
+| `internal/analytics/` | The Analytics page, what each number means, Review performance (every cited number checked), simulated numbers | [analytics](../docs/backend/modules/analytics.md) |
 | `internal/socialconnect/` | Connecting Facebook Pages (Facebook's sign-in), disconnecting | [socialconnect](../docs/backend/modules/socialconnect.md) |
 | `internal/calls/`, `internal/download/` | Phone calls: Vapi's webhook, the live knowledge search, the AI's decision, the Calls page; downloads from allowed hosts | [calls](../docs/backend/modules/calls.md) |
 | `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |
