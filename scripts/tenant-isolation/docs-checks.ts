@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { access, readdir } from "node:fs/promises";
 import path from "node:path";
 import { socialAppSettings } from "@/lib/social-settings";
+import { telegramSettings } from "@/lib/telegram-settings";
 import { check } from "./helpers";
 import { read } from "./source-helpers";
 
@@ -21,11 +22,12 @@ const DOCKER_ONLY_SETTINGS = ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB
 const DOCS = ["CLAUDE.md", "README.md", "docs/going-live.md", "IMPLEMENTATION_PLAN.md", "CODEBASE_AUDIT.md"];
 
 // Every setting lib/env.ts reads: the keys of its schema (four spaces in),
-// and the social apps' pairs it takes from lib/social-settings.ts.
+// the social apps' pairs it takes from lib/social-settings.ts and the bot's
+// settings from lib/telegram-settings.ts.
 async function settingsTheAppReads(): Promise<string[]> {
   const envSource = await read("lib/env.ts");
   const keys = [...envSource.matchAll(/^ {4}([A-Z][A-Z0-9_]+): /gm)].map((match) => match[1]);
-  return [...new Set([...keys, ...Object.keys(socialAppSettings)])].sort();
+  return [...new Set([...keys, ...Object.keys(socialAppSettings), ...Object.keys(telegramSettings)])].sort();
 }
 
 async function exists(file: string): Promise<boolean> {

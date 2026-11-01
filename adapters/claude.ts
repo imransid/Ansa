@@ -4,6 +4,8 @@ import { env } from "@/lib/env";
 import type { ModelRequest, ModelResult } from "@/lib/model-request";
 import { nameOfError } from "./claude-errors";
 import {
+  ASSISTANT_REPLY_SETTINGS,
+  AUTOPOST_SETTINGS,
   CALENDAR_PLAN_SETTINGS,
   CALL_DECISION_SETTINGS,
   CONTENT_DRAFT_SETTINGS,
@@ -11,6 +13,7 @@ import {
   FACT_SUGGESTION_SETTINGS,
   longestRequestMs,
   MARKETING_PLAN_SETTINGS,
+  MENU_READING_SETTINGS,
   ONBOARDING_TURN_SETTINGS,
   PERFORMANCE_REVIEW_SETTINGS,
   type RequestSettings,
@@ -19,8 +22,10 @@ import {
 // The only file that talks to Anthropic. Each use has its own function here
 // and its own settings in adapters/claude-settings.ts, so tuning one (the
 // call brain, email triage, the Co-Founder's interview, its suggestions from
-// knowledge, its marketing plans, its content drafts, its calendar or its
-// performance reviews) never changes another.
+// knowledge, its marketing plans, its content drafts, its calendar, its
+// performance reviews, reading a restaurant's menu or the restaurant
+// assistant's replies) never changes another. adapters/claude-code.ts is
+// the development-only other way (Claude Code's command line, step 49).
 //
 // LOGGING RULE: the prompt holds part of a call transcript, an email, an
 // owner's interview answers and business facts, or what a marketing plan, a
@@ -82,6 +87,28 @@ export async function askClaudeForPerformanceReview(request: ModelRequest, clien
   return askClaude(client, request, PERFORMANCE_REVIEW_SETTINGS);
 }
 
+// Asks Claude to copy a restaurant's menu (a photo or its text) into a list
+// of dishes and prices, for the owner to check. The only use that sends an
+// image. `client` is only replaced by the checks.
+export async function askClaudeForMenuReading(request: ModelRequest, client = clientFromEnv()): Promise<ModelResult> {
+  return askClaude(client, request, MENU_READING_SETTINGS);
+}
+
+// Asks Claude for the restaurant assistant's answer to one customer
+// message (step 49): a reply, or a person needed. `client` is the
+// restaurant's own key's (services/assistant-engine.ts), ansa's otherwise,
+// or a check's fake.
+export async function askClaudeForAssistantReply(request: ModelRequest, client = clientFromEnv()): Promise<ModelResult> {
+  return askClaude(client, request, ASSISTANT_REPLY_SETTINGS);
+}
+
+// Asks Claude for one "Post for me" post (step 54). `client`: the
+// business's own key's or ansa's, as for the assistant
+// (services/assistant-engine.ts), or a check's fake.
+export async function askClaudeForAutopost(request: ModelRequest, client = clientFromEnv()): Promise<ModelResult> {
+  return askClaude(client, request, AUTOPOST_SETTINGS);
+}
+
 // The one way this file builds a client. Exported for the checks: building
 // one makes no network call. Time limits and retries are set per request
 // (RequestSettings), never here.
@@ -117,7 +144,7 @@ async function askClaude(client: Anthropic | null, request: ModelRequest, settin
         model: env.ANTHROPIC_MODEL,
         max_tokens: settings.maxTokens,
         system: request.systemPrompt,
-        messages: [{ role: "user", content: request.prompt }],
+        messages: [{ role: "user", content: messageContent(request) }],
         output_config: {
           effort: settings.effort,
           format: { type: "json_schema", schema: request.jsonSchema },
@@ -136,6 +163,17 @@ async function askClaude(client: Anthropic | null, request: ModelRequest, settin
   } catch (error) {
     return { kind: "error", errorName: nameOfError(error) };
   }
+}
+
+// The user message: the text alone, or the photo first and then the text.
+function messageContent(request: ModelRequest): string | Anthropic.ContentBlockParam[] {
+  if (!request.image) {
+    return request.prompt;
+  }
+  return [
+    { type: "image", source: { type: "base64", media_type: request.image.mediaType, data: request.image.base64 } },
+    { type: "text", text: request.prompt },
+  ];
 }
 
 function readResponse(response: Anthropic.Message): ModelResult {

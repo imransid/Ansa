@@ -1,5 +1,6 @@
-// The Co-Founder's own pages, in the order its sub-navigation lists them
-// (app/cofounder/sub-navigation.tsx). Adding a page is one line here.
+// The Co-Founder's own pages. Adding a page is one line here. Since step 44
+// the sidebar's Content opens Studio, Settings links Accounts, and Settings
+// lists the others under "Older pages" in this order (app/settings/page.tsx).
 // segment: the folder under app/cofounder ("interview"), or null for the
 // Overview at /cofounder itself, as Next's useSelectedLayoutSegment gives it.
 // WHY this order (step 43): the way a business works through it. Learn about

@@ -82,6 +82,12 @@ Operator tools (ansa runs these; owners can't link phone numbers themselves):
 | `pnpm simulate:solved-call <vapi id>`                | Save a fake call the AI marked solved (local database only), to try "Escalate to a ticket" |
 | `pnpm simulate:email-bounce <file in .dev-emails/> [kind]` | Tell the running app, as Resend would, that a sent email bounced (or `complained`, `suppressed`, `failed`) |
 | `pnpm simulate:post-metrics <publish job id> views=120 reactions=8 ...` | Save simulated numbers for a post the development stand-in published (local database only), to try the Co-Founder's Analytics page and "Review performance"; the page shows each such post's id |
+| `pnpm simulate:message <owner email> "<customer name>" "<message>"` | Bring a customer's chat message into the Inbox through the development stand-in channel (local database only); replies sent to that customer are written to `.dev-messages/` |
+| `pnpm simulate:telegram <owner email> "<customer name>" "<message>"` | Bring a customer's Telegram message into the Inbox through the company's stand-in Telegram account (connect it on Settings → Connections first; local database only, without ansa's bot) |
+| `pnpm simulate:messenger <owner email> "<customer name>" "<message>"` | Bring a customer's Messenger message into the Inbox through the company's stand-in Facebook Page (connect it on Settings → Connections first; local database only, without ansa's Meta app) |
+| `pnpm telegram:poll` | Development only: read ansa's real bot's messages from Telegram and handle them like the webhook would, without a public address (needs the three `TELEGRAM_` settings and a bot without a webhook) |
+| `pnpm telegram:webhook set \| remove` | ansa's operator: tell Telegram to send the bot's updates to `BETTER_AUTH_URL`'s `/api/webhooks/telegram` (https only), or take the webhook off |
+| `pnpm assistant:catch-up` | Development only: let the assistant step in now for messages you didn't answer within your minutes (Settings → Assistant → When ansa answers), as the scheduled job does every minute in production (local database only) |
 
 An `<owner email>` must be the address of an owner who confirmed it and was
 not removed (any other account with it, such as one made by an invite another

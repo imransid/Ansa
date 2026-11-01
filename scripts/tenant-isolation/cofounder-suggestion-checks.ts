@@ -6,7 +6,7 @@
 // is a member; the menu lists every approved article a company can have; a
 // failure proposes nothing and logs one fixed line; the company's hourly
 // limit, and the per-person limit on profile changes; and the section's
-// wiring (header, login, sub-navigation). A FAKE model only: nothing calls
+// wiring (the sidebar's Content link, login, its page list). A FAKE model only: nothing calls
 // Anthropic.
 
 import assert from "node:assert/strict";
@@ -150,10 +150,9 @@ export async function runCofounderSuggestionChecks() {
     assert.deepEqual(await saveFactForSession(otherOwner, { topic: "industry", value: "Bakery", originalValue: "" }), { ok: true });
   });
 
-  await check("co-founder: the header links Co-Founder right after Knowledge, /cofounder needs a login, and the sub-navigation lists exactly the pages under app/cofounder", async () => {
-    const header = await readFile(path.join(process.cwd(), "components", "app-header.tsx"), "utf8");
-    const positions = ['label: "Knowledge"', 'label: "Co-Founder"', 'label: "Team"'].map((label) => header.indexOf(label));
-    assert.ok(positions[0] > 0 && positions[0] < positions[1] && positions[1] < positions[2], `header order ${positions}`);
+  await check("co-founder: Settings links its studio (Social media posts), /cofounder needs a login, and its page list (lib/cofounder/pages.ts, which Settings lists) holds exactly the pages under app/cofounder", async () => {
+    const settings = await readFile(path.join(process.cwd(), "app", "settings", "page.tsx"), "utf8");
+    assert.ok(settings.includes('{ href: "/cofounder/studio", label: "Social media posts"'), "Settings doesn't open the studio");
     assert.ok(SIGNED_IN_SECTIONS.includes("/cofounder"));
     // Each page's first folder under app/cofounder (a page further down, like
     // strategy/[id], belongs to its top-level one); "." is the Overview.

@@ -281,6 +281,62 @@
       "when": 1793154539032,
       "tag": "0039_post_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793474053054,
+      "tag": "0040_restaurant_setup",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793478434219,
+      "tag": "0041_catalog_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793479381387,
+      "tag": "0042_inbox_conversations",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793513024078,
+      "tag": "0043_telegram_channel",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793516191758,
+      "tag": "0044_assistant_replies",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793518385943,
+      "tag": "0045_personal_and_away",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793522482638,
+      "tag": "0046_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793526191702,
+      "tag": "0047_post_for_me",
+      "breakpoints": true
     }
   ]
 }

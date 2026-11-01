@@ -9,6 +9,7 @@ import {
 } from "@/db/inbound-email-processing";
 import { getInboundAddressesForCompany } from "@/db/inbound-emails";
 import type { TicketToCreate } from "@/db/ticket-creation";
+import { emailContact } from "@/lib/conversation-contacts";
 import { fetchInboundEmail, type InboundEmailContent } from "@/lib/inbound-email";
 import { PROCESS_AGAIN_REASONS, TICKET_ANYWAY_REASONS } from "@/lib/inbound-email-reasons";
 import type { ModelAsker } from "@/lib/model-request";
@@ -124,7 +125,9 @@ async function saveTicket(
   stored: InboundEmailContentToStore,
   ticket: TicketToCreate,
 ): Promise<ProcessOutcome> {
-  const saved = await saveInboundEmailTicket(companyId, inboundEmailId, stored, ticket);
+  // The sender's Inbox conversation (step 47): verified senders by address.
+  const contact = emailContact(stored.fromAddress, stored.senderVerified, ticket.customerName);
+  const saved = await saveInboundEmailTicket(companyId, inboundEmailId, stored, ticket, contact);
   if (!saved) {
     return "not-claimed";
   }

@@ -130,7 +130,7 @@ export async function runSocialAdapterChecks() {
   await check("facebook: the login dialog, the code exchange, the long-lived token, the permissions and the Pages are the Graph API v26.0 requests Meta documents, each later call with appsecret_proof", async () => {
     const authorize = new URL(facebookAdapter.buildAuthorizeUrl({ clientId: "app-id", redirectUri: REDIRECT, state: "the-state", codeChallenge: null }));
     assert.equal(`${authorize.origin}${authorize.pathname}`, "https://www.facebook.com/v26.0/dialog/oauth");
-    assert.deepEqual(Object.fromEntries(authorize.searchParams), { client_id: "app-id", redirect_uri: REDIRECT, state: "the-state", response_type: "code", scope: "pages_show_list,pages_read_engagement,pages_manage_posts" });
+    assert.deepEqual(Object.fromEntries(authorize.searchParams), { client_id: "app-id", redirect_uri: REDIRECT, state: "the-state", response_type: "code", scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_messaging,pages_manage_metadata" });
     const platform = fakePlatform(facebookConnects([{ id: "111", name: "Ansa Bakery", tasks: ["CREATE_CONTENT"] }]));
     const result = await facebookAdapter.completeAuthorization({ code: "the-code", redirectUri: REDIRECT, codeVerifier: null }, contextFor("facebook", platform.fetchFn));
     assert.ok(result.kind === "authorized" && result.accounts.length === 1 && result.accounts[0].accessToken === `fb-page-111-${runId}`);

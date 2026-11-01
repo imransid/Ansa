@@ -64,7 +64,7 @@ export async function runBusinessOverviewChecks() {
     await receiveEmailRow(otherUser, "overview-theirs");
 
     const overview = await getBusinessOverviewForSession(owner);
-    assert.deepEqual(overview.support, { openTickets: 2, unassignedTickets: 1, callsLastWeek: 2, callsSolvedByAiLastWeek: 1, emailsWaiting: 1, emailsStuck: 1 });
+    assert.deepEqual(overview.support, { openTickets: 2, unassignedTickets: 1, callsLastWeek: 2, callsSolvedByAiLastWeek: 1, emailsWaiting: 1, emailsStuck: 1, conversationsNeedingYou: 0 });
     const views = await countTicketsPerViewForSession(owner, null);
     assert.deepEqual([overview.support.openTickets, overview.support.unassignedTickets], [views.open, views.unassigned]);
     // A member sees the same company numbers.
@@ -76,6 +76,7 @@ export async function runBusinessOverviewChecks() {
       callsSolvedByAiLastWeek: 1,
       emailsWaiting: 1,
       emailsStuck: 0,
+      conversationsNeedingYou: 0,
     });
   });
 

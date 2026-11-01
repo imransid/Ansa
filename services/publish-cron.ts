@@ -4,6 +4,8 @@ import { env } from "@/lib/env";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
 import { describeErrorWithFrames } from "@/lib/safe-error-logging";
 import { collectPostMetrics, PINGED_METRICS_BATCH, type MetricsRunCounts } from "./post-metrics-collection";
+import type { AssistantDueCounts } from "./assistant-due";
+import { runAssistantScheduledWork } from "./assistant-scheduled";
 import { runDuePublishJobs, type PublishRunCounts } from "./publish-runs";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
 
@@ -25,6 +27,7 @@ export async function handlePublishCronRequest(
   cronSecret = env.CRON_SECRET,
   run: (jobStartedAt: number) => Promise<PublishRunCounts> = runDuePublishJobs,
   collectMetrics: (jobStartedAt: number) => Promise<MetricsRunCounts> = (startedAt) => collectPostMetrics(startedAt, { batchSize: PINGED_METRICS_BATCH }),
+  catchUp: (jobStartedAt: number) => Promise<AssistantDueCounts> = runAssistantScheduledWork,
 ): Promise<Response> {
   // The route's 300 seconds count from here.
   const jobStartedAt = Date.now();
@@ -44,8 +47,11 @@ export async function handlePublishCronRequest(
       return new Response(null, { status: 429 });
     }
     const published = await run(jobStartedAt);
+    // People waiting for an answer you didn't give in time (step 51), and
+    // the next "Post for me" posts (step 54), before post numbers.
+    const assistant = await catchUp(jobStartedAt);
     const metrics = await collectMetrics(jobStartedAt);
-    return Response.json({ ...published, metrics }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ ...published, assistant, metrics }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     // No post text or token passes through here: the description and the
     // stack frames are logged (never the message).

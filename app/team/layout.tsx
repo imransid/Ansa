@@ -1,7 +1,7 @@
 import { AppFrame } from "@/components/app-frame";
 
-// Every page under /team (the team) has the app header, with
-// "Team" marked.
+// Every page under /team (the team) sits in the app frame, with Settings
+// marked in the sidebar.
 export default function TeamLayout({ children }: LayoutProps<"/team">) {
-  return <AppFrame section="team">{children}</AppFrame>;
+  return <AppFrame section="settings">{children}</AppFrame>;
 }

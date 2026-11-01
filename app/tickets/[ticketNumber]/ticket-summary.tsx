@@ -10,6 +10,8 @@ const CHANNEL_LABELS: Record<TicketDetail["channel"], string> = {
   email: "email",
   // Typed in by a teammate (step 31).
   manual: "added by hand",
+  // A chat the assistant handed to a person (step 49).
+  chat: "chat",
 };
 
 // The top of the ticket page: number, subject, status, the request itself,

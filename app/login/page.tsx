@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { RedirectIfLoggedIn } from "@/components/redirect-if-logged-in";
 import {
   Card,
@@ -15,13 +17,16 @@ export const metadata: Metadata = { title: "Log in - ansa" };
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-4">
       {/* Already logged in: straight on to the app. It reads the session,
           which is only known at request time, so it sits in <Suspense>; the
           form around it is still built ahead of time. */}
       <Suspense fallback={null}>
         <RedirectIfLoggedIn searchParams={searchParams} />
       </Suspense>
+      <Link href="/" className="rounded-md">
+        <BrandMark />
+      </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Log in</CardTitle>

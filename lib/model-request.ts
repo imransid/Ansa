@@ -8,11 +8,13 @@
 // the real, paid API.
 
 // One request: fixed instructions, the user message, and the JSON schema the
-// answer must follow.
+// answer must follow. image: a photo sent before the message, only ever a
+// menu photo the owner uploaded (step 46), its type read from its own bytes.
 export type ModelRequest = {
   systemPrompt: string;
   prompt: string;
   jsonSchema: Record<string, unknown>;
+  image?: { mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; base64: string };
 };
 
 // Everything that can come back from asking the model. Only "ok" carries

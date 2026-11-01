@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { companies } from "./companies";
+import { conversations } from "./conversations";
 
 // pending -> analyzing -> decided. See services/call-analysis.ts.
 export const callAnalysisStatuses = ["pending", "analyzing", "decided"] as const;
@@ -115,6 +116,9 @@ export const calls = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // The Inbox conversation it shows in (step 47); null before step 47, or
+    // with no customer to link (a hidden caller number, a manual ticket).
+    conversationId: uuid("conversation_id"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
@@ -122,6 +126,12 @@ export const calls = pgTable(
   },
   (table) => [
     index("calls_company_id_created_at_idx").on(table.companyId, table.createdAt),
+    // The Inbox conversation it belongs to (step 47), in the same company.
+    foreignKey({
+      name: "calls_conversation_in_same_company_fk",
+      columns: [table.companyId, table.conversationId],
+      foreignColumns: [conversations.companyId, conversations.id],
+    }),
     // Lets tickets use a (company_id, call_id) foreign key.
     unique("calls_company_id_id_unique").on(table.companyId, table.id),
     // Postgres refuses a call whose phone line belongs to another company.

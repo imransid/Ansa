@@ -4,7 +4,7 @@ import { createCompany } from "@/db/companies";
 import { claimInvite } from "@/db/invites";
 import type { UserRole } from "@/db/schema";
 import { hashInviteToken } from "@/lib/invite-token";
-import { newCompanySchema } from "@/lib/validation/auth";
+import { NEW_COMPANY_NAME } from "@/lib/restaurant-setup";
 import { inviteSignupBodySchema } from "@/lib/validation/invites";
 
 type Membership = {
@@ -14,7 +14,6 @@ type Membership = {
 
 // Error codes the signup services turn into friendly messages.
 export const MEMBERSHIP_ERROR_CODES = {
-  invalidCompanyName: "INVALID_COMPANY_NAME",
   inviteNotUsable: "INVITE_NOT_USABLE",
 } as const;
 
@@ -29,7 +28,7 @@ export async function createMembershipForNewUser(
   if (hasInviteToken(signupRequestBody)) {
     return joinCompanyWithInviteToken(signupRequestBody, newUserEmail);
   }
-  return createCompanyForNewOwner(signupRequestBody);
+  return createCompanyForNewOwner();
 }
 
 // Says whether the signup came through an invite link (an inviteToken was sent).
@@ -63,23 +62,14 @@ async function joinCompanyWithInviteToken(
   return { companyId: claimed.companyId, role: claimed.role };
 }
 
-// Creates the new owner's company from the signup form; throws without a valid name.
-async function createCompanyForNewOwner(
-  signupRequestBody: unknown,
-): Promise<Membership> {
-  // Fail closed: a user is never created without a company.
-  const parsed = newCompanySchema.safeParse(signupRequestBody);
-  if (!parsed.success) {
-    throw APIError.from("BAD_REQUEST", {
-      code: MEMBERSHIP_ERROR_CODES.invalidCompanyName,
-      message: "Cannot create a user without a valid company name",
-    });
-  }
-
+// Creates the new owner's company, named NEW_COMPANY_NAME until the first
+// setup step (step 45: signup asks for no business name). Whatever else the
+// signup request carries is ignored: nothing from it names or picks a company.
+async function createCompanyForNewOwner(): Promise<Membership> {
   // Known gap: this insert is not in the same transaction as the user insert.
   // If the user insert fails afterwards, an empty company row is left behind.
   // Nobody can log into it, so it is harmless, just untidy.
-  const company = await createCompany(parsed.data.companyName);
+  const company = await createCompany(NEW_COMPANY_NAME);
   return { companyId: company.id, role: "owner" };
 }
 

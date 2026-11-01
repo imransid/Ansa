@@ -1,13 +1,16 @@
 import "server-only";
 import { and, inArray, lt, sql } from "drizzle-orm";
 import { db } from "./client";
-import { oauthStates, rateLimits, sessions, verifications } from "./schema";
+import { LINK_CODE_LIFETIME_MINUTES, LINK_WAIT_MINUTES } from "@/lib/telegram";
+import { oauthStates, rateLimits, sessions, telegramLinkCodes, telegramPendingConnections, verifications } from "./schema";
 
 // Housekeeping for tables that belong to no company (rate limit counters and
 // Better Auth's sessions and verification links), so no company filter here,
-// and for expired social connection attempts (step 40): they belong to a
-// company, but once expired nobody can use or read one, so they are deleted
-// by age alone, across companies. Nothing here reads a row.
+// and for expired social connection attempts (step 40) and Telegram link
+// codes (step 48): they belong to a company, but once expired nobody can use
+// or read one, so they are deleted by age alone, across companies; and for
+// Telegram connections no code named within their hour (no company). Nothing
+// here reads a row.
 //
 // Each function deletes at most `limit` rows in one statement and returns how
 // many it deleted (the driver's row count: no deleted row is read back).
@@ -52,5 +55,24 @@ export async function deleteExpiredOauthStates(limit: number): Promise<number> {
   const isExpired = lt(oauthStates.expiresAt, sql`now()`);
   const expiredIds = db.select({ id: oauthStates.id }).from(oauthStates).where(isExpired).limit(limit);
   const result = await db.delete(oauthStates).where(and(inArray(oauthStates.id, expiredIds), isExpired));
+  return result.rowCount ?? 0;
+}
+
+// Deletes Telegram link codes nobody can use any more: past their 10
+// minutes and the hour a claimed one waits for its connection
+// (db/telegram-links.ts never accepts one again).
+export async function deleteOldTelegramLinkCodes(limit: number): Promise<number> {
+  const isOld = lt(telegramLinkCodes.expiresAt, sql`now() - make_interval(mins => ${LINK_WAIT_MINUTES})`);
+  const oldIds = db.select({ id: telegramLinkCodes.id }).from(telegramLinkCodes).where(isOld).limit(limit);
+  const result = await db.delete(telegramLinkCodes).where(and(inArray(telegramLinkCodes.id, oldIds), isOld));
+  return result.rowCount ?? 0;
+}
+
+// Deletes Telegram connections that waited their hour for a code in vain
+// (and a little longer: a code lives 10 minutes).
+export async function deleteOldTelegramPendingConnections(limit: number): Promise<number> {
+  const isOld = lt(telegramPendingConnections.receivedAt, sql`now() - make_interval(mins => ${LINK_WAIT_MINUTES + LINK_CODE_LIFETIME_MINUTES})`);
+  const oldIds = db.select({ id: telegramPendingConnections.externalId }).from(telegramPendingConnections).where(isOld).limit(limit);
+  const result = await db.delete(telegramPendingConnections).where(and(inArray(telegramPendingConnections.externalId, oldIds), isOld));
   return result.rowCount ?? 0;
 }

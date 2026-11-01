@@ -3,6 +3,9 @@ import { Label } from "@/components/ui/label";
 
 type FormFieldProps = {
   name: string;
+  // The input's id, when a page holds several forms with the same field
+  // names (the menu's add and edit forms). Defaults to the name.
+  id?: string;
   label: string;
   type?: "text" | "email" | "password" | "tel";
   autoComplete?: string;
@@ -18,6 +21,10 @@ type FormFieldProps = {
   minLength?: number;
   maxLength?: number;
   errors?: string[];
+  // The keyboard a phone shows ("decimal" for a price), and a <datalist> of
+  // suggestions by its id.
+  inputMode?: "text" | "decimal" | "numeric" | "tel" | "email";
+  list?: string;
 };
 
 // A labelled input with its validation errors underneath. The errors are
@@ -25,6 +32,7 @@ type FormFieldProps = {
 // input (aria-describedby), so they are read again when it gets focus.
 export function FormField({
   name,
+  id = name,
   label,
   type = "text",
   autoComplete,
@@ -34,17 +42,19 @@ export function FormField({
   minLength,
   maxLength,
   errors,
+  inputMode,
+  list,
 }: FormFieldProps) {
-  const errorId = `${name}-errors`;
+  const errorId = `${id}-errors`;
   // Two rules can fail with the same words ("Enter a valid email address"): show them once.
   const uniqueErrors = [...new Set(errors ?? [])];
   const hasErrors = uniqueErrors.length > 0;
 
   return (
     <div className="grid gap-2">
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       <Input
-        id={name}
+        id={id}
         name={name}
         type={type}
         autoComplete={autoComplete}
@@ -53,6 +63,8 @@ export function FormField({
         required={required}
         minLength={minLength}
         maxLength={maxLength}
+        inputMode={inputMode}
+        list={list}
         aria-invalid={hasErrors}
         aria-describedby={hasErrors ? errorId : undefined}
       />

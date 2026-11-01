@@ -129,7 +129,7 @@ export async function runStuckWorkChecks() {
     const secret = `cron-secret-${runId}-clock`;
     const slowCleanup = async () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
-      return { rateLimitCounters: 0, sessions: 0, verifications: 0, oauthStates: 0 };
+      return { rateLimitCounters: 0, sessions: 0, verifications: 0, oauthStates: 0, telegramLinkCodes: 0, telegramPendingConnections: 0 };
     };
     const seen = { jobStartedAt: 0, recoveryStartedAt: 0 };
     const recover = async (jobStartedAt: number) => {

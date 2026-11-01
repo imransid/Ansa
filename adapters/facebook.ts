@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { accountName, API_TIMEOUT_MS, grantedScopes, readJsonIfOk, sendToPlatform, toQueryString } from "@/lib/social-http";
 import type { AdapterContext, AuthorizedAccount, SocialPlatformAdapter } from "@/lib/social-types";
+import { MESSAGING_SCOPES } from "@/lib/messenger";
 import { appSecretProof, GRAPH_API_VERSION, GRAPH_URL } from "./facebook-graph";
 import { fetchFacebookPostMetrics } from "./facebook-metrics";
 import { publishFacebookPost } from "./facebook-posts";
@@ -18,8 +19,12 @@ import { publishFacebookPost } from "./facebook-posts";
 // decision 7).
 
 const DIALOG_URL = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`;
-// What posting to a Page needs (the /feed and /photos references).
-const SCOPES = ["pages_show_list", "pages_read_engagement", "pages_manage_posts"];
+// What posting to a Page needs (the /feed and /photos references): all three.
+const POSTING_SCOPES = ["pages_show_list", "pages_read_engagement", "pages_manage_posts"];
+// Answering the Page's Messenger messages (step 53, lib/messenger.ts) is
+// asked for too, so one login does both; a person may untick it (posts
+// still work).
+const SCOPES = [...POSTING_SCOPES, ...MESSAGING_SCOPES];
 // The Pages asked for at once. A person managing more is rare; the rest
 // would need paging (a known gap in CLAUDE.md).
 const PAGES_PER_REQUEST = 100;
@@ -68,7 +73,7 @@ export const facebookAdapter: SocialPlatformAdapter = {
       return { kind: "failed", code: "exchange_failed" };
     }
     // Posting to a Page needs all three (research, section 2).
-    if (!SCOPES.every((scope) => granted.includes(scope))) {
+    if (!POSTING_SCOPES.every((scope) => granted.includes(scope))) {
       return { kind: "failed", code: "missing_permission" };
     }
     const accounts = pages.data.filter((page) => page.access_token && page.tasks?.includes("CREATE_CONTENT")).map((page) => pageAccount(page, granted));

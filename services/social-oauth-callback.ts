@@ -13,6 +13,7 @@ import type { SocialPlatform } from "@/lib/social-platforms";
 import { completeAuthorization } from "@/lib/social-publishing";
 import { oauthCodeParamSchema, oauthErrorParamSchema, oauthStateParamSchema, socialPlatformSchema } from "@/lib/validation/social";
 import { isOverRateLimit, RATE_LIMITS } from "./rate-limit";
+import { switchOnMessengerMessages } from "./messenger-pages";
 import { saveAuthorizedAccounts } from "./social-account-saving";
 import { resolveSocialOptions, type ResolvedSocialOptions, type SocialOptions } from "./social-options";
 
@@ -101,6 +102,9 @@ async function exchangeAndSave(
   const saved = await saveAuthorizedAccounts(session.companyId, session.userId, platform, authorization.accounts, false);
   if (saved !== "saved") {
     return { result: saved === "not-allowed" ? "not_owner" : "exchange_failed", count: 0 };
+  }
+  if (platform === "facebook") {
+    await switchOnMessengerMessages(authorization.accounts, { fetchFn: options.fetchFn, appSecret: credentials.clientSecret });
   }
   return { result: "connected", count: authorization.accounts.length };
 }

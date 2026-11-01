@@ -5,6 +5,17 @@ A plug-and-play AI agent that replaces first-line human support.
 It answers phone calls and emails for any company, solves what it can,
 and creates a ticket for a human expert when it can't.
 
+Since 2026-11-01 (the owner's direction): ansa is a representative that
+answers for you when you can't, on every channel you give it. For a
+business it answers the customers (questions, orders, problems it knows
+the solution to). For one person it is their shadow: while they are away
+(asleep, busy, offline) it answers what it can as "<name>'s AI assistant",
+takes a note of the rest, and tells them what they missed when they're
+back. It never pretends to be the person. Platform limits: a personal
+WhatsApp number or Facebook profile can't be automated in an allowed way;
+a person's channels are Telegram, email, phone calls forwarded to ansa's
+number, and others with an official API.
+
 ## Flow
 1. Customer calls -> AI answers, listens, understands
 2. AI can solve -> answers on the call, done
@@ -50,7 +61,21 @@ and creates a ticket for a human expert when it can't.
     /db file of steps 34-42 for WHEREs: these are the Co-Founder's only
     reads across companies. (The webhooks find their company from what
     only ansa issues: a phone line, a forwarding address, a Stripe
-    customer.)
+    customer; Telegram's (step 48, db/telegram-links.ts) from a link
+    code's hash an owner made, or a business connection such a code
+    tied to a company; Messenger's (step 53, db/messenger-links.ts) from
+    the Page id Meta signed, among connected Facebook Page connections,
+    only when exactly ONE company has that Page: yes or no and the
+    connection's id.) The assistant's catch-up (step 51,
+    db/assistant-due.ts) claims the due conversations of every company,
+    one at a time, and then works with the claimed row's own company.
+    "Post for me" (step 54, db/autopost.ts listCompaniesPostingForThem)
+    lists the companies that have it on (ids and its settings only), then
+    writes each one's post through company-scoped paths. telegram_pending_connections belongs to no
+    company: a Telegram account that added ansa's bot before its owner
+    pressed Start with a code, kept an hour (Telegram's ids and the
+    account's name, never a message) until the code names the company,
+    then deleted by the daily job.
 - Tenant isolation lives in ONE shared data access layer: /db.
   - There is no Row Level Security. /db is the only thing keeping one
     company's data away from another. Treat every change there that way.
@@ -86,7 +111,10 @@ and creates a ticket for a human expert when it can't.
   link alone, send links, or set a password from a reset link.
   Which company a new user joins is decided in ONE place: the user-create hook in
   lib/auth.ts -> services/company-membership.ts (new company as owner, or the
-  inviting company with the invited role). Never enable `transaction: true` on
+  inviting company with the invited role). Signup asks only for a name, an
+  email and a password (step 45): a new owner's company is named "New
+  business" (NEW_COMPANY_NAME) until the setup's first step, and nothing in
+  the signup request names a company. Never enable `transaction: true` on
   the Better Auth adapter: signups would deadlock on DB connections (see lib/auth.ts).
 - Invite links put the token after "#" so it never reaches the server or its logs.
   Only a SHA-256 hash of the token is stored.
@@ -236,9 +264,13 @@ and creates a ticket for a human expert when it can't.
   domain converted to ASCII (lib/email-address.ts, shared with the ticket page's
   confirm step), a dot in the domain, max 254. Team accounts keep the strict
   emailSchema.
-- Webhooks (Vapi, Resend, Stripe: services/vapi-webhook.ts, inbound-email-webhook.ts,
-  stripe-webhook.ts) always run in this order: size cap -> raw bytes -> signature +
+- Webhooks (Vapi, Resend, Stripe, Telegram, Messenger: services/vapi-webhook.ts, inbound-email-webhook.ts,
+  stripe-webhook.ts, telegram-webhook.ts, messenger-webhook.ts) always run in this order: size cap -> raw bytes -> signature +
   timestamp -> rate limit (logged when it refuses) -> JSON parse -> Zod -> save.
+  Telegram signs nothing: its "signature" is setWebhook's secret_token,
+  sent back in X-Telegram-Bot-Api-Secret-Token and compared in constant
+  time (no timestamp: Telegram sends none), and a signed update ansa can't
+  read is answered 200 (a refused one would hold back the bot's later ones).
   Stripe's signature is checked with webhooks.signature.verifyHeader, which parses
   nothing. A Stripe subscription is stored for the company our checkout named:
   only the checkout event (client_reference_id) gives a company its first billing
@@ -256,7 +288,9 @@ and creates a ticket for a human expert when it can't.
   name and change nothing without --yes (scripts/company-of-user.ts). Owners see their
   numbers read-only on Setup, each with its last call (step 24).
 - Call brain (step 7): lib/call-brain/ holds the slice, prompt, output schema and
-  guards; adapters/claude.ts is the ONLY file that talks to Anthropic, and its
+  guards; adapters/claude.ts is the ONLY file that talks to Anthropic's API
+  (adapters/claude-code.ts runs the Claude Code program instead,
+  development only, step 49), and its
   client never logs or traces (logLevel "off", openTelemetry false), so
   ANTHROPIC_LOG and the SDK's OpenTelemetry settings change nothing;
   services/call-analysis.ts runs it after the webhook responds (Next's after()).
@@ -277,7 +311,14 @@ and creates a ticket for a human expert when it can't.
     (CALENDAR_PLAN_SETTINGS: effort medium, 6,000 tokens, 90 s, 1 retry),
     and (step 42) askClaudeForPerformanceReview
     (PERFORMANCE_REVIEW_SETTINGS: effort medium, 8,000 tokens, 120 s, 1
-    retry).
+    retry), and (step 46) askClaudeForMenuReading (MENU_READING_SETTINGS:
+    effort low, 16,000 tokens, 120 s, 1 retry), the only use that sends an
+    image (ModelRequest.image, the photo before the text), and (step 49)
+    askClaudeForAssistantReply (ASSISTANT_REPLY_SETTINGS: effort low, 3,000
+    tokens, 30 s, 1 retry) and (step 54) askClaudeForAutopost
+    (AUTOPOST_SETTINGS: effort low, 3,000 tokens, 60 s, 1 retry), the only
+    ones whose client may hold a restaurant's own key
+    (services/assistant-engine.ts, assistantAskerFor with its use).
     Time limits and retries are set per request; timeout x tries plus the
     SDK's 8 s waits (longestRequestMs) must fit the routes' and pages' 300 s
     (a check enforces it), and each request is cut off there
@@ -491,12 +532,13 @@ and creates a ticket for a human expert when it can't.
   a ticket, and then it stays "processing". A claim also takes an email still
   "processing" 15+ minutes after its run started (inbound_emails.
   processing_started_at; a check requires it). Every route or page whose work
-  waits for Claude sets `export const maxDuration = 300` (both webhooks, both
+  waits for Claude sets `export const maxDuration = 300` (both webhooks and,
+  step 49, Telegram's, both
   scheduled jobs, the call page, the Emails page, the Co-Founder's Interview,
   Profile, Strategy, Calendar and Analytics pages, the content studio's new
   draft and draft pages, the media page, whose images are made after its
-  answer, step 39, and the queue page, whose posts go out after its answer,
-  step 41). The scheduled job also runs
+  answer, step 39, the queue page, whose posts go out after its answer,
+  step 41, and the menu's read page, step 46). The scheduled job also runs
   stuck emails, calls and image requests (step 39) again (services/stuck-work.ts,
   through their normal company-scoped paths, least recently tried first,
   taking turns; db/stuck-work.ts is one of three cross-company reads, the
@@ -524,9 +566,13 @@ and creates a ticket for a human expert when it can't.
   A URL a person typed (step 34, "Import a web page") only goes through
   lib/safe-fetch.ts (see Knowledge base).
 - Sensitive text at rest (transcripts and the sentences quoted from them, email
-  contents, ticket notes, social accounts' OAuth tokens and PKCE verifiers:
+  contents, ticket notes, Inbox chat messages (conversationMessageContext:
+  company and message, step 47), social accounts' OAuth tokens and PKCE verifiers:
   socialTokenContext names company, connection and token kind,
-  oauthPkceVerifierContext company and attempt) goes through
+  oauthPkceVerifierContext company and attempt, (step 49) a
+  restaurant's own Claude API key: anthropicKeyContext, its company, and
+  (step 52) an order's delivery address and the customer's notes:
+  orderFieldContext, company, order and field) goes through
   lib/encryption.ts with a context naming its company and record (an id from a
   form is lowercased first, as Postgres gives it back: analyzeCallSchema,
   inboundEmailIdSchema, ticketNoteSchema). Only full 16-byte GCM tags decrypt.
@@ -1481,31 +1527,44 @@ and creates a ticket for a human expert when it can't.
     pillar as the review's own request sent them, never the whole stored
     text the page shows), recorded on the plan and named under "What this
     plan was made from".
-- One product (step 43): both modules in one app, one header, one dashboard.
-  - /dashboard opens with "Business overview" (its h1; the ticket list
-    below is an h2, app/dashboard/business-overview.tsx): numbers of the
-    session's company only, each a link to the list it counts, read with
-    that list's own condition (db/business-overview.ts: the ticket views,
-    the call filters, isStuckInboundEmail, the queue's needs-attention).
-    Support: open tickets, unassigned, calls of the last 7 days and those
-    the AI solved, received emails still being turned into tickets and
-    stuck ones. Co-Founder: key facts confirmed (x of 16), drafts waiting
-    for approval (status draft), posts scheduled within the next 7 days
-    (queued, due ones too: it links to the queue's Scheduled list, which
-    lists those; the calendar starts at today), posts needing attention
-    (one cut off while sending too) and failed in the last 7 days (by
-    their last change), and accounts needing a reconnect as of now
-    (connectionStatusAsOfNow,
-    services/social-accounts.ts, the Accounts page's own rule). Every count
-    is a scalar subquery of the company's own row that reads at most
-    OVERVIEW_COUNT_LIMIT + 1 rows (lib/business-overview.ts): past 10,000
-    the page says "10,000+", so it never reads a company's whole history.
-    The Co-Founder half shows once the company started it: a fact, an
-    interview message or a draft (db/cofounder-progress.ts, one EXISTS each;
-    the interview counts so an answer the AI couldn't read still starts
-    it). Before that, one line: owners are invited to the interview,
-    members told an owner starts it. Members see the same numbers (every
-    page they link to is readable by members).
+- One product (step 43; one sidebar and Home since step 44): both modules
+  in one app.
+  - Home (/dashboard, h1 "Home"; simplified in the "easy to use" pass of
+    2026-11-01, app/dashboard/page.tsx), top to bottom: the green status
+    card (status-card.tsx, step 44's signature: what ansa does right now,
+    from Presence in services/away.ts, the briefing's sentence of
+    lib/home-briefing.ts, and the ONE button that changes it for owners:
+    Turn ansa on / Pause ansa / I'm away / I'm back; members read);
+    "Getting started" (getting-started.tsx, services/home.ts, owners only,
+    gone once all are done: Telegram connected and allowed to reply, an AI
+    engine ready, and a business's menu or a person's instructions); "While
+    you were away" (only in "Only when I'm away": answering always, "What
+    ansa did" says it); "Needs you" (needs-you.tsx): new orders to accept
+    (step 52), the newest 5 conversations
+    that need a person, by name with the request's subject or the waiting
+    reply (the Inbox's own needs-you view), "See all N", then each other
+    thing that waits only above 0: requests nobody has (a business where
+    more than one person takes requests: otherwise they are the
+    conversations listed),
+    stuck emails, posts needing attention (one cut off while sending too)
+    and failed in the last 7 days (by their last change), social media
+    accounts needing a reconnect as of now (connectionStatusAsOfNow,
+    services/social-accounts.ts); with none, "Nothing needs you right
+    now."; "What ansa did"; and, for businesses only, "Your business in
+    numbers" (business-overview.tsx): open requests, calls of the last 7
+    days and those ansa solved, emails being read, and once the company
+    started the marketing helper (a fact, an interview message or a
+    draft: db/cofounder-progress.ts, one EXISTS each) key facts confirmed
+    (x of 16), posts waiting for approval (status draft) and posts
+    scheduled within the next 7 days (queued, due ones too: it links to
+    the queue's Scheduled list). Every number is a NumberLink to the list
+    it counts, read with that list's own condition (db/business-overview.ts:
+    the ticket views, the call filters, isStuckInboundEmail, the queue's
+    needs-attention). Every count is a scalar subquery of the company's own
+    row that reads at most OVERVIEW_COUNT_LIMIT + 1 rows
+    (lib/business-overview.ts): past 10,000 the page says "10,000+", so it
+    never reads a company's whole history. Members see the same numbers
+    (every page they link to is readable by members).
   - The Co-Founder Overview's "Getting started" checklist
     (lib/cofounder/getting-started.ts, pure; services/cofounder-overview.ts
     reads the state): answer the interview (finished as the Overview says
@@ -1535,7 +1594,8 @@ and creates a ticket for a human expert when it can't.
     (a published draft can't be archived, and disconnecting or deleting
     leaves what went out). The daily job deletes only old rate limit
     counters and expired sessions, reset links and social connection
-    attempts (services/maintenance.ts).
+    attempts, and (step 48) Telegram link codes past their hour and
+    Telegram connections no code named (services/maintenance.ts).
 - Times: stored in UTC, shown with components/local-date-time.tsx (the viewer's own
   timezone). Lists page with ?page= (lib/pagination.ts, 50 per page, at most
   10,000 pages: links never point past that). The ticket list also reads ?view=
@@ -1554,35 +1614,517 @@ and creates a ticket for a human expert when it can't.
 - Next.js 16 has Cache Components on: any component that reads the session must
   sit inside <Suspense>. See app/dashboard/page.tsx. Read @AGENTS.md before
   writing Next.js code; this version differs from older docs.
-- The app header lives in each signed-in section's layout.tsx (app/dashboard,
-  tickets, calls, emails, knowledge, cofounder, team, setup, billing, account), through AppFrame
-  (components/app-frame.tsx): one width everywhere, its links static (the
-  layout names its section, marked with aria-current), only "who you are"
-  reading the session inside <Suspense>, on a row of its own: one line of
-  fixed height (a long address or company name is cut short with "..."), the
-  same as its placeholder, so the header never grows when the session
-  arrives. The sections, in this order (step 43, navigation-checks.ts):
-  Tickets, Calls, Emails, Knowledge, Co-Founder, Team, Setup; Account and
-  Billing (owners) sit in the "who you are" row. Header links never break
-  inside a word (whitespace-nowrap), so "Co-Founder" wraps whole on a phone
-  (360 px: the rows wrap, nothing scrolls sideways). A section may add its own row of links
-  below the header (AppFrame's subNavigation: the Co-Founder's pages,
-  lib/cofounder/pages.ts, one line per page: Overview, Interview, Profile,
-  Strategy, Studio, Media, Calendar, Queue, Analytics, Accounts; in <Suspense>, because below a
-  page with a number or an id in its address the open page is only known at
-  request time, and meanwhile the same links show, none marked). An error boundary
-  sits below both (components/page-error-boundary.tsx, Next's catchError), so they stay
-  when a page or a server action fails. Pages never render the header, and
-  each has its own h1 (the header has none; a check reads every signed-in
-  page for one, scripts/tenant-isolation/page-heading-checks.ts).
-  getSessionContext is cached per request (React cache): header and page read
-  the session once. A ticket, call, knowledge article, plan version or
-  content draft that can't be shown has its own not-found.tsx below the
-  header; app/not-found.tsx, app/error.tsx and
+- The app's navigation (step 44) lives in each signed-in section's layout.tsx
+  (app/dashboard, inbox, tickets, calls, emails, knowledge, cofounder, team,
+  setup, billing, account, settings), through AppFrame
+  (components/app-frame.tsx): from 768 px wide a forest-green frame
+  holding the sidebar (components/app-navigation.tsx, ansa's bell mark,
+  components/brand-mark.tsx) and the page on a white sheet, and below that
+  a frosted-glass bar floating at the bottom of the screen with the same
+  links (solid where the browser can't blur; the page is padded so it never
+  covers the page's end). The sections, in this order (components/section-links.tsx,
+  navigation-checks.ts): Home (/dashboard), Inbox (/inbox), Settings
+  (/settings) since the "easy to use" pass of 2026-11-01 (the marketing
+  studio, Content until then, is a Settings link for businesses: "Social
+  media posts"); Orders after the Inbox for a business that takes orders
+  (step 52, below). The links are static: each
+  layout names its section (marked with aria-current), app/cofounder
+  included (Settings). Inbox: conversations, All requests
+  (/inbox/requests), tickets, calls, emails; Settings: knowledge, team,
+  setup, billing, account, cofounder. Settings (app/settings/page.tsx)
+  lists by kind: a business's "Your assistant" (Assistant, Channels, What
+  it knows, Menu and prices), "More tools" (Social media posts and
+  accounts, Saved answers = Knowledge, Phone, email and documents), "Team
+  and account", Log out, and the older marketing pages folded in a
+  <details>; a person's "Your assistant" (Assistant, Channels, About you,
+  Saved answers, Email forwarding) and "Account" only. Only the sidebar's foot
+  ("who you are": company, address, Account, Log out) reads the session,
+  inside <Suspense>, at one fixed height (names cut short with "..."), the
+  same as its placeholder, so nothing moves when the session arrives. A
+  phone has no sidebar: Settings lists Account and Log out, Billing
+  (owners), and every page the sidebar doesn't link (the Co-Founder's other
+  pages under "Older pages" until step 57; a person's account doesn't list
+  the marketing pages); the Inbox links Calls and Emails. An error boundary sits beside the sidebar
+  (components/page-error-boundary.tsx, Next's catchError), so it stays
+  when a page or a server action fails. Pages never render the navigation,
+  and each has its own h1 (the sidebar has none; a check reads every
+  signed-in page for one, scripts/tenant-isolation/page-heading-checks.ts).
+  getSessionContext is cached per request (React cache): sidebar and page
+  read the session once. A ticket, call, knowledge article, plan version or
+  content draft that can't be shown has its own not-found.tsx inside the
+  frame; app/not-found.tsx, app/error.tsx and
   app/global-error.tsx catch everything else. Error screens never show an
   error's message, only Next's digest as a reference
   (components/something-went-wrong.tsx). Ticket, call, article and draft tabs are
   titled per ticket, call, article or draft (generateMetadata, read once with React cache).
+- Restaurant setup (step 45, /welcome; Settings → Assistant at
+  /settings/assistant and What it knows at /settings/business). companies
+  gains kind (business; personal later), business_type (the list in
+  lib/restaurant-setup.ts, CHECKs equal to it), setup_progress (0-6: how
+  many steps were saved, only ever raised) and setup_finished_at.
+  assistant_settings: one row per company (company_id the primary key),
+  status on / paused, reply_mode automatic (the default) / ask_first, the
+  holding reply (DEFAULT_HOLDING_REPLY until an owner edits it, 1-500),
+  instructions (0-2,000), takes_orders, time_zone + opening_hours (both or
+  neither; lib/opening-hours.ts: at most two times a day, never
+  overlapping, within 00:00 to 24:00, a closing 00:00 = midnight), delivery
+  with its note, pickup, payment note, currency (ISO 4217), public_phone,
+  alert_by_email, updated_by_user_id (same-company foreign key). Plain text
+  on purpose: the restaurant's own information for its customers. The
+  business's name, what it serves and its address are business facts
+  (company_name, description, location), written as the owner's confirmed
+  values (db/setup-facts.ts, inside the setup's transaction, without the
+  Profile page's "what the page showed" check), so posts can use them.
+  - Steps (SETUP_STEPS): business (name, kind, what it serves), contact
+    (address, phone), hours (time zone, picked from the device in the
+    browser until one is saved), orders (orders, delivery, pickup,
+    payment, currency), assistant (instructions, holding reply; the mode
+    stays Automatic), channels (the forwarding address and phone lines;
+    Telegram and Messenger "coming next"), ready (a read-back, then
+    "Open ansa" sets setup_finished_at, refused before all six were
+    saved). ?step= names a step; one further than the progress shows the
+    first one left, so setup resumes where it stopped. /welcome has no
+    sidebar (a frameless signed-in folder, navigation-checks.ts).
+  - Owners change it, members read it (canManageRestaurant,
+    lib/restaurant-permissions.ts), checked in the services AND in /db:
+    every write takes the company row lock first, then reads the person's
+    role again FOR SHARE (asRestaurantOwner, db/restaurant-owner.ts).
+    settings-changes limit; Zod (lib/validation/restaurant-setup.ts); /db
+    names every column. A form's hidden "from" field only picks where the
+    browser goes next (the next step, or "Saved.").
+  - Home sends an owner whose setup isn't finished to /welcome (a new owner
+    lands there after confirming their email); members see a line that an
+    owner is still setting up. The sidebar's foot shows the reply mode and
+    today's hours in the restaurant's own time zone ("Open until 23:00",
+    describeHoursNow). Nothing here reaches a customer or the AI before
+    steps 46 to 49.
+- Menu (step 46, Settings → What it knows → Menu at /settings/menu, "Read
+  my menu" at /settings/menu/read). catalog_items: one row per dish or
+  drink (named for a shop's products later): category ("" = "Other
+  dishes", 0-60), name (1-120), description (0-500), price_cents (whole
+  smallest units of the currency setup chose: cents for EUR, yen for JPY,
+  lib/menu.ts minorUnitDigits; 0 to 100,000,000), unavailable_until (null
+  = available), position, creator and last changer (same-company foreign
+  keys). At most MENU_ITEMS_MAX (500) per company, counted under the
+  company row lock. Plain text on purpose: the restaurant's own menu.
+  - Owners add, change, move (within its category) and delete dishes
+    (canEditMenu); anyone in the company marks one "Not available today"
+    (canMarkMenuAvailability: whoever is working knows first), which
+    lasts until the restaurant's next midnight in its own time zone
+    (endOfLocalDay, lib/opening-hours.ts; UTC before setup chose one) and
+    then ends by itself (read with the database's clock). Checked in the
+    services AND in /db (role read again FOR SHARE); menu-changes limit.
+    No menu before a currency: every price is typed as text and read by
+    parsePrice in it (one "." or "," before at most the currency's
+    digits; a minus is no price).
+  - "Read my menu" (owners, services/menu-reading.ts, menu-readings: 20 an
+    hour per company): a photo (JPEG, PNG, WebP or GIF, its type read from
+    its own first bytes, never the name), a PDF or .docx (its text, as for
+    knowledge imports) or pasted text (at most 20,000 characters), up to
+    4 MB. Claude (askClaudeForMenuReading, lib/menu-reading/prompt.ts:
+    the text escaped inside <menu>, data never instructions) returns
+    { items: [{ category, name, description, price }] }; this code keeps
+    each row on its own (lib/menu-reading/answer.ts: a name, a price it
+    can read, one plain line each, at most 150) and says how many were
+    left out. NOTHING is saved by reading: the list comes back to the page
+    to check and edit, and only "Looks right" adds it (every row checked
+    again, all or none, a bad price naming its dish). Without an API key
+    the development stand-in (adapters/dev-menu-reader.ts) answers a
+    labelled sample menu; production says reading isn't available
+    (menuStandInAllowed).
+- Inbox (step 47, /inbox, one conversation at /inbox/<id>, the ticket list
+  at /inbox/requests "All requests"). contacts: one customer on one
+  channel (telegram, messenger, phone, email, stand_in; unique per company,
+  channel and external id: the phone's digits, customerPhoneDigits; a
+  lowercased email address, "unverified:" first when the sender wasn't
+  verified (step 25), so a forged From never joins a real customer's
+  conversation; a chat id). conversations: one per contact, handled_by
+  assistant / person (who took it over and when, a CHECK keeps them
+  together), last_activity_at (the Inbox's order),
+  last_customer_message_at. messages: a chat message (body encrypted,
+  conversationMessageContext) or a link to a call or a received email of
+  the same company (never a copy), exactly one of the three (a CHECK); in
+  = customer, out = assistant / person with a send status; one per channel
+  message id per conversation (a message arriving twice is saved once);
+  clock_timestamp() keeps their order. assistant_activity: what ansa did
+  (actor empty) and a person's take over / hand back, never a message's
+  text. calls, inbound_emails and tickets carry conversation_id (all
+  same-company foreign keys).
+  - A call joins its caller's conversation when it is saved (insertCallIfNew,
+    in its transaction; a hidden caller: none), its ticket the call's
+    (insertTicketWithNextNumber reads it from the call), and the decision
+    writes ansa's line (call_solved / call_needs_person). A received email
+    joins its sender's conversation when it becomes a ticket
+    (saveInboundEmailTicket, in its transaction), with the ticket and
+    ansa's line (email_made_request). Calls and emails from before step 47
+    are not linked (no backfill); filtered mail never is.
+  - "Needs you" = a conversation with an open ticket, or (step 49) a reply
+    of the assistant waiting for a person (needsYouCondition,
+    db/conversations.ts); Home's "N conversations need you" counts with the
+    same condition. A conversation's page shows its entries (each voice its
+    own: the customer, ansa with its bell, a person by name), Take over /
+    Hand back, a reply box on chat channels only (replying takes it over),
+    and its newest open request with that ticket's own actions
+    (TicketActions, NoteForm) and a link to the whole request. Everyone in
+    the company works conversations, as they work tickets; the person is
+    read again in /db; inbox-changes limit.
+  - Replies go out through lib/chat-delivery.ts, the ONLY door: saved
+    "sending" first (encrypted), then sent, then "sent" / "failed" /
+    "unclear" recorded with the channel's id or a reason code
+    (messages.send_error, SEND_ERRORS in lib/conversations.ts; only over
+    "sending"). The development stand-in channel, and a stand-in Telegram
+    account (step 48), write them to .dev-messages/
+    (adapters/dev-chat-outbox.ts, git-ignored); production never uses
+    them ("not_connected"). `pnpm simulate:message` brings a stand-in
+    customer's message in (local database only).
+- Telegram (step 48, Settings → Connections at /settings/channels, POST
+  /api/webhooks/telegram). A restaurant adds ansa's ONE bot to its own
+  Telegram account as a Telegram Business chatbot; customers write to the
+  restaurant's account as always. channel_connections: one Telegram
+  account of one company (Telegram's business connection id, the
+  account's user id and the bot's chat with it, its name, status
+  connected / cannot_reply (the owner didn't allow replies) /
+  removed_in_telegram / disconnected (an owner, in ansa), is_stand_in,
+  connected_by with a same-company foreign key). Partial unique indexes:
+  while not disconnected, a Telegram account is tied to one company and a
+  company has one Telegram account.
+  - Connecting (owners: canManageRestaurant, in the service and in /db
+    under the company row lock): "Connect Telegram" makes a one-time code
+    (32 random bytes, only its SHA-256 stored in telegram_link_codes, 10
+    minutes, settings-changes limit) and opens t.me/<bot>?start=<code>.
+    The owner's Start CLAIMS it in one UPDATE with their Telegram user id;
+    the chatbot added in Telegram (a business_connection update from that
+    same user within the hour) is then tied to the code's company, in ONE
+    transaction (company row lock, the code's maker read again as an
+    active owner, the code locked and unused). Added before the Start, it
+    waits in telegram_pending_connections and the Start ties it. The
+    company comes ONLY from a code; nothing Telegram sends names one. An
+    account tied to another company is refused ("disconnect it there
+    first"); a company's account removed in Telegram is replaced. The bot
+    tells the owner what happened in its own chat (BOT_NOTES, fixed
+    texts, after the webhook's answer). Telegram's later updates of a tied
+    account set its status (removed, added back, reply permission, name);
+    an owner's Disconnect is final until a new code.
+  - Messages (services/telegram-updates.ts): a business_message of a
+    connected account (connected or cannot_reply) joins the customer's
+    conversation (contact = Telegram's chat id, telegramContact), saved
+    once per Telegram message id; text and caption only, other contents
+    named ("[A photo: open Telegram to see it]", lib/telegram.ts), never
+    downloaded. One written by the account itself (from = the account's
+    user) is saved as author "business_account" ("Written in Telegram");
+    one sent by the bot (sender_business_bot: ansa's own reply coming back)
+    is not saved again. deleted_business_messages delete ansa's copies.
+    Edits are ignored (Known gaps). Encrypted with
+    conversationMessageContext; never logged.
+  - Replies (lib/chat-delivery.ts -> adapters/telegram.ts, the ONLY file
+    that talks to Telegram; the token is in every address, so no address,
+    error or answer is logged, and only ok, message_id and the HTTP status
+    are read): refused BEFORE anything is saved when the company has no
+    connected account, ansa may not reply, or the customer's last message
+    is over 24 hours old (Telegram's rule for chatbots; the conversation
+    page says so instead of offering the box). Telegram's message id is
+    kept; 429 rate_limited, 401/404 bot_rejected, other refusals refused;
+    no answer or a 5xx is "unclear" (no_answer) and is never sent again
+    by itself.
+  - Modes (lib/telegram-mode.ts, like social accounts): "real" with all
+    three of TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and
+    TELEGRAM_WEBHOOK_SECRET (lib/telegram-settings.ts, set together),
+    "stand-in" in development without them (a stand-in account, `pnpm
+    simulate:telegram`, replies to .dev-messages/), "not-set-up" in
+    production. `pnpm telegram:poll` (development, local database) reads a
+    real bot with getUpdates and hands each update to the same code;
+    `pnpm telegram:webhook set | remove` is the operator's. The checks
+    refuse to run while TELEGRAM_BOT_TOKEN is set. Limits:
+    telegram-webhook (per IP, a ceiling), telegram-bot-chat (messages to
+    the bot's own chat, per Telegram user).
+- Messenger (step 53, Settings → Connections, POST and GET
+  /api/webhooks/messenger). A business connects its Facebook Page with the
+  SAME login as posts (step 40's facebook connection): ansa's Meta app now
+  also asks for pages_messaging and pages_manage_metadata (lib/messenger.ts
+  MESSAGING_SCOPES; posting needs only its three, so a person may untick
+  messages), and right after the callback each Page with both granted has
+  its messages switched on for ansa's app (services/messenger-pages.ts,
+  subscribed_apps: messages and message_echoes; best effort, one fixed log
+  line when Meta refuses). Channels lists each Page with "Messages come to
+  ansa" or "Connect it again and allow messages"; a person's account is
+  told a personal profile can't be connected.
+  - The webhook (services/messenger-webhook.ts): size cap 512 KB, raw
+    bytes, X-Hub-Signature-256 = "sha256=" + HMAC-SHA256(raw body,
+    FACEBOOK_APP_SECRET), compared in constant time (no Meta app = 401),
+    per-IP limit (messenger-webhook, a ceiling), JSON, Zod
+    (lib/validation/messenger.ts: only ids, mid, text, the first
+    attachment's kind, is_echo and app_id), 200 even for an event ansa
+    can't read. GET answers Meta's setup check with hub.challenge only for
+    MESSENGER_VERIFY_TOKEN (constant time), else 403.
+  - A customer is a Page-scoped id: contacts.external_id
+    "<page id>:<psid>" (lib/messenger.ts, split at the last ":"), so a
+    reply goes back through that Page. A customer's message joins their
+    conversation once per Meta mid; text, or the attachment named ("[A
+    photo: open Messenger to see it]"), never downloaded; their name is
+    read from Meta once, after the answer, when the contact has none
+    (best effort). An echo sent by ansa's own app (app_id) isn't saved
+    again; any other echo is the Page's own message (author
+    "business_account", clears the catch-up's wait). Then the assistant
+    answers it as it does Telegram's (step 49 onwards, orders included).
+  - Sending: every message to a customer goes through
+    services/chat-send.ts (sendToCustomer), which reads a Messenger Page's
+    token first (prepareConnectionForUse: only services decrypt tokens),
+    then lib/chat-delivery.ts → adapters/messenger.ts (the ONLY file that
+    talks to Messenger: Send API, messaging_type RESPONSE, appsecret_proof;
+    a text over 2,000 characters goes as parts cut at a line break or a
+    space; Meta's 10/2018278 = reply_window_closed, throttling =
+    rate_limited, 190 = not_connected, a 5xx or no answer = unclear,
+    never sent again by itself). The route (db/messenger-routes.ts, read
+    in the saving transaction like Telegram's): the Page connected in this
+    company, pages_messaging granted (or a development stand-in), and the
+    customer's last message under 24 hours; otherwise refused before
+    anything is saved, and the conversation page says why.
+  - Modes: Facebook's (lib/social-mode.ts): "real" with FACEBOOK_APP_ID and
+    _SECRET; "stand-in" in development (the stand-in Page of step 40, `pnpm
+    simulate:messenger`, replies to .dev-messages/); production without
+    the app has no Messenger.
+- "Post for me" (step 54, Settings → Posts for me at /settings/posts,
+  businesses). ansa plans, writes and posts on the business's Facebook
+  Page by itself; the owner never gives it a topic.
+  - The switch (assistant_settings.autopost_*: on, frequency daily /
+    three_a_week (Mon, Wed, Fri) / weekly (Fri), a local time in
+    time_zone, mode automatic / ask_first; who switched it on and when, a
+    CHECK: on = an owner named and a time zone). Owners only
+    (asRestaurantOwner, settings-changes limit); Automatic needs the
+    owner's tick ("ansa may post without asking me each time"), and then
+    switches on the company's Facebook "any pillar" auto-publish rule in
+    the owner's name through step 41's own owner switch
+    (setAutopublishRuleEnabled); Ask me first or off switches it off. Off
+    also takes back the posts still on their way (archived: out of the
+    queue; one already out stays).
+  - The brain (lib/autopost/brain.ts, pure): a mix of kinds per business
+    type (food or other: spotlight, behind the scenes, a question, come
+    and see us, a tip), a special day on its date (a short fixed list),
+    "come and see us" weighed up on Thursday and Friday, the dish or
+    product spotlighted least recently next, a kind used in the last three
+    posts weighed down, and each kind's weight times how its posts did
+    (reactions + comments + shares of each post's newest numbers, step 42,
+    against the average, 0.5 to 2).
+  - Writing (services/autopost-writer.ts): the posting time is CLAIMED
+    first (autopost_slots, unique company + post_at: two runs write it
+    once). The company's assistant engine writes it (assistantAskerFor
+    "post": the owner's key, ansa's, or Claude Code in development) from
+    the business's own details only (lib/autopost/prompt.ts: name, kind,
+    about, address, hours, up to 40 offers with their prices, the owner's
+    instructions and words to avoid, the newest 5 posts' first lines, the
+    brain's choice; every value escaped, card-like numbers hidden). The
+    answer (lib/autopost/answer.ts, strict), then ansa's checks
+    (lib/autopost/checks.ts: step 49's price, refund and link checks on
+    the published text, any percentage and any discount / promo / coupon
+    word only when the owner's own texts hold it, Facebook's rules and
+    words to avoid); a second try on another kind; still stopped = skipped
+    with a code (lib/autopost/slots.ts). A kept post becomes a content
+    draft in the owner's name (no claims: ansa's checks replace them) and
+    is scheduled through scheduleDraftPosts without an approval
+    (auto_rule, re-checked when it runs, step 41), or waits for an owner
+    (Ask me first, or when the queue refuses it).
+  - Runs: /api/cron/publish and the daily job
+    (services/assistant-scheduled.ts, after the assistant's catch-up), and
+    `pnpm assistant:catch-up` in development, write each posting time's
+    post within a day of it, at most 10 a run, each only while two AI
+    tries still fit its 300 s. "Post one now" (owners, autopost-now: 5 an
+    hour per company) writes one for this moment and sends it after the
+    answer (maxDuration 300).
+  - The page: what ansa is doing and the next three times, the form, and
+    ansa's newest 20 posts with where each is (being written, scheduled,
+    posted, waiting for approval, couldn't be posted, taken back, skipped
+    and why) and its reactions, comments and shares.
+  - Setup's business types (widened in step 54, a CHECK): food
+    (restaurant, café, bakery, takeaway, food truck, bar, catering) and
+    shop, salon or beauty, clinic, gym, services / freelance / agency,
+    estate agent, something else.
+- The restaurant assistant (step 49; rule changes 1 and 2 of 2026-10-31:
+  it reads the restaurant's own details and the ONE conversation it
+  answers, and the AI's replies go to customers after ansa's checks).
+  services/assistant-reply.ts runs once per customer chat message (Telegram
+  after the webhook's 200, pnpm telegram:poll, pnpm simulate:telegram and
+  simulate:message), after a 1.5 s wait so a burst gets one answer.
+  - Quiet (nothing sent, holding reply included) while: paused, the
+    conversation taken over, a request open in it (one holding reply until
+    a person answers), a newer customer message (its own run answers), or
+    the message handled already (conversations.assistant_handled_message_id).
+    Checked before Claude is asked and AGAIN inside the transaction that
+    saves (db/assistant-runs.ts, the conversation row locked; the handover
+    takes the company row lock first, as routing must).
+  - What Claude reads (lib/assistant/prompt.ts, services/assistant-inputs.ts):
+    the restaurant's name, what it serves, address and public phone, its
+    hours with "now" in its time zone, delivery / pickup / payment notes,
+    the AVAILABLE dishes with labels M1... and prices as the menu shows
+    them, the owner's instructions, up to 3 approved support articles
+    matching the customer's last message (3,000 characters), the active
+    category names, and the newest 20 messages of this conversation (cut
+    to 1,000 characters each, never splitting an emoji). Every value
+    escaped in its tag; customers' text with card-like and SSN-like numbers
+    and email addresses hidden, the owner's with card-like numbers hidden.
+    No id, account, other customer or other conversation. The system
+    prompt says all of it is data, not instructions.
+  - Its answer (lib/assistant/answer.ts, JSON schema + strict Zod): action
+    reply / needs_person / no_reply, the reply (at most 1,500 characters,
+    else unusable), a handover reason (unsure, complaint, refund,
+    asked_for_person, order: a business that takes no orders here;
+    needs_decision, step 50; order_change, step 52), a subject and
+    summary for the request, a category name, and (step 52) an order by
+    menu label with the actions order_summary / order_confirmed /
+    order_withdrawn (see Orders below).
+  - ansa's checks before a reply may go (lib/assistant/reply-checks.ts):
+    every amount written with a currency mark is a menu price or an amount
+    in the owner's own texts (notes, instructions, articles); no refund,
+    compensation or voucher words (several languages); every link appears
+    in the owner's texts. The first automated message of a conversation
+    starts with ansa's own line "I'm the AI assistant for <restaurant>."
+    (lib/assistant/ai-label.ts), never the AI's.
+  - Anything else hands over (services/assistant-handover.ts,
+    db/assistant-handover.ts, ONE transaction): the restaurant's holding
+    reply (with the AI label when first; never the AI's text), a request
+    (tickets.channel "chat", the AI's subject and summary or fixed words,
+    always the reason, HANDOVER_REASONS in lib/assistant/reasons.ts; the
+    category by id; routed, its assignee emailed after commit) in the
+    conversation, an assistant_activity "handed_over" row with the reason.
+    Then the owners are alerted (services/owner-alerts.ts: an email to each
+    confirmed, active owner while alert_by_email is on, and a note from
+    ansa's bot in the restaurant's own Telegram; who, where and why with a
+    link, never the messages; owner-alerts limit). Reasons: the AI's own,
+    price_not_on_menu, refund_promise, unknown_link, unusable_answer,
+    model_failed, model_unavailable (no engine), reply_limit, send_failed
+    (the reply itself failed: a request and an alert, no holding reply).
+  - Automatic (the default) sends at once; "Ask me first" saves the reply
+    as a "draft" (one at a time: a newer one discards it) that shows under
+    Needs you with Send (as written), Edit (?edit=<id>: the reply box, a
+    person's reply that replaces it in its transaction) and Discard
+    (ConfirmButton), anyone in the company (db/assistant-drafts.ts, the
+    person read again, the reply route checked as for a person's reply,
+    db/reply-routes.ts). Holding replies never wait.
+  - The AI engine (Settings → Assistant, owners; lib/assistant/engine.ts):
+    "Claude API key" uses the restaurant's own key (assistant_settings.
+    anthropic_key_encrypted, anthropicKeyContext, shown only as its last
+    four; an unreadable one is never replaced by ansa's) or else ansa's
+    ANTHROPIC_API_KEY; "Claude Code on this computer" runs `claude -p`
+    (adapters/claude-code.ts) on the developer's own login, DEVELOPMENT
+    ONLY: Anthropic doesn't allow a product to run on a claude.ai login
+    (Agent SDK docs), so production refuses to save it and never runs it
+    (model_unavailable). It runs locked down: no tools, no MCP, no setting
+    sources, no CLAUDE.md or memory, no saved session, an empty temporary
+    folder, only PATH, HOME, USER, LOGNAME, LANG and TMPDIR passed on (never
+    ansa's secrets), the conversation on stdin, the answer its
+    structured_output, 90 s; CLAUDE_CODE_PATH names the program. No engine =
+    every message gets the holding reply and a request.
+  - "Test your assistant" (owners, assistant-tests limit) runs the same
+    inputs, engine and checks on one typed message and shows the reply or
+    the handover and why: nothing saved, sent or alerted.
+  - Limits: assistant-replies per restaurant per hour (past it: handover,
+    reply_limit) and per customer conversation per hour (past it: quiet).
+    LOGGING RULE: never a message, the prompt or the AI's answer; "Assistant
+    reply failed: <class>", "Claude call failed: <name>".
+- ansa for one person (step 50). companies.kind "business" or "personal",
+  picked at setup's first step ("Who is ansa for?": My business / Just
+  me; lib/restaurant-setup.ts COMPANY_KINDS). A person's setup has its own
+  steps (PERSONAL_SETUP_STEPS: who, away, assistant, connect, ready;
+  setupStepsFor, savedSetupSteps); changing the kind starts the later steps
+  again (setup_progress = 1), switches answer_when (a person's:
+  "when_away") and the holding reply while it is still one of ansa's own
+  (personalHoldingReply: their NAME, never a pronoun). A person has no
+  business type, menu, address, opening hours or orders; the first step
+  shows their name ("as ansa should say it") and what they do, by CSS
+  alone (group-has on the kind radio). The assistant reads a person's
+  <person> and <availability> instead of a restaurant's tags, with its own
+  system prompt (PERSONAL_SYSTEM_PROMPT: never pretend to be them, never
+  commit them to a meeting, time, money or decision, never share what's
+  private unless their instructions say so; hand over with needs_decision,
+  asked_for_person, unsure...), and says "I'm <name>'s AI assistant."
+  (aiLabel with the kind). Handover texts are neutral ("They complained.").
+- Only when I'm away (step 51, lib/assistant/availability.ts):
+  assistant_settings.answer_when "always" (a business's default) or
+  "when_away" (a person's). When away, ansa answers if: away_since is set
+  ("I'm away" on Home, owners; "I'm back" clears it), or now is inside the
+  weekly away_hours (the opening hours' shape, in time_zone; a person's
+  setup step 2 and Settings → Assistant), else after reply_grace_minutes
+  (5, 10, 15, 30 or 60; null = never): the run sets conversations.
+  assistant_due_at and answers "waiting"; the catch-up
+  (services/assistant-due.ts) claims due conversations in ONE UPDATE each
+  (scalar SKIP LOCKED subquery, across companies) from /api/cron/publish
+  (after posts, before post numbers), the daily job (after posts), pnpm
+  telegram:poll and pnpm assistant:catch-up (development), each only while
+  its slowest answer fits the 300 s, and answers the newest message unless
+  you answered after it (a person's reply in ansa, or the restaurant's own
+  Telegram message, which also clear assistant_due_at). contacts.important
+  (anyone in the company, on the conversation page): ansa never answers
+  them itself; it hands over at once with "important_person", no AI asked.
+  "While you were away" on Home: the assistant's replied / drafted /
+  handed_over lines since the person last pressed "Got it"
+  (away_summary_reads, per company and person; the last day before the
+  first), each conversation once. The sidebar's foot says "Away: ansa
+  answers for you" or "Available: you answer" in when_away mode.
+  - Home's "What ansa did": the newest six lines of ansa's activity, each a
+    link to its conversation.
+- Orders (step 52, /orders; Orders in the sidebar and the phone bar after
+  the Inbox, only for a business that takes orders here:
+  components/company-section-links.tsx reads the session inside
+  <Suspense>, the links without Orders meanwhile). orders: one order of
+  one conversation (same-company foreign keys on the conversation and the
+  person who last moved it), status proposed / new / accepted / ready /
+  done / cancelled, fulfilment delivery / pickup, the address (delivery
+  only, a CHECK) and the customer's notes ENCRYPTED (orderFieldContext),
+  wanted_time (one plain line, "As soon as possible" when not said),
+  currency, subtotal + delivery fee = total (CHECKs; the fee only on
+  delivery), summary_message_id (no foreign key: a message deleted in
+  Telegram goes), order_number per company and placed_at exactly once
+  placed (CHECK; unique per company), and one "proposed" per conversation
+  (a partial unique index). order_items: the dish's name and price COPIED
+  when the order was written up (a later menu change never changes an
+  order), quantity 1-50, line total = quantity x price (CHECK), deleted
+  with a proposal written up again. assistant_settings.delivery_fee_cents
+  (Settings → What it knows and setup step 4, typed as a price in the
+  currency, parsePrice; empty = free).
+  - The assistant (step 49's run) collects an order: its answer names
+    dishes ONLY by today's menu labels (M1...) and how many, delivery or
+    pickup, the address, when, notes (lib/assistant/answer.ts, its rules
+    lib/assistant/order-prompt.ts, which also gives it <order_in_progress>
+    and this conversation's newest 3 <placed_orders>). ansa decides
+    (lib/order-steps.ts, pure): a person's account, or a business that
+    takes no orders here = handover "order"; closed now by its own hours =
+    ansa's fixed "we can't take orders right now (opens at 18:00)"; a
+    label not on today's menu or a count outside 1-50 = handover
+    "order_unclear"; a missing way or address = ansa's fixed question
+    (lib/orders.ts orderQuestion); else ansa prices it (priceOrder: the
+    same dish twice is one line, the fee only for delivery) and writes the
+    summary itself (orderSummaryText: every line, the fee, the total, how,
+    when, notes, "Reply yes to confirm"). The AI never writes a total: its
+    reply text is never sent on an order answer.
+  - The summary is saved with the order ("proposed", replacing the one
+    being written up) in ONE transaction that checks the conversation
+    again (db/order-proposals.ts, saveOrderProposal); it goes out at once
+    or waits in "Ask me first" like any reply. The customer's yes
+    (order_confirmed) places the proposal ONLY when its summary reached
+    them (sending, sent or unclear: not a draft or discarded), under the
+    company row lock first (then the conversation's), with the next number,
+    status "new", ansa's fixed confirmation sent at once (never waits) and
+    an "order_placed" activity row; no proposal = handover order_unclear.
+    Then the owners are alerted (services/order-alerts.ts: number, who,
+    where and ansa's total, a link to /orders; never the dishes or the
+    address). Their no (order_withdrawn) deletes the proposal with ansa's
+    "No problem: nothing was ordered." A placed order they want changed or
+    cancelled = handover "order_change".
+  - The Orders page (services/orders.ts; everyone in the company, the
+    person read again FOR SHARE, inbox-changes limit; it refreshes itself
+    every 20 s while in view, components/refresh-every.tsx): "To do" (new,
+    accepted, ready; oldest first, 100) and "Finished" (newest 30), each
+    order with its lines, fee, total, how, when, notes and its
+    conversation. One button for the next step: Accept (new), On its way /
+    Ready to pick up (accepted), Done (accepted or ready), and Cancel
+    ("Can't take it" while new; asks first). The status is checked in the
+    UPDATE (db/order-status.ts: a second press finds it changed), and the
+    customer's short fixed message (lib/orders.ts orderStatusText) is saved
+    in the same transaction as a person's message that doesn't take the
+    conversation over, only when the chat may take one now
+    (lockReplyRouteWithin: Telegram's 24 hours); otherwise the status still
+    changes and the page says the customer wasn't told. Home's "Needs you"
+    counts new orders ("N new orders to accept"), and a conversation's page
+    lists that customer's orders.
 - A GET route handler that reads no params is prerendered at BUILD time unless it
   calls `await connection()` first (see app/api/cron/cleanup/route.ts). Check the
   build output: every /api route must show ƒ (dynamic). app/robots.ts and
@@ -1651,6 +2193,10 @@ and creates a ticket for a human expert when it can't.
 - Before writing code, tell me your plan in 3-5 lines and wait for yes.
 - If something is unclear, ask. Do not assume.
 - After each feature, tell me exactly how to test it.
+- Everything about ansa stays on my laptop only. Never publish or upload any of
+  it: no artifacts, docs, design canvases, gists, shared links, uploads or
+  git push. Plans and reports are local files (outside the repo when they are
+  not code). Web research uses generic questions only, never ansa's code or plans.
 
 ## Build order
 1. Next.js + Postgres + Drizzle setup, Better Auth, companies and users tables
@@ -1687,6 +2233,32 @@ IMPLEMENTATION_PLAN.md has each step's evidence and what stays BLOCKED):
 41. Publishing queue, calendar, approvals and activity log
 42. Analytics and evidence-based recommendations
 43. One product: navigation, Business overview, docs, end-to-end verification
+
+The assistant for restaurants (approved 2026-10-31, see the Decisions log;
+the plan with screens and each step's checks is the owner's local file
+~/Documents/business/ansa-assistant-plan.html, not in the repo). Replies are
+Automatic by default; "Ask me first" is an option:
+44. New look and app shell: sidebar and phone bar (Home, Inbox, Content, Settings)
+45. Restaurant setup: business kind, address, hours, delivery, instructions, reply mode
+46. Menu: items with prices, typed or read from a photo or PDF
+47. Inbox: contacts, conversations and messages; calls and emails as conversations
+48. Telegram (a Telegram Business chatbot on the restaurant's account)
+49. The assistant replies on its own, with holding replies and owner alerts
+50. ansa for one person ("Just me"): a person's setup, prompt, AI label and holding reply
+51. Only when I'm away: "I'm away", away hours, "if I haven't answered within N
+    minutes", important people, and "While you were away" on Home
+52. Orders, with totals worked out by ansa
+53. Facebook Messenger. Real customers BLOCKED until Meta's App Review
+54. Weekly Facebook post suggestions with owner approval
+55. Phone calls follow the account's settings (a person forwards unanswered
+    calls to ansa's number). Real calls BLOCKED (no Vapi account)
+56. Packages and usage limits (names, limits and prices: the owner decides)
+57. Website, clean-up of hidden pages, final checks
+
+Steps 50 and 51 were added on 2026-11-01 by the owner's direction: ansa is a
+representative that answers for you when you can't, for a business (its
+customers) or for one person (their shadow). The old steps 50 to 55 became
+52 to 57; decision log entries keep the numbers they had at the time.
 
 Every outside service gets a local stand-in (like .dev-emails/), so each step can
 be built and tested before the real account exists.
@@ -1979,7 +2551,8 @@ Do not jump ahead. Finish step N before starting step N+1.
   articles, the owner's note, the newest performance review's findings and,
   if allowed, ticket counts per category), and what a performance review
   reads (step 42: each post's topic, platform, format, pillar, weekday and
-  hour, and its numbers). Zero data retention is an org-level arrangement
+  hour, and its numbers), and a menu an owner reads in (step 46: the photo
+  itself, or the text of the file or of what was pasted). Zero data retention is an org-level arrangement
   with Anthropic.
 - The system prompt is too short for prompt caching to apply, so it isn't cached.
 - Tickets from calls have no customer email (we never extract one from a
@@ -2114,8 +2687,8 @@ Do not jump ahead. Finish step N before starting step N+1.
   the sender), a call's the caller number's last four digits, an article's
   its title, a content draft's its topic; browsers keep titles in their
   history (and sync it). Other pages have fixed titles.
-- The app is light only: the unused dark palette was removed, and shadcn's
-  dark: classes never apply. A dark theme would need designing first.
+- Dark mode (step 44) follows the device's setting only: there is no
+  switch in the app to choose light or dark.
 - The assign menu adds a teammate's email only when two people share a name;
   the ticket list shows the assignee's email on hover only.
 - Knowledge (step 34): only the phone assistant reads it, during live calls
@@ -2405,6 +2978,146 @@ Do not jump ahead. Finish step N before starting step N+1.
   when it was made, and the planner reads the newest review whatever its
   age. Each try counts against the hour's 10 reviews only once a review
   can be made.
+- Inbox (step 47): calls and emails show, replies to them don't exist
+  (as before); chats are answered on Telegram (step 48) and the stand-ins. Calls and emails from before step 47 aren't in any
+  conversation (All requests lists their tickets). A caller is matched on
+  the digits as written: "+39 051..." and "0039 051..." are two customers.
+  A conversation a removed teammate took over stays "taken over" until
+  someone hands it back. Previews decrypt each listed conversation's newest
+  message (50 a page). Conversations, contacts and messages are kept
+  forever (no retention rule), like calls and emails. A typed-in ticket
+  or one from a hidden number has no conversation.
+- ansa for one person (steps 50 and 51): a person's channels today are
+  Telegram (and the stand-ins); email forwarding makes notes but nothing
+  replies by email, and calls need ansa's Vapi number with the person's
+  "forward when unanswered" (step 55). Personal WhatsApp and Facebook
+  profiles can't be automated (no official API; unofficial tools break
+  their terms and get numbers banned); Gmail reading needs Google's
+  verification and a yearly security assessment (not built). "Haven't
+  answered within N minutes" needs something calling /api/cron/publish
+  every minute (Vercel Pro or an outside pinger; on Hobby the daily job:
+  the wait can be a day) and counts only answers ansa sees (in ansa, or
+  in the person's own Telegram app when Telegram sends them: NOT
+  CONFIRMED). Away hours are weekly only (no holidays), cross midnight as
+  two times, and "I'm away" has no end time: it lasts until "I'm back".
+  The summary shows the newest 8 conversations and counts the last 200
+  lines; it isn't emailed. Important people are per conversation (per
+  channel), not per human across channels. A business can use
+  "Only when I'm away" too; its customers then wait for the team at other times.
+- The restaurant assistant (step 49): reply quality is unmeasured (no eval
+  set): the checks hold prices, refunds and links, not whether an answer
+  is right; an amount written without a currency mark ("8.50") or in words
+  isn't checked, nor is a price in another currency's symbol with the same
+  number. Refund words are matched in English, Italian, Spanish, French
+  and German only. A run cut off by its host (after the webhook's 200) leaves the
+  message unanswered and nothing retries it (the Inbox shows it). Only
+  chats are answered (Telegram, the stand-ins): calls and emails stay as
+  they were. The assistant sends what Claude wrote, checked, in Automatic
+  mode: a wrong but plausible answer within the menu's prices can reach a
+  customer. Claude Code (development) is slower (a program starts for each
+  answer) and its consumer data terms differ from the API's: never point
+  it at real customers. A restaurant's own key is used only for the
+  assistant (menu reading, calls, emails and the Co-Founder use ansa's).
+  Alerts are best effort (no retry), and a customer's display name is
+  shown in them as Telegram gave it.
+- Orders (step 52): nothing has met a real customer: checked with a fake
+  model and the stand-in chat. The AI must name dishes by label; one it
+  can't place, or a "yes" with no summary seen, goes to a person (the
+  holding reply), so an unusual order (half and half, extras, sizes not
+  on the menu as their own dish) always reaches a person. The fixed texts
+  (summary, questions, confirmation, status messages) are English only,
+  whatever language the customer writes. There is no online payment, no
+  minimum order, no delivery area check, no ready-time estimate and no
+  stock: "Not available today" is the only limit. A change or a cancel of
+  a placed order is a person's job (handover). The status messages go
+  only within Telegram's 24 hours of the customer's last message; past
+  that the status changes and the page says the customer wasn't told.
+  "Closed now" reads the opening hours only (no holidays). Orders are kept
+  forever (no retention rule), their address and notes encrypted.
+- The "easy to use" pass (2026-11-01): Home, Settings, Settings →
+  Assistant and the conversation page were simplified by hand; nothing
+  measures how easy they are (no user testing yet). "Done" on a chat's
+  request closes it and hands the conversation back in two transactions:
+  a refused hand back leaves the request closed and the conversation taken
+  over (the page then offers "Hand back to ansa").
+- "Post for me" (step 54): nothing has met Facebook (step 40's gaps):
+  posts go out only once ansa's Meta app passed review, and on Vercel
+  Hobby at the next daily run unless something calls /api/cron/publish
+  every minute. Posts are text only (no image service yet). The brain is
+  rules and numbers, not an AI: its mix, its few special days (no
+  Ramadan, Easter or national holidays, whose dates move) and its weights
+  are fixed in code, and it learns only from the numbers Facebook gives
+  ansa (reactions, comments, shares). Post quality is unmeasured (no eval
+  set): ansa's checks stop made-up prices, offers and links, not a dull
+  or odd post. The post's language follows the business's details.
+  Switching it off switches off the Facebook "any pillar" rule even if an
+  owner made it for other posts. Posts are plain text, like every draft,
+  and the business's details go to the AI.
+- Messenger (step 53): nothing has met Meta: the webhook, the Send API,
+  subscribed_apps and the name lookup follow Meta's documentation (Graph
+  v26.0) and are checked with fakes. Real customers' Pages need Meta's App
+  Review for pages_messaging and pages_manage_metadata (and Business
+  Verification); until then only Pages of people with a role on ansa's
+  app work. NOT CONFIRMED: the exact shape of message_echoes (an echo of
+  ansa's own reply is matched by app_id, and saved once anyway by its mid),
+  whether Meta Business Suite's replies arrive as echoes, and whether the
+  name lookup needs more than pages_messaging. A Page whose subscription
+  Meta refused shows "Messages come to ansa" while no message comes (only
+  a log line says it): connecting it again tries again. Pages connected
+  before step 53 lack the permissions until connected again. Replies past
+  24 hours (Meta's HUMAN_AGENT tag needs its own review) are refused; the
+  status messages of orders too. One person is a different customer on
+  each Page (Page-scoped ids). Attachments are only named. A Page
+  connected in two companies receives nothing in either.
+- Telegram (step 48): nothing has met a real bot or a real Telegram
+  Business account: the updates and answers follow Telegram's Bot API
+  documentation (version 10.3) and are checked with fakes. NOT
+  CONFIRMED: whether an account without Telegram Premium can add a
+  chatbot (sources disagreed; docs/going-live.md, section 12, step 1),
+  whether the restaurant's own messages reach the bot (saved if they do),
+  and what Telegram answers a reply past its 24 hours (ansa refuses it
+  first). A bot added in Telegram before the Start waits an hour: after
+  that the owner removes and adds it again, or starts a new code. An
+  account an owner disconnected in ansa comes back only through a new
+  code, and the chatbot must then be added again (Telegram sends no
+  update for a bot that stayed). Edited messages keep their first
+  version; photos, voice and files are only named (open Telegram to see
+  them); the reply window counts from when ansa received the customer's
+  message. The bot's notes to an owner are best effort (logged when
+  Telegram refuses). One Telegram account per company. Telegram's
+  webhook is limited per IP only as a ceiling: all restaurants' messages
+  come from Telegram's addresses. Customers' names are stored as
+  Telegram gives them. Disconnecting in ansa leaves ansa listed under the
+  account's Chatbots until the owner removes it there.
+- Menu (step 46): one price per dish (sizes are separate dishes:
+  "Margherita, large"), no options or extras, no photos of dishes, no
+  allergens field (a description or a knowledge article holds them).
+  Changing the currency in What it knows doesn't convert the prices: they
+  are read in the new currency as stored. "Not available today" ends at
+  the restaurant's midnight, also for a place open past it. Reading
+  quality is unmeasured (no eval set): the owner checks every row, and a
+  dish the AI missed is added by hand. iPhone HEIC photos are refused
+  (phones usually send JPEG); a scanned PDF has no text (a photo works).
+  Reading again adds the dishes again: nothing spots duplicates.
+- Restaurant setup (step 45): hours past midnight are two days (18:00 to
+  00:00, then 00:00 to 02:00 the day after), at most two times a day, and
+  there are no holidays or one-off closures yet. Every company that
+  existed before step 45 goes through the setup too: its owners are sent
+  to /welcome from Home (a redirect made in the browser after Home's shell
+  shows, as notFound() is, Cache Components). The sidebar's hours are
+  worked out when a page loads, not live. Saving the setup's name,
+  description or address replaces those confirmed facts without the
+  Profile page's stale check (two owners at once: the later save wins).
+  The email alert setting is stored only: alerts come with step 49. The
+  old Setup page (/setup, "Phone, email and documents") stays, and its
+  checklist is still the support one.
+- Navigation (step 44): the sidebar links Home, Inbox, Content and
+  Settings only. Calls and Emails are reached from the Inbox, and the
+  Co-Founder's Overview, Interview, Profile, Strategy, Calendar, Queue and
+  Analytics from Settings → "Older pages", until step 57 moves or removes
+  them. A bookmark of the old ticket list (/dashboard?view=...) opens Home,
+  which ignores the view. On a phone there is no logo or company name on
+  screen (the bottom bar has only the four sections).
 - Business overview (step 43): a count stops at "10,000+" (the list it
   links to has the exact number). "Failed in the last 7 days" counts posts
   by their last change, also one scheduled again on its account since (as
@@ -2467,6 +3180,21 @@ For the Co-Founder (docs/going-live.md, sections 5, 7, 8, 10 and 11):
   is on, and nothing switches one on but an owner).
 - Check the first real connection, post and numbers of each platform
   (docs/going-live.md, section 11) before calling it working.
+
+For the restaurant assistant (docs/going-live.md, sections 5 and 12):
+- Decide who pays for the assistant's AI: ansa's ANTHROPIC_API_KEY, or
+  each restaurant's own key (Settings → Assistant). Claude Code is never
+  an option in production.
+- Check whether a Telegram account without Premium can add a chatbot;
+  if not, the bot-per-restaurant fallback replaces step 48's connect.
+- Make ansa's bot with @BotFather (Business Mode on), set its three
+  settings, run `pnpm telegram:webhook set`, and check one connection,
+  message, reply and removal with ansa's own test company.
+- For Messenger (docs/going-live.md, section 13): add the Messenger
+  product to ansa's Meta app, set MESSENGER_VERIFY_TOKEN and the webhook
+  (messages, message_echoes), pass App Review for pages_messaging and
+  pages_manage_metadata, and check one Page's message, name, reply and
+  Business Suite echo with ansa's own test Page.
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -2976,3 +3704,265 @@ For the Co-Founder (docs/going-live.md, sections 5, 7, 8, 10 and 11):
   7 days" links to the queue's Scheduled list: it counts posts already
   due, which the calendar (from today) never shows. No new dependency,
   setting or migration.
+- 2026-10-31: ansa becomes an AI assistant for restaurants (owner's
+  decisions after the Phase 1 audit and the Phase 2/3 plan). Business first
+  (restaurants), with Telegram and Facebook Messenger; personal accounts
+  later (no official API automates a personal WhatsApp or Messenger
+  account). Meta Business Verification starts in parallel. Replies are
+  AUTOMATIC by default, because ansa's main goal is answering when the owner
+  isn't available; "Ask me first" is an option in Settings. When the
+  assistant is unsure, or a customer complains or asks for a refund, ansa
+  sends a short, fixed, polite holding reply ("our team will get back to
+  you") and alerts the owner, so no customer waits in silence; the AI's own
+  text is never sent then. Every safety check stays: prices only from the
+  menu, totals worked out by ansa, the AI label on the first message. Hidden,
+  not deleted: the marketing plan, the calendar and the performance review;
+  kept: weekly post suggestions, owner approval, Facebook posting. Team
+  routing stays, under Settings. Approved choices: Telegram as a Telegram
+  Business chatbot (one ansa bot added to the restaurant's own account;
+  fallback: a bot per restaurant); five sections (Home, Inbox, Orders,
+  Content, Settings; activity as a feed on Home); one structured Claude
+  answer per message (ansa gathers menu, hours, notes and the conversation
+  first; no tool loop); orders as their own table, "Needs you" stays
+  tickets; the menu as items with prices; a short setup form instead of the
+  interview; alerts by email, and by Telegram when linked; no online
+  payment for orders yet; packages in one settings file, limits and prices
+  for the owner to decide. Rule changes approved, written into the rules
+  above at the step that builds each: the assistant may read the
+  restaurant's own details and the one conversation it answers (step 49);
+  the AI sends replies to customers, after ansa's checks (step 49); a
+  Telegram business connection (linked by a one-time code ansa issues) and
+  a Facebook Page id in a message Meta signed find the company (steps 48,
+  51). New steps 44 to 55 in the build order. And a working rule: nothing
+  about ansa is published or uploaded anywhere (How to work with me).
+- 2026-10-31: Step 44, new look and app shell. A sidebar (from 768 px) and
+  a phone bar fixed to the bottom replace the header and the Co-Founder's
+  row of links: Home (/dashboard), Inbox (/inbox, the ticket list moved
+  from the dashboard), Content (/cofounder/studio), Settings (/settings, a
+  new list of the setup pages, with Log out for phones and "Older pages"
+  for the Co-Founder pages the sidebar no longer links). Layouts keep
+  naming their section, so the links stay static; only app/cofounder,
+  whose pages are Content or Settings, marks its link from the address
+  inside <Suspense>. Colours: one green accent and greys tinted toward it,
+  white cards on a slightly tinted page, light only; Geist stays. New
+  shared parts only where this step uses them: the sidebar and phone bar,
+  a loading skeleton (PageLoading) and an empty state; a status chip,
+  switch, tabs, dialog and toast come with the steps that need them
+  (Base UI already has the last four). No new dependency, setting or
+  migration.
+- 2026-11-01: Step 47, the Inbox. Decisions where the plan left room:
+  "Needs you" is derived (a conversation with an open ticket) rather than
+  stored on the conversation, so it can never disagree with the tickets;
+  one conversation per contact, and a contact per channel; an unverified
+  email sender gets a conversation of its own; a person's reply takes the
+  conversation over; the request's actions (assign, solve, close without
+  emailing, notes) are the ticket page's own components on the
+  conversation's page, the rest one click away; the old ticket list moved
+  to All requests (/inbox/requests); assistant_activity also records a
+  person's take over and hand back (the actor), and Home lists only ansa's
+  own lines. No new dependency or setting; migration 0042_inbox_conversations
+  (its unique (company_id, id) on inbound_emails moved before the foreign
+  key that needs it, by hand).
+- 2026-11-01: Step 46, the menu. Decisions where the plan left room:
+  anyone in the company may mark a dish "Not available today", and it
+  lasts until the restaurant's own midnight (unavailable_until, not a
+  switch someone must remember to turn back); prices are stored in the
+  currency's smallest unit (price_cents) and typed as text, read in the
+  restaurant's currency; "Looks right" adds the checked dishes and never
+  deletes or replaces existing ones; the checked list lives in the
+  browser until then (nothing is stored before it), and is checked again
+  on the server; a development stand-in reads a sample menu without an
+  API key, so the flow can be tried for free; photos go to Claude as
+  images (the first use that sends one), PDFs and Word files as their
+  text. No new dependency or setting; migration 0041_catalog_items.
+- 2026-11-01: Step 45, restaurant setup. Decisions where the plan left room:
+  setup_progress (not in the plan) records how many steps were saved, so
+  setup resumes where it stopped without guessing from the data; the
+  address is the "location" business fact and the phone a settings column;
+  the business types are restaurant, café, bakery, takeaway, food truck,
+  bar, catering and other; two times a day, a closing 00:00 is midnight;
+  the time zone and currency menus list what the server knows; existing
+  companies go through the setup like new ones (owners are sent from Home);
+  every setup write takes the company row lock before the person's (the
+  order every other company-row writer uses). Signup no longer asks for a
+  company name; the checks name their companies as setup's first step
+  would, and cleanup also finds test companies by their owners' test
+  addresses. No new dependency or setting; migration 0040_restaurant_setup.
+- 2026-11-01: Step 44 redone as "Dining room", the owner's choice after a
+  design research round (the report and the three directions are the
+  owner's local file ~/Documents/business/ansa-design-rd.html, not in the
+  repo). The palette is named by job in app/globals.css: a forest-green
+  frame (#0B3529) holding a white sheet, bottle green (#0E4A38) for
+  actions, champagne brass (#D9BE8A) only as a detail on green (1.8:1 on
+  white: never text or a focus ring there), ivory for text on green; the
+  meaning colours (attention, info, success, destructive) always come with
+  words (components/status-dot.tsx). Every text colour was measured on its
+  surfaces (4.5:1; the brief's #77857D was 3.5:1 and became #637269).
+  Dark mode is designed, not inverted: deep forest surfaces, ivory text,
+  brass focus rings, never black; it follows the device
+  (prefers-color-scheme, and Tailwind's dark: on the same query). Type:
+  Instrument Sans at 500 and 600 for the interface, Fraunces (font-display)
+  only for the big moments, both through next/font (lib/fonts.ts:
+  downloaded at build time and served by ansa, so no page asks Google);
+  Geist is gone, code uses the system monospace. The signature is Home's
+  briefing card, set like a printed menu; empty states are words only;
+  badges are quiet tints; the bell is the mark and the app icon. The
+  conversation screen, orders, the menu page and the website are styled by
+  steps 47, 50, 46 and 55 with these parts. No new dependency, setting or
+  migration.
+- 2026-11-01: The website's home page, built ahead of step 55 at the
+  owner's request ("The pass", chosen after the landing page research,
+  ~/Documents/business/ansa-landing-rd.html, not in the repo). The hero
+  is an example Telegram conversation, labelled "Example", that prints an
+  order ticket (components/order-ticket.tsx) hanging over the hero's edge
+  into the next section; then How it works, one example evening, what ansa
+  won't do on its own, questions, and one last button. The sections live
+  in app/(marketing)/_landing/; the header sits inside the hero, so the
+  pricing and legal pages render their own. Still fully static, with no
+  images, tracking, testimonials, customer logos or numbers that aren't
+  real. Every sentence about something not built yet (Telegram and
+  Messenger replies, orders with totals worked out by ansa, the AI label,
+  holding replies with alerts, "no card needed") carries a "LAUNCH
+  CHECK (step 55)" comment, and step 55 checks each one before the site
+  goes public. The only motion is the conversation arriving and the
+  ticket printing once, on load, and only without prefers-reduced-motion.
+  The ticket and ansa's chat bubbles keep fixed light colours in dark
+  mode, because the hero is forest green in both modes. No new dependency,
+  setting or migration.
+- 2026-11-01: Step 48, Telegram. Decisions where the plan left room: the
+  code goes from ansa to Telegram (the owner's Start), never the other way,
+  so a leaked code can at worst tie the leaker's own Telegram account to
+  the owner's company, never take over a restaurant's chats; a chatbot
+  added before the Start waits an hour in a table that belongs to no
+  company (telegram_pending_connections, Telegram's ids only); one
+  Telegram account per company, tied to one company at a time; an
+  account removed in Telegram and added back reconnects by itself, but
+  one an owner disconnected in ansa needs a new code; replies past
+  Telegram's 24 hours, without the reply permission or without a
+  connection are refused before anything is saved; messages the
+  restaurant writes in its own Telegram app are part of the conversation
+  (author "business_account"); messages deleted in Telegram are deleted
+  in ansa; only text and captions are kept. `pnpm telegram:poll` lets a
+  real bot be tried on the laptop without a tunnel. The plan's one door
+  for chat and its stand-in are step 47's lib/chat-delivery.ts and
+  adapters/dev-chat-outbox.ts (no new files under the plan's names). Three
+  new settings (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME,
+  TELEGRAM_WEBHOOK_SECRET); no new dependency; migration
+  0043_telegram_channel.
+- 2026-11-01: Step 49, the assistant replies on its own. The owner asked
+  for two AI options in Settings: a Claude API key, or Claude Code (what
+  the owner uses today). Anthropic's Agent SDK docs say a product may not
+  run on a claude.ai login, so "Claude Code on this computer" is
+  development only (refused in production), and "Claude API key" takes the
+  restaurant's own key (encrypted) or else ansa's. Decisions where the plan
+  left room: holding replies go out at once in both modes (only the AI's
+  own replies wait in "Ask me first"); a handover opens a request in the
+  conversation (tickets.channel "chat"), so "Needs you" stays tickets plus
+  waiting replies; one holding reply until a person answers (the open
+  request keeps the assistant quiet); an order request hands over until
+  step 50; a reply that fails to send opens a request too; the price check
+  reads amounts written with a currency mark; "Edit" is a person's reply
+  that replaces the waiting one; the Telegram webhook's maxDuration is
+  now 300. Also: alerts by Telegram go to the restaurant's own account
+  through ansa's bot. No new dependency; one new setting
+  (CLAUDE_CODE_PATH, development only); migration 0044_assistant_replies
+  (its ticket_channel value written as ADD VALUE IF NOT EXISTS by hand).
+- 2026-11-01: Steps 50 and 51, by the owner's direction ("ansa is my
+  shadow when I'm not available", for a person or a company), chosen over
+  building orders first. The build order gained "ansa for one person" (50)
+  and "Only when I'm away" (51); the old 50 to 55 became 52 to 57 (code
+  comments and LAUNCH CHECK markers renumbered; log entries keep theirs).
+  Decisions where the direction left room: one account is a business or a
+  person (companies.kind), chosen at setup's first step and changeable in
+  Settings; a person's assistant says "I'm <name>'s AI assistant" and
+  never pretends to be them (honesty, the EU AI Act, the platforms'
+  rules); it never commits them to anything (meetings, money, decisions):
+  those become notes; "away" is "I'm away", weekly away hours, or no
+  answer within the minutes chosen, and a business keeps answering always
+  by default; the wait is a column the scheduled runs claim (no queue
+  service); important people always go to the person without asking the
+  AI; "While you were away" is per person since their last "Got it".
+  Personal WhatsApp stays impossible (no allowed API). No new dependency or
+  setting; migration 0045_personal_and_away.
+- 2026-11-01: The website's home page rewritten around the owner's core
+  ("it looks like it's only for restaurants"): ansa is your AI stand-in
+  when you can't answer, for one person or a whole business. Headline
+  "Never miss a message again."; the hero's example is a late-night chat
+  answered as "Rafa's AI assistant" and the signature is now the "While
+  you were away" note (app/(marketing)/_landing/away-card.tsx) hanging over
+  the hero's edge; new sections "One assistant, two ways to use it" (For
+  you / For your business), "If people wait for your answer, ansa is for
+  you" (freelancers, agents, clinics, salons, shops, restaurants,
+  creators), "Where it answers" (each channel's real status, and that a
+  personal WhatsApp number or Facebook profile can't be connected), and
+  questions for both audiences. The header and the final button say "Get
+  started"; the footer "Your AI stand-in when you can't answer."; signup
+  says "for you or your business". Still no testimonials, logos or
+  numbers that aren't real; every not-yet-built claim keeps its "LAUNCH
+  CHECK (step 57)" comment. components/order-ticket.tsx stays for the
+  Orders pages (step 52).
+- 2026-11-01: The "easy to use" pass (the owner: "really easy to use,
+  everyone loves working easy"). Three sections (Home, Inbox, Settings;
+  the marketing studio became Settings → "Social media posts" for
+  businesses, its pages marked Settings, no client-side folder marker
+  any more). Home starts with what ansa is doing right now and the one
+  button that changes it (Pause ansa / Turn ansa on / I'm away / I'm
+  back, a new "Pause" path: saveAssistantStatus), then "Getting started"
+  (owners, until Telegram, an AI and a menu or a person's instructions
+  are there), "Needs you" by name, "What ansa did", and a business's
+  numbers last; the support-era setup reminder left Home. Settings lists
+  by kind, the older marketing pages folded away. Settings → Assistant
+  starts with "Try your assistant", shows the away times only in "Only
+  when I'm away", folds the AI engine away once it works, and the hours
+  form has one "every day from ... to ..." row filling every day (the
+  days themselves under "Set each day on its own"). A chat's request on
+  the conversation page has one button, Done (closes it without an email
+  and hands the conversation back to ansa), the rest under More; the
+  Inbox says "New request" and hides it for a person; activity lines say
+  "Told them you'll get back to them". No new dependency or setting, no
+  migration.
+- 2026-11-01: Step 52, orders. Decisions where the plan left room: the AI
+  names dishes only by today's menu labels and ansa writes every summary,
+  question and confirmation itself (the AI's reply text is never sent on
+  an order answer); the proposal is a row ("proposed", unnumbered, one
+  per conversation) saved with its summary, and a yes places it only when
+  that summary reached the customer; numbers come under the company row
+  lock, like tickets; a dish name and price are copied onto the order; a
+  delivery fee joined the ordering settings; closed now = ansa's own "we
+  can't take orders right now"; a placed order's change or cancel goes to
+  a person (order_change); everyone in the company works orders; status
+  messages are a person's messages that don't take the conversation over,
+  sent only within Telegram's window; Orders shows in the sidebar only
+  for a business that takes orders (read in <Suspense>). No new
+  dependency or setting; migration 0046_orders.
+- 2026-11-01: Step 53, Facebook Messenger. Decisions where the plan left
+  room: the Page connection of step 40 is the Messenger connection too (one
+  login for posts and messages; the messaging permissions are asked for
+  beside the posting ones, and posting doesn't need them); the company
+  comes only from the Page id Meta signed, and only when exactly one
+  company has that Page connected; a customer's contact names the Page and
+  their Page-scoped id; the Page's token is read by one service before
+  sending (services/chat-send.ts), so lib/chat-delivery.ts stays the only
+  door; long replies go as parts of 2,000 characters; echoes from other
+  apps are the Page's own messages; the name is read once, after the
+  answer. One new setting (MESSENGER_VERIFY_TOKEN); no new dependency or
+  migration.
+- 2026-11-01: Step 54, "Post for me" (the owner: "ansa will automatically
+  create everything... it will post for the growth of the business, every
+  day or every week as he wants, no prompt needed"). Decisions where the
+  direction left room: ansa picks every topic with a rule-based brain that
+  learns from each post's reactions, comments and shares (the AI only
+  writes); it posts through the existing queue under the owner's own
+  Facebook rule, switched on by the owner's one confirmed switch (so step
+  41's run-time checks, retries, cancel and activity log apply), with "Ask
+  me first" as an option; the AI writes from the business's own details
+  only and ansa's checks stop made-up prices, percentages, offers and
+  links (two tries, then the post is skipped and the page says why);
+  setup's business types now cover every kind of business. No new
+  dependency or setting; migration 0047_post_for_me.
+- 2026-11-01: One Connections page (Settings → Connections, still at
+  /settings/channels): Telegram, Facebook Messenger, email forwarding (the
+  address, the last email), phone lines (read-only) and, for businesses,
+  LinkedIn, X and YouTube for posts, each with its one button (the same
+  connect actions as before). The Co-Founder's Accounts page stays for the
+  details. No new dependency, setting or migration.

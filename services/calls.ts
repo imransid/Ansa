@@ -11,6 +11,7 @@ import {
 import { findPhoneLineByVapiNumberId } from "@/db/phone-lines";
 import type { DecisionSource, RecordingStatus } from "@/db/schema";
 import { getTicketNumberForCall } from "@/db/tickets";
+import { phoneContact } from "@/lib/conversation-contacts";
 import { decryptForDisplay, encryptText } from "@/lib/encryption";
 import { callEvidenceContext, callExplanationContext, callIssueContext, callTranscriptContext } from "@/lib/encryption-contexts";
 import type { SessionContext } from "@/lib/session";
@@ -84,7 +85,7 @@ export async function saveEndOfCallReport(report: EndOfCallReport): Promise<Save
     transcriptEncrypted: transcript
       ? encryptText(transcript, callTranscriptContext(line.companyId, message.call.id))
       : null,
-  });
+  }, phoneContact(message.call.customer?.number ?? null));
   if (!newCallId) {
     return { outcome: "duplicate" };
   }

@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, integer, pgTable, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
+// A relative path on purpose: drizzle-kit reads this file outside Next.js.
+import type { BusinessType, CompanyKind } from "../../lib/restaurant-setup";
 
 // A company is one tenant. Almost every other table points back here.
 export const companies = pgTable(
@@ -28,6 +30,14 @@ export const companies = pgTable(
     // the last 30 days (names and numbers only). Off until an owner turns
     // it on: otherwise nothing from support reaches the Co-Founder.
     cofounderUsesSupportTrends: boolean("cofounder_uses_support_trends").notNull().default(false),
+    // Step 45: a business (personal accounts come later), what kind of food
+    // business it is (chosen in setup), how many setup steps the owner has
+    // saved (lib/restaurant-setup.ts, SETUP_STEPS: a returning owner lands
+    // on the first one left) and when they finished setup.
+    kind: text("kind").$type<CompanyKind>().notNull().default("business"),
+    businessType: text("business_type").$type<BusinessType>(),
+    setupProgress: smallint("setup_progress").notNull().default(0),
+    setupFinishedAt: timestamp("setup_finished_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -40,5 +50,12 @@ export const companies = pgTable(
     // Postgres refuses any other shape, so a script or a bad update can't
     // give a company a short, guessable or look-alike token.
     check("companies_inbound_token_format", sql`${table.inboundToken} ~ '^[0-9a-f]{32}$'`),
+    // The lists of lib/restaurant-setup.ts (a check proves they agree).
+    check("companies_kind_known", sql`${table.kind} IN ('business', 'personal')`),
+    check(
+      "companies_business_type_known",
+      sql`${table.businessType} IN ('restaurant', 'cafe', 'bakery', 'takeaway', 'food_truck', 'bar', 'catering', 'shop', 'beauty', 'health', 'fitness', 'services', 'property', 'other')`,
+    ),
+    check("companies_setup_progress_range", sql`${table.setupProgress} BETWEEN 0 AND 6`),
   ],
 );

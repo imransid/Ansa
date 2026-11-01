@@ -2,26 +2,26 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* The app is light only: nothing sets the .dark class, so the dark: classes
-   that shadcn's components carry never apply. Kept on purpose: without this
-   line Tailwind would apply them whenever the OS is in dark mode, with no dark
-   colors to go with them. A dark theme would be its own step: a .dark palette
-   below plus a way to set the class. */
-@custom-variant dark (&:is(.dark *));
+/* Dark mode follows the device's setting (step 44): the dark values below sit
+   in a prefers-color-scheme media query, and Tailwind's dark: classes (which
+   shadcn's components carry) use the same query, its default. */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Geist is loaded in app/layout.tsx as --font-geist-sans. */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  /* Instrument Sans for the interface (Fraunces, for the few big moments,
+     is the font-display utility below). Both loaded in lib/fonts.ts. */
+  --font-sans: var(--font-instrument-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-instrument-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-live: var(--sidebar-live);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
@@ -36,15 +36,30 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-highlight: var(--primary-highlight);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-sheet: var(--sheet);
+  --color-link: var(--link);
+  --color-brass: var(--brass);
+  --color-ivory: var(--ivory);
+  --color-attention: var(--attention);
+  --color-attention-surface: var(--attention-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-float: var(--shadow-float);
+  --shadow-button: var(--shadow-button);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -54,44 +69,129 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* The colours, by job (step 44, "Dining room"): a forest-green frame holding
+   a white sheet, bottle green for actions, champagne brass only as a detail
+   on green, ivory for text on green. Contrast was measured for every text
+   colour on every surface it sits on (WCAG asks 4.5:1 for text, 3:1 for the
+   focus ring); the figures are next to the values. */
 :root {
-  /* Native controls (selects, checkboxes, scrollbars) stay light too. */
-  color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  /* The focus ring. Dark enough to stand out against white (about 7:1;
-     WCAG asks 3:1 for focus indicators): shadcn's lighter default, at half
-     strength, was about 1.5:1. */
-  --ring: oklch(0.45 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  color-scheme: light dark;
+  --background: #f4f5f1; /* the page around cards and forms */
+  --sheet: #ffffff; /* where signed-in pages are read */
+  --foreground: #11211a; /* 16.7:1 on the sheet */
+  --card: #ffffff;
+  --card-foreground: #11211a;
+  --popover: #ffffff;
+  --popover-foreground: #11211a;
+  --primary: #0e4a38; /* ivory on it 9.1:1 */
+  --primary-highlight: #17604a; /* the top of a primary button's gradient */
+  --primary-foreground: #f6f1e4;
+  --secondary: #e7eee9; /* sage: soft fills, selected rows */
+  --secondary-foreground: #0e4a38; /* 8.7:1 on sage */
+  --muted: #eef0ec;
+  --muted-foreground: #55665d; /* 6.1:1 on the sheet, 5.2:1 on sage */
+  --subtle-foreground: #637269; /* times and meta, on the sheet or page only: 4.6:1 */
+  --accent: #e7eee9;
+  --accent-foreground: #11211a;
+  --destructive: #a82a22; /* 7.0:1 */
+  --border: rgb(18 40 31 / 0.11);
+  --input: rgb(18 40 31 / 0.2);
+  --ring: #0e4a38; /* brass would be 1.8:1 on white */
+  --link: #0e4a38; /* green text: 10.2:1 */
+  --brass: #d9be8a; /* on forest 7.5:1, on bottle 5.7:1; never on white */
+  --ivory: #f6f1e4;
+  --attention: #8a5a12; /* "needs you": 5.1:1 on its surface */
+  --attention-surface: #f7eedc;
+  --info: #2b4c8c; /* "new": 7.1:1 on its surface */
+  --info-surface: #e8edf7;
+  --success: #0e4a38;
+  --success-surface: #e7eee9;
+  --chart-1: #0e4a38;
+  --chart-2: #3f7d66;
+  --chart-3: #7fae98;
+  --chart-4: #d9be8a;
+  --chart-5: #55665d;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* The frame and its sidebar (components/app-navigation.tsx). */
+  --sidebar: #0b3529;
+  --sidebar-foreground: #f6f1e4; /* 12.0:1 */
+  --sidebar-muted-foreground: #b7c5bc; /* 7.5:1 */
+  --sidebar-primary: #d9be8a;
+  --sidebar-primary-foreground: #0b3529;
+  --sidebar-accent: rgb(246 241 228 / 0.08);
+  --sidebar-accent-foreground: #f6f1e4;
+  --sidebar-border: rgb(246 241 228 / 0.09);
+  --sidebar-ring: #d9be8a;
+  /* "Open now" on the frame (step 45): a soft green that reads on forest. */
+  --sidebar-live: #8dc3a7;
+  /* Shadows tinted toward the green, in layers from one light source. */
+  --shadow-soft: 0 1px 1px rgb(11 40 30 / 0.04), 0 2px 4px rgb(11 40 30 / 0.05);
+  --shadow-float: 0 1px 1px rgb(11 40 30 / 0.04), 0 2px 4px rgb(11 40 30 / 0.04), 0 8px 16px rgb(11 40 30 / 0.06),
+    0 24px 48px rgb(11 40 30 / 0.08);
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px rgb(7 38 28 / 0.3), 0 1px 2px rgb(11 40 30 / 0.2),
+    0 2px 6px rgb(11 40 30 / 0.08);
+  /* Home's briefing card: lit from its top left corner. */
+  --briefing: radial-gradient(120% 160% at 0% 0%, #17604a 0%, #0e4a38 42%, #0b3529 100%);
+}
+
+/* Dark mode: designed, not inverted. Deep forest surfaces, ivory text, brass
+   details; never black. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0d1a14;
+    --sheet: #14251d;
+    --foreground: #f6f1e4; /* 14.2:1 on the sheet */
+    --card: #192c23;
+    --card-foreground: #f6f1e4;
+    --popover: #192c23;
+    --popover-foreground: #f6f1e4;
+    --primary: #1f6b52; /* ivory on it 5.7:1 */
+    --primary-highlight: #2a7e62;
+    --primary-foreground: #f6f1e4;
+    --secondary: #1d3a2f;
+    --secondary-foreground: #f6f1e4;
+    --muted: #1c2f26;
+    --muted-foreground: #a9b8ae; /* 7.7:1 on the sheet */
+    --subtle-foreground: #8fa398; /* 5.5:1 on the sheet */
+    --accent: #1d3a2f;
+    --accent-foreground: #f6f1e4;
+    --destructive: #f08c80; /* 6.7:1 */
+    --border: rgb(246 241 228 / 0.09);
+    --input: rgb(246 241 228 / 0.18);
+    --ring: #d9be8a; /* 8.9:1 on the sheet */
+    --link: #8dc3a7; /* 8.0:1 */
+    --attention: #e0a84a; /* 7.5:1 */
+    --attention-surface: rgb(224 168 74 / 0.12);
+    --info: #8fb0f0; /* 7.3:1 */
+    --info-surface: rgb(143 176 240 / 0.12);
+    --success: #8dc3a7;
+    --success-surface: rgb(141 195 167 / 0.12);
+    --chart-1: #8dc3a7;
+    --chart-2: #5f9c83;
+    --chart-3: #3f7d66;
+    --chart-4: #d9be8a;
+    --chart-5: #a9b8ae;
+    --sidebar: #0d1a14;
+    --sidebar-muted-foreground: #a9b8ae;
+    --shadow-soft: 0 1px 2px rgb(0 10 5 / 0.45);
+    --shadow-float: 0 1px 2px rgb(0 10 5 / 0.4), 0 8px 24px rgb(0 10 5 / 0.35), 0 24px 48px rgb(0 10 5 / 0.3);
+    --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 0 1px rgb(0 10 5 / 0.3), 0 1px 2px rgb(0 10 5 / 0.35);
+    --briefing: radial-gradient(120% 160% at 0% 0%, #154a3a 0%, #0e3a2c 50%, #0b2c22 100%);
+  }
+}
+
+/* Fraunces at its display settings: tight tracking and a little softness
+   (its SOFT axis), never its "wonky" letters. */
+@utility font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 30;
+}
+
+/* Prices and counts line up in columns. */
+@utility numbers {
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 @layer base {
@@ -107,7 +207,51 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Two weights only: 500 for everything, 600 (font-semibold) for headings
+     and emphasis. */
   html {
-    @apply font-sans;
+    @apply font-sans font-medium;
   }
+}
+
+/* The website's one moment of motion (step 57, done early): in the hero, the
+   customer's messages arrive one after the other, then the order ticket
+   prints out of the conversation, once. Nothing moves for anyone whose
+   device asks for less motion: without this media query the classes do
+   nothing and everything simply shows. */
+@media (prefers-reduced-motion: no-preference) {
+  .landing-arrive {
+    animation: landing-arrive 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .landing-print {
+    animation: landing-print 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes landing-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes landing-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-16px);
+  }
+  to {
+    clip-path: inset(0 0 -20% 0);
+    transform: none;
+  }
+}
+
+/* A printed ticket's torn top edge: a row of small half circles cut out. */
+@utility ticket-edge {
+  -webkit-mask: radial-gradient(circle 5px at 50% 0, transparent 98%, #000) 0 0 / 14px 100% repeat-x;
+  mask: radial-gradient(circle 5px at 50% 0, transparent 98%, #000) 0 0 / 14px 100% repeat-x;
 }

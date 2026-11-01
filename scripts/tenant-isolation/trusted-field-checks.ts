@@ -39,7 +39,7 @@ export async function runTrustedFieldChecks() {
     const line = await createPhoneLine(ownerA.companyId, `pn-trusted-${runId}`);
     const call = { phoneLineId: line.id, vapiCallId: `call-trusted-${runId}`, callerNumber: null, startedAt: null, endedAt: null, endedReason: null, transcriptEncrypted: null };
     const callWithExtras = { ...call, companyId: ownerB.companyId, analysisStatus: "decided", aiOutcome: "solved" };
-    const callId = await insertCallIfNew(ownerA.companyId, callWithExtras);
+    const callId = await insertCallIfNew(ownerA.companyId, callWithExtras, null);
     assert.ok(callId, "the call was not saved");
     const [row] = await db.select().from(calls).where(eq(calls.id, callId));
     assert.deepEqual([row.companyId, row.analysisStatus, row.aiOutcome], [ownerA.companyId, "pending", null]);
@@ -118,17 +118,17 @@ export async function runTrustedFieldChecks() {
     const ticket = { subject: "Trusted", description: "x", channel: "email" as const, category: null, customerName: null, customerEmail: null, customerPhone: null };
     const numberBefore = await lastTicketNumberOf(ownerA);
     // Still "received": nobody claimed it, so no ticket and no ticket number used up.
-    assert.equal(await saveInboundEmailTicket(ownerA.companyId, emailId, content, ticket), undefined);
+    assert.equal(await saveInboundEmailTicket(ownerA.companyId, emailId, content, ticket, null), undefined);
     assert.equal(await lastTicketNumberOf(ownerA), numberBefore);
 
     await db.update(inboundEmails).set({ status: "processing", processingStartedAt: new Date() }).where(eq(inboundEmails.id, emailId));
     const contentWithExtras = { ...content, status: "ignored", ticketId: randomUUID(), companyId: ownerB.companyId };
-    const saved = await saveInboundEmailTicket(ownerA.companyId, emailId, contentWithExtras, ticket);
+    const saved = await saveInboundEmailTicket(ownerA.companyId, emailId, contentWithExtras, ticket, null);
     assert.ok(saved, "no ticket for an email being processed");
     const [row] = await db.select().from(inboundEmails).where(eq(inboundEmails.id, emailId));
     assert.deepEqual([row.status, row.ticketId, row.companyId], ["ticketed", saved.ticketId, ownerA.companyId]);
     // A second run for the same email makes no second ticket.
-    assert.equal(await saveInboundEmailTicket(ownerA.companyId, emailId, content, ticket), undefined);
+    assert.equal(await saveInboundEmailTicket(ownerA.companyId, emailId, content, ticket, null), undefined);
     assert.equal(await lastTicketNumberOf(ownerA), numberBefore + 1);
   });
 }

@@ -1,5 +1,5 @@
 // Publishing page checks (step 41): the calendar and the queue are in the
-// Co-Founder's row of links, bring logged-out people back to themselves,
+// Co-Founder's page list, bring logged-out people back to themselves,
 // may run 300 seconds, show their buttons to owners only, each naming its
 // post for screen readers, and ask before anything destructive or risky;
 // their data is the company's own (the queue by status with its counts;
@@ -26,7 +26,7 @@ import { actionsOfJob, anotherApprovedDraft, approvedDraftOf, inMinutes, jobRow,
 import { read, withoutComments } from "./source-helpers";
 
 export async function runPublishingPageChecks() {
-  await check("calendar and queue pages: in the Co-Founder's row of links after Studio and Media (step 43's order), each with its h1, bringing logged-out people back to itself, allowed 300 seconds (posts go out, and the AI plans, after their answers)", async () => {
+  await check("calendar and queue pages: in the Co-Founder's page list after Studio and Media (step 43's order), each with its h1, bringing logged-out people back to itself, allowed 300 seconds (posts go out, and the AI plans, after their answers)", async () => {
     const segments = COFOUNDER_PAGES.map((page) => page.segment);
     assert.deepEqual(segments.slice(segments.indexOf("studio"), segments.indexOf("studio") + 4), ["studio", "media", "calendar", "queue"]);
     for (const [file, path] of [["app/cofounder/calendar/page.tsx", "/cofounder/calendar"], ["app/cofounder/queue/page.tsx", "/cofounder/queue"]]) {

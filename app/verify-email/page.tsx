@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerifyEmail } from "./verify-email";
 
@@ -9,7 +11,10 @@ export const metadata: Metadata = { title: "Confirm your email - ansa" };
 // sends both to a server action: the link alone confirms nothing.
 export default function VerifyEmailPage() {
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-4">
+      <Link href="/" className="rounded-md">
+        <BrandMark />
+      </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Confirm your email</CardTitle>

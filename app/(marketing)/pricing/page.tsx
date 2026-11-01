@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Pricing - ansa", description: "One plan with everything included." };
@@ -33,6 +34,8 @@ const questions = [
 
 export default function PricingPage() {
   return (
+    <>
+    <SiteHeader />
     <div className="mx-auto grid w-full max-w-3xl gap-12 px-6 py-16">
       <section className="grid gap-4">
         <h1 className="text-4xl font-semibold tracking-tight">Pricing</h1>
@@ -69,5 +72,6 @@ export default function PricingPage() {
         </dl>
       </section>
     </div>
+    </>
   );
 }

@@ -50,6 +50,8 @@ next-env.d.ts
 
 # dev social stand-in (posts are written here instead of published)
 /.dev-social/
+# Replies the Inbox's stand-in chat "sent" in development (step 47).
+/.dev-messages/
 
 # database backups (pg_dump): they hold every company's data, so they are
 # written outside the repository (IMPLEMENTATION_PLAN.md, "Deploy and roll

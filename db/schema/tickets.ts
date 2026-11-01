@@ -16,6 +16,7 @@ import { users } from "./auth";
 import { calls } from "./calls";
 import { categories } from "./categories";
 import { companies } from "./companies";
+import { conversations } from "./conversations";
 
 export const ticketStatuses = ["open", "solved"] as const;
 export const ticketStatusEnum = pgEnum("ticket_status", ticketStatuses);
@@ -23,7 +24,8 @@ export type TicketStatus = (typeof ticketStatuses)[number];
 
 // "manual" = typed in by a person in ansa (step 31): a voicemail left on
 // someone's own phone, a customer at the counter, a message on social media.
-export const ticketChannels = ["phone", "email", "manual"] as const;
+// "chat": a Telegram (or stand-in) conversation the assistant handed to a person (step 49).
+export const ticketChannels = ["phone", "email", "manual", "chat"] as const;
 export const ticketChannelEnum = pgEnum("ticket_channel", ticketChannels);
 export type TicketChannel = (typeof ticketChannels)[number];
 
@@ -75,6 +77,9 @@ export const tickets = pgTable(
     // The phone call this ticket was created from (step 8), if any. Unique: a
     // call gets at most one ticket. The transcript stays on the call, encrypted.
     callId: uuid("call_id").unique(),
+    // The Inbox conversation it shows in (step 47); null before step 47, or
+    // with no customer to link (a hidden caller number, a manual ticket).
+    conversationId: uuid("conversation_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -84,6 +89,12 @@ export const tickets = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
+    // The Inbox conversation it belongs to (step 47), in the same company.
+    foreignKey({
+      name: "tickets_conversation_in_same_company_fk",
+      columns: [table.companyId, table.conversationId],
+      foreignColumns: [conversations.companyId, conversations.id],
+    }),
     // Also serves as the index for "this company's tickets, newest first".
     unique("tickets_company_id_ticket_number_unique").on(
       table.companyId,

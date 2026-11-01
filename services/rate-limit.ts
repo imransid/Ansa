@@ -159,6 +159,40 @@ export const RATE_LIMITS = {
   // every owner together: each is a paid Claude call, and the numbers move
   // once a day.
   performanceReviewsPerCompany: { maxAttempts: 10, windowSeconds: 60 * 60 },
+  // "Read my menu" (step 46) for one company, every owner together: each is
+  // a paid Claude call, and a menu takes a few photos at most.
+  menuReadingsPerCompany: { maxAttempts: 20, windowSeconds: 60 * 60 },
+  // Adding, changing, moving and deleting dishes, and "Not available
+  // today", by one person: busy evenings switch dishes off and on.
+  menuChangesPerUser: { maxAttempts: 120, windowSeconds: 10 * 60 },
+  // The Inbox (step 47), by one person: taking a conversation over, handing
+  // it back, and each reply sent to a customer.
+  inboxChangesPerUser: { maxAttempts: 120, windowSeconds: 10 * 60 },
+  // Telegram's webhook (step 48), per IP: every restaurant's messages come
+  // from Telegram's few addresses, so this is a ceiling for a runaway, not a
+  // per-sender limit. The secret header is checked first.
+  telegramWebhookPerIp: { maxAttempts: 10_000, windowSeconds: 60 },
+  // Messenger's webhook (step 53), per IP: Meta's few addresses send every
+  // restaurant's messages, so this too is a ceiling. The signature first.
+  messengerWebhookPerIp: { maxAttempts: 10_000, windowSeconds: 60 },
+  // "Write the next post now" on Posts for me (step 54), per company: each
+  // is a paid AI call and a real post.
+  autopostNowPerCompany: { maxAttempts: 5, windowSeconds: 60 * 60 },
+  // Messages to ansa's bot in its own chat, per Telegram user: a Start with
+  // a code, or anything else (answered with how to connect). Anyone on
+  // Telegram can write to the bot.
+  telegramBotChatsPerUser: { maxAttempts: 10, windowSeconds: 10 * 60 },
+  // The restaurant assistant (step 49): AI answers per restaurant per hour
+  // (each is a paid Claude call; past it, the holding reply and a person),
+  // and per customer conversation per hour (past it, silence: one customer
+  // can't run up the restaurant's bill).
+  assistantRepliesPerCompany: { maxAttempts: 200, windowSeconds: 60 * 60 },
+  assistantRepliesPerCustomer: { maxAttempts: 20, windowSeconds: 60 * 60 },
+  // "Test your assistant" on Settings → Assistant, per person.
+  assistantTestsPerUser: { maxAttempts: 20, windowSeconds: 10 * 60 },
+  // Owner alerts (email and Telegram) per restaurant per hour: a flood of
+  // handovers can't flood the owners' inboxes.
+  ownerAlertsPerCompany: { maxAttempts: 60, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimitRule>;
 
 // Returns the longest window of the rules above, in seconds. The daily cleanup

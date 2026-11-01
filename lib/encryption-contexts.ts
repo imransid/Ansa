@@ -58,3 +58,20 @@ export function socialTokenContext(companyId: string, connectionId: string, kind
 export function oauthPkceVerifierContext(companyId: string, oauthStateId: string): string {
   return `oauth-pkce-verifier:${companyId}:${oauthStateId}`;
 }
+
+// A message of an Inbox conversation (step 47), tied to its company and
+// message: a copy in another row or company can't be read.
+export function conversationMessageContext(companyId: string, messageId: string): string {
+  return `conversation-message:${companyId}:${messageId}`;
+}
+
+// A restaurant's own Claude API key (step 49, Settings → Assistant), tied
+// to its company: a copy in another company's row can't be read.
+export function anthropicKeyContext(companyId: string): string {
+  return `assistant-anthropic-key:${companyId}`;
+}
+
+// An order's delivery address and the customer's notes (step 52).
+export function orderFieldContext(companyId: string, orderId: string, field: "address" | "notes"): string {
+  return `order-${field}:${companyId}:${orderId}`;
+}

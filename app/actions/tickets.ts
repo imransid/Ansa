@@ -111,6 +111,7 @@ export async function createManualTicketAction(
     return result.errors;
   }
   revalidatePath("/dashboard");
+  revalidatePath("/inbox", "layout");
   // redirect() works by throwing, so this must never sit inside a try/catch.
   redirect(`/tickets/${result.ticketNumber}`);
 }
@@ -154,6 +155,7 @@ function refreshTicketPagesOrReturnErrors(
 
 function refreshTicketPages(): void {
   revalidatePath("/dashboard");
+  revalidatePath("/inbox", "layout");
   revalidatePath("/tickets/[ticketNumber]", "page");
   // Its "Customer emails not delivered" list changes with solves and retries.
   revalidatePath("/emails");

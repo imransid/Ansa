@@ -19,6 +19,8 @@ import {
   askClaudeForEmailTriage,
   askClaudeForFactSuggestions,
   askClaudeForMarketingPlan,
+  askClaudeForMenuReading,
+  askClaudeForAutopost,
   askClaudeForOnboardingTurn,
   askClaudeForPerformanceReview,
 } from "@/adapters/claude";
@@ -101,6 +103,8 @@ export async function runClaudeAdapterChecks() {
       askClaudeForContentDraft,
       askClaudeForCalendarPlan,
       askClaudeForPerformanceReview,
+      askClaudeForMenuReading,
+      askClaudeForAutopost,
     ];
     for (const ask of asks) {
       assert.deepEqual(await ask(REQUEST, null), { kind: "unavailable" });

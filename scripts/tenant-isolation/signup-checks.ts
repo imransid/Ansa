@@ -5,8 +5,11 @@
 import assert from "node:assert/strict";
 import { getCompanyById } from "@/db/companies";
 import { getUsersInCompany } from "@/db/users";
+import { auth } from "@/lib/auth";
+import { NEW_COMPANY_NAME } from "@/lib/restaurant-setup";
 import { signupSchema } from "@/lib/validation/auth";
 import { joinWithInviteSchema } from "@/lib/validation/invites";
+import { businessSectionSchema } from "@/lib/validation/restaurant-setup";
 import {
   check,
   runId,
@@ -83,26 +86,30 @@ export async function runSignupChecks(ownerA: TestUser, ownerB: TestUser) {
     assert.equal(new Set(owners.map((owner) => owner.companyId)).size, 12);
   });
 
-  await check("signup without a company name creates nothing", async () => {
-    await assert.rejects(
-      signUpWithBody({
-        name: "No company",
-        email: testEmail("no-company"),
-        password: testPassword,
-      }),
+  await check("signup asks for no business name: the new owner's company is a business named 'New business' until setup, and nothing in the request names it", async () => {
+    const email = testEmail("no-company");
+    // Better Auth passes fields its types don't list through to the hook at run time.
+    const body = { name: "No company", email, password: testPassword, companyName: `Smuggled name ${runId}` };
+    const { user } = await auth.api.signUpEmail({ body });
+    assert.equal(user.role, "owner");
+    const company = await getCompanyById(String(user.companyId));
+    assert.deepEqual(
+      [company?.name, company?.kind, company?.businessType, company?.setupProgress, company?.setupFinishedAt],
+      [NEW_COMPANY_NAME, "business", null, 0, null],
     );
   });
 
   await check("names with line breaks or other control characters are refused", async () => {
-    const valid = { companyName: "Acme", name: "Ana", email: "ana@example.test", password: testPassword };
-    const badNames = [
-      ["name", "Ana\nYour account is locked"],
-      ["name", "Ana\u0000"],
-      ["companyName", "Acme\r\nBcc: someone@example.test"],
-      ["companyName", "Acme\tCo"],
-    ];
-    for (const [field, value] of badNames) {
-      assert.equal(signupSchema.safeParse({ ...valid, [field]: value }).success, false, `accepted ${field} ${JSON.stringify(value)}`);
+    const valid = { name: "Ana", email: "ana@example.test", password: testPassword };
+    for (const badName of ["Ana\nYour account is locked", "Ana\u0000"]) {
+      assert.equal(signupSchema.safeParse({ ...valid, name: badName }).success, false, `accepted ${JSON.stringify(badName)}`);
+    }
+    // The business name, typed in setup's first step (step 45), is a sender
+    // name of customer emails: no line breaks or tabs either.
+    const business = { kind: "business", companyName: "Acme", businessType: "restaurant", description: "Pizza and pasta." };
+    for (const badCompanyName of ["Acme\r\nBcc: someone@example.test", "Acme\tCo"]) {
+      const parsed = businessSectionSchema.safeParse({ ...business, companyName: badCompanyName });
+      assert.equal(parsed.success, false, `accepted ${JSON.stringify(badCompanyName)}`);
     }
     const joinInput = { inviteToken: "a".repeat(43), name: "Bea\nCall us", email: valid.email, password: testPassword };
     assert.equal(joinWithInviteSchema.safeParse(joinInput).success, false);

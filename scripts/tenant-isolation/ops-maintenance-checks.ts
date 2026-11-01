@@ -27,6 +27,7 @@ import { longestRateLimitWindowSeconds } from "@/services/rate-limit";
 import { getSetupForSession } from "@/services/setup";
 import { handleStripeWebhook } from "@/services/stripe-webhook";
 import { createTicketForCompany } from "@/services/tickets";
+import { noCatchUp } from "./assistant-check-helpers";
 import { captureConsole, check, runId, sessionFor, signUpTestOwner, type TestUser } from "./helpers";
 
 const ROOT = process.cwd();
@@ -66,7 +67,7 @@ function assertDescribedWithFrames(entry: string | undefined, prefix: string) {
 
 // Saves a call on one of the company's numbers, as saved `minutesAgo` minutes ago.
 async function callSavedMinutesAgo(companyId: string, phoneLineId: string, label: string, minutesAgo: number): Promise<Date> {
-  const callId = await insertCallIfNew(companyId, { phoneLineId, vapiCallId: `vc-${label}-${runId}`, callerNumber: null, startedAt: null, endedAt: null, endedReason: null, transcriptEncrypted: null });
+  const callId = await insertCallIfNew(companyId, { phoneLineId, vapiCallId: `vc-${label}-${runId}`, callerNumber: null, startedAt: null, endedAt: null, endedReason: null, transcriptEncrypted: null }, null);
   assert.ok(callId, "the call was not saved");
   const savedAt = new Date(Date.now() - minutesAgo * 60 * 1000);
   await db.update(calls).set({ createdAt: savedAt }).where(eq(calls.id, callId));
@@ -98,7 +99,7 @@ export async function runOpsMaintenanceChecks(ownerB: TestUser) {
     const cronRequest = new Request("http://localhost/api/cron/cleanup", { headers: { authorization: `Bearer ${cronSecret}`, "x-forwarded-for": `cron-${runId}` } });
     const noPublishing = async () => ({ interrupted: 0, published: 0, failed: 0, needsAttention: 0, requeued: 0 });
     const noMetrics = async () => ({ collected: 0, failed: 0, skipped: 0 });
-    const cron = await captureConsole(() => handleCleanupRequest(cronRequest, cronSecret, async () => Promise.reject(databaseLikeError()), undefined, noPublishing, noMetrics));
+    const cron = await captureConsole(() => handleCleanupRequest(cronRequest, cronSecret, async () => Promise.reject(databaseLikeError()), undefined, noPublishing, noMetrics, noCatchUp));
     assert.equal(cron.result.status, 500);
     assertDescribedWithFrames(cron.logs.at(-1), "Cleanup failed: ");
     const stripeSecret = `whsec_ops_${runId}`;

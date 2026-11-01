@@ -64,6 +64,24 @@ export const CALENDAR_PLAN_SETTINGS: RequestSettings = { effort: "medium", maxTo
 // 4 minutes 8 seconds of its 300.
 export const PERFORMANCE_REVIEW_SETTINGS: RequestSettings = { effort: "medium", maxTokens: 8_000, timeoutMs: 120_000, maxRetries: 1 };
 
+// "Read my menu" (step 46): copying a menu into a list, up to 150 dishes,
+// from a photo or text. Little judgement but a long answer (room for the
+// list), and one retry as the owner waits on the page: two tries of 2
+// minutes, at most about 4 minutes 8 seconds of its 300.
+export const MENU_READING_SETTINGS: RequestSettings = { effort: "low", maxTokens: 16_000, timeoutMs: 120_000, maxRetries: 1 };
+
+// The restaurant assistant's reply to a customer (step 49): a short answer
+// from the restaurant's own details, while the customer waits in their
+// chat. Low effort and a short limit: a slow answer is worse than the
+// holding reply, which goes out when this fails. Two tries of 30 seconds,
+// at most about 68 seconds of the Telegram webhook's 300.
+export const ASSISTANT_REPLY_SETTINGS: RequestSettings = { effort: "low", maxTokens: 3_000, timeoutMs: 30_000, maxRetries: 1 };
+
+// A "Post for me" post (step 54): a short Facebook post from the business's
+// own details, written by the scheduled run a day ahead (nobody waits on
+// it). Low effort, two tries of a minute: at most about 2 minutes 8
+// seconds, and the run starts one only while it still fits its 300.
+export const AUTOPOST_SETTINGS: RequestSettings = { effort: "low", maxTokens: 3_000, timeoutMs: 60_000, maxRetries: 1 };
 // The SDK waits at most this long between attempts by default. A 429's
 // retry-after can ask for much longer, and the SDK waits that long.
 const SDK_LONGEST_WAIT_BETWEEN_ATTEMPTS_MS = 8_000;

@@ -25,7 +25,13 @@
     "replace:forwarding-address": "tsx --conditions=react-server --env-file=.env.local scripts/replace-forwarding-address.ts",
     "simulate:inbound-email": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-inbound-email.ts",
     "simulate:email-bounce": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-email-bounce.ts",
-    "simulate:post-metrics": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-post-metrics.ts"
+    "simulate:post-metrics": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-post-metrics.ts",
+    "simulate:message": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-message.ts",
+    "simulate:telegram": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-telegram.ts",
+    "simulate:messenger": "tsx --conditions=react-server --env-file=.env.local scripts/simulate-messenger.ts",
+    "telegram:poll": "tsx --conditions=react-server --env-file=.env.local scripts/telegram-poll.ts",
+    "telegram:webhook": "tsx --conditions=react-server --env-file=.env.local scripts/telegram-webhook.ts",
+    "assistant:catch-up": "tsx --conditions=react-server --env-file=.env.local scripts/assistant-catch-up.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

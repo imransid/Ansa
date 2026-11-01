@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { mediaProviderNames } from "./media/kinds";
 import { requireSocialAppPairs, socialAppSettings } from "./social-settings";
+import { requireTelegramSettingsTogether, telegramSettings } from "./telegram-settings";
 
 const base64Key32Bytes = z
   .string()
@@ -111,6 +112,10 @@ const envSchema = z
       .string()
       .regex(/^claude-[a-z0-9.-]+$/, "ANTHROPIC_MODEL must look like claude-sonnet-5-5")
       .default("claude-sonnet-5-5"),
+    // Development only (step 49): the `claude` program the restaurant
+    // assistant's "Claude Code on this computer" engine runs
+    // (adapters/claude-code.ts). Unset: `claude` found on the PATH.
+    CLAUDE_CODE_PATH: z.string().trim().min(1).optional(),
 
     // Image and video generation (step 39, lib/media-generation.ts): which
     // service makes them. No real one is chosen yet, so the only value is
@@ -122,8 +127,21 @@ const envSchema = z
     // Social accounts (step 40): ansa's developer app per platform, in
     // pairs (LINKEDIN_, FACEBOOK_APP_, X_ and GOOGLE_ CLIENT_ID / SECRET).
     ...socialAppSettings,
+
+    // Telegram (step 48): ansa's bot (TELEGRAM_BOT_TOKEN, _USERNAME and
+    // TELEGRAM_WEBHOOK_SECRET), set together.
+    ...telegramSettings,
+
+    // Messenger (step 53): the word Meta's webhook setup sends back once
+    // (GET /api/webhooks/messenger). Messages themselves are signed with
+    // FACEBOOK_APP_SECRET. Unset: the setup check is refused.
+    MESSENGER_VERIFY_TOKEN: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{32,256}$/, "MESSENGER_VERIFY_TOKEN must be 32 to 256 letters, digits, _ or - (openssl rand -hex 32)")
+      .optional(),
   })
   .superRefine(requireSocialAppPairs)
+  .superRefine(requireTelegramSettingsTogether)
   .superRefine((values, context) => {
     if (values.USE_R2_STORAGE === "true") {
       for (const key of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const) {

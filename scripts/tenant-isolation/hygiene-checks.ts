@@ -104,7 +104,7 @@ export async function runHygieneChecks(ownerA: TestUser) {
       inlineImageCount: 0,
     };
     const ticket = { subject: "Unreadable", description: "x", channel: "email" as const, category: null, customerName: null, customerEmail: null, customerPhone: null };
-    const saved = await saveInboundEmailTicket(ownerA.companyId, emailId, content, ticket);
+    const saved = await saveInboundEmailTicket(ownerA.companyId, emailId, content, ticket, null);
     assert.ok(saved);
     const { result: original, logs } = await captureConsole(() => getOriginalEmailForSession(sessionFor(ownerA), saved.ticketId));
     assert.deepEqual([original?.unreadable, original?.subject, original?.body], [true, null, null]);

@@ -1,13 +1,8 @@
 "use client";
 
-import { Geist } from "next/font/google";
 import { SomethingWentWrong } from "@/components/something-went-wrong";
+import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 type GlobalErrorProps = {
   error: unknown;
@@ -19,7 +14,7 @@ type GlobalErrorProps = {
 // help here), and looks like the rest of the app instead of Next.js's card.
 export default function GlobalError({ error, retry }: GlobalErrorProps) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en" className={`${fontVariables} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <title>Something went wrong - ansa</title>
         <main className="flex flex-1 items-center justify-center p-6">

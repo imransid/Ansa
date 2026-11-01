@@ -52,8 +52,9 @@ export const newPasswordSchema = z
     `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
   );
 
+// Signup asks only for a name, an email and a password (step 45): the
+// business's name comes first thing in the setup at /welcome.
 export const signupSchema = z.object({
-  companyName: companyNameSchema,
   name: personNameSchema,
   email: emailSchema,
   password: newPasswordSchema,
@@ -65,12 +66,6 @@ export const loginSchema = z.object({
     .string()
     .min(1, "Enter your password")
     .max(PASSWORD_MAX_LENGTH, "Password is too long"),
-});
-
-// Used by the user-create hook in lib/auth.ts. z.object drops every other key,
-// so a companyId or role smuggled into the request body is ignored here.
-export const newCompanySchema = z.object({
-  companyName: companyNameSchema,
 });
 
 // The token from an email verification link: a signed JWT (three base64url

@@ -27,8 +27,8 @@ async function NewTicketContent() {
 
   return (
     <>
-      <Link href="/dashboard" className="text-sm hover:underline">
-        &larr; All tickets
+      <Link href="/inbox" className="text-sm hover:underline">
+        &larr; Inbox
       </Link>
       <section className="grid gap-2">
         <h1 className="text-xl font-semibold">New ticket</h1>

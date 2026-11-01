@@ -45,12 +45,11 @@ export async function signUpCompanyOwner(input: unknown, requestHeaders: Headers
     return tooManySignupsError;
   }
 
-  const { companyName, name, email, password } = parsed.data;
+  const { name, email, password } = parsed.data;
   // We never send companyId or role. The user-create hook in lib/auth.ts
-  // reads companyName, creates the company, and sets both on the new user.
-  // Better Auth passes extra body fields like companyName through at runtime,
-  // but its types don't list them, so the body is built before the call.
-  const signupBody = { name, email, password, companyName };
+  // creates the company (named in the setup at /welcome, step 45) and sets
+  // both on the new user.
+  const signupBody = { name, email, password };
   try {
     await auth.api.signUpEmail({ body: signupBody, headers: requestHeaders });
   } catch (error) {

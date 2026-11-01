@@ -1,6 +1,8 @@
 import "server-only";
 import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
+import type { ContactKey } from "@/lib/conversation-contacts";
 import { db, type DbTransaction } from "./client";
+import { linkInboundEmailWithin } from "./conversation-links";
 import { inboundEmails } from "./schema";
 import { insertTicketWithNextNumber, type TicketToCreate } from "./ticket-creation";
 
@@ -102,6 +104,7 @@ export async function saveInboundEmailTicket(
   inboundEmailId: string,
   content: InboundEmailContentToStore,
   ticket: TicketToCreate,
+  contact: ContactKey | null,
 ): Promise<{ ticketId: string; assignedToUserId: string | null } | undefined> {
   return db.transaction(async (tx) => {
     if (!(await lockEmailStillProcessing(tx, companyId, inboundEmailId))) {
@@ -131,6 +134,10 @@ export async function saveInboundEmailTicket(
       // Can't happen while the row is locked (below). If it ever does, the
       // ticket must not outlive its email: undo the whole transaction.
       tx.rollback();
+    }
+    // Its sender's Inbox conversation (step 47), when a sender was read.
+    if (contact) {
+      await linkInboundEmailWithin(tx, companyId, { inboundEmailId, ticketId: created.id }, contact);
     }
     return { ticketId: created.id, assignedToUserId: created.assignedToUserId };
   });

@@ -10,8 +10,8 @@ export default function TicketNotFound() {
       <p className="text-sm text-muted-foreground">
         Your company has no ticket with that number. The link may be mistyped or out of date.
       </p>
-      <Link href="/dashboard" className="text-sm underline">
-        &larr; All tickets
+      <Link href="/inbox" className="text-sm underline">
+        &larr; Inbox
       </Link>
     </main>
   );

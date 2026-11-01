@@ -7,6 +7,8 @@
 // and makes sure every page that reads the session is in one of them.
 export const SIGNED_IN_SECTIONS = [
   "/dashboard",
+  "/inbox",
+  "/orders",
   "/tickets",
   "/calls",
   "/emails",
@@ -16,6 +18,8 @@ export const SIGNED_IN_SECTIONS = [
   "/setup",
   "/billing",
   "/account",
+  "/settings",
+  "/welcome",
 ];
 
 // Where a login goes when it has nowhere better to go.

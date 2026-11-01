@@ -45,6 +45,7 @@ export async function escalateCallAction(
     return result.errors;
   }
   revalidatePath("/dashboard");
+  revalidatePath("/inbox", "layout");
   // redirect() works by throwing, so this must never sit inside a try/catch.
   redirect(`/tickets/${result.ticketNumber}`);
 }

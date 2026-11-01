@@ -94,7 +94,7 @@ function PublishedText({ content }: { content: DraftContent }) {
 function withHashtags(text: string) {
   return text.split(/(#[\p{L}\p{M}\p{N}_]+)/u).map((part, index) =>
     index % 2 === 1 ? (
-      <span key={index} className="text-sky-700">
+      <span key={index} className="text-info">
         {part}
       </span>
     ) : (

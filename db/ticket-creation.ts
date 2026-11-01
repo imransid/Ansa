@@ -3,7 +3,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { ManualTicketInput, NewTicketInput } from "@/lib/validation/tickets";
 import { db, type DbTransaction } from "./client";
 import { routeNewTicket } from "./routing";
-import { categories, companies, tickets } from "./schema";
+import { calls, categories, companies, tickets } from "./schema";
 import { recordTicketChange } from "./ticket-activity";
 import type { Ticket } from "./tickets";
 
@@ -92,6 +92,10 @@ export async function insertTicketWithNextNumber(
       customerEmailSetAt: emailEnteredBy ? sql`now()` : null,
       customerPhone: input.customerPhone,
       callId,
+      // A call's ticket shows in the call's Inbox conversation (step 47).
+      conversationId: callId
+        ? sql`(SELECT ${calls.conversationId} FROM ${calls} WHERE ${calls.id} = ${callId} AND ${calls.companyId} = ${companyId})`
+        : null,
     })
     .returning();
 

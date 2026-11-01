@@ -4,9 +4,10 @@ import type { PgTable } from "drizzle-orm/pg-core";
 import { OVERVIEW_COUNT_LIMIT, OVERVIEW_WINDOW_DAYS } from "@/lib/business-overview";
 import { callOutcomeCondition } from "./call-filters";
 import { db } from "./client";
+import { needsYouCondition } from "./conversations";
 import { isStuckInboundEmail } from "./inbound-email-processing";
 import { isCutOffWhileSending } from "./publish-runs";
-import { calls, companies, contentDrafts, inboundEmails, publishJobs, tickets } from "./schema";
+import { calls, companies, contentDrafts, conversations, inboundEmails, publishJobs, tickets } from "./schema";
 import { ticketViewCondition } from "./ticket-filters";
 
 // The numbers of the dashboard's "Business overview" (step 43), for one
@@ -26,6 +27,8 @@ export type SupportOverviewCounts = {
   // (unfinished 15+ minutes: the Emails page offers "Process again").
   emailsWaiting: number;
   emailsStuck: number;
+  // Inbox conversations with an open request (step 47): the Inbox's "Needs you".
+  conversationsNeedingYou: number;
 };
 
 export type CofounderOverviewCounts = {
@@ -56,10 +59,11 @@ export async function getSupportOverviewCounts(companyId: string, viewerUserId: 
       callsSolvedByAiLastWeek: countUpToLimit(calls, and(callsLastWeek, callOutcomeCondition("solved"))),
       emailsWaiting: countUpToLimit(inboundEmails, and(unfinishedEmail, not(stuckEmail))),
       emailsStuck: countUpToLimit(inboundEmails, and(unfinishedEmail, stuckEmail)),
+      conversationsNeedingYou: countUpToLimit(conversations, and(eq(conversations.companyId, companyId), needsYouCondition())),
     })
     .from(companies)
     .where(eq(companies.id, companyId));
-  return counts ?? { openTickets: 0, unassignedTickets: 0, callsLastWeek: 0, callsSolvedByAiLastWeek: 0, emailsWaiting: 0, emailsStuck: 0 };
+  return counts ?? { openTickets: 0, unassignedTickets: 0, callsLastWeek: 0, callsSolvedByAiLastWeek: 0, emailsWaiting: 0, emailsStuck: 0, conversationsNeedingYou: 0 };
 }
 
 // Reads the Co-Founder half for one company (the key facts and the

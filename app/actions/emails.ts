@@ -30,5 +30,6 @@ export async function makeTicketFromEmailAction(
 function refreshEmailPagesAndReturnErrors(result: FormResult): FormErrors | undefined {
   revalidatePath("/emails");
   revalidatePath("/dashboard");
+  revalidatePath("/inbox", "layout");
   return result.ok ? undefined : result.errors;
 }

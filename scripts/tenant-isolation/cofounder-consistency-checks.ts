@@ -1,6 +1,6 @@
 // Co-Founder consistency checks (step 43), on the code itself: every page of
-// the section shows a loading line while it reads the session, sits below
-// the section's header, row of links and error boundary, names its own
+// the section shows a loading line while it reads the session, sits in the
+// app frame (sidebar and error boundary, step 44), names its own
 // address for logging in, has a not-found page where its address holds an
 // id or a number, waits 300 seconds where its actions ask Claude or send
 // posts, and shows times only in the viewer's own timezone.
@@ -46,7 +46,7 @@ const PAGES_WAITING_LONG = [
 ];
 
 export async function runCofounderConsistencyChecks() {
-  await check("co-founder pages: each reads the session inside <Suspense> with a loading line, asking for a login back to its own address, below the section's header, row of links and error boundary; a page with an id or number in its address has a not-found page", async () => {
+  await check("co-founder pages: each reads the session inside <Suspense> with a loading line, asking for a login back to its own address, in the app frame and its error boundary; a page with an id or number in its address has a not-found page", async () => {
     const pages = await coFounderPages();
     assert.equal(pages.length, 13, "a page was added or removed: check it against this list's rules");
     for (const page of pages) {
@@ -67,7 +67,7 @@ export async function runCofounderConsistencyChecks() {
       assert.equal(waitsLong, PAGES_WAITING_LONG.includes(address), `${page}: maxDuration 300 ${waitsLong ? "set" : "missing"}`);
     }
     const layout = withoutComments(await read("app/cofounder/layout.tsx"));
-    assert.match(layout, /<AppFrame\s+section="cofounder"/);
+    assert.match(layout, /<AppFrame\s+section="settings"/);
     assert.match(withoutComments(await read("components/app-frame.tsx")), /<PageErrorBoundary>\{children\}<\/PageErrorBoundary>/);
   });
 

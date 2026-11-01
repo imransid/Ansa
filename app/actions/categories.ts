@@ -53,6 +53,7 @@ function refreshOrReturnErrors(result: FormResult, formData?: FormData, typedFie
   }
   revalidatePath("/team");
   revalidatePath("/dashboard");
+  revalidatePath("/inbox", "layout");
   revalidatePath("/setup");
   revalidatePath("/tickets/[ticketNumber]", "page");
   return undefined;

@@ -2,15 +2,15 @@ import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { labelAssigneeOptions, type AssigneeOption } from "@/lib/assignee-menu";
 import { getSessionContext, requireSessionContext } from "@/lib/session";
 import { readCustomerEmail } from "@/lib/validation/customer-email";
 import { listActiveCategoryNamesForSession } from "@/services/categories";
 import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getOriginalEmailForSession, type OriginalEmail } from "@/services/inbound-emails";
-import { listAssigneeChoicesForSession, type AssignableUser } from "@/services/team";
+import { listAssigneeChoicesForSession } from "@/services/team";
 import { getTicketHistoryForSession } from "@/services/ticket-history";
 import { getTicketForSession, listOtherOpenTicketsFromCustomerForSession, type TicketDetail } from "@/services/tickets";
+import { listAssigneeMenu } from "./assignee-menu";
 import { CustomerEmailSection, type EmailOrigin, type SuggestedEmail } from "./customer-email-section";
 import { CustomerEmailStatus } from "./customer-email-status";
 import { OriginalEmailSection } from "./original-email-section";
@@ -80,8 +80,8 @@ async function TicketContent({
 
   return (
     <>
-      <Link href="/dashboard" className="text-sm hover:underline">
-        &larr; All tickets
+      <Link href="/inbox" className="text-sm hover:underline">
+        &larr; Inbox
       </Link>
       <TicketSummary ticket={ticket} />
       <SameCustomerTickets tickets={sameCustomerTickets} />
@@ -150,19 +150,4 @@ function suggestCustomerEmails(originalEmail: OriginalEmail | null, ticket: Tick
     suggestions.push({ address: sender, kind: "sender-with-reply-to" });
   }
   return suggestions;
-}
-
-// The "Assigned to" menu: everyone who can take tickets, with the email next
-// to a name two people share (lib/assignee-menu.ts). A solved ticket may still
-// be assigned to someone who can't any more (removed from the team); they are
-// added, marked, so the menu doesn't pretend the ticket is unassigned. Saving
-// the menu unchanged changes nothing; giving them any other ticket is refused
-// (db/ticket-updates.ts).
-function listAssigneeMenu(choices: AssignableUser[], ticket: TicketDetail): AssigneeOption[] {
-  const currentAssigneeId = ticket.assignedToUserId;
-  if (!currentAssigneeId || choices.some((person) => person.id === currentAssigneeId)) {
-    return labelAssigneeOptions(choices);
-  }
-  const formerAssignee = { id: currentAssigneeId, name: `${ticket.assigneeName ?? "Someone"} (can't take tickets)`, email: null };
-  return labelAssigneeOptions([...choices, formerAssignee]);
 }

@@ -23,7 +23,7 @@ const PAGE_FILES = [
 ];
 
 export async function runSocialPageChecks() {
-  await check("accounts page: in the Co-Founder's row of links, logging in brings people back to it, Disconnect asks first, its buttons show for owners only, and nothing on it reads a token", async () => {
+  await check("accounts page: in the Co-Founder's page list, logging in brings people back to it, Disconnect asks first, its buttons show for owners only, and nothing on it reads a token", async () => {
     assert.ok(COFOUNDER_PAGES.some((page) => page.segment === "accounts" && page.href === "/cofounder/accounts" && page.label === "Accounts"));
     const page = await read("app/cofounder/accounts/page.tsx");
     assert.match(page, /requireSessionContext\("\/cofounder\/accounts"\)/);

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { createEmailVerificationToken } from "better-auth/api";
+import { updateCompanyName } from "@/db/companies";
 import { userRoles, type UserRole } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { SessionContext } from "@/lib/session";
@@ -41,14 +42,20 @@ type SignupBody = { name: string; email: string; password: string } & Record<
 >;
 
 // Calls Better Auth's signup the way a real request would, including fields its
-// types don't list (companyName, inviteToken, or a smuggled companyId / role).
-// Then confirms the address, as everyone who uses the app has done. Checks
-// that need an unconfirmed account call auth.api.signUpEmail themselves.
+// types don't list (inviteToken, or a smuggled companyId / role). Then
+// confirms the address, as everyone who uses the app has done. Checks that
+// need an unconfirmed account call auth.api.signUpEmail themselves.
+// companyName: signup no longer names the company (step 45); a new owner's
+// company is then named as the setup's first step would, so the checks can
+// tell their companies apart by name.
 export async function signUpWithBody(body: SignupBody): Promise<TestUser> {
   const { user } = await auth.api.signUpEmail({ body });
   const role = userRoles.find((knownRole) => knownRole === user.role);
   if (!user.companyId || !role) {
     throw new Error(`Signup for ${body.email} returned no company or an unknown role`);
+  }
+  if (role === "owner" && typeof body.companyName === "string") {
+    await updateCompanyName(user.companyId, body.companyName);
   }
   await confirmEmailAddress(user.email);
   return { id: user.id, email: user.email, companyId: user.companyId, role };

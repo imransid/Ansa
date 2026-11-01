@@ -11,8 +11,10 @@ import { companies } from "./schema";
 // 1,000-article cap, db/knowledge-writes.ts), every write to the
 // Co-Founder's interview (db/onboarding-messages.ts says why), saving a
 // marketing plan (its version number, db/marketing-plans.ts), changing
-// the Co-Founder's setting (db/cofounder-settings.ts) and saving what an
-// image service made (the media library's cap, db/media-generation-runs.ts).
+// the Co-Founder's setting (db/cofounder-settings.ts), saving what an
+// image service made (the media library's cap, db/media-generation-runs.ts)
+// every write of the restaurant setup (db/restaurant-owner.ts, step 45) and
+// adding or moving dishes on the menu (db/menu.ts, step 46).
 // Take it FIRST, before any ticket, person or draft is locked, so two
 // transactions never end up waiting for each other.
 // "No key update" still lets rows that merely point at the company be written.

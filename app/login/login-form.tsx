@@ -53,7 +53,7 @@ export function LoginForm() {
       <p className="text-sm text-muted-foreground">
         New here?{" "}
         <Link href="/signup" className="underline">
-          Create your company
+          Create an account
         </Link>
       </p>
     </form>

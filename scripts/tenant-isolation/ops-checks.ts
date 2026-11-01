@@ -16,6 +16,7 @@ import { handleCleanupRequest } from "@/services/maintenance";
 import { longestRateLimitWindowSeconds } from "@/services/rate-limit";
 import { markTicketSolvedForSession } from "@/services/ticket-status";
 import { createTicketForCompany } from "@/services/tickets";
+import { noCatchUp } from "./assistant-check-helpers";
 import { captureConsole, check, runId, sessionFor, type TestUser } from "./helpers";
 
 const secretText = `+1555${runId}`;
@@ -65,7 +66,7 @@ export async function runOpsChecks(ownerA: TestUser, ownerB: TestUser) {
     const fakePublishing = async () => ({ interrupted: 0, published: 0, failed: 0, needsAttention: 0, requeued: 0 });
     const fakeMetrics = async () => ({ collected: 0, failed: 0, skipped: 0 });
     const call = (authorization?: string, cronSecret = secret) =>
-      handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers: authorization ? { authorization } : {} }), cronSecret, fakeRecovery, undefined, fakePublishing, fakeMetrics);
+      handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers: authorization ? { authorization } : {} }), cronSecret, fakeRecovery, undefined, fakePublishing, fakeMetrics, noCatchUp);
     assert.equal((await call(`Bearer ${secret}`, "")).status, 404);
     const refused = await captureConsole(async () => [(await call()).status, (await call(`Bearer ${secret}x`)).status, (await call(secret)).status]);
     assert.deepEqual(refused.result, [401, 401, 401]);

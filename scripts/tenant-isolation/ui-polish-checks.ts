@@ -152,7 +152,7 @@ export async function runUiPolishChecks() {
     }
   });
 
-  await check("leftovers: ansa's own icon replaces Next.js's, and the sample images are gone", async () => {
+  await check("leftovers: ansa's own icon replaces Next.js's, the sample images are gone, and dark mode follows the device with one palette", async () => {
     assert.ok(await exists("app/icon.svg"));
     assert.ok(await exists("app/apple-icon.png"));
     const favicon = await readFile(path.join(ROOT, "app", "favicon.ico"));
@@ -162,7 +162,11 @@ export async function runUiPolishChecks() {
     for (const sample of ["file.svg", "globe.svg", "next.svg", "vercel.svg", "window.svg"]) {
       assert.ok(!(await exists(path.join("public", sample))), `public/${sample} is still there`);
     }
+    // Dark mode follows the device (step 44): one designed palette in the
+    // media query, and Tailwind's dark: classes on the same query (its
+    // default), never on a .dark class nothing sets.
     const css = await read("app/globals.css");
-    assert.ok(!css.includes(".dark {"), "globals.css still has the unused dark palette");
+    assert.ok(css.includes("@media (prefers-color-scheme: dark)") && css.includes("color-scheme: light dark"), "globals.css has no dark palette");
+    assert.ok(!css.includes("@custom-variant dark") && !css.includes(".dark {"), "dark: classes and the dark palette would follow different switches");
   });
 }

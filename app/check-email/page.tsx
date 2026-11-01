@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { describeLinkLifetime, VERIFICATION_LINK_SECONDS } from "@/lib/link-lifetimes";
 
@@ -10,7 +11,10 @@ export const metadata: Metadata = { title: "Check your email - ansa" };
 // when the address already had an account, so the page never reveals that.
 export default function CheckEmailPage() {
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-4">
+      <Link href="/" className="rounded-md">
+        <BrandMark />
+      </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Check your email</CardTitle>

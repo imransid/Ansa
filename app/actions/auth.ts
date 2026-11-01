@@ -31,7 +31,6 @@ export async function signupAction(
 ): Promise<FormErrors | undefined> {
   const result = await signUpCompanyOwner(
     {
-      companyName: formData.get("companyName"),
       name: formData.get("name"),
       email: formData.get("email"),
       password: formData.get("password"),
@@ -39,7 +38,7 @@ export async function signupAction(
     await headers(),
   );
   if (!result.ok) {
-    return withTypedValues(result.errors, formData, ["companyName", "name", "email"]);
+    return withTypedValues(result.errors, formData, ["name", "email"]);
   }
   // No session yet: the email address must be confirmed first (step 12).
   redirect("/check-email");

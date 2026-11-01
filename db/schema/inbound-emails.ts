@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, foreignKey, index, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { companies } from "./companies";
+import { conversations } from "./conversations";
 import { tickets } from "./tickets";
 
 // An address a company's customers write to, like support@acme.com, as an
@@ -89,12 +90,23 @@ export const inboundEmails = pgTable(
     // limit), so another run may claim the email (db/inbound-email-processing.ts).
     processingStartedAt: timestamp("processing_started_at", { withTimezone: true }),
     receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    // The Inbox conversation it shows in (step 47); null before step 47, or
+    // with no customer to link (a hidden caller number, a manual ticket).
+    conversationId: uuid("conversation_id"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [
+    // Lets messages use a (company_id, inbound_email_id) foreign key.
+    unique("inbound_emails_company_id_id_unique").on(table.companyId, table.id),
+    // The Inbox conversation it belongs to (step 47), in the same company.
+    foreignKey({
+      name: "inbound_emails_conversation_in_same_company_fk",
+      columns: [table.companyId, table.conversationId],
+      foreignColumns: [conversations.companyId, conversations.id],
+    }),
     foreignKey({
       name: "inbound_emails_ticket_in_same_company_fk",
       columns: [table.companyId, table.ticketId],

@@ -5,7 +5,9 @@ import { PAGE_SIZE, pageOffset } from "@/lib/pagination";
 import type { CallListQuery, CallOutcomeFilter } from "@/lib/validation/list-queries";
 import { isCallAnalysisStuck } from "./call-analysis";
 import { callOutcomeCondition, callSearchCondition } from "./call-filters";
-import { db } from "./client";
+import type { ContactKey } from "@/lib/conversation-contacts";
+import { db, type DbTransaction } from "./client";
+import { linkCallWithin } from "./conversation-links";
 import { calls, users, type CallAnalysisStatus, type CallOutcome } from "./schema";
 
 export type CallListRow = {
@@ -51,8 +53,20 @@ type NewCall = {
 
 // Saves a finished call for one company, unless a call with the same Vapi id
 // was already saved. Returns the new call's id, or null if it already existed.
-export async function insertCallIfNew(companyId: string, call: NewCall): Promise<string | null> {
-  const [inserted] = await db
+// With a caller to tell apart (`contact`, step 47) the call joins that
+// caller's Inbox conversation in the same transaction.
+export async function insertCallIfNew(companyId: string, call: NewCall, contact: ContactKey | null): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const callId = await insertCallWithin(tx, companyId, call);
+    if (callId && contact) {
+      await linkCallWithin(tx, companyId, callId, contact);
+    }
+    return callId;
+  });
+}
+
+async function insertCallWithin(tx: DbTransaction, companyId: string, call: NewCall): Promise<string | null> {
+  const [inserted] = await tx
     .insert(calls)
     // Every column named, never a spread of `call`: an object with extra
     // fields (a companyId, an analysis outcome) can't write them.

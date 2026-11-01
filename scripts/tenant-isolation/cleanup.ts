@@ -4,16 +4,24 @@
 import { readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { and, inArray, isNotNull, like } from "drizzle-orm";
+import { STAND_IN_OUTBOX_DIR } from "@/adapters/dev-chat-outbox";
 import { db } from "@/db/client";
 import {
+  assistantActivity,
+  assistantSettings,
   autopublishRules,
+  awaySummaryReads,
+  catalogItems,
   businessFacts,
+  channelConnections,
   calls,
   categories,
   cofounderActivity,
   companies,
   companyBilling,
   companyDocuments,
+  contacts,
+  conversations,
   contentDrafts,
   inboundAddresses,
   inboundEmails,
@@ -22,6 +30,10 @@ import {
   knowledgeChunks,
   knowledgeLookups,
   marketingPlans,
+  messages,
+  orderItems,
+  autopostSlots,
+  orders,
   mediaAssets,
   mediaGenerationJobs,
   oauthStates,
@@ -32,6 +44,8 @@ import {
   postMetrics,
   publishJobs,
   socialConnections,
+  telegramLinkCodes,
+  telegramPendingConnections,
   ticketActivity,
   tickets,
   userCategories,
@@ -48,7 +62,18 @@ export async function cleanUpTestData() {
     .select({ id: companies.id })
     .from(companies)
     .where(like(companies.name, `%${runId}`));
-  const testCompanyIds = testCompanies.map((company) => company.id);
+  // Signup names no company since step 45 ("New business" until setup): a
+  // check that signs an owner up without naming the company afterwards is
+  // found by its owner's test address instead.
+  const companiesOfTestUsers =
+    createdEmails.length > 0
+      ? await db.selectDistinct({ id: users.companyId }).from(users).where(inArray(users.email, createdEmails))
+      : [];
+  const testCompanyIds = [...new Set([...testCompanies, ...companiesOfTestUsers].map((company) => company.id).filter((id): id is string => id !== null))];
+
+  // Telegram connections no code named (step 48) belong to no company: the
+  // checks name theirs after the run.
+  await db.delete(telegramPendingConnections).where(like(telegramPendingConnections.externalId, `check-${runId}-%`));
 
   if (testCompanyIds.length > 0) {
     // Order matters: emails, ticket history and knowledge articles point at
@@ -76,7 +101,12 @@ export async function cleanUpTestData() {
     // Social accounts and connection attempts point at the people who made them.
     await db.delete(socialConnections).where(inArray(socialConnections.companyId, testCompanyIds));
     await db.delete(oauthStates).where(inArray(oauthStates.companyId, testCompanyIds));
+    // Telegram connections and link codes point at the owners who made them (step 48).
+    await db.delete(channelConnections).where(inArray(channelConnections.companyId, testCompanyIds));
+    await db.delete(telegramLinkCodes).where(inArray(telegramLinkCodes.companyId, testCompanyIds));
     await deleteTestMedia(testCompanyIds);
+    // "Post for me" (step 54) points at drafts.
+    await db.delete(autopostSlots).where(inArray(autopostSlots.companyId, testCompanyIds));
     // The Co-Founder's facts, interview, marketing plans and content drafts
     // point at the people who confirmed, wrote or made them; drafts also at
     // the plan version they were written from.
@@ -86,6 +116,19 @@ export async function cleanUpTestData() {
     await db.delete(performanceReviews).where(inArray(performanceReviews.companyId, testCompanyIds));
     await db.delete(onboardingMessages).where(inArray(onboardingMessages.companyId, testCompanyIds));
     await db.delete(businessFacts).where(inArray(businessFacts.companyId, testCompanyIds));
+    await db.delete(assistantSettings).where(inArray(assistantSettings.companyId, testCompanyIds));
+    await db.delete(catalogItems).where(inArray(catalogItems.companyId, testCompanyIds));
+    // The Inbox (step 47): messages point at calls and received emails, so
+    // they go before them; conversations after the tickets, calls and emails
+    // that point at them (below).
+    await deleteStandInReplyFiles(testCompanyIds);
+    // Orders (step 52) point at conversations and people; their lines at them.
+    await db.delete(orderItems).where(inArray(orderItems.companyId, testCompanyIds));
+    await db.delete(orders).where(inArray(orders.companyId, testCompanyIds));
+    await db.delete(messages).where(inArray(messages.companyId, testCompanyIds));
+    await db.delete(assistantActivity).where(inArray(assistantActivity.companyId, testCompanyIds));
+    // "While you were away" reads point at the people who read them (step 51).
+    await db.delete(awaySummaryReads).where(inArray(awaySummaryReads.companyId, testCompanyIds));
     // Knowledge articles point at documents, tickets and users; their pieces at them.
     await db.delete(knowledgeChunks).where(inArray(knowledgeChunks.companyId, testCompanyIds));
     await db.delete(knowledgeArticles).where(inArray(knowledgeArticles.companyId, testCompanyIds));
@@ -97,6 +140,8 @@ export async function cleanUpTestData() {
     await db.delete(ticketActivity).where(inArray(ticketActivity.companyId, testCompanyIds));
     await db.delete(tickets).where(inArray(tickets.companyId, testCompanyIds));
     await db.delete(calls).where(inArray(calls.companyId, testCompanyIds));
+    await db.delete(conversations).where(inArray(conversations.companyId, testCompanyIds));
+    await db.delete(contacts).where(inArray(contacts.companyId, testCompanyIds));
     await db.delete(phoneLines).where(inArray(phoneLines.companyId, testCompanyIds));
     await db.delete(userCategories).where(inArray(userCategories.companyId, testCompanyIds));
     await db.delete(categories).where(inArray(categories.companyId, testCompanyIds));
@@ -145,7 +190,9 @@ async function deleteAccountEmailFiles() {
   const outboxDir = path.join(process.cwd(), ".dev-emails");
   const outboxFiles = await readdir(outboxDir).catch(() => [] as string[]);
   for (const fileName of outboxFiles) {
-    if (fileNameParts.some((part) => fileName.includes(part))) {
+    // Owner alerts (step 49) end in the owner's id: needs-you-<message>-<owner>.html.
+    const ownerAlert = fileName.includes("-needs-you-") && userIds.some((userId) => fileName.endsWith(`-${userId}.html`));
+    if (ownerAlert || fileNameParts.some((part) => fileName.includes(part))) {
       await rm(path.join(outboxDir, fileName), { force: true });
     }
   }
@@ -185,3 +232,18 @@ async function deleteTestMedia(testCompanyIds: string[]) {
   await db.delete(mediaAssets).where(inArray(mediaAssets.companyId, testCompanyIds));
   await db.delete(mediaGenerationJobs).where(inArray(mediaGenerationJobs.companyId, testCompanyIds));
 }
+
+// The replies checks "sent" to stand-in customers (.dev-messages/, step 47),
+// named after their message: only those of the test companies' messages.
+async function deleteStandInReplyFiles(testCompanyIds: string[]) {
+  const testMessages = await db.select({ id: messages.id }).from(messages).where(inArray(messages.companyId, testCompanyIds));
+  const ids = new Set(testMessages.map((message) => message.id));
+  const files = await readdir(STAND_IN_OUTBOX_DIR).catch(() => [] as string[]);
+  for (const fileName of files) {
+    const messageId = /-([0-9a-f-]{36})\.json$/.exec(fileName)?.[1];
+    if (messageId && ids.has(messageId)) {
+      await rm(path.join(STAND_IN_OUTBOX_DIR, fileName), { force: true });
+    }
+  }
+}
+

@@ -15,8 +15,9 @@ import { check } from "./helpers";
 import { read } from "./source-helpers";
 
 // The tables that belong to no company: Better Auth's own, keyed by user,
-// the rate limit counters (keyed by an HMAC) and the companies themselves.
-const NOT_TENANT_TABLES = ["accounts", "companies", "rate_limits", "sessions", "verifications"];
+// the rate limit counters (keyed by an HMAC), the companies themselves, and
+// Telegram connections no code has named yet (step 48: no company is known).
+const NOT_TENANT_TABLES = ["accounts", "companies", "rate_limits", "sessions", "telegram_pending_connections", "verifications"];
 
 type ForeignKey = { name: string; fromTable: string; toTable: string; fromColumns: string[]; toColumns: string[] };
 

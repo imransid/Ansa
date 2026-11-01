@@ -1,9 +1,18 @@
 import "server-only";
-import { deleteExpiredOauthStates, deleteExpiredSessions, deleteExpiredVerifications, deleteOldRateLimitCounters } from "@/db/maintenance";
+import {
+  deleteExpiredOauthStates,
+  deleteExpiredSessions,
+  deleteExpiredVerifications,
+  deleteOldRateLimitCounters,
+  deleteOldTelegramLinkCodes,
+  deleteOldTelegramPendingConnections,
+} from "@/db/maintenance";
 import { isCorrectCronSecret } from "@/lib/cron-secret";
 import { env } from "@/lib/env";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
 import { describeErrorWithFrames } from "@/lib/safe-error-logging";
+import type { AssistantDueCounts } from "./assistant-due";
+import { runAssistantScheduledWork } from "./assistant-scheduled";
 import { collectPostMetrics, type MetricsRunCounts } from "./post-metrics-collection";
 import { runDuePublishJobs, type PublishRunCounts } from "./publish-runs";
 import { isOverRateLimit, longestRateLimitWindowSeconds, RATE_LIMITS } from "./rate-limit";
@@ -26,6 +35,8 @@ export type CleanupCounts = {
   sessions: number;
   verifications: number;
   oauthStates: number;
+  telegramLinkCodes: number;
+  telegramPendingConnections: number;
 };
 
 // Only the checks change these, to try small batches and a used-up time budget.
@@ -52,6 +63,7 @@ export async function handleCleanupRequest(
   cleanup: () => Promise<CleanupCounts> = runCleanup,
   publish: (jobStartedAt: number) => Promise<PublishRunCounts> = runDuePublishJobs,
   collectMetrics: (jobStartedAt: number) => Promise<MetricsRunCounts> = collectPostMetrics,
+  catchUp: (jobStartedAt: number) => Promise<AssistantDueCounts> = runAssistantScheduledWork,
 ): Promise<Response> {
   // The route's 300 seconds count from here: the cleanup and the stuck work
   // after the posts only get what the posts left of them.
@@ -72,11 +84,14 @@ export async function handleCleanupRequest(
     // or one stuck call would use up. The cleanup is capped per table, and
     // stuck work starts an item only while its slowest run still fits.
     const published = await publish(jobStartedAt);
+    // People waiting for an answer you didn't give in time (step 51), and
+    // the next "Post for me" posts (step 54).
+    const assistant = await catchUp(jobStartedAt);
     const deleted = await cleanup();
     const retried = await recover(jobStartedAt);
     // Last: a post's numbers can wait a day, a customer's email can't.
     const metrics = await collectMetrics(jobStartedAt);
-    return Response.json({ ...deleted, retried, published, metrics }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ ...deleted, retried, published, assistant, metrics }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     // No customer data passes through here, so the Postgres code, the
     // constraint and the stack frames are logged too (never the message).
@@ -94,6 +109,8 @@ export async function runCleanup(options: CleanupOptions = {}): Promise<CleanupC
     sessions: await deleteInBatches("sessions", deleteExpiredSessions, options),
     verifications: await deleteInBatches("verification links", deleteExpiredVerifications, options),
     oauthStates: await deleteInBatches("social connection attempts", deleteExpiredOauthStates, options),
+    telegramLinkCodes: await deleteInBatches("Telegram link codes", deleteOldTelegramLinkCodes, options),
+    telegramPendingConnections: await deleteInBatches("waiting Telegram connections", deleteOldTelegramPendingConnections, options),
   };
 }
 

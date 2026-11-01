@@ -222,7 +222,7 @@ Evidence is a check file in `scripts/tenant-isolation/` unless it is a code path
 | Stuck work from the daily job | PARTIAL | `stuck-work-checks.ts`; budget can pass 300 s (F3) |
 | Health endpoint; production setting warnings | WORKING | `ops-readiness-checks.ts` |
 | CI workflow | UNVERIFIED | `ops-maintenance-checks.ts` reads `checks.yml`; it has never run |
-| Header: one fixed-height line, fits a phone | UNVERIFIED | Read from `components/app-header.tsx`; no check or render |
+| Header: one fixed-height line, fits a phone | UNVERIFIED | Read from the header file (replaced in step 44 by `components/app-navigation.tsx`); no check or render |
 | Error, not-found and loading states | WORKING | `ui-polish-checks.ts`; loading text isn't announced (role=status) |
 | Destructive buttons ask first | UNVERIFIED | `components/confirm-button.tsx`; no check |
 | Public website (landing, pricing, privacy, terms) | PARTIAL | Static pages; legal pages show a draft notice; two claims to fix (section 4.2) |
@@ -316,7 +316,7 @@ shared navigation and overview (43).
 
 | Piece | Where | Use for the Co-Founder | Mind |
 |---|---|---|---|
-| Signed-in section shell | `lib/login-redirect.ts` SIGNED_IN_SECTIONS, `proxy.ts`, `components/app-frame.tsx`, `components/app-header.tsx` | Login redirect, header, error boundary | A check keeps the proxy matcher and the list equal; session reads go inside Suspense |
+| Signed-in section shell | `lib/login-redirect.ts` SIGNED_IN_SECTIONS, `proxy.ts`, `components/app-frame.tsx`, `components/app-navigation.tsx` (the header until step 44) | Login redirect, header, error boundary | A check keeps the proxy matcher and the list equal; session reads go inside Suspense |
 | Tenant `/db` pattern and lint guard | `db/*.ts`, `eslint.config.mjs` | company_id on every row and WHERE; same-company keys to users | The guard checks imports, not WHERE clauses |
 | Owner gating | `services/setup.ts` ownerGuard, `db/team-members.ts` | Approvals, connecting accounts | Only owner and member roles exist |
 | Offboarding | `db/teammate-access.ts`, `db/unconfirmed-accounts.ts` | Revoke a removed person's drafts, approvals, tokens | New keys to users must be cleared there, or deletes fail |

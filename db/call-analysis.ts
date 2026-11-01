@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "./client";
+import { recordCallDecisionWithin } from "./conversation-links";
 import { calls, type CallOutcome, type DecisionSource } from "./schema";
 import { insertTicketWithNextNumber, type TicketToCreate } from "./ticket-creation";
 
@@ -117,6 +118,7 @@ export async function saveCallDecision(
     if (saved.length === 0) {
       return { saved: false, ticketId: null, assignedToUserId: null };
     }
+    await recordCallDecisionWithin(tx, companyId, callId, ticket !== null);
     if (!ticket) {
       return { saved: true, ticketId: null, assignedToUserId: null };
     }

@@ -18,6 +18,7 @@ import { handlePublishCronRequest } from "@/services/publish-cron";
 import { LONGEST_PUBLISH_RUN_MS, PUBLISH_RUN_BUDGET_MS, runDuePublishJobs, runPublishJobsNow } from "@/services/publish-runs";
 import { RATE_LIMITS } from "@/services/rate-limit";
 import { LONGEST_PREPARATION_MS } from "@/services/social-tokens";
+import { noCatchUp } from "./assistant-check-helpers";
 import { captureConsole, check, runId } from "./helpers";
 import { jobRow, linkedInPosted, makeDue, ownerWithApprovedDraft, realLinkedInAccount, scheduledJobIds, throughFakePlatform } from "./publishing-helpers";
 import { read, withoutComments } from "./source-helpers";
@@ -41,7 +42,7 @@ export async function runPublishingCronChecks() {
       if (authorization) {
         headers.authorization = authorization;
       }
-      return handlePublishCronRequest(new Request("http://localhost/api/cron/publish", { headers }), cronSecret, fakeRun, noMetrics);
+      return handlePublishCronRequest(new Request("http://localhost/api/cron/publish", { headers }), cronSecret, fakeRun, noMetrics, noCatchUp);
     };
     assert.equal((await call(`Bearer ${secret}`, "")).status, 404);
     const refused = await captureConsole(async () => [(await call(null)).status, (await call(`Bearer ${secret}x`)).status, (await call(secret)).status]);
@@ -50,7 +51,7 @@ export async function runPublishingCronChecks() {
     const runsSoFar = (): number => runs.length;
     assert.equal(runsSoFar(), 0, "a refused call ran the queue");
     const answer = await call(`Bearer ${secret}`);
-    assert.deepEqual([answer.status, answer.headers.get("cache-control"), await answer.json()], [200, "no-store", { ...NOTHING_RUN, published: 2, metrics: NO_METRICS }]);
+    assert.deepEqual([answer.status, answer.headers.get("cache-control"), await answer.json()], [200, "no-store", { ...NOTHING_RUN, published: 2, assistant: { answered: 0, alreadyAnswered: 0 }, metrics: NO_METRICS }]);
     assert.ok(runsSoFar() === 1 && Date.now() - runs[0] < 5_000, "the run didn't get the call's start time");
     const busy = `publish-busy-${runId}`;
     let last = 0;
@@ -76,13 +77,13 @@ export async function runPublishingCronChecks() {
     const secret = `daily-shared-${runId}`.padEnd(40, "s");
     const nothingRun = async () => NOTHING_RUN;
     const noWork = async () => ({ emails: 0, calls: 0, generations: 0 });
-    const noCleanup = async () => ({ rateLimitCounters: 0, sessions: 0, verifications: 0, oauthStates: 0 });
+    const noCleanup = async () => ({ rateLimitCounters: 0, sessions: 0, verifications: 0, oauthStates: 0, telegramLinkCodes: 0, telegramPendingConnections: 0 });
     const call = (authorization: string | null) => {
       const headers: Record<string, string> = { "x-forwarded-for": `daily-shared-${runId}` };
       if (authorization) {
         headers.authorization = authorization;
       }
-      return handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers }), secret, noWork, noCleanup, nothingRun, noMetrics);
+      return handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers }), secret, noWork, noCleanup, nothingRun, noMetrics, noCatchUp);
     };
     const strangers = await captureConsole(async () => {
       const statuses: number[] = [];
@@ -116,7 +117,7 @@ export async function runPublishingCronChecks() {
       seen.order.push("cleanup");
       // A moment, as the real cleanup takes: a clock started after it would differ.
       await new Promise((resolve) => setTimeout(resolve, 25));
-      return { rateLimitCounters: 0, sessions: 0, verifications: 0, oauthStates: 0 };
+      return { rateLimitCounters: 0, sessions: 0, verifications: 0, oauthStates: 0, telegramLinkCodes: 0, telegramPendingConnections: 0 };
     };
     const recover = async (jobStartedAt: number) => {
       seen.order.push("recover");
@@ -135,7 +136,7 @@ export async function runPublishingCronChecks() {
       seen.metrics = jobStartedAt;
       return { ...NO_METRICS, collected: 3 };
     };
-    const answer = await handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers }), secret, recover, cleanup, publish, metrics);
+    const answer = await handleCleanupRequest(new Request("http://localhost/api/cron/cleanup", { headers }), secret, recover, cleanup, publish, metrics, noCatchUp);
     assert.equal(answer.status, 200);
     assert.deepEqual(seen.order, ["publish", "cleanup", "recover", "metrics"]);
     assert.ok(seen.publish === seen.recover && seen.publish === seen.metrics && seen.publish >= calledAt && seen.publish - calledAt < 1_000, "the posts, the stuck work and the numbers didn't share the job's clock");

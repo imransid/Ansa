@@ -27,6 +27,7 @@ function refreshOrReturnErrors(result: FormResult): FormErrors | undefined {
   }
   revalidatePath("/team");
   revalidatePath("/dashboard");
+  revalidatePath("/inbox", "layout");
   revalidatePath("/tickets/[ticketNumber]", "page");
   return undefined;
 }

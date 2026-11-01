@@ -299,6 +299,15 @@ Neon keeps point-in-time backups; check the retention on your plan.
 
 Set `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` defaults to `claude-sonnet-5-5`.
 
+The restaurant assistant (step 49) uses a restaurant's own Claude API key
+when an owner saved one on Settings → Assistant, else this one. Its other
+engine, "Claude Code on this computer", runs the Claude Code program on a
+developer's own login (`CLAUDE_CODE_PATH`, unset = `claude` on the PATH):
+development only. Anthropic doesn't allow a product to run on a claude.ai
+login, so production refuses it whatever a restaurant saved, and such a
+restaurant's customers get the holding reply until an owner picks the API
+key. Nothing to set for it in production.
+
 The Anthropic SDK's own logging and tracing are switched off in code
 (adapters/claude.ts), so `ANTHROPIC_LOG=debug` or the
 `ANTHROPIC_OPEN_TELEMETRY_*` settings change nothing: transcripts, customer
@@ -416,6 +425,7 @@ ones (a check keeps the three equal). "Off" means the development stand-in.
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | required with `USE_R2_STORAGE=true` | section 2 |
 | `ANTHROPIC_API_KEY` | required for every AI feature (without it calls escalate and the Co-Founder's AI says it isn't available) | section 5 |
 | `ANTHROPIC_MODEL` | optional (default `claude-sonnet-5-5`) | section 5 |
+| `CLAUDE_CODE_PATH` | never in production (development only: the assistant's Claude Code engine) | section 5 |
 | `CRON_SECRET` | required for both scheduled jobs (`/api/cron/cleanup`, `/api/cron/publish`); without it both answer 404 | section 8 |
 | `USE_STRIPE` | `true` once payments are on (off in production: Billing says it isn't set up) | section 6 |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID` | required with `USE_STRIPE=true` | section 6 |
@@ -424,6 +434,7 @@ ones (a check keeps the three equal). "Off" means the development stand-in.
 | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | the pair, once ansa's Meta app passed review | section 10 |
 | `X_CLIENT_ID`, `X_CLIENT_SECRET` | the pair, once ansa's X app has credits | section 10 |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | the pair, once ansa's Google OAuth client is verified (YouTube) | section 10 |
+| `MESSENGER_VERIFY_TOKEN` | with Messenger: the word Meta's webhook setup checks once (`openssl rand -hex 32`) | section 13 |
 
 **Image and video generation (the Co-Founder's media library).** No image
 service is chosen yet (IMPLEMENTATION_PLAN.md, decision 9; options and prices
@@ -490,6 +501,11 @@ files are copied into R2 at once (a service's links expire within minutes).
   calls with the secret an hour from one address (429 past that). Calls
   without it are refused (401) and never counted, so other customers of a
   pinger service, who share its addresses, can't use those calls up.
+- **"If I haven't answered within N minutes"** (the assistant, step 51)
+  runs from the same `/api/cron/publish` calls, after the due posts, and
+  from the daily job: on Vercel Hobby without a pinger, a person who
+  chose 10 minutes may wait until the next daily run. "I'm away" and the
+  away hours don't need the scheduler: ansa answers at once then.
 - The two webhook routes, both scheduled jobs, the call page ("Analyze now"),
   the Emails page ("Process again"), the Co-Founder's pages that ask Claude
   (the calendar's "Plan the next 2 weeks" too), and the media, draft and
@@ -758,6 +774,82 @@ and note what you find in CLAUDE.md's known gaps:
    within a minute of its time, and the daily job's JSON names what it did.
 8. **An image service**, once chosen (section 7): one image made, copied into
    R2 and shown as AI-generated; a failure ends the request with a code.
+9. **Telegram** (section 12, step 6): connect, a customer's message in, a
+   reply out, a deleted message, and the chatbot removed in Telegram.
+
+## 12. Telegram (ansa's bot)
+
+Restaurants connect their own Telegram account to ansa's one bot as a
+Telegram Business chatbot (step 48, Settings → Connections). Customers write
+to the restaurant's account as always; Telegram passes their messages to
+the bot, and ansa's webhook saves them in the Inbox.
+
+1. **First, check Premium.** In the Telegram app, on an account without
+   Telegram Premium, open Settings → Telegram Business → Chatbots. If
+   Telegram asks for Premium there, every restaurant needs it, and the
+   plan's fallback (a bot per restaurant) has to be built instead. Sources
+   disagreed when step 48 was built.
+2. **Make the bot** with @BotFather: `/newbot`, then Bot Settings →
+   Business Mode → on. Keep "Allow Groups" off: ansa reads private chats
+   only. Its token is the bot: it goes in the host's settings, never in a
+   message, a ticket or a log.
+3. **Set three settings** on the host: `TELEGRAM_BOT_TOKEN` (BotFather's
+   token), `TELEGRAM_BOT_USERNAME` (without `@`, ends in `bot`) and
+   `TELEGRAM_WEBHOOK_SECRET` (`openssl rand -hex 32`). All three or none.
+   Production without them says Telegram isn't set up yet.
+4. **Point the bot at ansa** once the app is deployed: with the production
+   settings in the environment, run `pnpm telegram:webhook set`. It uses
+   `BETTER_AUTH_URL` + `/api/webhooks/telegram` (https only) and asks
+   Telegram for the four kinds of updates ansa reads. A request without the
+   secret header gets `401`; the logs say `Telegram webhook rejected: wrong
+   secret`.
+5. **Development** uses a bot of its own (a second `/newbot`), never the
+   production one: `pnpm telegram:poll` reads it without a public address,
+   and Telegram refuses that while the bot has a webhook
+   (`pnpm telegram:webhook remove`). The checks refuse to run while
+   `TELEGRAM_BOT_TOKEN` is set: comment the three lines out first.
+6. **Check it** with ansa's own test company (section 11): Connect
+   Telegram, Start, add the chatbot, a message from another Telegram
+   account in the Inbox within seconds, a reply from ansa arriving, a
+   message written in the restaurant's own Telegram app shown as "Written
+   in Telegram", a deleted message gone from ansa, and removing the
+   chatbot in Telegram showing "Removed in Telegram".
+
+What stays unconfirmed until then: whether Telegram sends the
+restaurant's own messages to the bot (ansa saves them if it does), and
+what a reply after Telegram's 24 hours answers (ansa refuses it before
+sending).
+
+## 13. Facebook Messenger (customers' messages to a Page)
+
+Restaurants connect their Facebook Page once (Settings → Connections → Connect
+Facebook Page, the same login as posts, step 40): ansa then switches the
+Page's messages on for ansa's Meta app (`subscribed_apps`), and customers'
+messages reach the Inbox (step 53).
+
+1. **Meta app**: the same app as section 10 (`FACEBOOK_APP_ID`,
+   `FACEBOOK_APP_SECRET`), with the Messenger product added. It asks for
+   `pages_messaging` and `pages_manage_metadata` besides the posting
+   permissions: both need App Review (a screencast each) before Pages of
+   other businesses can use them. Until then only Pages of people with a
+   role on the app work (development mode).
+2. **Webhook**: in the app's Messenger settings, Callback URL
+   `BETTER_AUTH_URL` + `/api/webhooks/messenger`, Verify token =
+   `MESSENGER_VERIFY_TOKEN` (`openssl rand -hex 32`), fields `messages` and
+   `message_echoes`. Meta signs every message with the app secret
+   (`X-Hub-Signature-256`); an unsigned or badly signed one gets `401` and
+   the log says `Messenger webhook rejected: bad signature`.
+3. **Pages connected before step 53** lack the messaging permissions:
+   Settings → Connections says so; the owner connects the Page again.
+4. **Check it** with ansa's own test Page: a message from another Facebook
+   account in the Inbox within seconds with the sender's name, ansa's reply
+   arriving, a reply written in Meta Business Suite shown as written there,
+   and a reply after 24 hours refused by ansa before sending.
+
+What stays unconfirmed until then: the exact shape of `message_echoes`
+(ansa skips an echo whose `app_id` is its own app and saves the others as
+the Page's own message), and whether the name lookup needs more than
+`pages_messaging`.
 
 ## Errors
 

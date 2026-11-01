@@ -7,8 +7,6 @@ import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import {
   ACCOUNT_EMAIL_MAX_LENGTH,
-  COMPANY_NAME_MAX_LENGTH,
-  COMPANY_NAME_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   PERSON_NAME_MAX_LENGTH,
@@ -29,15 +27,6 @@ export function SignupForm() {
           {errors.message}
         </p>
       )}
-      <FormField
-        name="companyName"
-        label="Company name"
-        autoComplete="organization"
-        defaultValue={errors?.values?.companyName}
-        minLength={COMPANY_NAME_MIN_LENGTH}
-        maxLength={COMPANY_NAME_MAX_LENGTH}
-        errors={errors?.fieldErrors?.companyName}
-      />
       <FormField
         name="name"
         label="Your name"

@@ -1,4 +1,4 @@
-// Analytics page checks (step 42): in the Co-Founder's row of links after
+// Analytics page checks (step 42): in the Co-Founder's page list after
 // Queue, bringing logged-out people back to itself, allowed 300 seconds
 // (the review asks Claude); its data is the company's own: the period's
 // posts with their newest numbers, totals that add only the numbers posts
@@ -18,7 +18,7 @@ import { fakePlatform } from "./social-helpers";
 import { read, withoutComments } from "./source-helpers";
 
 export async function runAnalyticsPageChecks() {
-  await check("analytics page: in the Co-Founder's row of links after Queue, with its h1, bringing logged-out people back to itself, allowed 300 seconds (the review asks Claude in its action); the review form sends from onSubmit with the browser's timezone; its problems list has no buttons", async () => {
+  await check("analytics page: in the Co-Founder's page list after Queue, with its h1, bringing logged-out people back to itself, allowed 300 seconds (the review asks Claude in its action); the review form sends from onSubmit with the browser's timezone; its problems list has no buttons", async () => {
     const segments = COFOUNDER_PAGES.map((page) => page.segment);
     assert.equal(segments[segments.indexOf("queue") + 1], "analytics");
     const page = withoutComments(await read("app/cofounder/analytics/page.tsx"));

@@ -106,7 +106,7 @@ export const SOCIAL_PLATFORM_FACTS: Record<SocialPlatform, SocialPlatformFacts> 
     metrics: ["Views", "Reactions", "Clicks", "Comments", "Shares"],
     metricsNote: "Analytics reads reactions, comments and shares; views and clicks are Page insights, which need a permission ansa doesn't ask for yet (Facebook replaced impressions with views in 2025-2026).",
     accessBlocker:
-      "ansa's Meta app needs App Review (a screencast for each permission) for pages_show_list, pages_read_engagement and pages_manage_posts, and Business Verification for Advanced Access, before it can post to Pages of businesses that have no role on the app.",
+      "ansa's Meta app needs App Review (a screencast for each permission) for pages_show_list, pages_read_engagement and pages_manage_posts (posts), and pages_messaging and pages_manage_metadata (Messenger, step 53), and Business Verification for Advanced Access, before it can post to or answer for Pages of businesses that have no role on the app.",
   },
   x: {
     accountKind: "account",
