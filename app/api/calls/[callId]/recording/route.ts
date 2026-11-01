@@ -1,3 +1,5 @@
+import { isCoreOn } from "@/lib/core-api";
+import { getRecordingFromCore } from "@/lib/core-views/call-recording";
 import { fileUnavailableResponse, privateFileResponse } from "@/lib/private-file-response";
 import { getSessionContext } from "@/lib/session";
 import { getRecordingForSession } from "@/services/call-recordings";
@@ -9,7 +11,9 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/call
   if (!session) {
     return new Response(null, { status: 401 });
   }
-  const access = await getRecordingForSession(session, (await params).callId);
+  const { callId } = await params;
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const access = isCoreOn() ? await getRecordingFromCore(callId) : await getRecordingForSession(session, callId);
   if (access === "rate-limited" || access === null) {
     return fileUnavailableResponse(access);
   }

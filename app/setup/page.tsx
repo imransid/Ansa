@@ -18,8 +18,9 @@ export const metadata: Metadata = { title: "Setup - ansa" };
 
 // "Add to knowledge" reads a whole document (a PDF of up to 4 MB) inside this
 // page's server action: the host's default time limit can be as short as 10
-// seconds.
-export const maxDuration = 60;
+// seconds. 150: on the new backend (core) a PDF's text is read by the brain,
+// which may take up to 120 seconds.
+export const maxDuration = 150;
 
 export default function SetupPage() {
   return (
@@ -35,7 +36,7 @@ async function SetupContent() {
   const session = await requireSessionContext("/setup");
   // The new backend when it is switched on (lib/core-api.ts), else services/.
   // Hiding the forms is only for a tidy page: both refuse non-owners.
-  const { companyName, setup, documents, isOwner } = isCoreOn() ? await getSetupFromCore(session) : await getSetupFromServices(session);
+  const { companyName, setup, documents, isOwner } = isCoreOn() ? await getSetupFromCore() : await getSetupFromServices(session);
 
   return (
     <>
@@ -99,13 +100,8 @@ async function getSetupFromServices(session: SessionContext) {
   return { companyName: summary.companyName, setup, documents, isOwner: session.role === "owner" };
 }
 
-// The same through the new backend, but for the last email's story (what
-// became of it): core doesn't answer that yet, so services/ reads it.
-async function getSetupFromCore(session: SessionContext) {
-  const [support, companyName, lastInboundEmail] = await Promise.all([
-    getSupportSetupFromCore(),
-    getCompanyNameFromCore(),
-    getSetupForSession(session).then((setup) => setup.lastInboundEmail),
-  ]);
-  return { companyName, setup: { ...support.setup, lastInboundEmail }, documents: support.documents, isOwner: support.isOwner };
+// The same through the new backend.
+async function getSetupFromCore() {
+  const [support, companyName] = await Promise.all([getSupportSetupFromCore(), getCompanyNameFromCore()]);
+  return { companyName, setup: support.setup, documents: support.documents, isOwner: support.isOwner };
 }

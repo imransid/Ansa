@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageLoading } from "@/components/page-loading";
 import { isCoreOn } from "@/lib/core-api";
-import { getHomeListsFromCore, type HomeLists } from "@/lib/core-views/home";
+import { getHomeFromCore, type HomeData } from "@/lib/core-views/home";
 import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext, type SessionContext } from "@/lib/session";
 import { getSetupStateForSession } from "@/services/assistant-settings";
@@ -45,8 +45,6 @@ export default function HomePage() {
 async function HomeContent() {
   const session = await requireSessionContext("/dashboard");
   // The new backend when it is switched on (lib/core-api.ts), else services/.
-  // Core doesn't give Home's status (Presence), the business's numbers, the
-  // undelivered emails or the first-run hints yet: those stay on services/.
   const coreOn = isCoreOn();
   // An owner whose restaurant isn't set up yet goes through the setup first
   // (step 45): a new owner lands here after confirming their email.
@@ -54,14 +52,8 @@ async function HomeContent() {
   if (!setup.finished && setup.canSetUp) {
     redirect("/welcome");
   }
-  const [undeliveredEmails, hints, overview, presence, lists] = await Promise.all([
-    countUndeliveredCustomerEmailsForSession(session),
-    getFirstRunHintsForSession(session),
-    getBusinessOverviewForSession(session),
-    getPresenceForSession(session),
-    coreOn ? getHomeListsFromCore() : getHomeListsForSession(session),
-  ]);
-  const { activity, awaySummary, gettingStarted, needsYou, newOrders } = lists;
+  const home = coreOn ? await getHomeFromCore() : await getHomeFromServices(session);
+  const { undeliveredEmails, hints, overview, activity, presence, awaySummary, gettingStarted, needsYou, newOrders } = home;
   const personal = presence.kind === "personal";
 
   return (
@@ -85,17 +77,20 @@ async function HomeContent() {
   );
 }
 
-// Home's lists from services/: what's left to set up, what ansa did while
-// you were away, who needs you, new orders and ansa's newest work.
-async function getHomeListsForSession(session: SessionContext): Promise<HomeLists> {
-  const [activity, awaySummary, gettingStarted, needsYou, newOrders] = await Promise.all([
+// Everything Home shows, from services/.
+async function getHomeFromServices(session: SessionContext): Promise<HomeData> {
+  const [undeliveredEmails, hints, overview, activity, presence, awaySummary, gettingStarted, needsYou, newOrders] = await Promise.all([
+    countUndeliveredCustomerEmailsForSession(session),
+    getFirstRunHintsForSession(session),
+    getBusinessOverviewForSession(session),
     getAssistantActivityForSession(session),
+    getPresenceForSession(session),
     getAwaySummaryForSession(session),
     getGettingStartedForSession(session),
     getNeedsYouForSession(session),
     countNewOrdersForSession(session),
   ]);
-  return { activity, awaySummary, gettingStarted, needsYou, newOrders };
+  return { undeliveredEmails, hints, overview, activity, presence, awaySummary, gettingStarted, needsYou, newOrders };
 }
 
 // Customers who were never told their request is solved (step 27): otherwise

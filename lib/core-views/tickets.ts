@@ -1,10 +1,25 @@
 import "server-only";
 import { cache } from "react";
 import { callCore } from "@/lib/core-api";
+import {
+  toCustomerEmailSummary,
+  toOriginalEmail,
+  toRelatedArticle,
+  toSameCustomerTicket,
+  toTicketHistory,
+  type CoreHistoryEntry,
+  type CoreLatestEmail,
+  type CoreOriginalEmail,
+  type CoreSameCustomer,
+} from "@/lib/core-views/ticket-context";
 import type { TicketListQuery } from "@/lib/validation/list-queries";
 import type { CategoryChoice } from "@/services/categories";
+import type { CustomerEmailSummary } from "@/services/customer-emails";
+import type { OriginalEmail } from "@/services/inbound-emails";
+import type { RelatedArticle } from "@/services/knowledge-search";
 import type { AssignableUser } from "@/services/team";
-import type { TicketDetail, TicketListItem, TicketViewCounts } from "@/services/tickets";
+import type { TicketHistory } from "@/services/ticket-history";
+import type { SameCustomerTicket, TicketDetail, TicketListItem, TicketViewCounts } from "@/services/tickets";
 
 // The request (ticket) screens through the new backend (core's
 // /api/v1/requests), in the shapes the pages already read: All requests, one
@@ -38,12 +53,36 @@ type CoreRequest = {
   conversationId: string | null;
   callId: string | null;
   createdAt: string;
+  // The newest 200 entries, oldest first.
+  history: CoreHistoryEntry[];
+  olderEntriesHidden: boolean;
+};
+
+// Everything core's request page answers (ticket-context.ts has the parts around the request).
+type CoreRequestPage = {
+  request: CoreRequest;
+  people: AssignableUser[];
+  categories: string[];
+  latestEmail: CoreLatestEmail | null;
+  originalEmail: CoreOriginalEmail | null;
+  sameCustomer: CoreSameCustomer[];
+  relatedKnowledge: RelatedArticle[];
 };
 
 type CoreLine = Omit<TicketListItem, "ticketNumber" | "createdAt"> & { number: number; createdAt: string };
 
-// One request's page: the request, who it can be given to, the categories.
-export type RequestPage = { ticket: TicketView; assigneeChoices: AssignableUser[]; categoryNames: string[] };
+// One request's page: the request, who it can be given to, the categories,
+// and everything its sections show around it.
+export type RequestPage = {
+  ticket: TicketView;
+  assigneeChoices: AssignableUser[];
+  categoryNames: string[];
+  latestEmail: CustomerEmailSummary | null;
+  originalEmail: OriginalEmail | null;
+  sameCustomerTickets: SameCustomerTicket[];
+  relatedArticles: RelatedArticle[];
+  history: TicketHistory;
+};
 
 // One page of All requests in one view, with the search, and every view's count.
 export async function listRequestsFromCore(page: number, query: TicketListQuery): Promise<{ tickets: TicketListItem[]; counts: TicketViewCounts }> {
@@ -59,20 +98,23 @@ export async function listRequestsFromCore(page: number, query: TicketListQuery)
 // (the page's not-found). One read per page view: the tab title, the page
 // and a conversation's request box may all ask for it.
 export const getRequestPageFromCore = cache(async (ticketNumber: string): Promise<RequestPage | null> => {
-  const answer = await callCore<{ request: CoreRequest; people: AssignableUser[]; categories: string[] }>(
-    "GET",
-    `/api/v1/requests/${encodeURIComponent(ticketNumber)}`,
-  );
+  const answer = await callCore<CoreRequestPage>("GET", `/api/v1/requests/${encodeURIComponent(ticketNumber)}`);
   if (!answer.ok && answer.status === 404) {
     return null;
   }
   if (!answer.ok) {
     throw new Error(`Core answered ${answer.status}`);
   }
+  const page = answer.data;
   return {
-    ticket: toTicketView(answer.data.request),
-    assigneeChoices: answer.data.people.map((person) => ({ id: person.id, name: person.name, email: person.email })),
-    categoryNames: answer.data.categories,
+    ticket: toTicketView(page.request),
+    assigneeChoices: page.people.map((person) => ({ id: person.id, name: person.name, email: person.email })),
+    categoryNames: page.categories,
+    latestEmail: toCustomerEmailSummary(page.latestEmail),
+    originalEmail: toOriginalEmail(page.originalEmail),
+    sameCustomerTickets: page.sameCustomer.map(toSameCustomerTicket),
+    relatedArticles: page.relatedKnowledge.map(toRelatedArticle),
+    history: toTicketHistory(page.request.history, page.request.olderEntriesHidden),
   };
 });
 
@@ -102,8 +144,8 @@ function toListItem(line: CoreLine): TicketListItem {
   };
 }
 
-// Field by field: core's answer also holds the history (notes included),
-// which the request's own view doesn't carry around.
+// Field by field: core's request also holds the history (notes included),
+// which goes to the page apart (RequestPage.history), not with the request.
 function toTicketView(request: CoreRequest): TicketView {
   return {
     id: request.id,

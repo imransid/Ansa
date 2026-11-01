@@ -1,22 +1,18 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { connectStandInTelegramAction, disconnectTelegramAction, startTelegramConnectAction } from "@/app/actions/channels";
 import { EmailConnection, PhoneConnection, PostingPlatforms } from "@/components/channels/more-connections";
 import { MessengerSection } from "@/components/channels/messenger-section";
-import { TelegramConnectButton } from "@/components/channels/telegram-connect-button";
-import { ConfirmButton } from "@/components/confirm-button";
-import { LocalDateTime } from "@/components/local-date-time";
 import { PageLoading } from "@/components/page-loading";
-import { StatusDot } from "@/components/status-dot";
 import { isCoreOn } from "@/lib/core-api";
 import { getConnectionsFromCore, type ConnectionsPage } from "@/lib/core-views/channels";
 import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { CONNECTION_STATUS_TEXT } from "@/lib/telegram";
 import { getSetupStateForSession } from "@/services/assistant-settings";
 import { getSetupForSession } from "@/services/setup";
-import { getSocialAccountsPageForSession } from "@/services/social-accounts";
+import { getSocialAccountsPageForSession, type PlatformView, type SocialAccountsPage } from "@/services/social-accounts";
 import { getChannelsPageForSession } from "@/services/telegram-connect";
+import { MessengerFromCore } from "./messenger-from-core";
+import { TelegramSection } from "./telegram-section";
 
 export const metadata: Metadata = { title: "Connections - ansa" };
 
@@ -42,15 +38,38 @@ export default function ChannelsSettingsPage() {
 
 async function Channels() {
   const session = await requireSessionContext("/settings/channels");
-  const [page, social] = await Promise.all([
-    // The new backend when it is switched on (lib/core-api.ts), else services/.
-    isCoreOn() ? getConnectionsFromCore() : getConnectionsFromServices(session),
-    // Always services/: core doesn't say yet whether Facebook is set up
-    // (its mode), nor anything of LinkedIn, X and YouTube.
-    getSocialAccountsPageForSession(session),
-  ]);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  if (isCoreOn()) {
+    const page = await getConnectionsFromCore();
+    // LinkedIn, X and YouTube stay on services/ (core doesn't do those
+    // platforms yet), read only for a business, the one that shows them.
+    const social = page.kind === "business" ? await getSocialAccountsPageForSession(session) : null;
+    return (
+      <ConnectionsSections
+        page={page}
+        messenger={<MessengerFromCore messenger={page.messenger} canManage={page.canManage} personal={page.kind === "personal"} />}
+        posting={social && <PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
+      />
+    );
+  }
+  const [page, social] = await Promise.all([getConnectionsFromServices(session), getSocialAccountsPageForSession(session)]);
   const facebook = social.platforms.find((platform) => platform.platform === "facebook");
-  const otherPlatforms = social.platforms.filter((platform) => platform.platform !== "facebook");
+  return (
+    <ConnectionsSections
+      page={page}
+      messenger={facebook && <MessengerSection facebook={facebook} canManage={social.canManage} personal={page.kind === "personal"} />}
+      posting={<PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
+    />
+  );
+}
+
+// LinkedIn, X and YouTube: where ansa can post besides Facebook.
+function postingPlatformsOf(social: SocialAccountsPage): PlatformView[] {
+  return social.platforms.filter((platform) => platform.platform !== "facebook");
+}
+
+// The page's sections, whichever backend read them.
+function ConnectionsSections({ page, messenger, posting }: { page: ConnectionsPage; messenger: ReactNode; posting: ReactNode }) {
   return (
     <div className="grid gap-6">
       <section aria-labelledby="telegram-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
@@ -59,12 +78,12 @@ async function Channels() {
         </h2>
         <TelegramSection page={page} />
       </section>
-      {facebook && (
+      {messenger && (
         <section aria-labelledby="messenger-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
           <h2 id="messenger-heading" className="text-lg font-semibold">
             Facebook Messenger
           </h2>
-          <MessengerSection facebook={facebook} canManage={social.canManage} personal={page.kind === "personal"} />
+          {messenger}
         </section>
       )}
       <section aria-labelledby="email-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
@@ -79,13 +98,13 @@ async function Channels() {
         </h2>
         <PhoneConnection lines={page.phoneLines} />
       </section>
-      {page.kind === "business" && (
+      {page.kind === "business" && posting && (
         <section aria-labelledby="posting-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
           <h2 id="posting-heading" className="text-lg font-semibold">
             Posts on other platforms
           </h2>
           <p className="text-sm text-muted-foreground">Where ansa can post besides your Facebook Page.</p>
-          <PostingPlatforms platforms={otherPlatforms} canManage={social.canManage} />
+          {posting}
         </section>
       )}
     </div>
@@ -104,91 +123,4 @@ async function getConnectionsFromServices(session: SessionContext): Promise<Conn
     lastEmailAt: mail.lastInboundEmail?.receivedAt ?? null,
     phoneLines: mail.phoneLines.map((line) => ({ id: line.vapiPhoneNumberId, lastCallAt: line.lastCallAt })),
   };
-}
-
-function TelegramSection({ page }: { page: ConnectionsPage }) {
-  const { telegram } = page;
-  if (telegram) {
-    return (
-      <div className="grid gap-3">
-        <StatusDot tone={telegram.status === "connected" ? "success" : "attention"}>{CONNECTION_STATUS_TEXT[telegram.status]}</StatusDot>
-        <p className="text-sm">
-          <span className="font-medium">{telegram.displayName}</span>
-          {telegram.isStandIn ? " (development stand-in)" : ""}, since <LocalDateTime iso={telegram.connectedAt.toISOString()} />
-        </p>
-        <ConnectionAdvice status={telegram.status} isStandIn={telegram.isStandIn} />
-        {page.canManage && (
-          <ConfirmButton
-            action={disconnectTelegramAction}
-            fields={{}}
-            label="Disconnect"
-            accessibleLabel="Disconnect Telegram"
-            question="Disconnect Telegram? Customers' messages stop arriving in ansa, and ansa stops replying. To remove ansa from Telegram too, open Telegram Business → Chatbots."
-            confirmLabel="Disconnect"
-            pendingLabel="Disconnecting..."
-          />
-        )}
-      </div>
-    );
-  }
-  if (page.telegramMode === "not-set-up") {
-    return <p className="text-sm text-muted-foreground">Telegram isn&apos;t set up by ansa yet.</p>;
-  }
-  if (!page.canManage) {
-    return <p className="text-sm text-muted-foreground">Not connected. An owner connects Telegram here.</p>;
-  }
-  if (page.telegramMode === "stand-in") {
-    return (
-      <div className="grid gap-3">
-        <p className="text-sm text-muted-foreground">
-          Development: ansa&apos;s bot isn&apos;t set (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET), so this connects
-          a stand-in account. Bring a customer&apos;s message in with{" "}
-          <code className="rounded bg-muted px-1">pnpm simulate:telegram &lt;your email&gt; &quot;Customer name&quot; &quot;Message&quot;</code>.
-        </p>
-        <TelegramConnectButton action={connectStandInTelegramAction} label="Connect a stand-in Telegram account" />
-      </div>
-    );
-  }
-  return (
-    <div className="grid gap-3">
-      <ol className="grid list-decimal gap-1 pl-5 text-sm">
-        <li>Press Connect Telegram, then Open Telegram, and press Start in ansa&apos;s chat.</li>
-        <li>In Telegram, open Settings → Telegram Business → Chatbots and add ansa&apos;s bot.</li>
-        <li>Choose the chats ansa may answer, and allow it to reply.</li>
-      </ol>
-      <p className="text-sm text-muted-foreground">
-        Telegram may ask for Telegram Premium to add a chatbot. Customers&apos; messages are read by ansa&apos;s AI once the assistant
-        answers on its own.
-      </p>
-      <TelegramConnectButton action={startTelegramConnectAction} label="Connect Telegram" />
-    </div>
-  );
-}
-
-function ConnectionAdvice({ status, isStandIn }: { status: "connected" | "cannot_reply" | "removed_in_telegram"; isStandIn: boolean }) {
-  if (status === "cannot_reply") {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Messages arrive, but replies can&apos;t go. In Telegram, open Settings → Telegram Business → Chatbots and allow ansa to reply.
-      </p>
-    );
-  }
-  if (status === "removed_in_telegram") {
-    return (
-      <p className="text-sm text-muted-foreground">
-        ansa was removed in Telegram, so no messages arrive. Add it back under Telegram Business → Chatbots, or disconnect here to connect
-        another account.
-      </p>
-    );
-  }
-  if (isStandIn) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Bring a customer&apos;s message in with{" "}
-        <code className="rounded bg-muted px-1">pnpm simulate:telegram &lt;your email&gt; &quot;Customer name&quot; &quot;Message&quot;</code>.
-        Replies are written to .dev-messages/.
-      </p>
-    );
-  }
-  return <p className="text-sm text-muted-foreground">Customers&apos; messages arrive in your Inbox, and you can reply from there.</p>;
 }

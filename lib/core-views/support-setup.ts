@@ -24,6 +24,8 @@ function savedOrErrors(answer: CoreAnswer<unknown>): FormResult {
 // A document as the page lists it (core never sends where it is stored).
 export type ListedDocument = Omit<CompanyDocument, "storageKey">;
 
+type LastEmail = NonNullable<SetupOverview["lastInboundEmail"]>;
+
 type CoreSupportPage = {
   overview: {
     replyToEmail: string | null;
@@ -34,23 +36,26 @@ type CoreSupportPage = {
     documents: number;
   };
   forwardingAddress: string;
+  // What became of the newest email that reached the forwarding address.
+  lastEmail: (Omit<LastEmail, "receivedAt"> & { receivedAt: string }) | null;
   phoneLines: { id: string; lastCallAt: string | null }[];
   documents: (Omit<ListedDocument, "createdAt"> & { createdAt: string })[];
   canManage: boolean;
 };
 
-// Everything the page shows but the last email's story (core answers only
-// when it arrived, not what became of it: the page reads that from services/),
-// the documents, and whether this person is an owner.
-export async function getSupportSetupFromCore(): Promise<{ setup: Omit<SetupOverview, "lastInboundEmail">; documents: ListedDocument[]; isOwner: boolean }> {
+// Everything the page shows: the addresses, the last email and what became
+// of it, the phone lines, the checklist's counts, the documents, and whether
+// this person is an owner.
+export async function getSupportSetupFromCore(): Promise<{ setup: SetupOverview; documents: ListedDocument[]; isOwner: boolean }> {
   const answer = await callCore<CoreSupportPage>("GET", "/api/v1/settings/support");
   if (!answer.ok) {
     throw new Error(`Core answered ${answer.status}`);
   }
-  const { overview, forwardingAddress, phoneLines, documents, canManage } = answer.data;
+  const { overview, forwardingAddress, lastEmail, phoneLines, documents, canManage } = answer.data;
   return {
     setup: {
       replyToEmail: overview.replyToEmail,
+      lastInboundEmail: lastEmail ? { ...lastEmail, receivedAt: new Date(lastEmail.receivedAt) } : null,
       inboundAddresses: overview.supportAddresses,
       phoneLines: phoneLines.map((line) => ({ vapiPhoneNumberId: line.id, lastCallAt: line.lastCallAt ? new Date(line.lastCallAt) : null })),
       activeCategoryCount: overview.activeCategories,
@@ -71,6 +76,11 @@ export async function getCompanyNameFromCore(): Promise<string> {
     throw new Error(`Core answered ${answer.status}`);
   }
   return answer.data.profile.companyName;
+}
+
+// Renames the company (owners): also the sender name of every customer email.
+export async function setCompanyNameThroughCore(companyName: unknown): Promise<FormResult> {
+  return savedOrErrors(await callCore("POST", "/api/v1/settings/support/company-name", { companyName: text(companyName) }));
 }
 
 // "" clears it: replies then go to the forwarding address.

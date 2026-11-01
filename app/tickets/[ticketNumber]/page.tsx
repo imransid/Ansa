@@ -73,16 +73,9 @@ async function TicketContent({
     notFound();
   }
 
-  // The new backend doesn't give the latest customer email, the original
-  // email, the same customer's other tickets or the history yet: those come
-  // from services/ either way.
-  const [{ assigneeChoices, categoryNames }, latestEmail, originalEmail, sameCustomerTickets, history] = await Promise.all([
-    fromCore ?? readMenusFromServices(session),
-    getLatestCustomerEmailForSession(session, ticket.id),
-    getOriginalEmailForSession(session, ticket.id),
-    listOtherOpenTicketsFromCustomerForSession(session, ticket.id),
-    getTicketHistoryForSession(session, ticket.id),
-  ]);
+  // What the page shows around the ticket: core sends it with the request.
+  const { assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history } =
+    fromCore ?? (await readSectionsFromServices(session, ticket.id));
 
   return (
     <>
@@ -98,6 +91,7 @@ async function TicketContent({
         subject={ticket.subject}
         category={ticket.category}
         isSolved={ticket.status === "solved"}
+        articles={fromCore?.relatedArticles}
       />
       <CustomerEmailSection
         // A new key after every save puts the section back into "view" mode.
@@ -123,10 +117,18 @@ async function TicketContent({
   );
 }
 
-// Who the ticket can be given to and the categories, from services/ (the old backend).
-async function readMenusFromServices(session: SessionContext): Promise<Pick<RequestPage, "assigneeChoices" | "categoryNames">> {
-  const [assigneeChoices, categoryNames] = await Promise.all([listAssigneeChoicesForSession(session), listActiveCategoryNamesForSession(session)]);
-  return { assigneeChoices, categoryNames };
+// Everything the page shows around the ticket, from services/ (the old
+// backend). Related knowledge is searched in its own section instead.
+async function readSectionsFromServices(session: SessionContext, ticketId: string): Promise<Omit<RequestPage, "ticket" | "relatedArticles">> {
+  const [assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history] = await Promise.all([
+    listAssigneeChoicesForSession(session),
+    getLatestCustomerEmailForSession(session, ticketId),
+    listActiveCategoryNamesForSession(session),
+    getOriginalEmailForSession(session, ticketId),
+    listOtherOpenTicketsFromCustomerForSession(session, ticketId),
+    getTicketHistoryForSession(session, ticketId),
+  ]);
+  return { assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history };
 }
 
 // Where the customer's email came from, shown next to the address.

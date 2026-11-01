@@ -10,6 +10,7 @@ import {
   editArticleThroughCore,
   importDocumentThroughCore,
   importWebPageThroughCore,
+  testKnowledgeThroughCore,
 } from "@/lib/core-views/knowledge";
 import { withTypedValues, type FormErrors, type FormResult, type SaveState } from "@/lib/form-result";
 import type { KnowledgeSlice } from "@/lib/knowledge/prompt-slice";
@@ -28,12 +29,13 @@ import { importWebPageToKnowledgeForSession } from "@/services/knowledge-web-imp
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // call a service (which checks company, role, input and rate limits),
 // refresh the pages that show knowledge. Each uses the new backend when it
-// is switched on (lib/core-api.ts), else services/; "Test what the AI finds"
-// stays on services/ (core doesn't answer each piece's text or the phone line).
+// is switched on (lib/core-api.ts), else services/.
 
 // What "Test what the AI finds" shows: the hits and the phone assistant's
-// one line for them, or why there are none.
-export type KnowledgeTestState = { slice?: KnowledgeSlice; callAnswer?: string; errors?: FormErrors; question?: string };
+// one line for them, or why there are none. readByChatAssistant: the new
+// backend answered, so the hits are exactly what ansa's chat assistant
+// reads (its best 3 pieces within 3,000 characters), and the box says so.
+export type KnowledgeTestState = { slice?: KnowledgeSlice; callAnswer?: string; errors?: FormErrors; question?: string; readByChatAssistant?: boolean };
 
 // What an import's button or form shows after it ran.
 export type ImportState = { result?: ImportResult; values?: Record<string, string> };
@@ -105,6 +107,10 @@ export async function deleteKnowledgeArticleAction(_previous: FormErrors | undef
 export async function testKnowledgeSearchAction(_previous: KnowledgeTestState | undefined, formData: FormData): Promise<KnowledgeTestState> {
   const session = await requireSessionContext();
   const question = String(formData.get("question") ?? "").slice(0, 1000);
+  if (isCoreOn()) {
+    const result = await testKnowledgeThroughCore(formData.get("question"));
+    return result.ok ? { slice: result.slice, callAnswer: result.callAnswer, question, readByChatAssistant: true } : { errors: result.errors, question };
+  }
   const result = await testKnowledgeSearchForSession(session, { question: formData.get("question") });
   return result.ok ? { slice: result.slice, callAnswer: result.callAnswer, question } : { errors: result.errors, question };
 }

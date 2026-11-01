@@ -3,7 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { KNOWLEDGE_KIND_LABELS } from "@/lib/knowledge/kinds";
 import type { SessionContext } from "@/lib/session";
-import { listRelatedKnowledgeForTicketForSession } from "@/services/knowledge-search";
+import { listRelatedKnowledgeForTicketForSession, type RelatedArticle } from "@/services/knowledge-search";
 
 type KnowledgeSectionProps = {
   session: SessionContext;
@@ -11,6 +11,9 @@ type KnowledgeSectionProps = {
   subject: string;
   category: string | null;
   isSolved: boolean;
+  // Already found: the new backend sends them with the request
+  // (lib/core-api.ts). Left out, they are searched here (services/).
+  articles?: RelatedArticle[];
 };
 
 // "Related knowledge" (step 34): the company's approved support articles
@@ -18,12 +21,12 @@ type KnowledgeSectionProps = {
 // it. On a solved ticket, "Save as knowledge" writes its fix down for next
 // time. The search has its own <Suspense>, so the rest of the page never
 // waits for it.
-export function KnowledgeSection({ session, ticketNumber, subject, category, isSolved }: KnowledgeSectionProps) {
+export function KnowledgeSection({ session, ticketNumber, subject, category, isSolved, articles }: KnowledgeSectionProps) {
   return (
     <section className="grid min-w-0 gap-2 wrap-anywhere">
       <h2 className="text-lg font-semibold">Related knowledge</h2>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Looking for related articles...</p>}>
-        <RelatedArticles session={session} subject={subject} category={category} />
+        <RelatedArticles session={session} subject={subject} category={category} articles={articles} />
       </Suspense>
       {isSolved && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -37,8 +40,8 @@ export function KnowledgeSection({ session, ticketNumber, subject, category, isS
   );
 }
 
-async function RelatedArticles({ session, subject, category }: Omit<KnowledgeSectionProps, "ticketNumber" | "isSolved">) {
-  const articles = await listRelatedKnowledgeForTicketForSession(session, { subject, category });
+async function RelatedArticles({ session, subject, category, articles: found }: Omit<KnowledgeSectionProps, "ticketNumber" | "isSolved">) {
+  const articles = found ?? (await listRelatedKnowledgeForTicketForSession(session, { subject, category }));
   if (articles.length === 0) {
     return <p className="text-sm text-muted-foreground">No approved article matches this ticket.</p>;
   }

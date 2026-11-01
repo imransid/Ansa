@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
+import { isCoreOn } from "@/lib/core-api";
+import { getCallLookupsFromCore } from "@/lib/core-views/calls";
 import { MAX_CALL_LOOKUPS_SHOWN } from "@/lib/knowledge/limits";
 import type { SessionContext } from "@/lib/session";
 import { listKnowledgeLookupsForCallForSession, type CallKnowledgeLookup } from "@/services/knowledge-lookups";
@@ -26,7 +28,11 @@ export function KnowledgeLookups({ session, callId }: KnowledgeLookupsProps) {
 }
 
 async function LookupList({ session, callId }: KnowledgeLookupsProps) {
-  const { lookups, moreNotShown } = await listKnowledgeLookupsForCallForSession(session, callId);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  // Core answers the lookups with the call, read once per request.
+  const { lookups, moreNotShown } = isCoreOn()
+    ? await getCallLookupsFromCore(callId)
+    : await listKnowledgeLookupsForCallForSession(session, callId);
   if (lookups.length === 0) {
     return <p className="text-sm text-muted-foreground">The AI didn&apos;t search the knowledge base during this call.</p>;
   }

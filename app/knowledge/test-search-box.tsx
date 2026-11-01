@@ -11,9 +11,11 @@ import { KNOWLEDGE_QUESTION_MAX_LENGTH } from "@/lib/knowledge/limits";
 // "Test what the AI finds" (step 34): type what a customer might ask and see
 // the approved support articles the AI would get for it, piece by piece, as
 // it would read them, and the one line the phone assistant gets during a
-// call (step 35). A server action, not a link: a question can hold a
-// customer's details, and a URL would keep them in the browser history and
-// the host's logs. Nothing is saved or sent to the AI.
+// call (step 35). Through the new backend (lib/core-api.ts) the pieces are
+// exactly what ansa's chat assistant reads, and the box says so. A server
+// action, not a link: a question can hold a customer's details, and a URL
+// would keep them in the browser history and the host's logs. Nothing is
+// saved or sent to the AI.
 export function TestSearchBox() {
   const [state, action, isSearching] = useActionState(testKnowledgeSearchAction, undefined);
   const problem = state?.errors?.fieldErrors?.question?.[0] ?? state?.errors?.message;
@@ -44,7 +46,9 @@ export function TestSearchBox() {
           </p>
         )}
       </form>
-      {state?.slice && <SearchResults hits={state.slice.hits} promptText={state.slice.text} callAnswer={state.callAnswer} />}
+      {state?.slice && (
+        <SearchResults hits={state.slice.hits} promptText={state.slice.text} callAnswer={state.callAnswer} readByChatAssistant={state.readByChatAssistant === true} />
+      )}
     </section>
   );
 }
@@ -53,9 +57,10 @@ type SearchResultsProps = {
   hits: { title: string; text: string }[];
   promptText: string;
   callAnswer?: string;
+  readByChatAssistant: boolean;
 };
 
-function SearchResults({ hits, promptText, callAnswer }: SearchResultsProps) {
+function SearchResults({ hits, promptText, callAnswer, readByChatAssistant }: SearchResultsProps) {
   if (hits.length === 0) {
     return (
       <div role="status" className="grid gap-3">
@@ -69,9 +74,7 @@ function SearchResults({ hits, promptText, callAnswer }: SearchResultsProps) {
   }
   return (
     <div role="status" className="grid gap-3">
-      <p className="text-sm text-muted-foreground">
-        The AI would get {hits.length === 1 ? "this piece" : `these ${hits.length} pieces`}, best match first:
-      </p>
+      <p className="text-sm text-muted-foreground">{describeHits(hits.length, readByChatAssistant)}</p>
       <ol className="grid gap-3">
         {hits.map((hit, index) => (
           <li key={index} className="grid gap-1 rounded-lg border p-3 text-sm">
@@ -81,12 +84,22 @@ function SearchResults({ hits, promptText, callAnswer }: SearchResultsProps) {
         ))}
       </ol>
       <details className="text-sm">
-        <summary className="cursor-pointer">Show the exact text the AI gets</summary>
+        <summary className="cursor-pointer">{readByChatAssistant ? "Show the exact text the chat assistant gets" : "Show the exact text the AI gets"}</summary>
         <pre className="mt-2 max-h-96 overflow-auto rounded-lg border bg-muted p-3 text-xs whitespace-pre-wrap wrap-anywhere">{promptText}</pre>
       </details>
       {callAnswer && <PhoneAnswer text={callAnswer} />}
     </div>
   );
+}
+
+// Who gets these pieces: ansa's chat assistant when the new backend answered
+// (its best 3, within 3,000 characters), else "the AI" of step 34.
+function describeHits(count: number, readByChatAssistant: boolean): string {
+  const pieces = count === 1 ? "this piece" : `these ${count} pieces`;
+  if (readByChatAssistant) {
+    return `ansa's chat assistant reads exactly ${pieces} for it (its best 3 at most, within 3,000 characters), best match first:`;
+  }
+  return `The AI would get ${pieces}, best match first:`;
 }
 
 // What the phone assistant gets for this question during a call (step 35):

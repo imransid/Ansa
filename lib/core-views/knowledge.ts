@@ -7,6 +7,7 @@ import type { KnowledgeListQuery } from "@/lib/validation/list-queries";
 import { ticketNumberSchema } from "@/lib/validation/tickets";
 import type { ImportResult } from "@/services/knowledge-import";
 import type { KnowledgeArticleListItem, KnowledgeArticlePage, KnowledgeStatusCounts, TicketForArticle } from "@/services/knowledge";
+import type { KnowledgeTestResult } from "@/services/knowledge-search";
 
 // The Knowledge pages through the new backend (core's /api/v1/knowledge),
 // in the shapes the pages and their actions already read.
@@ -157,4 +158,14 @@ export async function importDocumentThroughCore(documentId: unknown): Promise<Im
 // "Import a web page": one public page's text becomes drafts.
 export async function importWebPageThroughCore(url: unknown): Promise<ImportResult> {
   return importOutcome(await callCore("POST", "/api/v1/knowledge/import/web", { url: text(url) }));
+}
+
+// "Test what the AI finds": exactly what ansa's chat assistant reads for
+// this question (its best 3 pieces within 3,000 characters), and the one
+// line the phone assistant hears. Nothing is saved or sent to any AI.
+export async function testKnowledgeThroughCore(question: unknown): Promise<KnowledgeTestResult> {
+  const answer = await callCore<{ slice: { hits: { title: string; text: string }[]; text: string }; callAnswer: string }>("POST", "/api/v1/knowledge/test", {
+    question: text(question),
+  });
+  return answer.ok ? { ok: true, slice: answer.data.slice, callAnswer: answer.data.callAnswer } : { ok: false, errors: toFormErrors(answer) };
 }

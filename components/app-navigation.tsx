@@ -5,7 +5,9 @@ import { logoutAction } from "@/app/actions/auth";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getSessionContext } from "@/lib/session";
+import { isCoreOn } from "@/lib/core-api";
+import { getSidebarFootFromCore } from "@/lib/core-views/sidebar";
+import { getSessionContext, type SessionContext } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { getAssistantGlanceForSession } from "@/services/assistant-settings";
 import { getDashboardSummary } from "@/services/dashboard";
@@ -59,7 +61,12 @@ async function SignedInUser() {
   if (!session) {
     return <SignedInUserPlaceholder />;
   }
-  const [summary, glance] = await Promise.all([getDashboardSummary(session), getAssistantGlanceForSession(session)]);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const foot = isCoreOn() ? await getSidebarFootFromCore() : await readFootFromServices(session);
+  if (!foot) {
+    return <SignedInUserPlaceholder />;
+  }
+  const { summary, glance } = foot;
   return (
     <div className={SIGNED_IN_USER}>
       <span className="flex items-center gap-2 text-xs text-sidebar-foreground">
@@ -96,6 +103,12 @@ async function SignedInUser() {
       </div>
     </div>
   );
+}
+
+// Who you are and your company, what ansa does now and today's hours, from services/.
+async function readFootFromServices(session: SessionContext) {
+  const [summary, glance] = await Promise.all([getDashboardSummary(session), getAssistantGlanceForSession(session)]);
+  return { summary, glance };
 }
 
 function SignedInUserPlaceholder() {

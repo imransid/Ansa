@@ -6,6 +6,7 @@ import {
   addSupportAddressThroughCore,
   deleteDocumentThroughCore,
   removeSupportAddressThroughCore,
+  setCompanyNameThroughCore,
   setReplyToEmailThroughCore,
   uploadDocumentThroughCore,
 } from "@/lib/core-views/support-setup";
@@ -22,13 +23,13 @@ import {
 // Thin, like every action: the services check owner role, input and rate limits.
 // There are no phone number actions: ansa links numbers (pnpm link:phone-line).
 // A refused form gets back what was typed, so it can show it again. Each
-// uses the new backend when it is switched on (lib/core-api.ts), else
-// services/; the company name stays on services/ (core has no endpoint for
-// the name alone yet).
+// uses the new backend when it is switched on (lib/core-api.ts), else services/.
 
 export async function setCompanyNameAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
   const session = await requireSessionContext();
-  const result = await setCompanyNameForSession(session, { companyName: formData.get("companyName") });
+  const result = isCoreOn()
+    ? await setCompanyNameThroughCore(formData.get("companyName"))
+    : await setCompanyNameForSession(session, { companyName: formData.get("companyName") });
   return describeSave(refreshOrReturnErrors(result, formData, ["companyName"]));
 }
 

@@ -82,8 +82,8 @@ async function openSessionThroughCore(path: string, fields: Record<string, strin
   return { ok: true };
 }
 
-// Logout: ends this login and clears its cookie. A login already gone
-// (core answers 401) has nothing left to end.
+// Logout: ends this login (if core still has it) and clears its cookie,
+// which core answers either way.
 export async function logOutThroughCore(): Promise<void> {
   const answer = await callCore<{ cookies: CoreCookie[] }>("POST", "/api/v1/auth/logout");
   if (answer.ok) {

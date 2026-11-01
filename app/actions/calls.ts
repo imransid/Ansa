@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isCoreOn } from "@/lib/core-api";
+import { analyzeCallThroughCore, escalateCallThroughCore } from "@/lib/core-views/calls";
 import type { FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import { analyzeCallForSession } from "@/services/call-analysis";
@@ -9,13 +11,16 @@ import { escalateCallForSession } from "@/services/call-escalation";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // call a service (which checks company and rate limits), refresh pages.
+// Each uses the new backend when it is switched on (lib/core-api.ts), else
+// services/; both answer in the same shapes.
 
 export async function analyzeCallAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
-  const result = await analyzeCallForSession(session, { callId: formData.get("callId") });
+  const input = { callId: formData.get("callId") };
+  const result = isCoreOn() ? await analyzeCallThroughCore(input) : await analyzeCallForSession(session, input);
   if (!result.ok) {
     return result.errors;
   }
@@ -31,11 +36,12 @@ export async function escalateCallAction(
   formData: FormData,
 ): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
-  const result = await escalateCallForSession(session, {
+  const input = {
     callId: formData.get("callId"),
     categoryId: formData.get("categoryId"),
     note: formData.get("note"),
-  });
+  };
+  const result = isCoreOn() ? await escalateCallThroughCore(input) : await escalateCallForSession(session, input);
   // Refreshed even when the escalation was refused: usually a teammate
   // escalated this call a moment before, and the page must swap the form for
   // their ticket.

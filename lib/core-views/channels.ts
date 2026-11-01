@@ -25,15 +25,25 @@ export type ConnectionsPage = {
   phoneLines: { id: string; lastCallAt: Date | null }[];
 };
 
+// Facebook Messenger as the new backend reads it: whether ansa's Meta app is
+// set up here, and the company's Facebook Pages (canMessage: their messages
+// come to ansa).
+export type CoreMessenger = {
+  mode: "real" | "stand-in" | "not-set-up";
+  pages: { id: string; displayName: string; status: string; isStandIn: boolean; canMessage: boolean }[];
+};
+
 type CoreChannels = {
   page: {
     telegram: { displayName: string; status: NonNullable<ConnectionsPage["telegram"]>["status"]; isStandIn: boolean; connectedAt: string } | null;
+    facebookPages: CoreMessenger["pages"];
     forwardingAddress: string;
     lastEmailAt: string | null;
     phoneLines: { id: string; lastCallAt: string | null }[];
   };
   canManage: boolean;
   telegramMode: TelegramMode["kind"];
+  facebookMode: CoreMessenger["mode"];
 };
 
 function dateOrNull(iso: string | null): Date | null {
@@ -44,9 +54,10 @@ function savedOrErrors(answer: CoreAnswer<unknown>): FormResult {
   return answer.ok ? { ok: true } : { ok: false, errors: toFormErrors(answer) };
 }
 
-// Telegram, email forwarding and phone lines (core's channels page), and
-// whether the account is a business or one person (core's setup).
-export async function getConnectionsFromCore(): Promise<ConnectionsPage> {
+// Telegram, Facebook Messenger, email forwarding and phone lines (core's
+// channels page), and whether the account is a business or one person
+// (core's setup).
+export async function getConnectionsFromCore(): Promise<ConnectionsPage & { messenger: CoreMessenger }> {
   const [channels, setup] = await Promise.all([
     callCore<CoreChannels>("GET", "/api/v1/channels"),
     callCore<{ profile: { kind: string } }>("GET", "/api/v1/setup"),
@@ -66,6 +77,7 @@ export async function getConnectionsFromCore(): Promise<ConnectionsPage> {
     forwardingAddress: page.forwardingAddress,
     lastEmailAt: dateOrNull(page.lastEmailAt),
     phoneLines: page.phoneLines.map((line) => ({ id: line.id, lastCallAt: dateOrNull(line.lastCallAt) })),
+    messenger: { mode: channels.data.facebookMode, pages: page.facebookPages },
   };
 }
 
