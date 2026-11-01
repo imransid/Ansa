@@ -29,6 +29,9 @@ func (r *Runner) Try(ctx context.Context, company tenant.CompanyID, text string)
 		return TryResult{}, err
 	}
 	inputs.Request.Conversation = []Line{{Sender: "customer", Text: text}}
+	if err := inputs.AddKnowledge(ctx, r.Pool, company); err != nil {
+		return TryResult{}, err
+	}
 	decision := r.decide(ctx, inputs)
 	label := func(text string) string { return WithAILabel(text, inputs.Name, inputs.Kind, true) }
 	switch decision.Kind {

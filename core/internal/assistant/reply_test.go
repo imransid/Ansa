@@ -246,3 +246,19 @@ func TestAnUnreadableOwnKeyIsNeverReplacedByAnsas(t *testing.T) {
 		t.Fatalf("outcome: %s, %d brain calls", got, w.brainCalls)
 	}
 }
+
+func TestAnApprovedArticleReachesTheBrainAndItsPricesMayBeQuoted(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"Parking is €3 an hour behind the restaurant."}`)
+	owner := database.TestOwner(t, w.pool, w.companyID)
+	var articleID string
+	w.pool.QueryRow(context.Background(), `INSERT INTO knowledge_articles (company_id, title, body, kind, status, created_by_user_id, updated_by_user_id, approved_by_user_id, approved_at)
+		VALUES ($1, 'Parking', 'Parking costs €3 an hour behind the restaurant.', 'faq', 'approved', $2, $2, $2, now()) RETURNING id`, w.companyID, owner).Scan(&articleID)
+	mustExec(t, w.pool, `INSERT INTO knowledge_chunks (company_id, article_id, position, heading, text) VALUES ($1, $2, 0, 'Parking', 'Parking costs €3 an hour behind the restaurant.')`, w.companyID, articleID)
+	turn := w.customerSays("bo", "Where can I park my car?")
+	if got := w.answer(turn); got != OutcomeReplied {
+		t.Fatalf("a price the article states may be quoted: %s", got)
+	}
+	if !strings.Contains(w.sent[0].Knowledge, `<article title="Parking">`) {
+		t.Fatalf("the brain read the article: %q", w.sent[0].Knowledge)
+	}
+}

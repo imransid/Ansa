@@ -70,8 +70,10 @@ now, labelled M1..., with prices as the menu shows them (`money.go`); the
 owner's instructions; active category names; the newest 20 messages of this
 one conversation, decrypted (drafts, discarded and failed ones never reached
 the customer). Never an id. Also what core checks the reply against (menu
-prices plus the delivery fee, the owner's own texts). Knowledge articles join
-when the knowledge module moves (until then `knowledge` is empty). The
+prices plus the delivery fee, the owner's own texts). The best 3 approved
+support articles matching the customer's newest message, within 3,000
+characters, in escaped `<article>` tags (`AddKnowledge`, see
+[knowledge](knowledge.md)); their texts count as the owner's own words. The
 engine goes too: "api_key" with the business's own key decrypted
 (`KeyContext`: `assistant-anthropic-key:<company>`) or nil for ansa's own
 (the brain holds it), or "claude_code" (development only, refused by the

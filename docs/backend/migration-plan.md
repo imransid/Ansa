@@ -66,7 +66,8 @@
 | publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
 | post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
 | publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
-| knowledge base and search | db/knowledge*.ts, lib/knowledge/ | ⬜ |
+| knowledge search and the AI's article slice (the assistant reads them) | db/knowledge-search.ts, lib/knowledge/search-query.ts, prompt-slice.ts | ✅ core/internal/knowledge |
+| knowledge base: writing, approving, imports, the Knowledge page | db/knowledge*.ts, lib/knowledge/ | ⬜ |
 | business profile, plans, calendar, reviews | services/marketing-*.ts, calendar-*.ts, performance-*.ts | ⬜ |
 
 ## Phase 5: support (tickets, calls, email)

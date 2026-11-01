@@ -101,6 +101,9 @@ func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfter
 	if err != nil {
 		return "", err
 	}
+	if err := inputs.AddKnowledge(ctx, r.Pool, turn.CompanyID); err != nil {
+		return "", err
+	}
 	// Someone you marked important always comes to you: no AI answer at all.
 	if info.Important {
 		return OutcomeHandedOver, r.handOver(ctx, turn, info, inputs, Handover{Reason: "important_person", SendHoldingReply: true})
