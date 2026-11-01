@@ -20,7 +20,8 @@ USE_R2_STORAGE (exactly "true" keeps private files in Cloudflare R2, then
 needs R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET;
 production requires it; otherwise `<ANSA_DEV_FOLDER>/.dev-files/`), USE_STRIPE (exactly
 "true" takes real payments, then needs STRIPE_SECRET_KEY,
-STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID), CORE_SCHEDULER (exactly "off":
+STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID), the VAPI_* settings (how Vapi signs and where
+recordings come from: see [calls](calls.md)), CORE_SCHEDULER (exactly "off":
 this process serves requests and runs jobs but none of the periodic work: a
 second core beside a running one, or a preview). The checks of each group
 live in `checks.go`. See `core/.env.core.example`.

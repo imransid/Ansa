@@ -166,3 +166,41 @@ func CreateEmailTicketWithin(ctx context.Context, tx database.Tx, company tenant
 	}
 	return id, routeNewWithin(ctx, tx, company, id, "", NewRequest{CustomerEmail: r.CustomerEmail})
 }
+
+// NewCallRequest is the request of a call a person must follow up.
+type NewCallRequest struct {
+	Subject, Description, CategoryID, CustomerPhone, CallID string
+	// "" = made by the AI's decision; else who escalated it ("escalated").
+	EscalatedBy string
+}
+
+// CreateCallTicketWithin numbers and saves a call's request (channel
+// "phone", one per call: tickets.call_id is unique) inside the caller's
+// transaction, which locked the call's row first; it joins the call's
+// conversation, and is routed as every new request (the same caller's open
+// request's expert first, else by category), its assignee emailed after
+// commit. The category is followed by its id. Returns its id.
+func CreateCallTicketWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, r NewCallRequest) (string, error) {
+	var number int
+	if err := tx.QueryRow(ctx, `UPDATE companies SET last_ticket_number = last_ticket_number + 1 WHERE id = $1 RETURNING last_ticket_number`, company.String()).Scan(&number); err != nil {
+		return "", err
+	}
+	category, err := currentCategoryName(ctx, tx, company, r.CategoryID)
+	if err != nil {
+		return "", err
+	}
+	const insert = `
+		INSERT INTO tickets (company_id, ticket_number, subject, description, channel, category, customer_phone, call_id, conversation_id)
+		VALUES ($1, $2, $3, $4, 'phone', $5, NULLIF($6, ''), $7, (SELECT conversation_id FROM calls WHERE company_id = $1 AND id = $7))
+		RETURNING id`
+	var id string
+	if err := tx.QueryRow(ctx, insert, company.String(), number, r.Subject, r.Description, category, r.CustomerPhone, r.CallID).Scan(&id); err != nil {
+		return "", err
+	}
+	if r.EscalatedBy != "" {
+		if err := recordChangeWithin(ctx, tx, company, id, "escalated", r.EscalatedBy, "", nil); err != nil {
+			return "", err
+		}
+	}
+	return id, routeNewWithin(ctx, tx, company, id, r.EscalatedBy, NewRequest{Phone: r.CustomerPhone})
+}

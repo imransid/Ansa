@@ -18,6 +18,7 @@ var TenantTables = []string{
 	"social_connections", "knowledge_articles", "knowledge_chunks", "business_facts",
 	"inbound_emails", "outgoing_emails", "calls", "invites", "company_billing", "core_jobs",
 	"autopublish_rules", "cofounder_activity", "post_metrics", "oauth_states", "company_documents", "inbound_addresses",
+	"phone_lines", "knowledge_lookups",
 }
 
 // Statements allowed to read across companies: each is listed with why in

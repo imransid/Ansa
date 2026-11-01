@@ -72,6 +72,15 @@ type Config struct {
 	// STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID are required).
 	UseStripe                                           bool
 	StripeSecretKey, StripeWebhookSecret, StripePriceID string
+	// Vapi (phone calls): the webhook's signing secret (empty: the webhook
+	// refuses all) and how Vapi signs, as settings so its real format can be
+	// matched without code changes (the old backend's VAPI_* settings).
+	VapiWebhookSecret, VapiSignatureHeader, VapiTimestampHeader         string
+	VapiSignatureAlgorithm, VapiSignaturePayload, VapiSignatureEncoding string
+	VapiSignaturePrefix, VapiTimestampUnit                              string
+	VapiToleranceSeconds                                                int
+	// Hosts recordings are copied from (VAPI_RECORDING_HOSTS, comma-separated).
+	VapiRecordingHosts []string
 	// CORE_SCHEDULER=off: this process serves requests but runs none of the
 	// periodic work (publishing, Post for me, numbers, catch-up, cleanup):
 	// a second core beside a running one, or a preview.
@@ -116,6 +125,7 @@ func Load(getenv Getenv) (Config, error) {
 		StripePriceID:         getenv("STRIPE_PRICE_ID"),
 		SchedulerOff:          getenv("CORE_SCHEDULER") == "off",
 	}
+	readVapi(&cfg, getenv)
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
 		problems = append(problems, "DATABASE_URL must be a postgres:// address")
@@ -151,6 +161,7 @@ func Load(getenv Getenv) (Config, error) {
 	problems = append(problems, metaProblems(cfg)...)
 	problems = append(problems, storageProblems(cfg)...)
 	problems = append(problems, stripeProblems(cfg)...)
+	problems = append(problems, vapiProblems(cfg)...)
 	if cfg.ScreensSharedSecret != "" && len(cfg.ScreensSharedSecret) < 32 {
 		problems = append(problems, "SCREENS_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)")
 	}

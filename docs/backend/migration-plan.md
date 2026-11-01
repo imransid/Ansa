@@ -74,7 +74,7 @@
 | Module | Old code | Status |
 |---|---|---|
 | tickets, routing, categories, notes, history | db/ticket*.ts, db/routing.ts | ✅ every person's action on requests, typed-in requests, same-customer routing (in core's API) |
-| calls (Vapi webhook, call brain, recordings) | services/vapi-*.ts, lib/call-brain/ | ⬜ |
+| calls (Vapi webhook, the live knowledge search, call brain, recordings, the Calls page, escalation) | services/vapi-*.ts, call-*.ts, lib/call-brain/ | ✅ core/internal/calls, core/internal/download; brain/brain/calls (not tried against a real Vapi account) |
 | email in (Resend webhook, filters, triage) | services/inbound-email-*.ts, lib/email-triage/ | ✅ core/internal/resend, inbound; brain/brain/email (core's jobs retry an email by themselves; "Process again" on the Emails page) |
 | email out (outbox, solved emails) | services/customer-emails.ts, lib/send-email.ts | ✅ core/internal/outbox (now retried on its own within minutes) |
 

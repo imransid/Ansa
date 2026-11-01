@@ -20,6 +20,7 @@ import (
 	"ansa/core/internal/autopost"
 	"ansa/core/internal/billing"
 	"ansa/core/internal/brainclient"
+	"ansa/core/internal/calls"
 	"ansa/core/internal/database"
 	"ansa/core/internal/files"
 	"ansa/core/internal/httpserver"
@@ -81,6 +82,8 @@ type Server struct {
 	WebFetcher *safefetch.Fetcher
 	// Logins, signups, resets and one's own account.
 	Accounts *accounts.Service
+	// Phone calls: "Analyze now" decides a call as the job does.
+	Calls *calls.Analyzer
 	// Billing: "stripe", "dev" or "off", and ansa's Stripe account.
 	BillingMode string
 	Stripe      *billing.Stripe
@@ -107,6 +110,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerAuth(routes)
 	s.registerAccount(routes)
 	s.registerBilling(routes)
+	s.registerCalls(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

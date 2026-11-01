@@ -45,6 +45,11 @@ class ModelResult:
     error_name: str = ""
 
 
+def model_name() -> str:
+    """The model every use asks (ANTHROPIC_MODEL), stored with a call's decision."""
+    return os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+
+
 def ask(system_prompt: str, prompt: str | list[dict[str, Any]], json_schema: dict[str, Any], use: UseSettings, api_key: str | None = None) -> ModelResult:
     """Asks the model once for a JSON answer following json_schema. The prompt
     is text, or content blocks (a photo or a PDF first, then text)."""
@@ -54,7 +59,7 @@ def ask(system_prompt: str, prompt: str | list[dict[str, Any]], json_schema: dic
     client = anthropic.Anthropic(api_key=key, timeout=use.timeout_seconds, max_retries=use.max_retries)
     try:
         response = client.messages.create(
-            model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),
+            model=model_name(),
             max_tokens=use.max_tokens,
             system=system_prompt,
             messages=[{"role": "user", "content": prompt}],

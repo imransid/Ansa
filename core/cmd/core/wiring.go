@@ -14,6 +14,7 @@ import (
 	"ansa/core/internal/assignments"
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/autopost"
+	"ansa/core/internal/calls"
 	"ansa/core/internal/chat"
 	"ansa/core/internal/config"
 	"ansa/core/internal/database"
@@ -59,6 +60,13 @@ func fileStore(cfg config.Config) *files.Store {
 		store.R2 = &files.R2{AccountID: cfg.R2AccountID, AccessKeyID: cfg.R2AccessKeyID, SecretAccessKey: cfg.R2SecretAccessKey, Bucket: cfg.R2Bucket}
 	}
 	return store
+}
+
+// vapiSigning is how Vapi signs its webhooks (the VAPI_* settings).
+func vapiSigning(cfg config.Config) calls.Signing {
+	return calls.Signing{Secret: cfg.VapiWebhookSecret, SignatureHeader: cfg.VapiSignatureHeader, TimestampHeader: cfg.VapiTimestampHeader,
+		Algorithm: cfg.VapiSignatureAlgorithm, Payload: cfg.VapiSignaturePayload, Encoding: cfg.VapiSignatureEncoding,
+		Prefix: cfg.VapiSignaturePrefix, TimestampUnit: cfg.VapiTimestampUnit, ToleranceSeconds: cfg.VapiToleranceSeconds}
 }
 
 // chatSender is the one door for messages to customers.

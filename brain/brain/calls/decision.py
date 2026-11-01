@@ -11,6 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from brain.ai import model_name
 from brain.calls.evidence import find_confirmation
 from brain.calls.transcript import MAX_TURN_CHARACTERS, Slice, build_slice, to_prompt
 
@@ -141,6 +142,8 @@ def decide(request: CallRequest, asker, call_settings) -> dict[str, Any]:
         return early
     result = asker(SYSTEM_PROMPT, to_prompt(piece, request.categories), json_schema(request.categories), call_settings, None)
     decision = from_model(result.kind, result.output_text, piece, request.categories)
+    if result.kind != "unavailable":
+        decision["model"] = model_name()
     if decision["reason_code"] == "model_error":
         decision["error_name"] = result.error_name
     return decision

@@ -136,3 +136,35 @@ func LinkInboundEmailWithin(ctx context.Context, tx database.Tx, company tenant.
 	_, err = tx.Exec(ctx, `INSERT INTO assistant_activity (company_id, conversation_id, action) VALUES ($1, $2, 'email_made_request')`, companyText, conversation)
 	return err
 }
+
+// LinkCallWithin puts a saved call in its caller's conversation (as an
+// entry of it), inside the call's own transaction.
+func LinkCallWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, contact ContactKey, callID string) error {
+	conversationID, err := conversationForContact(ctx, tx, company, contact)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO messages (company_id, conversation_id, direction, author, call_id) VALUES ($1, $2, 'in', 'customer', $3)`,
+		company.String(), conversationID, callID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE calls SET conversation_id = $2 WHERE company_id = $1 AND id = $3`, company.String(), conversationID, callID); err != nil {
+		return err
+	}
+	return touchConversation(ctx, tx, company, conversationID, false)
+}
+
+// RecordCallDecisionWithin writes ansa's line about a decided call in its
+// conversation (none for a hidden caller): solved, or a person follows up.
+func RecordCallDecisionWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, callID string, needsPerson bool) error {
+	action := "call_solved"
+	if needsPerson {
+		action = "call_needs_person"
+	}
+	const statement = `
+		INSERT INTO assistant_activity (company_id, conversation_id, action)
+		SELECT company_id, conversation_id, $3 FROM calls
+		WHERE company_id = $1 AND id = $2 AND conversation_id IS NOT NULL`
+	_, err := tx.Exec(ctx, statement, company.String(), callID, action)
+	return err
+}

@@ -18,6 +18,7 @@ import (
 	"ansa/core/internal/autopost"
 	"ansa/core/internal/billing"
 	"ansa/core/internal/brainclient"
+	"ansa/core/internal/calls"
 	"ansa/core/internal/config"
 	"ansa/core/internal/database"
 	"ansa/core/internal/email"
@@ -80,12 +81,18 @@ func main() {
 		Fetcher: &resend.Fetcher{Real: cfg.SendRealEmail, APIKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder},
 		Brain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout), EmailFrom: cfg.EmailFrom, ForwardingDomain: cfg.ForwardingDomain()}
 	worker.Handle(resend.ProcessJobKind, processor.HandleJob)
+	// A call's decision: up to 60 s a try with 2 retries, and the SDK's waits.
+	callAnalyzer := &calls.Analyzer{Pool: pool, Box: box, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
+	worker.Handle(calls.AnalyzeJobKind, callAnalyzer.HandleJob)
+	storage := fileStore(cfg)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
 	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken}
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
+	routes.Handle("POST /webhooks/vapi", &calls.Webhook{Pool: pool, Box: box, Limiter: limiter, Log: log, Signing: vapiSigning(cfg),
+		RecordingHosts: cfg.VapiRecordingHosts, Files: storage, Tools: &calls.Tools{Pool: pool, Limiter: limiter, Log: log}})
 	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
 	// Two AI answers at most per post, each up to 60 s a try with one retry.
 	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 130*time.Second), Log: log}
@@ -99,9 +106,9 @@ func main() {
 		Assistant:   runner,
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
-		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: fileStore(cfg), EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
+		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: storage, EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
-		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe,
+		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
