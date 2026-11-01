@@ -45,15 +45,26 @@ func (f *fakeMail) last(t *testing.T, to string) email.Message {
 	return email.Message{}
 }
 
-// countingLimiter is the real limiter, remembering its keys to clean them up.
+// countingLimiter is the real limiter, remembering its keys to clean them
+// up (locked: a reset link is sent from its own goroutine).
 type countingLimiter struct {
 	*ratelimit.Limiter
+	mu   sync.Mutex
 	keys []string
 }
 
 func (c *countingLimiter) Over(ctx context.Context, action, identifier string, rule ratelimit.Rule) (bool, error) {
+	c.mu.Lock()
 	c.keys = append(c.keys, c.Key(action, identifier))
+	c.mu.Unlock()
 	return c.Limiter.Over(ctx, action, identifier, rule)
+}
+
+// usedKeys are the keys counted so far.
+func (c *countingLimiter) usedKeys() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]string(nil), c.keys...)
 }
 
 type accountsWorld struct {
@@ -72,7 +83,7 @@ func newAccountsWorld(t *testing.T) *accountsWorld {
 		service: &Service{Pool: pool, Secret: "accounts-test-secret-of-32-characters", AppURL: "https://app.ansa.test", Mail: mail, Limits: limiter, Log: logging.New(io.Discard)}}
 	t.Cleanup(func() {
 		ctx := context.Background()
-		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = ANY($1)`, limiter.keys)
+		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = ANY($1)`, limiter.usedKeys())
 		rows, _ := pool.Query(ctx, `SELECT DISTINCT company_id FROM users WHERE email LIKE '%@accounts-test.example'`)
 		var companies []string
 		for rows.Next() {
