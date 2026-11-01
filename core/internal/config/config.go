@@ -72,6 +72,10 @@ type Config struct {
 	// STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID are required).
 	UseStripe                                           bool
 	StripeSecretKey, StripeWebhookSecret, StripePriceID string
+	// CORE_SCHEDULER=off: this process serves requests but runs none of the
+	// periodic work (publishing, Post for me, numbers, catch-up, cleanup):
+	// a second core beside a running one, or a preview.
+	SchedulerOff bool
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -110,6 +114,7 @@ func Load(getenv Getenv) (Config, error) {
 		StripeSecretKey:       getenv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret:   getenv("STRIPE_WEBHOOK_SECRET"),
 		StripePriceID:         getenv("STRIPE_PRICE_ID"),
+		SchedulerOff:          getenv("CORE_SCHEDULER") == "off",
 	}
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {

@@ -118,7 +118,9 @@ func main() {
 	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, FacebookAppSecret: cfg.FacebookAppSecret,
 		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
 	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook}
-	go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers))
+	if !cfg.SchedulerOff {
+		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers))
+	}
 	go func() {
 		log.Info("core started")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

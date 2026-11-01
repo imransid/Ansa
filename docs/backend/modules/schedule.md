@@ -13,3 +13,5 @@ publishing queue ([publishing](publishing.md)), each every 15 s; "Post for
 me" ([autopost](autopost.md)) every minute; post numbers
 ([postmetrics](postmetrics.md)) every 5 minutes; the cleanup
 ([maintenance](maintenance.md)) every hour.
+**Switched off:** `CORE_SCHEDULER=off` starts no periodic task (a second
+core beside a running one, or a preview of the screens).
