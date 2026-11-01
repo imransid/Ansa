@@ -1,0 +1,7 @@
+# The brain's packages, at exact versions (docs/backend/security.md, rule 8).
+# Each one is listed with why in docs/backend/dependencies.md.
+fastapi==0.162.0
+starlette==1.10.0
+pydantic==2.14.2
+pydantic_core==2.50.2
+uvicorn==0.54.0

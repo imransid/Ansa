@@ -1,0 +1,18 @@
+# Outside packages, and why each is here
+
+Every package outside the language's standard library is a door for an
+attacker (the 2025 npm worms are the reminder). Add one only with a line here.
+
+## core (Go)
+| Module | Why |
+|---|---|
+| github.com/jackc/pgx/v5 | The PostgreSQL driver and pool (parameterized queries only) |
+| golang.org/x/crypto, golang.org/x/text | Pulled in by pgx (Go's own extended packages) |
+
+## brain (Python), exact versions in `brain/requirements.txt`
+| Package | Why |
+|---|---|
+| fastapi, starlette | The web service and its request checks |
+| pydantic, pydantic_core | Strict models for every request and answer |
+| uvicorn | Runs the service |
+| pytest, httpx (tests only) | Tests and the test client |
