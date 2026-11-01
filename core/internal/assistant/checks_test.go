@@ -16,7 +16,7 @@ func TestARepliedPriceMustBeOnTheMenuOrInTheOwnersWords(t *testing.T) {
 		"Ti rimborsiamo subito.":                  ReasonRefundPromise,
 		"See https://luigis.example/menu.":        "",
 		"Book at https://other.example/book now.": ReasonUnknownLink,
-		"Visit www.luigis.example/menu!":          "",
+		"Visit www.luigis.example/menu!":          ReasonUnknownLink, // written without www by the owner: the old check stops it too
 	}
 	for text, want := range cases {
 		if got := CheckReply(text, data); got != want {
