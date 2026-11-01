@@ -50,7 +50,7 @@
 ## Phase 3: menu and orders
 | Module | Old code | Status |
 |---|---|---|
-| menu, "Not available today" | db/menu.ts | ⬜ |
+| menu, "Not available today" | db/menu.ts | ✅ core/internal/menu (in core's API) |
 | menu reading (brain) | lib/menu-reading/ | ⬜ |
 | orders: pricing, summary, placing, taking back, new-order alerts | lib/orders.ts, order-steps.ts, db/order-proposals.ts, services/assistant-order.ts, order-alerts.ts | ✅ core/internal/orders, assistant/order.go, alerts/orders.go |
 | the Orders page's status changes and messages | services/orders.ts, db/order-status.ts | ⬜ with the screens' API (phase 7) |
@@ -94,6 +94,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Home: status card and its switches, while you were away, getting started, needs you | ✅ in core's API (business numbers with their modules) |
 | Settings → Assistant: texts, reply mode, alerts, AI engine and own key, away hours; Try your assistant | ✅ in core's API |
 | /welcome and Settings → What it knows: every setup section, finish | ✅ in core's API |
+| Menu: dishes, order, availability, "Looks right" | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

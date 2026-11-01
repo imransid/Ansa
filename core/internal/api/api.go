@@ -58,6 +58,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerHome(routes)
 	s.registerAssistantSettings(routes)
 	s.registerSetup(routes)
+	s.registerMenu(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.
