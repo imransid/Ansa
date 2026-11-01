@@ -28,3 +28,4 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/database/` | PostgreSQL pool, transactions, tenant check | [database](../docs/backend/modules/database.md) |
 | `internal/ratelimit/` | Attempt counters shared with the old backend | [ratelimit](../docs/backend/modules/ratelimit.md) |
 | `internal/jobs/` | The job queue and its worker | [jobs](../docs/backend/modules/jobs.md) |
+| `internal/conversations/` | Contacts, conversations, messages | [conversations](../docs/backend/modules/conversations.md) |

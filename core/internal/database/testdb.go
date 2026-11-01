@@ -33,8 +33,18 @@ func TestCompany(t *testing.T, pool *Pool) string {
 		t.Fatalf("making a test company: %v", err)
 	}
 	t.Cleanup(func() {
-		pool.Exec(ctx, `DELETE FROM core_jobs WHERE company_id = $1`, id)
+		// Children before parents (foreign keys), then the company.
+		for _, table := range cleanupOrder {
+			pool.Exec(ctx, `DELETE FROM `+table+` WHERE company_id = $1`, id)
+		}
 		pool.Exec(ctx, `DELETE FROM companies WHERE id = $1`, id)
 	})
 	return id
+}
+
+// The tables a test company's rows are deleted from, children first. A fixed
+// list in code (never input), so the table name in the statement is safe.
+var cleanupOrder = []string{
+	"core_jobs", "order_items", "orders", "messages", "assistant_activity", "tickets",
+	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings",
 }

@@ -28,7 +28,7 @@
 ## Phase 1: chats
 | Module | Old code | Status |
 |---|---|---|
-| conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | ⬜ |
+| conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | 🔨 saving messages done |
 | chat delivery (one door) | lib/chat-delivery.ts | ⬜ |
 | Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | ⬜ |
 | Messenger | services/messenger-*.ts, adapters/messenger.ts | ⬜ |
