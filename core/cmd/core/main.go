@@ -26,6 +26,7 @@ import (
 	"ansa/core/internal/inbound"
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/mediagen"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
@@ -111,8 +112,10 @@ func main() {
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
-	// The content studio's AI drafts: two tries of up to 120 s at the brain.
-	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second), Limiter: limiter, Log: log}}
+	// The content studio's AI drafts (two tries of up to 120 s at the brain) and the media library's image service.
+	generations := &mediagen.Service{Pool: pool, Files: storage, Limiter: limiter, Log: log, Mode: mediagen.ModeFor(cfg.MediaProvider, cfg.IsProduction())}
+	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second), Limiter: limiter, Log: log},
+		Generation: generations}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
@@ -129,7 +132,7 @@ func main() {
 		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
 	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook}
 	if !cfg.SchedulerOff {
-		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers))
+		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers, generations))
 	}
 	go func() {
 		log.Info("core started")

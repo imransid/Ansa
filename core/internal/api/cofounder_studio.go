@@ -8,6 +8,7 @@ import (
 
 	"ansa/core/internal/contentrules"
 	"ansa/core/internal/drafts"
+	"ansa/core/internal/mediagen"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 	"ansa/core/internal/studio"
@@ -38,6 +39,8 @@ const onlyOwnersDecide = "Only owners can approve or reject drafts."
 type StudioServices struct {
 	// The AI's drafts (the brain with room for its 2 tries of 120 s).
 	Writer *studio.Writer
+	// Images and videos asked of an image service (MEDIA_PROVIDER).
+	Generation *mediagen.Service
 }
 
 func (s *Server) registerStudio(routes *http.ServeMux) {
@@ -51,6 +54,7 @@ func (s *Server) registerStudio(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/cofounder/drafts/{id}/reject", s.withSession(s.ownersDecide(s.rejectDraft)))
 	routes.HandleFunc("POST /api/v1/cofounder/drafts/{id}/archive", s.withSession(s.withDraftChange(s.archiveDraft)))
 	routes.HandleFunc("POST /api/v1/cofounder/drafts/{id}/restore", s.withSession(s.withDraftChange(s.restoreDraft)))
+	s.registerMedia(routes)
 }
 
 // listDrafts: GET ?status=current|idea|...|archived&platform=all|<platform>&page=n
@@ -137,6 +141,9 @@ func (s *Server) draftPage(w http.ResponseWriter, r *http.Request, _ []byte, who
 		return
 	}
 	page, err := studio.ReadPage(r.Context(), s.Pool, who.CompanyID, id)
+	if err == nil && page != nil {
+		page.Media, err = s.draftMediaPanel(r, who, page)
+	}
 	switch {
 	case err != nil:
 		s.failed(w, "draft page", err)

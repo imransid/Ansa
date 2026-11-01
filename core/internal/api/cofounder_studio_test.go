@@ -3,10 +3,13 @@ package api
 import (
 	"context"
 	"testing"
+
+	"ansa/core/internal/mediagen"
 )
 
 func TestTheContentStudioThroughCoresAPI(t *testing.T) {
 	w := newAPIWorld(t)
+	w.api.Studio = &StudioServices{Generation: &mediagen.Service{Pool: w.pool, Mode: mediagen.ModeFor("", false)}}
 	var owner string
 	w.pool.QueryRow(context.Background(), `SELECT id FROM users WHERE company_id = $1`, w.company.String()).Scan(&owner)
 	t.Cleanup(func() {
@@ -29,7 +32,7 @@ func TestTheContentStudioThroughCoresAPI(t *testing.T) {
 	}
 	code, answer = w.call("GET", "/api/v1/cofounder/drafts/"+id, "", screensSecret, w.cookie)
 	draft, _ := answer["draft"].(map[string]any)
-	if code != 200 || draft["status"] != "idea" || answer["canReview"] != true {
+	if code != 200 || draft["status"] != "idea" || answer["canReview"] != true || draft["media"].(map[string]any)["kind"] != "" {
 		t.Fatalf("the draft's page: %d %v", code, answer)
 	}
 	edit := `{"version":1,"topic":"Bread","pillar":"","campaign":"","title":"","body":"Fresh bread.","hashtags":"#bread","callToAction":"","imagePrompt":"","videoScript":""}`

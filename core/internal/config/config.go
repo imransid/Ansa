@@ -85,6 +85,10 @@ type Config struct {
 	// periodic work (publishing, Post for me, numbers, catch-up, cleanup):
 	// a second core beside a running one, or a preview.
 	SchedulerOff bool
+	// MEDIA_PROVIDER: the image service ("" or "dev-stand-in"). Unset in
+	// development is the stand-in; production refuses the stand-in, so
+	// image generation is off there until a real service is chosen.
+	MediaProvider string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -124,6 +128,7 @@ func Load(getenv Getenv) (Config, error) {
 		StripeWebhookSecret:   getenv("STRIPE_WEBHOOK_SECRET"),
 		StripePriceID:         getenv("STRIPE_PRICE_ID"),
 		SchedulerOff:          getenv("CORE_SCHEDULER") == "off",
+		MediaProvider:         getenv("MEDIA_PROVIDER"),
 	}
 	readVapi(&cfg, getenv)
 	var problems []string
@@ -159,6 +164,7 @@ func Load(getenv Getenv) (Config, error) {
 	}
 	problems = append(problems, emailAndLinkProblems(cfg)...)
 	problems = append(problems, metaProblems(cfg)...)
+	problems = append(problems, mediaProblems(cfg)...)
 	problems = append(problems, storageProblems(cfg)...)
 	problems = append(problems, stripeProblems(cfg)...)
 	problems = append(problems, vapiProblems(cfg)...)

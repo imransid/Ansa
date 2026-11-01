@@ -23,7 +23,10 @@ production requires it; otherwise `<ANSA_DEV_FOLDER>/.dev-files/`), USE_STRIPE (
 STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID), the VAPI_* settings (how Vapi signs and where
 recordings come from: see [calls](calls.md)), CORE_SCHEDULER (exactly "off":
 this process serves requests and runs jobs but none of the periodic work: a
-second core beside a running one, or a preview). The checks of each group
+second core beside a running one, or a preview), MEDIA_PROVIDER (the media
+library's image service: empty or "dev-stand-in"; unset in development is the
+stand-in, and production refuses the stand-in, so generation is off there:
+see [media](media.md)). The checks of each group
 live in `checks.go`. See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are

@@ -24,6 +24,7 @@ import (
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/maintenance"
+	"ansa/core/internal/mediagen"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/postmetrics"
 	"ansa/core/internal/publishing"
@@ -84,7 +85,7 @@ func chatSender(cfg config.Config, pool *database.Pool, box *secure.Box) *chat.S
 
 // scheduledTasks is core's periodic work, each claimed in the database so
 // several core processes never do it twice.
-func scheduledTasks(pool *database.Pool, log *logging.Logger, publisher *publishing.Runner, postWriter *autopost.Writer, numbers *postmetrics.Collector) []schedule.Task {
+func scheduledTasks(pool *database.Pool, log *logging.Logger, publisher *publishing.Runner, postWriter *autopost.Writer, numbers *postmetrics.Collector, generations *mediagen.Service) []schedule.Task {
 	return []schedule.Task{
 		{Name: "assistant catch-up", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return assistant.QueueDueReplies(ctx, pool)
@@ -98,6 +99,7 @@ func scheduledTasks(pool *database.Pool, log *logging.Logger, publisher *publish
 		{Name: "post numbers", Every: 5 * time.Minute, Run: func(ctx context.Context) (int, error) {
 			return numbers.RunDue(ctx, "")
 		}},
+		{Name: "stuck media requests", Every: time.Minute, Run: generations.RunStuck},
 		{Name: "cleanup", Every: time.Hour, Run: func(ctx context.Context) (int, error) {
 			return maintenance.Cleanup(ctx, pool, log, "")
 		}},

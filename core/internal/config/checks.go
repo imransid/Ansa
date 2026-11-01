@@ -46,6 +46,14 @@ func metaProblems(cfg Config) []string {
 	return problems
 }
 
+// mediaProblems checks the media library's image service.
+func mediaProblems(cfg Config) []string {
+	if cfg.MediaProvider != "" && cfg.MediaProvider != "dev-stand-in" {
+		return []string{`MEDIA_PROVIDER must be empty or "dev-stand-in" (no real image service is chosen yet)`}
+	}
+	return nil
+}
+
 // stripeProblems checks the payment settings.
 func stripeProblems(cfg Config) []string {
 	if cfg.UseStripe && (cfg.StripeSecretKey == "" || cfg.StripeWebhookSecret == "" || cfg.StripePriceID == "") {
