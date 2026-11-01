@@ -84,7 +84,8 @@ func Read(ctx context.Context, pool *database.Pool, company tenant.CompanyID, fo
 
 func facebookPages(ctx context.Context, pool *database.Pool, company tenant.CompanyID) ([]FacebookPage, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT id, display_name, status, is_stand_in OR 'pages_messaging' = ANY(scopes), is_stand_in FROM social_connections
+		SELECT id, display_name, status, is_stand_in OR ('pages_messaging' = ANY(scopes) AND 'pages_manage_metadata' = ANY(scopes)), is_stand_in
+		FROM social_connections
 		WHERE company_id = $1 AND platform = 'facebook' AND status <> 'disconnected' ORDER BY display_name`, company.String())
 	if err != nil {
 		return nil, err

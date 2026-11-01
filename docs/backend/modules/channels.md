@@ -5,7 +5,8 @@ the Connections page's reads): where people reach the company.
 **Reading (`GET /api/v1/channels`, everyone):** the company's Telegram
 account (its name, status, whether it is the development stand-in; nothing
 once disconnected), its Facebook Pages and whether each one's messages come
-to ansa (`pages_messaging` granted), its forwarding address
+to ansa (`pages_messaging` and `pages_manage_metadata` granted, as the
+old page said), its forwarding address
 (`c-<companies.inbound_token>@INBOUND_EMAIL_DOMAIN`) and when the last
 email reached it, ansa's phone numbers linked to it with each one's last
 call, and Telegram's mode ("real" with ansa's bot, "stand-in" in
