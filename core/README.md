@@ -14,6 +14,10 @@ database. Read `docs/backend/README.md` first.
    `make run`. Check it: `curl -i http://127.0.0.1:8080/health`.
 3. In development, emails and stand-in chat replies are files in the
    repository's `.dev-emails/` and `.dev-messages/` (as the old backend's).
+4. Try the assistant without Telegram: with core running, from `core/`:
+   `make simulate OWNER=you@example.com NAME="Lena" TEXT="Are you open tonight?"`
+   (development and a local database only). The answer appears in
+   `.dev-messages/` and in the Inbox.
 
 ## Test it
 From `core/`: `make check` (formatting, `go vet`, every test).
@@ -22,6 +26,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | Folder | What | Docs |
 |---|---|---|
 | `cmd/core/` | Starts the service | this page |
+| `cmd/simulate/` | A stand-in customer's message, for trying core by hand | this page |
 | `internal/config/` | Settings, checked at start | [config](../docs/backend/modules/config.md) |
 | `internal/logging/` | Safe JSON logs | [logging](../docs/backend/modules/logging.md) |
 | `internal/secure/` | Encryption of stored text | [secure](../docs/backend/modules/secure.md) |
