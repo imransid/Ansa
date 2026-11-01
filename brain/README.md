@@ -32,4 +32,5 @@ state. Read `docs/backend/README.md` first.
 | `brain/calls/` | A finished call: the transcript slice, the decision and the strict "solved" check | [calls](../docs/backend/modules/calls.md) |
 | `brain/documents/` | A PDF's text for "Add to knowledge" (pypdf) | [knowledge](../docs/backend/modules/knowledge.md) |
 | `brain/posts/` | Writing one "Post for me" post from the business's own details | [autopost](../docs/backend/modules/autopost.md) |
+| `brain/cofounder/` | The Co-Founder: an interview turn, facts from a knowledge article, a marketing plan, two weeks of post ideas | [profile](../docs/backend/modules/profile.md), [strategy](../docs/backend/modules/strategy.md), [calendar](../docs/backend/modules/calendar.md) |
 | `brain/text.py` | Escaping and hiding secrets in prompts | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
