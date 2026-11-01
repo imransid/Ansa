@@ -20,7 +20,9 @@ database. Read `docs/backend/README.md` first.
    `.dev-messages/` and in the Inbox.
 
 ## Test it
-From `core/`: `make check` (formatting, `go vet`, every test).
+From `core/`: `make check` (formatting, `go vet`, every test). The tests use
+TEST_DATABASE_URL: a local database of its own (`ansa_test`), never the one a
+running core uses; `.env.core.example` says how to make it.
 
 ## Folders
 | Folder | What | Docs |
