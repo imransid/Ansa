@@ -2,10 +2,12 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginationLinks } from "@/components/pagination-links";
+import { isCoreOn } from "@/lib/core-api";
+import { getMediaPageFromCore, type MediaPage as MediaPageContent } from "@/lib/core-views/media";
 import { formatFileSize } from "@/lib/format-file-size";
 import { MAX_MEDIA_ASSETS_PER_COMPANY, MAX_MEDIA_STORAGE_BYTES_PER_COMPANY } from "@/lib/media/limits";
 import { parsePageNumber } from "@/lib/pagination";
-import { requireSessionContext } from "@/lib/session";
+import { requireSessionContext, type SessionContext } from "@/lib/session";
 import { describeGenerationAvailability, listGenerationJobsForSession } from "@/services/media-generation-jobs";
 import { getMediaTotalsForSession, listMediaForSession } from "@/services/media-library";
 import { GenerateMediaForm } from "./generate-media-form";
@@ -38,8 +40,8 @@ export default function MediaPage({ searchParams }: PageProps<"/cofounder/media"
 async function MediaContent({ searchParams }: Pick<PageProps<"/cofounder/media">, "searchParams">) {
   const page = parsePageNumber((await searchParams).page);
   const session = await requireSessionContext("/cofounder/media");
-  const [assets, totals, jobs] = await Promise.all([listMediaForSession(session, page), getMediaTotalsForSession(session), listGenerationJobsForSession(session)]);
-  const generation = describeGenerationAvailability();
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const { assets, totals, jobs, generation } = isCoreOn() ? await getMediaPageFromCore(page) : await readMediaPage(session, page);
   const isAnyJobWaiting = jobs.some((job) => (job.status === "queued" || job.status === "running") && !job.isStuck);
 
   return (
@@ -123,4 +125,11 @@ async function MediaContent({ searchParams }: Pick<PageProps<"/cofounder/media">
       </section>
     </>
   );
+}
+
+// The same from services/: the page's assets, the totals, the newest
+// requests, and this server's own image service.
+async function readMediaPage(session: SessionContext, page: number): Promise<MediaPageContent> {
+  const [assets, totals, jobs] = await Promise.all([listMediaForSession(session, page), getMediaTotalsForSession(session), listGenerationJobsForSession(session)]);
+  return { assets, totals, jobs, generation: describeGenerationAvailability() };
 }
