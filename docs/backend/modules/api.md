@@ -25,6 +25,7 @@ read strictly, and an unknown field (a "companyId") is refused.
 - Saved answers (the knowledge base): see [knowledge](knowledge.md).
 - Signup, login, confirming, resets and one's own account: see [accounts](accounts.md)
   (the login pages' endpoints are signed by the screens but need no session).
+- Billing: see [billing](billing.md).
 **Tests:** `api_test.go` (live database, a real HTTP server): another
 secret = 403, no session = 401; the list with the decrypted address and the
 lines; accepting messages the customer once with ansa's fixed text; a

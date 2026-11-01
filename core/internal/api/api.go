@@ -18,6 +18,7 @@ import (
 	"ansa/core/internal/accounts"
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/autopost"
+	"ansa/core/internal/billing"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/database"
 	"ansa/core/internal/files"
@@ -80,6 +81,9 @@ type Server struct {
 	WebFetcher *safefetch.Fetcher
 	// Logins, signups, resets and one's own account.
 	Accounts *accounts.Service
+	// Billing: "stripe", "dev" or "off", and ansa's Stripe account.
+	BillingMode string
+	Stripe      *billing.Stripe
 }
 
 // Register adds every endpoint.
@@ -102,6 +106,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerKnowledge(routes)
 	s.registerAuth(routes)
 	s.registerAccount(routes)
+	s.registerBilling(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

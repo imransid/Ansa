@@ -62,6 +62,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/autopost/` | "Post for me": the topic brain, posting times, writing, ansa's checks, the switch | [autopost](../docs/backend/modules/autopost.md) |
 | `internal/files/` | Private file storage: the development folder or R2 (signed requests and links) | [files](../docs/backend/modules/files.md) |
 | `internal/documents/`, `internal/supportsetup/` | Phone, email and documents: uploads, downloads, reply-to and support addresses | [documents](../docs/backend/modules/documents.md) |
+| `internal/billing/` | Billing: Stripe's checkout and portal, its signed webhook, the page | [billing](../docs/backend/modules/billing.md) |
 | `internal/accounts/` | Signup, invites joined, confirming, login with fair limits, resets, one's own account | [accounts](../docs/backend/modules/accounts.md) |
 | `internal/teammates/` | The Team page: invites, roles, removing someone, categories | [teammates](../docs/backend/modules/teammates.md) |
 | `internal/maintenance/` | Hourly cleanup of rows nobody can use any more | [maintenance](../docs/backend/modules/maintenance.md) |

@@ -46,6 +46,14 @@ func metaProblems(cfg Config) []string {
 	return problems
 }
 
+// stripeProblems checks the payment settings.
+func stripeProblems(cfg Config) []string {
+	if cfg.UseStripe && (cfg.StripeSecretKey == "" || cfg.StripeWebhookSecret == "" || cfg.StripePriceID == "") {
+		return []string{"USE_STRIPE=true needs STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID"}
+	}
+	return nil
+}
+
 // storageProblems checks the private file storage's settings.
 func storageProblems(cfg Config) []string {
 	switch {

@@ -68,6 +68,10 @@ type Config struct {
 	// <DevFolder>/.dev-files. Production requires R2.
 	UseR2                                                   bool
 	R2AccountID, R2AccessKeyID, R2SecretAccessKey, R2Bucket string
+	// Real payments only when USE_STRIPE is exactly "true" (then
+	// STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID are required).
+	UseStripe                                           bool
+	StripeSecretKey, StripeWebhookSecret, StripePriceID string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -102,6 +106,10 @@ func Load(getenv Getenv) (Config, error) {
 		R2AccessKeyID:         getenv("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey:     getenv("R2_SECRET_ACCESS_KEY"),
 		R2Bucket:              getenv("R2_BUCKET"),
+		UseStripe:             getenv("USE_STRIPE") == "true",
+		StripeSecretKey:       getenv("STRIPE_SECRET_KEY"),
+		StripeWebhookSecret:   getenv("STRIPE_WEBHOOK_SECRET"),
+		StripePriceID:         getenv("STRIPE_PRICE_ID"),
 	}
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
@@ -137,6 +145,7 @@ func Load(getenv Getenv) (Config, error) {
 	problems = append(problems, emailAndLinkProblems(cfg)...)
 	problems = append(problems, metaProblems(cfg)...)
 	problems = append(problems, storageProblems(cfg)...)
+	problems = append(problems, stripeProblems(cfg)...)
 	if cfg.ScreensSharedSecret != "" && len(cfg.ScreensSharedSecret) < 32 {
 		problems = append(problems, "SCREENS_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)")
 	}

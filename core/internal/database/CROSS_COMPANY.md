@@ -25,3 +25,4 @@ company.
 | Delete expired connection attempts, used-up Telegram link codes, finished jobs past 30 days | internal/maintenance/cleanup.go | Housekeeping by age alone: nobody can use such a row any more; nothing is read. |
 | Find an account by its address (login, confirming) | internal/accounts/login.go | An address belongs to one account across companies (users.email is unique); only that person's own row and password are read. |
 | Check, preview and claim an invite by its token's hash | internal/accounts/signup.go | Only ansa makes invite tokens (only their hash is stored); the token names its company; only that invite's row (and its company's name for the preview) is read or changed. |
+| Find the company of a Stripe customer | internal/billing/billing.go | Only after Stripe's signature checked out: a Stripe customer belongs to one company; only its id is read, and billing never moves between companies. |

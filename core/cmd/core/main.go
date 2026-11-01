@@ -16,6 +16,7 @@ import (
 	"ansa/core/internal/api"
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/autopost"
+	"ansa/core/internal/billing"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/config"
 	"ansa/core/internal/database"
@@ -88,6 +89,8 @@ func main() {
 	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
 	// Two AI answers at most per post, each up to 60 s a try with one retry.
 	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 130*time.Second), Log: log}
+	stripe := &billing.Stripe{SecretKey: cfg.StripeSecretKey, PriceID: cfg.StripePriceID}
+	routes.Handle("POST /webhooks/stripe", &billing.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.StripeWebhookSecret, Stripe: stripe})
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions:    &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
 		Orders:      &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
@@ -97,8 +100,9 @@ func main() {
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
 		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: fileStore(cfg), EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
-		Accounts: &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
-		Social:   &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
+		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
+		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe,
+		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
