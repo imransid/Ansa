@@ -10,6 +10,7 @@ import (
 
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/inbox"
+	"ansa/core/internal/outbox"
 	"ansa/core/internal/plaintext"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
@@ -88,7 +89,12 @@ func (s *Server) requestPage(w http.ResponseWriter, r *http.Request, _ []byte, w
 		s.failed(w, "request categories", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"request": detail, "people": people, "categories": categories, "canReopen": who.IsOwner()})
+	latest, err := outbox.ReadLatest(r.Context(), s.Pool, who.CompanyID, detail.ID)
+	if err != nil {
+		s.failed(w, "request email", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"request": detail, "people": people, "categories": categories, "canReopen": who.IsOwner(), "latestEmail": latest})
 }
 
 // requestAction is one change of a request: ok, or the words saying why not.

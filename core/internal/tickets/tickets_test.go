@@ -58,3 +58,35 @@ func TestAChatRequestIsNumberedAndGoesToTheLeastBusyExpertOfItsCategory(t *testi
 		t.Fatalf("history: %s %s", kind, category)
 	}
 }
+
+func TestAReturningCustomerGoesToTheirExpertAndHiddenCallersNever(t *testing.T) {
+	if CustomerPhoneDigits("+266696687") != "" || CustomerPhoneDigits("0000000") != "" || CustomerPhoneDigits("+39 051") != "" {
+		t.Fatal("placeholders, repeats and short numbers are nobody")
+	}
+	if CustomerPhoneDigits("+39 051 123 4567") != "390511234567" {
+		t.Fatal("digits")
+	}
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	creator := database.TestOwner(t, pool, companyID)
+	expert := database.TestOwner(t, pool, companyID)
+	exec(t, pool, `INSERT INTO tickets (company_id, ticket_number, subject, description, channel, customer_phone, assigned_to_user_id, assigned_automatically)
+		VALUES ($1, 50, 'old', 'old', 'phone', '0039-051-1234567', $2, false)`, companyID, expert)
+	exec(t, pool, `UPDATE companies SET last_ticket_number = 50 WHERE id = $1`, companyID)
+	number, err := CreateManual(ctx, pool, company, creator, NewRequest{Subject: "Called again", Description: "Same issue.", Phone: "+39 051 123 4567"})
+	if err != nil || number != 51 {
+		t.Fatalf("created: %d %v", number, err)
+	}
+	var assignee string
+	pool.QueryRow(ctx, `SELECT assigned_to_user_id FROM tickets WHERE company_id = $1 AND ticket_number = 51`, companyID).Scan(&assignee)
+	if assignee == expert {
+		t.Fatal("0039... and +39... are different digits: no match (a known gap)")
+	}
+	number, _ = CreateManual(ctx, pool, company, creator, NewRequest{Subject: "Again", Description: "x", Phone: "0039 051 1234567"})
+	pool.QueryRow(ctx, `SELECT assigned_to_user_id FROM tickets WHERE company_id = $1 AND ticket_number = $2`, companyID, number).Scan(&assignee)
+	if assignee != expert {
+		t.Fatal("the same digits go to the expert who has their open request")
+	}
+}

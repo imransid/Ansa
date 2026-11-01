@@ -29,6 +29,7 @@ import (
 	"ansa/core/internal/logging"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/orders"
+	"ansa/core/internal/outbox"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
@@ -70,7 +71,10 @@ func main() {
 	sender := chatSender(cfg, pool, box)
 	runner := &assistant.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, Chat: sender,
 		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout)}
-	worker := newWorker(cfg, pool, box, limiter, runner, log)
+	mail := &email.Sender{Real: cfg.SendRealEmail, ResendKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder, FromAddress: cfg.EmailFrom}
+	deliverer := &outbox.Deliverer{Pool: pool, Limiter: limiter, Email: mail, ForwardingDomain: cfg.ForwardingDomain()}
+	worker := newWorker(cfg, pool, box, limiter, runner, mail, log)
+	worker.Handle(tickets.DeliverJobKind, deliverer.HandleJob)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
@@ -84,7 +88,8 @@ func main() {
 		Brain:       brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 5*time.Second),
 		Assistant:   runner,
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
-		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain()}
+		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
+		Outbox: deliverer}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
@@ -109,8 +114,7 @@ func main() {
 }
 
 // newWorker registers every job core runs.
-func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, runner *assistant.Runner, log *logging.Logger) *jobs.Worker {
-	mail := &email.Sender{Real: cfg.SendRealEmail, ResendKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder, FromAddress: cfg.EmailFrom}
+func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, runner *assistant.Runner, mail *email.Sender, log *logging.Logger) *jobs.Worker {
 	alerter := &alerts.Alerter{Pool: pool, Limiter: limiter, Email: mail, TelegramToken: cfg.TelegramBotToken, AppURL: cfg.AppURL, Log: log}
 	notifier := &assignments.Notifier{Pool: pool, Email: mail, AppURL: cfg.AppURL, Log: log}
 	worker := jobs.NewWorker(pool, log)

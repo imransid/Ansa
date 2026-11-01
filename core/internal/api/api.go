@@ -22,6 +22,7 @@ import (
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
+	"ansa/core/internal/outbox"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
@@ -55,6 +56,8 @@ type Server struct {
 	TelegramBot      string
 	Development      bool
 	ForwardingDomain string
+	// The outbox, for a request's Retry.
+	Outbox *outbox.Deliverer
 }
 
 // Register adds every endpoint.
@@ -68,6 +71,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerMenu(routes)
 	s.registerChannels(routes)
 	s.registerRequests(routes)
+	s.registerRequestEmails(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

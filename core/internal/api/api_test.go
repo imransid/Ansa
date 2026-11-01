@@ -14,9 +14,11 @@ import (
 	"ansa/core/internal/chat"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/email"
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
+	"ansa/core/internal/outbox"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
@@ -33,6 +35,7 @@ const (
 type apiWorld struct {
 	t       *testing.T
 	api     *Server
+	mailbox string
 	pool    *database.Pool
 	company tenant.CompanyID
 	cookie  string
@@ -67,6 +70,11 @@ func newAPIWorld(t *testing.T) *apiWorld {
 	server := &Server{Pool: pool, Box: box, Limiter: limiter, Log: logging.New(io.Discard), Secret: screensSecret,
 		Sessions: &session.Reader{Pool: pool, Secret: authSecret}, Orders: &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
 		Replies: &inbox.Replies{Pool: pool, Box: box, Sender: sender}, Development: true, ForwardingDomain: "inbound.ansa.test"}
+	w.mailbox = t.TempDir()
+	server.Outbox = &outbox.Deliverer{Pool: pool, Limiter: limiter, Email: &email.Sender{DevFolder: w.mailbox}, ForwardingDomain: "inbound.ansa.test"}
+	t.Cleanup(func() {
+		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = $1`, limiter.Key("customer-emails", companyID))
+	})
 	w.api = server
 	routes := http.NewServeMux()
 	server.Register(routes)
@@ -150,4 +158,11 @@ func (w *apiWorld) count(statement string) int {
 		w.t.Fatalf("count: %v", err)
 	}
 	return n
+}
+
+// ownerID is the logged-in owner's id.
+func (w *apiWorld) ownerID() string {
+	var id string
+	w.pool.QueryRow(context.Background(), `SELECT user_id FROM sessions WHERE token = (SELECT token FROM sessions WHERE user_id IN (SELECT id FROM users WHERE company_id = $1) LIMIT 1)`, w.company.String()).Scan(&id)
+	return id
 }

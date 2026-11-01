@@ -50,7 +50,7 @@ func TestCompany(t *testing.T, pool *Pool) string {
 // The tables a test company's rows are deleted from, children first. A fixed
 // list in code (never input), so the table name in the statement is safe.
 var cleanupOrder = []string{
-	"core_jobs", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "tickets",
+	"core_jobs", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "outgoing_emails", "tickets",
 	"user_categories", "categories",
 	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings", "social_connections",
 	"away_summary_reads", "business_facts", "users",

@@ -43,7 +43,8 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/social/` | The only place a social account's token is decrypted | [social](../docs/backend/modules/social.md) |
 | `internal/hours/` | Opening and away hours | [hours](../docs/backend/modules/hours.md) |
 | `internal/assistant/` | The assistant: when it answers, the brain's slice, checks, replies, handovers | [assistant](../docs/backend/modules/assistant.md) |
-| `internal/tickets/` | Making and routing requests | [tickets](../docs/backend/modules/tickets.md) |
+| `internal/tickets/` | Requests: making, routing, the list, a request's page and every change | [tickets](../docs/backend/modules/tickets.md), [requests](../docs/backend/modules/requests.md) |
+| `internal/outbox/`, `internal/addresses/` | Customer emails (the "solved" email); customer addresses | [requests](../docs/backend/modules/requests.md) |
 | `internal/orders/`, `internal/money/` | Orders written up and priced by ansa; amounts in smallest units | [orders](../docs/backend/modules/orders.md) |
 | `internal/email/`, `internal/plaintext/` | The one door for sending email; one plain line | [email](../docs/backend/modules/email.md) |
 | `internal/alerts/` | Telling the owners a conversation needs them | [alerts](../docs/backend/modules/alerts.md) |

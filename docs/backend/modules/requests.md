@@ -40,6 +40,45 @@ written differently, "100%" as text, nothing); owners land on open; the
 category routes to its expert and queues the email; taking it yourself
 emails nobody; a made-up person refused; a note decrypted in the history;
 Done closes without an email; closing twice refused; an owner reopens.
-**Next (part B):** solving with the customer's "solved" email (the outbox,
-delivery, Retry), setting the customer's email with its confirm step,
-editing the subject or name, a request typed in.
+**Solving with the customer's email (`tickets/solve.go`, `core/internal/outbox`):**
+`POST .../{id}/solve {"confirmedCustomerEmail"}` ("" when the page showed
+none): the UPDATE requires the request to still have exactly that address,
+so the email never goes to one the person didn't see. The "solved" email is
+an `outgoing_emails` row AND its delivery job, written in the solve's own
+transaction. The job delivers it right away and tries a failed send twice
+more within minutes (safe: the row id is Resend's idempotency key; the old
+backend never retried on its own). A delivery claims the row in ONE UPDATE
+(two never both send), only for the request's current solve that was meant
+to email; "failed" only over "sending", "sent" also over "failed". 300 a day
+per company (a held-back email says so, and Retry works later). The email is
+fixed text with the request number and the company's name only, never the
+customer's name or the subject; replies come back to the company (its
+reply-to, else its forwarding address).
+`POST .../{id}/emails/{email}/retry {"confirmPossibleDuplicate"}`: anyone;
+from 23 hours after the first try it needs the person's "send it again
+anyway?". The page reads the newest email (`latestEmail`: its status, why it
+waits, whether a delivery is under way, whether a Retry needs confirming).
+**The customer's email (`.../customer-email`):** `{"email", "confirmed":
+false}` answers the cleaned-up address to confirm ("Solved emails for this
+request will go to ..."); `confirmed: true` saves exactly it, recording who
+entered it (`core/internal/addresses`: the browser's type="email" rule, an
+international domain converted to ASCII with `golang.org/x/net/idna`, a dot
+in it, at most 254).
+**Edits (`.../details`):** the subject (one plain line, 1-200) and the
+customer's name with what the editor opened with: only a field the person
+changed is written (a teammate's change to the other stays), one history
+row each.
+**A request typed in (`POST /api/v1/requests`):** subject, description
+(1-10,000), name, phone (up to 40), a customer email that needs the confirm
+step, a category by id (renamed = followed); 30 per 10 minutes per person;
+a "created" row, then routing as every new request: the same customer's
+open request's expert first (the phone compared by its digits, at least 7,
+never a hidden caller's placeholder like ANONYMOUS's; or the same email),
+else by category; whoever gets it is emailed (never its own creator).
+**More tests:** `api/requests_more_test.go` (the confirm step; a solve refused
+for an address the person didn't see; the solve queues the email and its
+job; the fixed email names the number, never the subject, with the
+forwarding address as Reply-To; Retry after it went refused; only the
+changed field is written; a new request needs its address confirmed);
+`tickets_test.go` (hidden callers and repeats are nobody; the same digits
+go to the expert who has the customer's open request).
