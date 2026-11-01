@@ -13,6 +13,7 @@ func (s *Server) registerAccount(routes *http.ServeMux) {
 	// Signed by the screens, no live login needed: a login that already
 	// ended still gets the cookie that clears it from the browser.
 	routes.HandleFunc("POST /api/v1/auth/logout", s.withScreens(s.logOut))
+	routes.HandleFunc("GET /api/v1/me", s.withSession(s.whoAmI))
 	routes.HandleFunc("GET /api/v1/account", s.withSession(s.accountPage))
 	routes.HandleFunc("POST /api/v1/account/name", s.withSession(s.changeName))
 	routes.HandleFunc("POST /api/v1/account/password", s.withSession(s.changePassword))
@@ -27,6 +28,13 @@ func (s *Server) logOut(w http.ResponseWriter, r *http.Request, _ []byte) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"cookies": []any{cleared}})
+}
+
+// whoAmI: who is logged in, for the screens' every page (they hold no
+// session of their own): the person's id, name, address and role. Never
+// the company's id: the screens never send one, core reads it from the session.
+func (s *Server) whoAmI(w http.ResponseWriter, _ *http.Request, _ []byte, who *session.Session) {
+	writeJSON(w, http.StatusOK, map[string]string{"userId": who.UserID, "name": who.Name, "email": who.Email, "role": who.Role})
 }
 
 // accountPage: your name, your address, and how many browsers are logged in.

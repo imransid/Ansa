@@ -73,7 +73,9 @@ the screens send the browser's IP, browser and known-device cookie in the
 body, and set the cookies core answers): `POST /api/v1/auth/signup`,
 `/join`, `/invite-preview`, `/login`, `/confirm`, `/reset-request`, `/reset`.
 Logout needs no live login (`POST /api/v1/auth/logout`: an ended login
-still gets the cookie that clears it). Logged in: `GET /api/v1/account`, `POST
+still gets the cookie that clears it). Logged in: `GET /api/v1/me` (who is
+logged in, for every page of the screens: id, name, address, role; never the
+company's id), `GET /api/v1/account`, `POST
 /api/v1/account/name`, `/password`, `/logout-others`.
 
 **Tests:** `vectors_test.go` (Better Auth's own hash and link work here,

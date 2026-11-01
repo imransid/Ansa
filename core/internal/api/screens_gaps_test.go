@@ -47,3 +47,14 @@ func TestTheScreensGetEverythingTheyShowFromCore(t *testing.T) {
 		t.Fatalf("support page: %d %+v", code, support)
 	}
 }
+
+func TestTheScreensAskCoreWhoIsLoggedIn(t *testing.T) {
+	w := newAPIWorld(t)
+	code, me := w.call("GET", "/api/v1/me", "", screensSecret, w.cookie)
+	if code != 200 || me["userId"] != w.ownerID() || me["role"] != "owner" || me["companyId"] != nil {
+		t.Fatalf("me: %d %+v", code, me)
+	}
+	if code, _ := w.call("GET", "/api/v1/me", "", screensSecret, ""); code != 401 {
+		t.Fatalf("nobody logged in: %d", code)
+	}
+}
