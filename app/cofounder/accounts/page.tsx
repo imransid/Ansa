@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isCoreOn } from "@/lib/core-api";
+import { getAccountsPageFromCore } from "@/lib/core-views/accounts";
 import { requireSessionContext } from "@/lib/session";
 import { accountsPageResultSchema } from "@/lib/validation/social";
 import { getSocialAccountsPageForSession } from "@/services/social-accounts";
@@ -29,7 +31,8 @@ async function AccountsContent({ searchParams }: Pick<PageProps<"/cofounder/acco
   const session = await requireSessionContext("/cofounder/accounts");
   const query = await searchParams;
   const result = accountsPageResultSchema.safeParse({ result: query.result, platform: query.platform, count: query.count });
-  const page = await getSocialAccountsPageForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const page = isCoreOn() ? await getAccountsPageFromCore() : await getSocialAccountsPageForSession(session);
 
   return (
     <>

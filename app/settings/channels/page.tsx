@@ -5,6 +5,7 @@ import { EmailConnection, PhoneConnection, PostingPlatforms } from "@/components
 import { MessengerSection } from "@/components/channels/messenger-section";
 import { PageLoading } from "@/components/page-loading";
 import { isCoreOn } from "@/lib/core-api";
+import { getAccountsPageFromCore } from "@/lib/core-views/accounts";
 import { getConnectionsFromCore, type ConnectionsPage } from "@/lib/core-views/channels";
 import { requireSessionContext, type SessionContext } from "@/lib/session";
 import { getSetupStateForSession } from "@/services/assistant-settings";
@@ -41,9 +42,9 @@ async function Channels() {
   // The new backend when it is switched on (lib/core-api.ts), else services/.
   if (isCoreOn()) {
     const page = await getConnectionsFromCore();
-    // LinkedIn, X and YouTube stay on services/ (core doesn't do those
-    // platforms yet), read only for a business, the one that shows them.
-    const social = page.kind === "business" ? await getSocialAccountsPageForSession(session) : null;
+    // LinkedIn, X and YouTube (core's Accounts page), read only for a
+    // business, the one that shows them.
+    const social = page.kind === "business" ? await getAccountsPageFromCore() : null;
     return (
       <ConnectionsSections
         page={page}

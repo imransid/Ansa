@@ -5,9 +5,10 @@ import type { FormErrors, FormResult } from "@/lib/form-result";
 import type { CompanyKind } from "@/lib/restaurant-setup";
 import type { TelegramMode } from "@/lib/telegram-mode";
 
-// Settings → Connections through the new backend (core's /api/v1/channels
-// and, for Facebook only, /api/v1/social), in the shapes the page and its
-// actions already read.
+// Settings → Connections through the new backend (core's /api/v1/channels),
+// in the shapes the page and its actions already read. Connecting and
+// disconnecting a social account (Facebook's Pages too) is
+// lib/core-views/accounts.ts.
 
 // What the Connections page shows, whichever backend read it.
 export type ConnectionsPage = {
@@ -94,37 +95,4 @@ export async function connectStandInTelegramThroughCore(): Promise<FormResult> {
 
 export async function disconnectTelegramThroughCore(): Promise<FormResult> {
   return savedOrErrors(await callCore("POST", "/api/v1/channels/telegram/disconnect"));
-}
-
-// "Connect Facebook Page": the address of Facebook's consent screen.
-export async function startFacebookConnectThroughCore(): Promise<{ ok: true; url: string } | { ok: false; errors: FormErrors }> {
-  const answer = await callCore<{ url: string }>("POST", "/api/v1/social/facebook/connect");
-  return answer.ok ? { ok: true, url: answer.data.url } : { ok: false, errors: toFormErrors(answer) };
-}
-
-// Development without ansa's Meta app: the stand-in Page.
-export async function connectFacebookStandInThroughCore(): Promise<FormResult> {
-  return savedOrErrors(await callCore("POST", "/api/v1/social/facebook/stand-in"));
-}
-
-// Disconnects one of the company's Facebook Pages. "not-facebook": core
-// found no Facebook Page of the company with that id (another platform's
-// account, which services/ disconnects, or none at all).
-export async function disconnectFacebookPageThroughCore(connectionId: unknown): Promise<FormResult | "not-facebook"> {
-  const id = typeof connectionId === "string" ? connectionId : "";
-  const answer = await callCore("POST", `/api/v1/social/connections/${encodeURIComponent(id)}/disconnect`);
-  if (!answer.ok && answer.status === 404) {
-    return "not-facebook";
-  }
-  return savedOrErrors(answer);
-}
-
-// The owner's return from Facebook's consent screen: core finishes it and
-// names the Accounts page address (with its result code) to send them to.
-export async function finishFacebookConnectionThroughCore(query: URLSearchParams): Promise<Response> {
-  // URLSearchParams writes the query fully encoded, so fetch sends it as
-  // signed (core checks the signature on the address it receives).
-  const answer = await callCore<{ location: string }>("GET", `/api/v1/social/facebook/callback?${query.toString()}`);
-  const location = answer.ok ? answer.data.location : "/cofounder/accounts?result=exchange_failed&platform=facebook";
-  return new Response(null, { status: 303, headers: { Location: location, "Cache-Control": "no-store" } });
 }

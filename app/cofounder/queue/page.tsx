@@ -2,6 +2,8 @@ import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RefreshWhilePending } from "@/components/refresh-while-pending";
+import { isCoreOn } from "@/lib/core-api";
+import { getQueuePageFromCore } from "@/lib/core-views/queue";
 import { requireSessionContext } from "@/lib/session";
 import { getQueuePageForSession, type PublishJobListItem } from "@/services/publishing-pages";
 import { ActivityList } from "../publishing/activity-list";
@@ -32,7 +34,8 @@ export default function QueuePage() {
 // auto-publish rules and who did what. Everyone reads it; owners act.
 async function QueueContent() {
   const session = await requireSessionContext("/cofounder/queue");
-  const queue = await getQueuePageForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const queue = isCoreOn() ? await getQueuePageFromCore() : await getQueuePageForSession(session);
   const { canManage, counts } = queue;
 
   return (
