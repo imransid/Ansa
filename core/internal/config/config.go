@@ -45,6 +45,10 @@ type Config struct {
 	SendRealEmail bool
 	EmailFrom     string
 	ResendAPIKey  string
+	// The domain of every company's forwarding address
+	// (c-<token>@INBOUND_EMAIL_DOMAIN). Never change it once companies forward
+	// to it. Required with real email; development: inbound.ansa.test.
+	InboundEmailDomain string
 	// ansa's Meta app (both or neither): Facebook Pages and Messenger. The
 	// secret signs every Messenger webhook. MessengerVerifyToken answers
 	// Meta's one-time setup check (32-256 letters, digits, _ or -).
@@ -82,6 +86,7 @@ func Load(getenv Getenv) (Config, error) {
 		ResendAPIKey:          getenv("RESEND_API_KEY"),
 		DevFolder:             withDefault(getenv("ANSA_DEV_FOLDER"), ".."),
 		ScreensSharedSecret:   getenv("SCREENS_SHARED_SECRET"),
+		InboundEmailDomain:    strings.ToLower(strings.TrimSpace(getenv("INBOUND_EMAIL_DOMAIN"))),
 		FacebookAppID:         getenv("FACEBOOK_APP_ID"),
 		FacebookAppSecret:     getenv("FACEBOOK_APP_SECRET"),
 		MessengerVerifyToken:  getenv("MESSENGER_VERIFY_TOKEN"),
@@ -138,11 +143,16 @@ func emailAndLinkProblems(cfg Config) []string {
 	if cfg.Environment == "production" && !cfg.SendRealEmail {
 		problems = append(problems, `SEND_REAL_EMAIL must be "true" in production`)
 	}
-	if cfg.SendRealEmail && (!strings.Contains(cfg.EmailFrom, "@") || cfg.ResendAPIKey == "") {
-		problems = append(problems, "SEND_REAL_EMAIL needs EMAIL_FROM (an address) and RESEND_API_KEY")
+	if cfg.SendRealEmail && (!strings.Contains(cfg.EmailFrom, "@") || cfg.ResendAPIKey == "" || cfg.InboundEmailDomain == "") {
+		problems = append(problems, "SEND_REAL_EMAIL needs EMAIL_FROM (an address), RESEND_API_KEY and INBOUND_EMAIL_DOMAIN")
+	}
+	if cfg.InboundEmailDomain != "" && !domainPattern.MatchString(cfg.InboundEmailDomain) {
+		problems = append(problems, "INBOUND_EMAIL_DOMAIN must be a domain name like inbound.yourdomain.com")
 	}
 	return problems
 }
+
+var domainPattern = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
 
 var verifyTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{32,256}$`)
 
@@ -156,6 +166,14 @@ func metaProblems(cfg Config) []string {
 		problems = append(problems, "MESSENGER_VERIFY_TOKEN must be 32 to 256 letters, digits, _ or - (openssl rand -hex 32)")
 	}
 	return problems
+}
+
+// ForwardingDomain is the domain forwarding addresses are on.
+func (c Config) ForwardingDomain() string {
+	if c.InboundEmailDomain == "" {
+		return "inbound.ansa.test"
+	}
+	return c.InboundEmailDomain
 }
 
 // IsProduction is true in production, where development stand-ins are refused.

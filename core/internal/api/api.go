@@ -50,6 +50,11 @@ type Server struct {
 	Assistant *assistant.Runner
 	// The brain with a time long enough to read a whole menu (120 s a try).
 	MenuBrain *brainclient.Client
+	// ansa's Telegram bot's username ("" = no bot), whether this is
+	// development (stand-ins allowed), and the forwarding addresses' domain.
+	TelegramBot      string
+	Development      bool
+	ForwardingDomain string
 }
 
 // Register adds every endpoint.
@@ -61,6 +66,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerAssistantSettings(routes)
 	s.registerSetup(routes)
 	s.registerMenu(routes)
+	s.registerChannels(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

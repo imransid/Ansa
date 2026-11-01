@@ -14,7 +14,8 @@ repository's root by default), FACEBOOK_APP_ID / FACEBOOK_APP_SECRET
 (ansa's Meta app, both or neither: its secret signs Messenger's webhook),
 MESSENGER_VERIFY_TOKEN (Meta's one-time setup check, 32-256 letters, digits,
 _ or -), SCREENS_SHARED_SECRET (signs the screens' requests to core's API, at
-least 32 characters). See `core/.env.core.example`.
+least 32 characters), INBOUND_EMAIL_DOMAIN (forwarding addresses' domain;
+required with real email). See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are
 named, never shown; real email needs its sender; production needs real email

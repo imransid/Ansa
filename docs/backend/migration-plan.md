@@ -30,7 +30,7 @@
 |---|---|---|
 | conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | ✅ saving (conversations), the Inbox, the page, take over, hand back, replies, important (inbox) |
 | chat delivery (one door) | lib/chat-delivery.ts | ✅ Telegram, Messenger and the stand-in |
-| Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | 🔨 webhook, messages, deletions, sending, connecting by link code done; making the code moves with the screens' API |
+| Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | ✅ telegram, channels (the operator's `telegram:webhook` script remains) |
 | Messenger | services/messenger-*.ts, adapters/messenger.ts | ✅ core/internal/messenger, social (switching a Page's messages on moves with the social connect flow) |
 | development stand-ins | adapters/dev-chat-outbox.ts, scripts/simulate-*.ts | 🔨 the stand-in chat and `cmd/simulate message` done; Telegram and Messenger stand-in simulators next |
 
@@ -95,6 +95,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Settings → Assistant: texts, reply mode, alerts, AI engine and own key, away hours; Try your assistant | ✅ in core's API |
 | /welcome and Settings → What it knows: every setup section, finish | ✅ in core's API |
 | Menu: dishes, order, availability, "Looks right" | ✅ in core's API |
+| Connections: Telegram link, stand-in, disconnect; Pages, forwarding address, phone lines | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

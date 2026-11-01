@@ -66,7 +66,7 @@ func newAPIWorld(t *testing.T) *apiWorld {
 	sender := &chat.Sender{StandInsAllowed: true, StandInDir: w.outbox}
 	server := &Server{Pool: pool, Box: box, Limiter: limiter, Log: logging.New(io.Discard), Secret: screensSecret,
 		Sessions: &session.Reader{Pool: pool, Secret: authSecret}, Orders: &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
-		Replies: &inbox.Replies{Pool: pool, Box: box, Sender: sender}}
+		Replies: &inbox.Replies{Pool: pool, Box: box, Sender: sender}, Development: true, ForwardingDomain: "inbound.ansa.test"}
 	w.api = server
 	routes := http.NewServeMux()
 	server.Register(routes)
