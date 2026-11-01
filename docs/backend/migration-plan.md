@@ -82,7 +82,7 @@
 | Module | Old code | Status |
 |---|---|---|
 | sign up, login, email confirm, reset, sessions | services/auth.ts, signup.ts, password-reset.ts (Better Auth) | ⬜ |
-| team, invites, roles | db/team-members.ts, invites.ts | ⬜ |
+| team, invites, roles, removing, categories | db/team-members.ts, invites.ts, categories.ts, user-categories.ts | ✅ core/internal/teammates (joining through an invite moves with login) |
 | setup and settings | services/restaurant-setup.ts, assistant-settings.ts | ✅ core/internal/setup, settings (in core's API) |
 | billing (Stripe) | services/billing.ts, stripe-webhook.ts | ⬜ |
 | cleanup, health | services/maintenance.ts, health.ts | ✅ core/internal/maintenance (hourly), GET /health |

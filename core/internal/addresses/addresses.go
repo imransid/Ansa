@@ -67,3 +67,21 @@ func isPrintableASCII(text string) bool {
 	}
 	return true
 }
+
+// A team account's address: Zod's own email rule (the old emailSchema),
+// stricter than a customer's. RE2 has no lookahead: "no leading dot" and
+// "no two dots in a row" are checked apart.
+var accountEmail = regexp.MustCompile(`^[A-Za-z0-9_'+\-.]*[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$`)
+
+// AccountEmail is a team account's address trimmed and lower-cased, or a
+// problem in words: at most 254 characters, Zod's email rule.
+func AccountEmail(text string) (string, string) {
+	address := strings.ToLower(strings.TrimSpace(text))
+	switch {
+	case len(address) > 254:
+		return "", "Email is too long"
+	case !accountEmail.MatchString(address) || strings.HasPrefix(address, ".") || strings.Contains(address, ".."):
+		return "", "Enter a valid email address"
+	}
+	return address, ""
+}

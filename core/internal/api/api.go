@@ -67,6 +67,8 @@ type Server struct {
 	Posts *autopost.Writer
 	// Connecting Facebook Pages.
 	Social *socialconnect.Connector
+	// The app's own address (invite links).
+	AppURL string
 }
 
 // Register adds every endpoint.
@@ -84,6 +86,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerEmails(routes)
 	s.registerPosts(routes)
 	s.registerSocial(routes)
+	s.registerTeam(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.
