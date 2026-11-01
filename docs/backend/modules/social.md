@@ -38,6 +38,17 @@ not_set_up, nothing noted; an unreadable token = "unavailable"
 token_unreadable, nothing noted. Facebook Page tokens and the stand-in's
 never run out. `LongestPreparation` is the most it can take.
 
+**What the callers did with it (for the later wiring):** the publishing
+queue failed the post with reauthorization_needed (needs_reauth),
+account_disconnected (disconnected, not_found), platform_not_set_up or
+account_unreadable, and put it back in the queue for
+token_refresh_unavailable (unavailable refresh_unavailable); the numbers
+collector recorded reauthorization_needed, account_disconnected,
+token_refresh_unavailable, not_set_up or account_unreadable on the job and
+asked nothing. A platform that then refuses the token: the caller marks the
+connection with `MarkNeedsReconnectWithin` (guarded by `StoredToken`) and
+its "reconnect_needed" row, in the outcome's transaction.
+
 **Revoking what a disconnect removed (`RevokeRemoved`, `revoke.go`):** X
 and Google only (contentrules.RevokesOnRequest), never for the stand-in,
 and only once no connection of that account anywhere still holds tokens
