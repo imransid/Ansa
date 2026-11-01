@@ -33,6 +33,16 @@ func TestCompany(t *testing.T, pool *Pool) string {
 		t.Fatalf("making a test company: %v", err)
 	}
 	t.Cleanup(func() {
+		// Drafts point at media, media at the jobs that made them, and jobs
+		// at media and drafts: those links go first (as the old cleanup did).
+		for _, unlink := range []string{
+			`UPDATE content_drafts SET media_asset_id = NULL WHERE company_id = $1`,
+			`UPDATE media_generation_jobs SET asset_id = NULL, asset_deleted_at = now() WHERE company_id = $1 AND asset_id IS NOT NULL`,
+		} {
+			if _, err := pool.Exec(ctx, unlink, id); err != nil {
+				t.Errorf("unlinking media: %v", err)
+			}
+		}
 		// Children before parents (foreign keys), then the company. A table
 		// missing from the list shows here, not as rows left behind.
 		for _, table := range cleanupOrder {
@@ -50,7 +60,7 @@ func TestCompany(t *testing.T, pool *Pool) string {
 // The tables a test company's rows are deleted from, children first. A fixed
 // list in code (never input), so the table name in the statement is safe.
 var cleanupOrder = []string{
-	"core_jobs", "knowledge_lookups", "cofounder_activity", "post_metrics", "publish_jobs", "autopublish_rules", "autopost_slots", "content_drafts", "knowledge_chunks", "knowledge_articles", "company_documents", "inbound_addresses", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "outgoing_emails", "inbound_emails", "tickets", "calls", "phone_lines",
+	"core_jobs", "knowledge_lookups", "cofounder_activity", "post_metrics", "publish_jobs", "autopublish_rules", "autopost_slots", "media_assets", "media_generation_jobs", "content_drafts", "marketing_plans", "performance_reviews", "onboarding_messages", "knowledge_chunks", "knowledge_articles", "company_documents", "inbound_addresses", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "outgoing_emails", "inbound_emails", "tickets", "calls", "phone_lines",
 	"user_categories", "categories",
 	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings", "oauth_states", "social_connections",
 	"away_summary_reads", "business_facts", "invites", "company_billing", "users",

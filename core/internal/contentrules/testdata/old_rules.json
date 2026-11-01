@@ -1,0 +1,714 @@
+{
+ "measures": [
+  {
+   "text": "",
+   "x": 0,
+   "characters": 0,
+   "bytes": 0
+  },
+  {
+   "text": "Hello world",
+   "x": 11,
+   "characters": 11,
+   "bytes": 11
+  },
+  {
+   "text": "Café au lait",
+   "x": 12,
+   "characters": 12,
+   "bytes": 13
+  },
+  {
+   "text": "Café decomposed",
+   "x": 15,
+   "characters": 15,
+   "bytes": 16
+  },
+  {
+   "text": "日本語のテキスト",
+   "x": 16,
+   "characters": 8,
+   "bytes": 24
+  },
+  {
+   "text": "한국어",
+   "x": 6,
+   "characters": 3,
+   "bytes": 9
+  },
+  {
+   "text": "Привет мир",
+   "x": 10,
+   "characters": 10,
+   "bytes": 19
+  },
+  {
+   "text": "مرحبا بالعالم",
+   "x": 13,
+   "characters": 13,
+   "bytes": 25
+  },
+  {
+   "text": "नमस्ते दुनिया",
+   "x": 13,
+   "characters": 13,
+   "bytes": 37
+  },
+  {
+   "text": "Emoji 😀 and 👍🏽 and 👩‍🍳 and 🇮🇹 and 🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+   "x": 36,
+   "characters": 41,
+   "bytes": 85
+  },
+  {
+   "text": "Keycap 1️⃣ and ❤️ and ©",
+   "x": 26,
+   "characters": 23,
+   "bytes": 32
+  },
+  {
+   "text": "Visit https://example.com/a-long-path?x=1. Now!",
+   "x": 35,
+   "characters": 47,
+   "bytes": 47
+  },
+  {
+   "text": "See www.example.com, (https://x.com/abc) and http://a.b!!!",
+   "x": 85,
+   "characters": 58,
+   "bytes": 58
+  },
+  {
+   "text": "dash — “quotes” ‘single’ ′prime″",
+   "x": 32,
+   "characters": 32,
+   "bytes": 46
+  },
+  {
+   "text": "tab\tand\nnewline\r\nend",
+   "x": 20,
+   "characters": 20,
+   "bytes": 20
+  },
+  {
+   "text": "Zero​width‍joiner‌non",
+   "x": 21,
+   "characters": 21,
+   "bytes": 27
+  },
+  {
+   "text": "RTL ‮override‬",
+   "x": 16,
+   "characters": 14,
+   "bytes": 18
+  },
+  {
+   "text": "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́́",
+   "x": 31,
+   "characters": 31,
+   "bytes": 62
+  },
+  {
+   "text": "ｶﾞｷﾞ half-width ﾞﾟ",
+   "x": 24,
+   "characters": 18,
+   "bytes": 30
+  },
+  {
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "x": 300,
+   "characters": 300,
+   "bytes": 300
+  },
+  {
+   "text": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+   "x": 2600,
+   "characters": 2600,
+   "bytes": 5200
+  },
+  {
+   "text": "👨‍👩‍👧‍👦 family 🧑🏿‍🚀 astronaut",
+   "x": 22,
+   "characters": 29,
+   "bytes": 58
+  },
+  {
+   "text": "ﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞ",
+   "x": 80,
+   "characters": 40,
+   "bytes": 120
+  },
+  {
+   "text": "LINK:https://t.co/x end",
+   "x": 32,
+   "characters": 23,
+   "bytes": 23
+  }
+ ],
+ "cleaning": [
+  {
+   "text": "",
+   "line": "",
+   "lines": "",
+   "cut": "",
+   "tooMany": false
+  },
+  {
+   "text": "Hello world",
+   "line": "Hello world",
+   "lines": "Hello world",
+   "cut": "Hello world",
+   "tooMany": false
+  },
+  {
+   "text": "Café au lait",
+   "line": "Café au lait",
+   "lines": "Café au lait",
+   "cut": "Café au lait",
+   "tooMany": false
+  },
+  {
+   "text": "Café decomposed",
+   "line": "Café decomposed",
+   "lines": "Café decomposed",
+   "cut": "Café decomposed",
+   "tooMany": false
+  },
+  {
+   "text": "日本語のテキスト",
+   "line": "日本語のテキスト",
+   "lines": "日本語のテキスト",
+   "cut": "日本語のテキスト",
+   "tooMany": false
+  },
+  {
+   "text": "한국어",
+   "line": "한국어",
+   "lines": "한국어",
+   "cut": "한국어",
+   "tooMany": false
+  },
+  {
+   "text": "Привет мир",
+   "line": "Привет мир",
+   "lines": "Привет мир",
+   "cut": "Привет мир",
+   "tooMany": false
+  },
+  {
+   "text": "مرحبا بالعالم",
+   "line": "مرحبا بالعالم",
+   "lines": "مرحبا بالعالم",
+   "cut": "مرحبا بالعالم",
+   "tooMany": false
+  },
+  {
+   "text": "नमस्ते दुनिया",
+   "line": "नमस्ते दुनिया",
+   "lines": "नमस्ते दुनिया",
+   "cut": "नमस्ते दुनिया",
+   "tooMany": false
+  },
+  {
+   "text": "Emoji 😀 and 👍🏽 and 👩‍🍳 and 🇮🇹 and 🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+   "line": "Emoji 😀 and 👍🏽 and 👩‍🍳 and 🇮🇹 and 🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+   "lines": "Emoji 😀 and 👍🏽 and 👩‍🍳 and 🇮🇹 and 🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+   "cut": "Emoji 😀 and 👍🏽 and 👩‍🍳 and 🇮🇹 and 🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+   "tooMany": false
+  },
+  {
+   "text": "Keycap 1️⃣ and ❤️ and ©",
+   "line": "Keycap 1️⃣ and ❤️ and ©",
+   "lines": "Keycap 1️⃣ and ❤️ and ©",
+   "cut": "Keycap 1️⃣ and ❤️ and ©",
+   "tooMany": false
+  },
+  {
+   "text": "Visit https://example.com/a-long-path?x=1. Now!",
+   "line": "Visit https://example.com/a-long-path?x=1. Now!",
+   "lines": "Visit https://example.com/a-long-path?x=1. Now!",
+   "cut": "Visit https://example.com/a-long-path?x=1. Now!",
+   "tooMany": false
+  },
+  {
+   "text": "See www.example.com, (https://x.com/abc) and http://a.b!!!",
+   "line": "See www.example.com, (https://x.com/abc) and http://a.b!!!",
+   "lines": "See www.example.com, (https://x.com/abc) and http://a.b!!!",
+   "cut": "See www.example.com, (https://x.com/abc) and http://a.b!!!",
+   "tooMany": false
+  },
+  {
+   "text": "dash — “quotes” ‘single’ ′prime″",
+   "line": "dash — “quotes” ‘single’ ′prime″",
+   "lines": "dash — “quotes” ‘single’ ′prime″",
+   "cut": "dash — “quotes” ‘single’ ′prime″",
+   "tooMany": false
+  },
+  {
+   "text": "tab\tand\nnewline\r\nend",
+   "line": "tab and newline end",
+   "lines": "tab\tand\nnewline\nend",
+   "cut": "tab\tand\nnewline\r\nend",
+   "tooMany": false
+  },
+  {
+   "text": "Zero​width‍joiner‌non",
+   "line": "Zerowidth‍joiner‌non",
+   "lines": "Zero​width‍joiner‌non",
+   "cut": "Zero​width‍joiner‌non",
+   "tooMany": false
+  },
+  {
+   "text": "RTL ‮override‬",
+   "line": "RTL override",
+   "lines": "RTL ‮override‬",
+   "cut": "RTL ‮override‬",
+   "tooMany": false
+  },
+  {
+   "text": "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́́",
+   "line": "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́́",
+   "lines": "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́́",
+   "cut": "á́́́́́́́́́́́́́́́́́́́́́́́́́́́́́",
+   "tooMany": true
+  },
+  {
+   "text": "ｶﾞｷﾞ half-width ﾞﾟ",
+   "line": "ｶﾞｷﾞ half-width ﾞﾟ",
+   "lines": "ｶﾞｷﾞ half-width ﾞﾟ",
+   "cut": "ｶﾞｷﾞ half-width ﾞﾟ",
+   "tooMany": false
+  },
+  {
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "line": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "lines": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "cut": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "tooMany": false
+  },
+  {
+   "text": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+   "line": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+   "lines": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+   "cut": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+   "tooMany": false
+  },
+  {
+   "text": "👨‍👩‍👧‍👦 family 🧑🏿‍🚀 astronaut",
+   "line": "👨‍👩‍👧‍👦 family 🧑🏿‍🚀 astronaut",
+   "lines": "👨‍👩‍👧‍👦 family 🧑🏿‍🚀 astronaut",
+   "cut": "👨‍👩‍👧‍👦 family 🧑🏿‍🚀 astronaut",
+   "tooMany": false
+  },
+  {
+   "text": "ﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞ",
+   "line": "ﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞ",
+   "lines": "ﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞ",
+   "cut": "ﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞﾞ",
+   "tooMany": true
+  },
+  {
+   "text": "LINK:https://t.co/x end",
+   "line": "LINK:https://t.co/x end",
+   "lines": "LINK:https://t.co/x end",
+   "cut": "LINK:https://t.co/x end",
+   "tooMany": false
+  }
+ ],
+ "typed": [
+  {
+   "text": "#bread, #lisbon sourdough",
+   "hashtags": [
+    "bread",
+    "lisbon",
+    "sourdough"
+   ],
+   "invalid": []
+  },
+  {
+   "text": "#café-bar #123 #ok_1 ##double",
+   "hashtags": [
+    "ok_1",
+    "double"
+   ],
+   "invalid": [
+    "#café-bar",
+    "#123"
+   ]
+  },
+  {
+   "text": "#Bread #bread #BREAD",
+   "hashtags": [
+    "Bread"
+   ],
+   "invalid": []
+  },
+  {
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa #fine",
+   "hashtags": [
+    "fine"
+   ],
+   "invalid": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   ]
+  },
+  {
+   "text": "",
+   "hashtags": [],
+   "invalid": []
+  }
+ ],
+ "model": [
+  {
+   "tags": [
+    "#Bread",
+    "lisbon food",
+    "#123",
+    "café-bar",
+    "#bread"
+   ],
+   "kept": [
+    "Bread",
+    "lisbonfood"
+   ]
+  },
+  {
+   "tags": [
+    "tag0",
+    "tag1",
+    "tag2",
+    "tag3",
+    "tag4",
+    "tag5",
+    "tag6",
+    "tag7",
+    "tag8",
+    "tag9",
+    "tag10",
+    "tag11",
+    "tag12",
+    "tag13",
+    "tag14",
+    "tag15",
+    "tag16",
+    "tag17",
+    "tag18",
+    "tag19",
+    "tag20",
+    "tag21",
+    "tag22",
+    "tag23",
+    "tag24",
+    "tag25",
+    "tag26",
+    "tag27",
+    "tag28",
+    "tag29",
+    "tag30",
+    "tag31",
+    "tag32",
+    "tag33",
+    "tag34"
+   ],
+   "kept": [
+    "tag0",
+    "tag1",
+    "tag2",
+    "tag3",
+    "tag4",
+    "tag5",
+    "tag6",
+    "tag7",
+    "tag8",
+    "tag9",
+    "tag10",
+    "tag11",
+    "tag12",
+    "tag13",
+    "tag14",
+    "tag15",
+    "tag16",
+    "tag17",
+    "tag18",
+    "tag19",
+    "tag20",
+    "tag21",
+    "tag22",
+    "tag23",
+    "tag24",
+    "tag25",
+    "tag26",
+    "tag27",
+    "tag28",
+    "tag29"
+   ]
+  }
+ ],
+ "issues": [
+  {
+   "draft": {
+    "platform": "x",
+    "format": "post",
+    "title": "",
+    "body": "",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "text_missing",
+     "severity": "blocking",
+     "message": "The post has no text yet."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "x",
+    "format": "post",
+    "title": "",
+    "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "text_too_long",
+     "severity": "blocking",
+     "message": "The post is 281 characters as X counts them, call to action and hashtags included. X allows 280."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "x",
+    "format": "post",
+    "title": "",
+    "body": "Fine",
+    "hashtags": [
+     "a",
+     "b",
+     "c"
+    ],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "many_hashtags",
+     "severity": "warning",
+     "message": "3 hashtags. X recommends no more than 2."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "x",
+    "format": "post",
+    "title": "",
+    "body": "Fine",
+    "hashtags": [
+     "t0",
+     "t1",
+     "t2",
+     "t3",
+     "t4",
+     "t5",
+     "t6",
+     "t7",
+     "t8",
+     "t9",
+     "t10"
+    ],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "too_many_hashtags",
+     "severity": "blocking",
+     "message": "11 hashtags. X posts take at most 10."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "youtube",
+    "format": "post",
+    "title": "",
+    "body": "Hi",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "format_not_accepted",
+     "severity": "blocking",
+     "message": "YouTube takes videos only, not a text post."
+    },
+    {
+     "code": "title_missing",
+     "severity": "blocking",
+     "message": "A YouTube video needs a title."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "youtube",
+    "format": "video",
+    "title": "",
+    "body": "<b>",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "media_missing",
+     "severity": "blocking",
+     "message": "This video needs its video before it can be approved: attach one from the media library (under Media)."
+    },
+    {
+     "code": "title_missing",
+     "severity": "blocking",
+     "message": "A YouTube video needs a title."
+    },
+    {
+     "code": "angle_brackets",
+     "severity": "blocking",
+     "message": "YouTube refuses \"<\" and \">\" in a title or description. Take them out."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "youtube",
+    "format": "video",
+    "title": "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "body": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": "cheap stuff"
+   },
+   "media": {
+    "kind": "video",
+    "altText": "a cheap video"
+   },
+   "words": [
+    "cheap",
+    "deal of the day"
+   ],
+   "issues": [
+    {
+     "code": "title_too_long",
+     "severity": "blocking",
+     "message": "The title is 101 characters. YouTube allows 100."
+    },
+    {
+     "code": "text_too_long",
+     "severity": "blocking",
+     "message": "The description is 5,200 bytes, call to action and hashtags included. YouTube allows 5,000 (an accented letter counts 2, an emoji 4)."
+    },
+    {
+     "code": "word_to_avoid",
+     "severity": "blocking",
+     "message": "\"cheap\" is on your Words to avoid list (business profile), and this draft uses it in the video script and the video's alt text (media library)."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "linkedin",
+    "format": "image_post",
+    "title": "",
+    "body": "Deal of the day, cheapest!",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": {
+    "kind": "video",
+    "altText": ""
+   },
+   "words": [
+    "cheap",
+    "deal of the day"
+   ],
+   "issues": [
+    {
+     "code": "media_missing",
+     "severity": "blocking",
+     "message": "This post needs its image before it can be approved: attach one from the media library, or make one with the AI (under Media)."
+    },
+    {
+     "code": "word_to_avoid",
+     "severity": "blocking",
+     "message": "\"deal of the day\" is on your Words to avoid list (business profile), and this draft uses it in the post text."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "facebook",
+    "format": "image_post",
+    "title": "",
+    "body": "Our Cheap lunch",
+    "hashtags": [
+     "cheap"
+    ],
+    "callToAction": "Book now",
+    "videoScript": ""
+   },
+   "media": {
+    "kind": "image",
+    "altText": "Cheap food"
+   },
+   "words": [
+    "cheap"
+   ],
+   "issues": [
+    {
+     "code": "word_to_avoid",
+     "severity": "blocking",
+     "message": "\"cheap\" is on your Words to avoid list (business profile), and this draft uses it in the post text and the image's alt text (media library)."
+    }
+   ]
+  },
+  {
+   "draft": {
+    "platform": "linkedin",
+    "format": "post",
+    "title": "",
+    "body": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+    "hashtags": [],
+    "callToAction": "",
+    "videoScript": ""
+   },
+   "media": null,
+   "words": [],
+   "issues": [
+    {
+     "code": "text_too_long",
+     "severity": "blocking",
+     "message": "The post is 3,001 characters, call to action and hashtags included. LinkedIn allows 3,000."
+    }
+   ]
+  }
+ ]
+}

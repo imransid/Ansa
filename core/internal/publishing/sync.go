@@ -105,3 +105,35 @@ func syncDraftWithin(ctx context.Context, tx database.Tx, company tenant.Company
 	_, err = tx.Exec(ctx, `UPDATE content_drafts SET status = $3 WHERE company_id = $1 AND id = $2`, company.String(), draftID, next)
 	return err
 }
+
+// SyncDraftWithin is syncDraftWithin for the content studio: after a
+// change of a draft the queue has (an approval keeps the queue's status).
+func SyncDraftWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, draftID string) error {
+	return syncDraftWithin(ctx, tx, company, draftID)
+}
+
+// CancelQueuedAfterChangeWithin runs inside a change of a draft's content
+// (an edit, the AI's new text, its image or video, its alt text), with the
+// draft's row locked: when the draft was approved or had posts waiting, it
+// records that the draft changed after approval and cancels those posts
+// ("draft_changed": they need approving and scheduling again).
+func CancelQueuedAfterChangeWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, actorUserID, draftID string, wasApproved bool) error {
+	var queued int
+	const count = `SELECT count(*) FROM (SELECT 1 FROM publish_jobs WHERE company_id = $1 AND draft_id = $2 AND status = 'queued' FOR UPDATE) AS waiting`
+	if err := tx.QueryRow(ctx, count, company.String(), draftID).Scan(&queued); err != nil {
+		return err
+	}
+	if !wasApproved && queued == 0 {
+		return nil
+	}
+	if err := RecordActivityWithin(ctx, tx, company, Activity{Action: "draft_changed_after_approval", ActorUserID: actorUserID, DraftID: draftID}); err != nil {
+		return err
+	}
+	return cancelQueuedWithin(ctx, tx, company, actorUserID, draftID, "draft_changed")
+}
+
+// CancelQueuedOfDraftWithin runs inside a rejection or an archive: cancels
+// the draft's waiting posts, saying why ("draft_rejected", "draft_archived").
+func CancelQueuedOfDraftWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, actorUserID, draftID, code string) error {
+	return cancelQueuedWithin(ctx, tx, company, actorUserID, draftID, code)
+}
