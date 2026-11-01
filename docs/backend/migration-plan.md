@@ -75,7 +75,7 @@
 |---|---|---|
 | tickets, routing, categories, notes, history | db/ticket*.ts, db/routing.ts | ✅ every person's action on requests, typed-in requests, same-customer routing (in core's API) |
 | calls (Vapi webhook, call brain, recordings) | services/vapi-*.ts, lib/call-brain/ | ⬜ |
-| email in (Resend webhook, filters, triage) | services/inbound-email-*.ts, lib/email-triage/ | ✅ core/internal/resend, inbound; brain/brain/email (the stuck-email run moves with maintenance) |
+| email in (Resend webhook, filters, triage) | services/inbound-email-*.ts, lib/email-triage/ | ✅ core/internal/resend, inbound; brain/brain/email (core's jobs retry an email by themselves; "Process again" on the Emails page) |
 | email out (outbox, solved emails) | services/customer-emails.ts, lib/send-email.ts | ✅ core/internal/outbox (now retried on its own within minutes) |
 
 ## Phase 6: accounts and money
@@ -85,7 +85,8 @@
 | team, invites, roles | db/team-members.ts, invites.ts | ⬜ |
 | setup and settings | services/restaurant-setup.ts, assistant-settings.ts | ✅ core/internal/setup, settings (in core's API) |
 | billing (Stripe) | services/billing.ts, stripe-webhook.ts | ⬜ |
-| cleanup, health, monitoring | services/maintenance.ts, health.ts | ⬜ |
+| cleanup, health | services/maintenance.ts, health.ts | ✅ core/internal/maintenance (hourly), GET /health |
+| monitoring and alerts (a log service, an uptime monitor) | docs/going-live.md | ⬜ a choice for the owner |
 
 ## Phase 7: screens on core's API
 Every page and action in `app/` calls core instead of `services/`. Then

@@ -29,6 +29,7 @@ import (
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/maintenance"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
@@ -119,7 +120,7 @@ func main() {
 	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, FacebookAppSecret: cfg.FacebookAppSecret,
 		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
 	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook}
-	go schedule.Run(workCtx, log, scheduledTasks(pool, publisher, postWriter, numbers))
+	go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers))
 	go func() {
 		log.Info("core started")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -158,7 +159,7 @@ func chatSender(cfg config.Config, pool *database.Pool, box *secure.Box) *chat.S
 
 // scheduledTasks is core's periodic work, each claimed in the database so
 // several core processes never do it twice.
-func scheduledTasks(pool *database.Pool, publisher *publishing.Runner, postWriter *autopost.Writer, numbers *postmetrics.Collector) []schedule.Task {
+func scheduledTasks(pool *database.Pool, log *logging.Logger, publisher *publishing.Runner, postWriter *autopost.Writer, numbers *postmetrics.Collector) []schedule.Task {
 	return []schedule.Task{
 		{Name: "assistant catch-up", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return assistant.QueueDueReplies(ctx, pool)
@@ -171,6 +172,9 @@ func scheduledTasks(pool *database.Pool, publisher *publishing.Runner, postWrite
 		}},
 		{Name: "post numbers", Every: 5 * time.Minute, Run: func(ctx context.Context) (int, error) {
 			return numbers.RunDue(ctx, "")
+		}},
+		{Name: "cleanup", Every: time.Hour, Run: func(ctx context.Context) (int, error) {
+			return maintenance.Cleanup(ctx, pool, log, "")
 		}},
 	}
 }

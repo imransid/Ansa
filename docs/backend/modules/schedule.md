@@ -11,5 +11,5 @@ LOCKED`), so nothing is done twice.
 **Tasks today (`cmd/core/main.go`):** the assistant's catch-up and the
 publishing queue ([publishing](publishing.md)), each every 15 s; "Post for
 me" ([autopost](autopost.md)) every minute; post numbers
-([postmetrics](postmetrics.md)) every 5 minutes. The daily cleanup joins as
-its module moves.
+([postmetrics](postmetrics.md)) every 5 minutes; the cleanup
+([maintenance](maintenance.md)) every hour.
