@@ -42,7 +42,7 @@ func TestOnlyTheCompanysApprovedArticlesForTheAudienceAreFound(t *testing.T) {
 	article := func(company, owner, status, title, text string, support bool) {
 		var id string
 		err := pool.QueryRow(ctx, `INSERT INTO knowledge_articles (company_id, title, body, kind, status, use_for_support, created_by_user_id, updated_by_user_id, approved_by_user_id, approved_at)
-			VALUES ($1, $2, $3, 'faq', $4, $5, $6::uuid, $6::uuid, CASE WHEN $4 = 'approved' THEN $6::uuid END, CASE WHEN $4 = 'approved' THEN now() END) RETURNING id`,
+			VALUES ($1, $2, $3, 'faq', $4, $5, $6::text, $6::text, CASE WHEN $4 = 'approved' THEN $6::text END, CASE WHEN $4 = 'approved' THEN now() END) RETURNING id`,
 			company, title, text, status, support, owner).Scan(&id)
 		if err != nil {
 			t.Fatalf("article: %v", err)

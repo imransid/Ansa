@@ -74,7 +74,7 @@ func TestOwner(t *testing.T, pool *Pool, companyID string) string {
 	var id string
 	err := pool.QueryRow(context.Background(), `
 		INSERT INTO users (id, company_id, role, name, email, email_verified)
-		VALUES (substr(md5(random()::text) || md5(random()::text), 1, 32), $1, 'owner', 'Core Test Owner', gen_random_uuid()::text || '@core-test.example', true)
+		VALUES ('id' || substr(md5(random()::text) || md5(random()::text), 1, 30), $1, 'owner', 'Core Test Owner', gen_random_uuid()::text || '@core-test.example', true)
 		RETURNING id`, companyID).Scan(&id)
 	if err != nil {
 		t.Fatalf("making a test owner: %v", err)
