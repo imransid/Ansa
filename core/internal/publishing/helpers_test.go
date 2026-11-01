@@ -2,6 +2,7 @@ package publishing
 
 import (
 	"context"
+	"crypto/rand"
 	"testing"
 	"time"
 
@@ -132,4 +133,18 @@ func (w *world) field(t *testing.T, jobID, column string) string {
 		return ""
 	}
 	return *value
+}
+
+// person adds a confirmed teammate with an id as Better Auth makes them.
+func (w *world) person(t *testing.T, role string) string {
+	t.Helper()
+	const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	id := make([]byte, 32)
+	rand.Read(id)
+	for i := range id {
+		id[i] = alphabet[int(id[i])%len(alphabet)]
+	}
+	w.exec(t, `INSERT INTO users (id, company_id, role, name, email, email_verified) VALUES ($1, $2, $3::user_role, $4, $1 || '@core-test.example', true)`,
+		string(id), w.company.String(), role, "Test "+role)
+	return string(id)
 }
