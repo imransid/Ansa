@@ -19,3 +19,6 @@ state. Read `docs/backend/README.md` first.
 | `brain/app.py` | The web service; only core's signed requests pass | [brain-service](../docs/backend/modules/brain-service.md) |
 | `brain/security.py` | Checks core's signature | [brain-service](../docs/backend/modules/brain-service.md) |
 | `brain/settings.py` | Settings, checked at start | [brain-service](../docs/backend/modules/brain-service.md) |
+| `brain/ai.py` | The only door to the AI model | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
+| `brain/assistant/` | The reply's prompt, answer and models | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
+| `brain/text.py` | Escaping and hiding secrets in prompts | [brain-assistant](../docs/backend/modules/brain-assistant.md) |

@@ -15,4 +15,5 @@ attacker (the 2025 npm worms are the reminder). Add one only with a line here.
 | fastapi, starlette | The web service and its request checks |
 | pydantic, pydantic_core | Strict models for every request and answer |
 | uvicorn | Runs the service |
+| anthropic (and its helpers: anyio, httpx, httpcore, h11, certifi, idna, jiter, sniffio, distro, docstring_parser, typing_extensions) | Anthropic's official SDK: the only way the brain asks the AI model |
 | pytest, httpx (tests only) | Tests and the test client |

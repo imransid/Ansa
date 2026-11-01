@@ -7,6 +7,10 @@ Run: BRAIN_SHARED_SECRET=... .venv/bin/uvicorn brain.app:create_app --factory --
 
 from fastapi import FastAPI, Request, Response
 
+from brain import ai
+from brain.assistant.answer import read_answer
+from brain.assistant.models import ReplyRequest
+from brain.assistant.prompt import build_request
 from brain.security import SIGNATURE_HEADER, TIMESTAMP_HEADER, is_signed_by_core
 from brain.settings import Settings, load_settings
 
@@ -39,4 +43,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """A signed no-op: core uses it to check the connection at start."""
         return {"status": "ok"}
 
+    @app.post("/v1/assistant/reply")
+    async def assistant_reply(request: ReplyRequest) -> dict:
+        """One answer to a customer's newest message, as a decision for core.
+        Never the prompt or the model's raw text in a log."""
+        return decide_reply(request, active_asker)
+
     return app
+
+
+# The model the endpoint asks; tests replace it with a fake (never the real API in a test).
+def active_asker(system_prompt: str, prompt: str, schema: dict, use: ai.UseSettings, api_key: str | None) -> ai.ModelResult:
+    return ai.ask(system_prompt, prompt, schema, use, api_key)
+
+
+def decide_reply(request: ReplyRequest, asker) -> dict:
+    """Asks the model and reads its answer; any failure is a decision core
+    turns into the holding reply and an alert."""
+    system_prompt, prompt, schema = build_request(request)
+    result = asker(system_prompt, prompt, schema, ai.ASSISTANT_REPLY, request.api_key)
+    if result.kind == "unavailable":
+        return {"kind": "failed", "reason": "model_unavailable"}
+    if result.kind != "ok":
+        return {"kind": "failed", "reason": "model_failed", "error_name": result.error_name or result.kind}
+    decision = read_answer(result.output_text)
+    return decision if decision is not None else {"kind": "failed", "reason": "unusable_answer"}

@@ -38,7 +38,7 @@
 | Module | Old code | Status |
 |---|---|---|
 | when ansa answers (gate, away, catch-up) | db/assistant-runs.ts, lib/assistant/availability.ts | ⬜ |
-| reply thinking (brain) | lib/assistant/prompt.ts, answer.ts | ⬜ |
+| reply thinking (brain) | lib/assistant/prompt.ts, answer.ts | ✅ brain/brain/assistant |
 | reply checks (core) | lib/assistant/reply-checks.ts | ⬜ |
 | handover, holding reply, owner alerts | services/assistant-handover.ts, owner-alerts.ts | ⬜ |
 | Ask me first drafts, test box, AI engine | services/assistant-drafts.ts, -test.ts, -engine*.ts | ⬜ |
