@@ -22,3 +22,10 @@ text before it can go out. See [autopost](autopost.md).
 "no_text"}`), at most 1,000 pages and 400,000 characters; pypdf's own
 warnings are switched off (they can name what is inside the file). Core
 cleans and cuts the text ([knowledge](knowledge.md)).
+**`POST /v1/calls/decide` (signed, up to 6 MB):** a finished call's
+decision (see [calls](calls.md)): `{outcome, source, reason_code,
+customer_issue, explanation, ticket_subject, category, resolution_evidence,
+error_name?}`. Rules first (no transcript, no customer speech, an abnormal
+end), then the model, then the guards: anything missing, malformed or
+unproven is "needs_human"; "solved" only with one whole confirming sentence
+of the customer's last two turns.

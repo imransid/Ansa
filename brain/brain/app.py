@@ -13,6 +13,8 @@ from brain import ai, claude_code
 from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
+from brain.calls.decision import CallRequest
+from brain.calls.decision import decide as decide_call
 from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
 from brain.email.triage import TriageRequest
@@ -46,7 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.url.path == "/health":
             return await call_next(request)
         body = await request.body()
-        cap = MENU_BODY_BYTES if request.url.path in ("/v1/menu/read", "/v1/documents/pdf-text") else MAX_BODY_BYTES
+        cap = MENU_BODY_BYTES if request.url.path in ("/v1/menu/read", "/v1/documents/pdf-text", "/v1/calls/decide") else MAX_BODY_BYTES
         if len(body) > cap:
             return Response(status_code=413)
         if not is_signed_by_core(active.shared_secret, request.headers.get(TIMESTAMP_HEADER), request.headers.get(SIGNATURE_HEADER), body):
@@ -86,6 +88,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def email_triage(request: TriageRequest) -> dict:
         """A received email's summary, subject and category (or why not)."""
         return triage_email(request, active_asker)
+
+    @app.post("/v1/calls/decide")
+    def calls_decide(request: CallRequest) -> dict:
+        """A finished call: solved (with the customer's own confirming
+        sentence) or a person follows up. Never the transcript in a log."""
+        return decide_call(request, active_asker, ai.CALL_DECISION)
 
     @app.post("/v1/documents/pdf-text")
     def documents_pdf_text(request: PdfTextRequest) -> dict:

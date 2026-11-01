@@ -23,6 +23,9 @@ class UseSettings:
 # The restaurant assistant's reply to a customer (who is waiting in a chat).
 ASSISTANT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30, max_retries=1)
 
+# Deciding a finished phone call: solved, or a person follows up.
+CALL_DECISION = UseSettings(effort="high", max_tokens=8_000, timeout_seconds=60, max_retries=2)
+
 # Triaging a customer email (a summary, a subject and a category).
 EMAIL_TRIAGE = UseSettings(effort="medium", max_tokens=4_000, timeout_seconds=45, max_retries=1)
 
