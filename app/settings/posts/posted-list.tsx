@@ -3,7 +3,7 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot, type StatusTone } from "@/components/status-dot";
 import type { PostKind } from "@/lib/autopost/brain";
 import type { SkipReason } from "@/lib/autopost/slots";
-import type { PostedSlot } from "@/services/autopost";
+import type { PostedSlot } from "@/lib/types/autopost";
 
 // The newest posts of "Post for me" (step 54): when, what about, where each
 // is, its first lines, and how people liked it.

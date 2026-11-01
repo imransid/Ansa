@@ -1,7 +1,7 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
 import type { FormResult } from "@/lib/form-result";
-import type { BillingView, RedirectResult, SubscriptionSnapshot } from "@/services/billing";
+import type { BillingView, RedirectResult, SubscriptionSnapshot } from "@/lib/types/billing";
 
 // The Billing page through the new backend (core's /api/v1/billing), in the
 // shapes the page and its actions already read.

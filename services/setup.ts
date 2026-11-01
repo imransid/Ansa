@@ -18,50 +18,15 @@ export type SetupOverview = Omit<SetupStatus, "inboundToken"> & { forwardingAddr
 const ownersOnly: FormResult = { ok: false, errors: { message: "Only owners can change company setup." } };
 const tooManyChanges: FormResult = { ok: false, errors: { message: "Too many changes. Try again in a few minutes." } };
 
-// One line of the Setup checklist. href: where the step is done, when that
-// is another page.
-export type ChecklistItem = { label: string; done: boolean; href?: string };
+// The checklist moved to lib/setup-checklist.ts (the page uses it with
+// either backend); passed on for the dashboard and the checks.
+export { buildSetupChecklist, type ChecklistItem } from "@/lib/setup-checklist";
 
 // What the Setup page shows for the session's company, including its
 // forwarding address. Phone numbers are read-only here: ansa links them.
 export async function getSetupForSession(session: SessionContext): Promise<SetupOverview> {
   const { inboundToken, ...status } = await getSetupStatus(session.companyId);
   return { ...status, forwardingAddress: buildForwardingAddress(inboundToken) };
-}
-
-// The "what's left to set up" list (Setup page; the dashboard counts what is
-// left for owners). Email and phone count as done only once something really
-// arrived: a saved setting proves nothing about whether mail or calls reach
-// ansa. The email item says only what we know: Gmail's confirmation email, or
-// a customer replying to a "solved" email, can reach the forwarding address
-// before forwarding itself works. The reply-to address is optional (replies
-// go to the forwarding address without one), so it isn't listed.
-export function buildSetupChecklist(setup: SetupOverview): ChecklistItem[] {
-  return [
-    { label: "An email reached your forwarding address", done: setup.lastInboundEmail !== null },
-    {
-      label: "Phone number, set up by ansa (done after the first call)",
-      done: setup.phoneLines.some((line) => line.lastCallAt !== null),
-    },
-    { label: "Categories, so tickets reach the right person", done: setup.activeCategoryCount > 0, href: "/team" },
-    { label: "Invite your team", done: setup.memberCount > 1, href: "/team" },
-    {
-      label: describeCategoryPicking(setup.peopleWithoutCategories),
-      done: setup.activeCategoryCount > 0 && setup.peopleWithoutCategories === 0,
-      href: "/team",
-    },
-    { label: "Upload your documents", done: setup.documentCount > 0 },
-  ];
-}
-
-// Routing by category only picks people who ticked categories on the Team
-// page (step 29), so say how many haven't.
-function describeCategoryPicking(peopleWithoutCategories: number): string {
-  const label = "Everyone picked the categories they handle";
-  if (peopleWithoutCategories === 0) {
-    return label;
-  }
-  return `${label} (${peopleWithoutCategories} ${peopleWithoutCategories === 1 ? "person hasn't" : "people haven't"} yet)`;
 }
 
 // Renames the session's company. It is also in the sender name of every

@@ -14,8 +14,8 @@ import {
 } from "@/lib/core-views/studio";
 import type { FormErrors, FormResult, SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
+import type { CreatedDraftResult } from "@/lib/types/content-draft-messages";
 import { editDraftForSession } from "@/services/content-draft-edits";
-import type { CreatedDraftResult } from "@/services/content-draft-messages";
 import { createBlankDraftForSession } from "@/services/content-drafts";
 import { generateDraftForSession, regenerateDraftForSession } from "@/services/content-generation";
 import { approveDraftForSession, archiveDraftForSession, rejectDraftForSession, restoreDraftForSession } from "@/services/content-review";

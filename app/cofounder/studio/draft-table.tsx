@@ -3,7 +3,7 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CONTENT_FORMAT_LABELS } from "@/lib/content-studio/formats";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
-import type { ContentDraftListItem } from "@/services/content-drafts";
+import type { ContentDraftListItem } from "@/lib/types/content-drafts";
 import { DraftStatusBadge } from "./draft-status-badge";
 
 // WHY a fixed layout: the table is exactly as wide as the page, whatever the

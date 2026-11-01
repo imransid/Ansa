@@ -1,6 +1,6 @@
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
-import type { ProfileTopic } from "@/services/business-profile";
+import type { ProfileTopic } from "@/lib/types/business-profile";
 import { FactEditor } from "./fact-editor";
 import { ProposalActions } from "./proposal-actions";
 

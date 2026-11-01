@@ -14,7 +14,7 @@ import {
   DRAFT_VIDEO_SCRIPT_MAX_LENGTH,
 } from "@/lib/content-studio/limits";
 import type { SocialPlatform } from "@/lib/social-platforms";
-import type { PlanChoices } from "@/services/content-drafts";
+import type { PlanChoices } from "@/lib/types/content-drafts";
 import { PlanChoiceSelect } from "../plan-choice-select";
 import { EditorBox, EditorButtons, EditorLine } from "./editor-fields";
 

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SCHEDULE_MAX_AHEAD_DAYS } from "@/lib/publishing/limits";
 import { addDays, isKnownTimeZone, localDateOf, localTimeOf, wallClockToUtc } from "@/lib/publishing/schedule-time";
-import type { PublishAccountChoice } from "@/services/draft-publishing";
+import type { PublishAccountChoice } from "@/lib/types/draft-publishing";
 
 type ScheduleFormProps = {
   draftId: string;

@@ -3,7 +3,7 @@ import { connectSocialAccountAction, connectStandInAccountAction } from "@/app/a
 import { ActionButton } from "@/components/action-button";
 import { StatusDot } from "@/components/status-dot";
 import { MESSAGING_SCOPES } from "@/lib/messenger";
-import type { PlatformView } from "@/services/social-accounts";
+import type { PlatformView } from "@/lib/types/social-accounts";
 
 // Settings → Connections → Facebook Messenger (step 53): the company's
 // Facebook Pages and whether their messages come to ansa, and one button

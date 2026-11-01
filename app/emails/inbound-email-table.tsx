@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { describeIgnoredReason, PROCESS_AGAIN_REASONS, TICKET_ANYWAY_REASONS } from "@/lib/inbound-email-reasons";
-import type { InboundEmailListItem } from "@/services/inbound-emails";
+import type { InboundEmailListItem } from "@/lib/types/inbound-email-list";
 import { EmailActionButton } from "./email-action-button";
 
 // Every email that reached the company's forwarding address, and what became

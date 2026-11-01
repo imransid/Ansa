@@ -19,6 +19,9 @@ import nextTs from "eslint-config-next/typescript";
 // - Better Auth's internals (auth.$context: its internalAdapter and adapter
 //   read and write the users table with no company filter) are only used in
 //   lib/auth.ts and lib/password-reset-links.ts.
+// And while the screens move to the new backend (core): app/, components/,
+// proxy.ts and lib/ take no type from the old one (services/, adapters/,
+// db/'s query files), which is going away; their types live in lib/types/.
 
 // Every file ESLint can read, JavaScript included (tsconfig allows it).
 const sourceFiles = "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}";
@@ -110,6 +113,19 @@ const noBetterAuthInternals = [
   { selector: "TemplateElement[value.cooked=/^(\\$context|internalAdapter)$/]", message: betterAuthInternalsMessage },
 ];
 
+// A type from the old backend, however it is imported: import type, an
+// inline { type X }, a type re-export, or import("...").X. A run-time import
+// of a service stays allowed until the isCoreOn() branches go.
+const oldBackendModule = "/(^|\\u002F)(services|adapters)\\u002F|(^|\\u002F)db\\u002F(?!schema(\\u002F|$))/";
+const noOldBackendTypes = [
+  `ImportDeclaration[importKind='type'][source.value=${oldBackendModule}]`,
+  `ImportDeclaration[source.value=${oldBackendModule}] > ImportSpecifier[importKind='type']`,
+  `ExportNamedDeclaration[exportKind='type'][source.value=${oldBackendModule}]`,
+  `ExportNamedDeclaration[source.value=${oldBackendModule}] > ExportSpecifier[exportKind='type']`,
+  `ExportAllDeclaration[exportKind='type'][source.value=${oldBackendModule}]`,
+  `TSImportType[source.value=${oldBackendModule}]`,
+].map((selector) => ({ selector, message: "Take this type from lib/types/: the old backend (services/, adapters/, db/) is going away." }));
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -173,13 +189,24 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // The screens and lib/ never take a type from the old backend.
+    // consistent-type-imports makes an import used only as a type say so, so
+    // a plain import { TicketDetail } can't slip past the rule. (A rule here
+    // replaces the first block's for these files, so it repeats it.)
+    files: [`app/**/${sourceFiles}`, `components/**/${sourceFiles}`, `lib/**/${sourceFiles}`, "proxy.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...noDynamicDatabaseImports, ...noRuntimeModuleLoading, ...noBetterAuthInternals, ...noOldBackendTypes],
+      "@typescript-eslint/consistent-type-imports": "error",
+    },
+  },
+  {
     // The two files that wrap Better Auth's internals: lib/auth.ts (session
     // hooks, password checks) and lib/password-reset-links.ts (whose account
     // a reset link is, looked up by the link's own token). The other rules of
     // the first block still apply here.
     files: ["lib/auth.ts", "lib/password-reset-links.ts"],
     rules: {
-      "no-restricted-syntax": ["error", ...noDynamicDatabaseImports, ...noRuntimeModuleLoading],
+      "no-restricted-syntax": ["error", ...noDynamicDatabaseImports, ...noRuntimeModuleLoading, ...noOldBackendTypes],
     },
   },
   // Override default ignores of eslint-config-next.

@@ -16,7 +16,7 @@ import {
   TICKET_DESCRIPTION_MAX_LENGTH,
   TICKET_SUBJECT_MAX_LENGTH,
 } from "@/lib/ticket-limits";
-import type { CategoryChoice } from "@/services/categories";
+import type { CategoryChoice } from "@/lib/types/categories";
 
 // "New ticket" (step 31). A customer email is saved only once the form has
 // shown it back and the person said it is right ("Solved emails for this

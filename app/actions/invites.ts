@@ -8,12 +8,8 @@ import { getInvitePreviewFromCore, joinThroughCore } from "@/lib/core-views/auth
 import { createInviteThroughCore, revokeInviteThroughCore } from "@/lib/core-views/team";
 import { withTypedValues, type FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import {
-  createInviteForSession,
-  getInvitePreview,
-  revokeInviteForSession,
-  type InvitePreviewResult,
-} from "@/services/invites";
+import type { InvitePreviewResult } from "@/lib/types/invites";
+import { createInviteForSession, getInvitePreview, revokeInviteForSession } from "@/services/invites";
 import { joinCompanyWithInvite } from "@/services/signup";
 
 // Server actions are public POST endpoints. Keep them thin: read the input,

@@ -5,7 +5,7 @@ import { changeTeammateRoleAction, removeTeammateAction } from "@/app/actions/te
 import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { OWNER_ONLY_CONTROLS } from "@/lib/team-roles";
-import type { CompanyUser } from "@/services/team";
+import type { CompanyUser } from "@/lib/types/users";
 
 // Owner-only controls on a teammate's row of the Team page. Each asks first
 // and does nothing until the owner confirms. Hiding them from members is only

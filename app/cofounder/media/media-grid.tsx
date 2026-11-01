@@ -6,7 +6,7 @@ import { STATUSES_KEEPING_ALT_TEXT, STATUSES_KEEPING_MEDIA } from "@/lib/content
 import { CONTENT_STATUS_LABELS } from "@/lib/content-studio/formats";
 import { formatFileSize } from "@/lib/format-file-size";
 import { CONTENT_TYPE_LABELS } from "@/lib/media/kinds";
-import type { MediaLibraryItem } from "@/services/media-library";
+import type { MediaLibraryItem } from "@/lib/types/media-library";
 import { AltTextForm } from "./alt-text-form";
 import { MediaSourceBadges } from "./media-badges";
 import { MediaPreview } from "./media-preview";

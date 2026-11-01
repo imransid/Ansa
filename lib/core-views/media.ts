@@ -1,15 +1,15 @@
 import "server-only";
 import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
-import type { PrivateFileAccess } from "@/lib/file-storage";
 import type { FormResult } from "@/lib/form-result";
 import { EMPTY_MEDIA_MESSAGE, MEDIA_TOO_BIG_MESSAGE } from "@/lib/media/files";
 import { mediaContentTypes } from "@/lib/media/kinds";
 import { MAX_MEDIA_UPLOAD_BYTES } from "@/lib/media/limits";
+import type { PrivateFileAccess } from "@/lib/types/file-storage";
+import type { MediaAsset } from "@/lib/types/media-assets";
+import type { GenerationAvailability, GenerationJobListEntry } from "@/lib/types/media-generation-jobs";
+import type { MediaLibraryItem } from "@/lib/types/media-library";
 import { mediaAssetIdSchema } from "@/lib/validation/media";
-import type { MediaAsset } from "@/services/draft-media";
-import type { GenerationAvailability, GenerationJobListEntry } from "@/services/media-generation-jobs";
-import type { MediaLibraryItem } from "@/services/media-library";
 
 // The media library through the new backend (core's /api/v1/media): the
 // page, uploads, a file to show, alt text and deleting, in the shapes the

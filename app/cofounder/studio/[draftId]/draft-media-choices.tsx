@@ -1,7 +1,7 @@
 "use client";
 
 import { MEDIA_CHOICES_SHOWN } from "@/lib/media/limits";
-import type { MediaAsset } from "@/services/draft-media";
+import type { MediaAsset } from "@/lib/types/media-assets";
 import { MediaSourceBadges } from "../../media/media-badges";
 import { MediaPreview } from "../../media/media-preview";
 import { SetDraftMediaButton } from "./draft-media-buttons";

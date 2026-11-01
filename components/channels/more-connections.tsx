@@ -3,7 +3,7 @@ import { connectSocialAccountAction, connectStandInAccountAction } from "@/app/a
 import { ActionButton } from "@/components/action-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot } from "@/components/status-dot";
-import type { PlatformView } from "@/services/social-accounts";
+import type { PlatformView } from "@/lib/types/social-accounts";
 
 // The rest of Settings → Connections (the "easy to use" pass, step 2 of
 // the owner's journey): email forwarding, phone lines, and the other

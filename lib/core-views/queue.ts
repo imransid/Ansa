@@ -1,6 +1,9 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
-import type { ActivityListItem, AutopublishRuleListItem, PublishJobListItem, QueuePage } from "@/services/publishing-pages";
+import type { AutopublishRuleListItem } from "@/lib/types/autopublish-rules";
+import type { ActivityListItem } from "@/lib/types/cofounder-activity";
+import type { PublishJobListItem } from "@/lib/types/publish-jobs";
+import type { QueuePage } from "@/lib/types/publishing-pages";
 
 // The Co-Founder's publishing queue through the new backend (core's GET
 // /api/v1/cofounder/queue), in the shapes the page already reads. Its

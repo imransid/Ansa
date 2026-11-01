@@ -8,7 +8,7 @@ import {
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, PERSON_NAME_MAX_LENGTH } from "@/lib/form-limits";
-import type { InvitePreview } from "@/services/invites";
+import type { InvitePreview } from "@/lib/types/invites";
 
 type InviteLookup =
   | { status: "checking" }

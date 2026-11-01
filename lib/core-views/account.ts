@@ -2,7 +2,7 @@ import "server-only";
 import { callCore, describeBrowser, setCoreCookies, type CoreCookie } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormResult } from "@/lib/form-result";
-import type { AccountDetails } from "@/services/account";
+import type { AccountDetails } from "@/lib/types/account";
 
 // The Account page through the new backend (core's /api/v1/account), in the
 // shapes the page and its actions already read.

@@ -13,8 +13,9 @@ import {
 } from "@/lib/core-views/publishing-actions";
 import { withTypedValues, type FormErrors, type FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
+import type { CalendarPlanResult } from "@/lib/types/calendar-planning";
 import { createAutopublishRuleForSession, setAutopublishRuleForSession } from "@/services/autopublish-rules";
-import { planNextTwoWeeksForSession, type CalendarPlanResult } from "@/services/calendar-planning";
+import { planNextTwoWeeksForSession } from "@/services/calendar-planning";
 import {
   cancelPublishJobForSession,
   markJobNotPublishedForSession,

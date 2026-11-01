@@ -5,7 +5,7 @@ import { composePublishedText, type DraftContent } from "@/lib/content-rules";
 import { cutForFeed } from "@/lib/content-studio/feed-preview";
 import { DEV_STAND_IN_PROVIDER } from "@/lib/media/kinds";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
-import type { MediaAsset } from "@/services/draft-media";
+import type { MediaAsset } from "@/lib/types/media-assets";
 import { MediaPreview } from "../../media/media-preview";
 
 type DraftPreviewProps = {

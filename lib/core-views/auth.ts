@@ -1,8 +1,8 @@
 import "server-only";
 import { callCore, describeBrowser, setCoreCookies, type CoreCookie } from "@/lib/core-api";
 import type { FormErrors, FormResult } from "@/lib/form-result";
-import type { InvitePreviewResult } from "@/services/invites";
-import type { ResetPasswordResult } from "@/services/password-reset";
+import type { InvitePreviewResult } from "@/lib/types/invites";
+import type { ResetPasswordResult } from "@/lib/types/password-reset";
 
 // The login pages through the new backend (core's /api/v1/auth/*), answering
 // in the shapes the old services answer, so the actions and pages stay the

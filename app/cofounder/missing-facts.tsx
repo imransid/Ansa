@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { labelOfTopic } from "@/lib/business-facts";
-import type { MissingPlanFact } from "@/services/marketing-strategy";
+import type { MissingPlanFact } from "@/lib/marketing-plan/plan-readiness";
 
 type MissingFactsProps = {
   missing: MissingPlanFact[];

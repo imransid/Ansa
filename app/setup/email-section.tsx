@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { describeIgnoredReason, PROCESS_AGAIN_REASONS, TICKET_ANYWAY_REASONS } from "@/lib/inbound-email-reasons";
-import type { SetupOverview } from "@/services/setup";
+import type { SetupOverview } from "@/lib/types/setup";
 import { InboundAddressForm, SupportAddressList } from "./channel-forms";
 import { CopyButton } from "./copy-button";
 

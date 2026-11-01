@@ -1,8 +1,8 @@
 import { FilterLinks } from "@/components/filter-links";
 import { SearchBox } from "@/components/search-box";
 import { buildListUrl } from "@/lib/pagination";
+import type { CallOutcomeCounts } from "@/lib/types/calls";
 import { callOutcomeFilters, type CallListQuery, type CallOutcomeFilter } from "@/lib/validation/list-queries";
-import type { CallOutcomeCounts } from "@/services/calls";
 
 const FILTER_LABELS: Record<CallOutcomeFilter, string> = {
   all: "All",

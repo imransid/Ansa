@@ -3,7 +3,8 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { KNOWLEDGE_KIND_LABELS } from "@/lib/knowledge/kinds";
 import type { SessionContext } from "@/lib/session";
-import { listRelatedKnowledgeForTicketForSession, type RelatedArticle } from "@/services/knowledge-search";
+import type { RelatedArticle } from "@/lib/types/knowledge-search";
+import { listRelatedKnowledgeForTicketForSession } from "@/services/knowledge-search";
 
 type KnowledgeSectionProps = {
   session: SessionContext;

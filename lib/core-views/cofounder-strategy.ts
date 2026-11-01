@@ -3,9 +3,9 @@ import { callCore } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import { asFormResult } from "@/lib/core-views/ticket-actions";
 import type { FormResult } from "@/lib/form-result";
+import type { MarketingPlanResult } from "@/lib/types/marketing-plan";
+import type { MarketingStrategy, PlanVersionPage, PlanVersionSummary, ShownPlan } from "@/lib/types/marketing-strategy";
 import { planVersionSchema, supportTrendsSettingSchema } from "@/lib/validation/marketing-plan";
-import type { MarketingPlanResult } from "@/services/marketing-plan";
-import type { MarketingStrategy, PlanVersionPage, PlanVersionSummary, ShownPlan } from "@/services/marketing-strategy";
 
 // The Co-Founder's marketing strategy through the new backend (core's
 // /api/v1/cofounder/strategy), in the shapes the Strategy pages and their

@@ -2,16 +2,14 @@ import "server-only";
 import { deleteFromDevFiles, putToDevFiles, readFromDevFiles } from "@/adapters/dev-file-storage";
 import { deleteFromR2, getFromR2, putToR2, signedR2DownloadUrl } from "@/adapters/r2";
 import { env } from "@/lib/env";
+import type { PrivateFileAccess } from "@/lib/types/file-storage";
 
 // Private file storage (call recordings, uploaded documents, the media
 // library). Core code calls these functions; it never talks to R2 or the
 // dev folder directly.
 
-// How a stored file can be reached: a short-lived signed R2 link, or (in dev)
-// the bytes themselves, served by our own route after its login check.
-export type PrivateFileAccess =
-  | { kind: "signed-url"; url: string }
-  | { kind: "bytes"; bytes: Buffer; contentType: string };
+// How a stored file can be reached (lib/types/file-storage.ts).
+export type { PrivateFileAccess };
 
 // Keys are made by our code only, from ids: letters, digits, / . _ -
 const SAFE_KEY = /^[a-z0-9][a-z0-9/._-]*$/;

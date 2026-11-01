@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { LocalDateTime } from "@/components/local-date-time";
 import type { TicketView } from "@/lib/core-views/tickets";
 import { lastDeliveryProblemFor } from "@/lib/last-delivery-problem";
-import type { CustomerEmailSummary } from "@/services/customer-emails";
+import type { CustomerEmailSummary } from "@/lib/types/outgoing-emails";
 import { RetryEmailButton } from "./retry-email-button";
 
 type CustomerEmailStatusProps = {

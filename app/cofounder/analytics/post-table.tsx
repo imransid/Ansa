@@ -7,7 +7,7 @@ import { SIMULATED_LABEL } from "@/lib/analytics/kinds";
 import { describeLatestTryProblem, describeWhyNoNumbers } from "@/lib/analytics/post-notes";
 import { metricColumns, metricLabel } from "@/lib/metric-definitions";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
-import type { ShownPost } from "@/services/analytics-page";
+import type { ShownPost } from "@/lib/types/analytics-page";
 
 // The period's posts (step 42), newest first: the draft's topic, where it
 // went and when, and its latest numbers with when they were read, or why

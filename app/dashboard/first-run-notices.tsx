@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { FirstRunHints } from "@/services/dashboard";
+import type { FirstRunHints } from "@/lib/types/dashboard";
 
 // Points anyone who handles no kind of request to the Team page, where they
 // pick theirs (step 32): routing never gives them one otherwise. The Setup

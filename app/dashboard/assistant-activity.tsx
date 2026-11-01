@@ -3,14 +3,12 @@ import { ConciergeBell } from "lucide-react";
 import { LocalDateTime } from "@/components/local-date-time";
 import { ACTIVITY_TEXT } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
-import type { getAssistantActivityForSession } from "@/services/conversations";
-
-type ActivityRows = Awaited<ReturnType<typeof getAssistantActivityForSession>>;
+import type { ActivityRow } from "@/lib/types/conversations";
 
 // Home's "What ansa did" (step 47): the assistant's newest work, as a service
 // log (the time on the left, one line each), each line a link to its
 // conversation. Never a message's text.
-export function AssistantActivity({ rows }: { rows: ActivityRows }) {
+export function AssistantActivity({ rows }: { rows: ActivityRow[] }) {
   return (
     <section aria-labelledby="assistant-activity-heading" className="grid gap-2">
       <h2 id="assistant-activity-heading" className="flex items-center gap-2 text-lg font-semibold">

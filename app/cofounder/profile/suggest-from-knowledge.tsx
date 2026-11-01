@@ -6,7 +6,7 @@ import { suggestFactsAction } from "@/app/actions/cofounder";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import type { FactSuggestionResult } from "@/services/fact-suggestions";
+import type { FactSuggestionResult } from "@/lib/types/fact-suggestions";
 
 type ArticleChoice = { id: string; title: string };
 

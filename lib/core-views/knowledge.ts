@@ -2,12 +2,13 @@ import "server-only";
 import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormErrors, FormResult } from "@/lib/form-result";
+import type { KnowledgeArticlePage, TicketForArticle } from "@/lib/types/knowledge";
+import type { KnowledgeArticleListItem, KnowledgeStatusCounts } from "@/lib/types/knowledge-articles";
+import type { ImportResult } from "@/lib/types/knowledge-import";
+import type { KnowledgeTestResult } from "@/lib/types/knowledge-search";
 import { knowledgeArticleIdSchema } from "@/lib/validation/knowledge";
 import type { KnowledgeListQuery } from "@/lib/validation/list-queries";
 import { ticketNumberSchema } from "@/lib/validation/tickets";
-import type { ImportResult } from "@/services/knowledge-import";
-import type { KnowledgeArticleListItem, KnowledgeArticlePage, KnowledgeStatusCounts, TicketForArticle } from "@/services/knowledge";
-import type { KnowledgeTestResult } from "@/services/knowledge-search";
 
 // The Knowledge pages through the new backend (core's /api/v1/knowledge),
 // in the shapes the pages and their actions already read.

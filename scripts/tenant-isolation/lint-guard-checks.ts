@@ -9,7 +9,8 @@
 // lib/auth.ts importing more than the client and schema, and .js files are
 // all errors, while what the app really does (services importing /db, lib
 // importing @/db/schema, lib/auth.ts handing the client to Better Auth, the
-// reset-link lookup) still passes.
+// reset-link lookup) still passes. So is a screen or lib/ taking a type from
+// the old backend (its types live in lib/types/ now).
 // Runs the project's own eslint.config.mjs.
 
 import assert from "node:assert/strict";
@@ -83,6 +84,25 @@ const REAL_USES: [string, string][] = [
   ["instrumentation-probe.ts", 'export async function load() {\n  return import("./lib/safe-error-logging");\n}'],
 ];
 
+// The screens and lib/ take no type from the old backend (services/,
+// adapters/, db/'s query files), which is going away: their types live in
+// lib/types/. A service's function may still be imported for the isCoreOn()
+// branches until they go.
+const OLD_BACKEND_TYPES: [string, string][] = [
+  ["app/probe.tsx", 'import type { TicketDetail } from "@/services/tickets";\nexport type X = TicketDetail;'],
+  ["components/probe.tsx", 'import { getTicketForSession, type TicketDetail } from "@/services/tickets";\nexport type X = TicketDetail;\nexport const y = getTicketForSession;'],
+  ["app/probe.ts", 'export type { TicketDetail } from "@/services/tickets";'],
+  ["app/probe.ts", 'export type X = import("@/services/tickets").TicketDetail;'],
+  ["app/nested/probe.ts", 'import type { TicketDetail } from "../../services/tickets";\nexport type X = TicketDetail;'],
+  ["proxy.ts", 'import type { TicketDetail } from "@/db/tickets";\nexport type X = TicketDetail;'],
+  ["lib/core-views/probe.ts", 'import type { Thing } from "@/adapters/stripe";\nexport type X = Thing;'],
+  ["lib/types/probe.ts", 'import type * as tickets from "@/services/tickets";\nexport type X = tickets.TicketDetail;'],
+];
+const OLD_BACKEND_FUNCTIONS: [string, string][] = [
+  ["app/probe.ts", 'import { getTicketForSession } from "@/services/tickets";\nexport const y = getTicketForSession;'],
+  ["app/probe.tsx", 'import type { TicketDetail } from "@/lib/types/tickets";\nexport type X = TicketDetail;'],
+];
+
 export async function runLintGuardChecks() {
   const eslint = new ESLint({ cwd: process.cwd() });
 
@@ -94,6 +114,15 @@ export async function runLintGuardChecks() {
 
   await check("lint: what the app really does still passes (services use /db functions, lib uses @/db/schema, lib/auth.ts the client)", async () => {
     for (const [filePath, code] of REAL_USES) {
+      assert.deepEqual(await guardErrors(eslint, filePath, code), [], `flagged in ${filePath}:\n${code}`);
+    }
+  });
+
+  await check("lint: the screens and lib/ take no type from the old backend (import type, { type X }, a type re-export, import(), a relative path), but may still call a service", async () => {
+    for (const [filePath, code] of OLD_BACKEND_TYPES) {
+      assert.ok((await guardErrors(eslint, filePath, code)).length > 0, `not flagged in ${filePath}:\n${code}`);
+    }
+    for (const [filePath, code] of OLD_BACKEND_FUNCTIONS) {
       assert.deepEqual(await guardErrors(eslint, filePath, code), [], `flagged in ${filePath}:\n${code}`);
     }
   });

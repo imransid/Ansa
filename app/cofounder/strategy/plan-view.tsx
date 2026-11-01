@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import type { MarketingPlan } from "@/lib/marketing-plan/plan-schema";
-import type { ShownPlan } from "@/services/marketing-strategy";
+import type { ShownPlan } from "@/lib/types/marketing-strategy";
 import { PlanCadence, PlanCampaigns } from "./plan-campaigns";
 import { PlanAudiences, PlanGoals, PlanPillars, PlanPositioning, PlanSection, PlanTextList } from "./plan-sections";
 import { PlanSources } from "./plan-sources";

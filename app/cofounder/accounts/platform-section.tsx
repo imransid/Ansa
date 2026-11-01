@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { PlatformView } from "@/services/social-accounts";
+import type { PlatformView } from "@/lib/types/social-accounts";
 import { ConnectButton, StandInConnectButton } from "./connect-buttons";
 import { ConnectionList } from "./connection-list";
 

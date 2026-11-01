@@ -3,10 +3,10 @@ import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { findMissingPlanFacts, type MissingPlanFact } from "@/lib/marketing-plan/plan-readiness";
+import type { CreatedDraftResult } from "@/lib/types/content-draft-messages";
+import type { ContentDraftListItem, ContentDraftStatusCounts, NewDraftOptions } from "@/lib/types/content-drafts";
 import { draftIdOnlySchema } from "@/lib/validation/content-drafts";
 import type { ContentDraftListQuery, ContentDraftPlatformFilter, ContentDraftStatusFilter } from "@/lib/validation/list-queries";
-import type { CreatedDraftResult } from "@/services/content-draft-messages";
-import type { ContentDraftListItem, ContentDraftStatusCounts, NewDraftOptions } from "@/services/content-drafts";
 
 // The content studio through the new backend (core's
 // /api/v1/cofounder/drafts): the list, "New draft" and a draft's changes,

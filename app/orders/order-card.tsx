@@ -8,7 +8,7 @@ import { CHANNEL_LABELS } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
 import { formatPrice } from "@/lib/menu";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/orders";
-import type { OrderView } from "@/services/orders";
+import type { OrderView } from "@/lib/types/orders";
 
 const STATUS_TONE: Record<OrderStatus, StatusTone> = {
   proposed: "quiet",

@@ -1,6 +1,6 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
-import type { CoFounderOverview } from "@/services/cofounder-overview";
+import type { CoFounderOverview } from "@/lib/types/cofounder-overview";
 
 // The Co-Founder Overview through the new backend (core's GET
 // /api/v1/cofounder/overview), in the shape the page already reads: how

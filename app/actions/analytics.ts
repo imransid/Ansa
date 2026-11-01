@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { isCoreOn } from "@/lib/core-api";
 import { reviewPerformanceThroughCore } from "@/lib/core-views/analytics";
 import { requireSessionContext } from "@/lib/session";
-import { reviewPerformanceForSession, type PerformanceReviewResult } from "@/services/performance-review";
+import type { PerformanceReviewResult } from "@/lib/types/performance-review";
+import { reviewPerformanceForSession } from "@/services/performance-review";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // call a service (which checks company, role, input and rate limits),

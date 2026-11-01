@@ -1,6 +1,7 @@
 import { FilterLinks } from "@/components/filter-links";
 import { buildListUrl } from "@/lib/pagination";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
+import type { ContentDraftStatusCounts } from "@/lib/types/content-drafts";
 import {
   contentDraftPlatformFilters,
   contentDraftStatusFilters,
@@ -8,7 +9,6 @@ import {
   type ContentDraftPlatformFilter,
   type ContentDraftStatusFilter,
 } from "@/lib/validation/list-queries";
-import type { ContentDraftStatusCounts } from "@/services/content-drafts";
 
 const STATUS_LABELS: Record<ContentDraftStatusFilter, string> = {
   current: "Current",

@@ -1,7 +1,7 @@
 import { describeDay, WEEKDAYS } from "@/lib/opening-hours";
 import { ANSWER_WHEN_LABELS } from "@/lib/assistant/availability";
 import { BUSINESS_TYPE_LABELS, describeReplyMode } from "@/lib/restaurant-setup";
-import type { RestaurantProfile } from "@/services/restaurant-setup";
+import type { RestaurantProfile } from "@/lib/types/restaurant-setup";
 
 // What ansa knows about the restaurant, read only: the setup's last step, and
 // the Settings pages for members (only owners change it).

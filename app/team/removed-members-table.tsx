@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { CompanyUser } from "@/services/team";
+import type { CompanyUser } from "@/lib/types/users";
 
 // People an owner removed from the team, most recent first.
 export function RemovedMembersTable({ members }: { members: CompanyUser[] }) {

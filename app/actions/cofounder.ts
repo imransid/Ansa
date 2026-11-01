@@ -12,9 +12,11 @@ import {
 } from "@/lib/core-views/cofounder-profile";
 import type { FormErrors, FormResult, SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
+import type { FactSuggestionResult } from "@/lib/types/fact-suggestions";
+import type { InterviewAnswerResult } from "@/lib/types/onboarding-interview";
 import { confirmFactForSession, dismissProposalForSession, saveFactForSession } from "@/services/business-profile";
-import { suggestFactsFromKnowledgeForSession, type FactSuggestionResult } from "@/services/fact-suggestions";
-import { answerInterviewForSession, startOverInterviewForSession, type InterviewAnswerResult } from "@/services/onboarding-interview";
+import { suggestFactsFromKnowledgeForSession } from "@/services/fact-suggestions";
+import { answerInterviewForSession, startOverInterviewForSession } from "@/services/onboarding-interview";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // call a service (which checks company, role, input and rate limits),

@@ -10,7 +10,7 @@ import { describeAcceptedFormats, PLATFORM_RULES } from "@/lib/content-rules";
 import { CONTENT_FORMAT_LABELS, type ContentFormat } from "@/lib/content-studio/formats";
 import { DRAFT_TOPIC_MAX_LENGTH } from "@/lib/content-studio/limits";
 import { SOCIAL_PLATFORM_LABELS, socialPlatforms, type SocialPlatform } from "@/lib/social-platforms";
-import type { PlanChoices } from "@/services/content-drafts";
+import type { PlanChoices } from "@/lib/types/content-drafts";
 import { PlanChoiceSelect } from "../plan-choice-select";
 
 type NewDraftFormProps = {

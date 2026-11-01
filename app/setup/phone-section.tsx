@@ -1,5 +1,5 @@
 import { LocalDateTime } from "@/components/local-date-time";
-import type { SetupOverview } from "@/services/setup";
+import type { SetupOverview } from "@/lib/types/setup";
 
 // The company's phone numbers, read-only. ansa links them (pnpm
 // link:phone-line), because the numbers live in ansa's own Vapi account. Each

@@ -2,8 +2,8 @@ import "server-only";
 import { callCore } from "@/lib/core-api";
 import { asFormResult } from "@/lib/core-views/ticket-actions";
 import type { FormResult } from "@/lib/form-result";
-import type { InboundEmailListItem } from "@/services/inbound-emails";
-import type { UndeliveredCustomerEmail } from "@/services/undelivered-emails";
+import type { InboundEmailListItem } from "@/lib/types/inbound-email-list";
+import type { UndeliveredCustomerEmail } from "@/lib/types/undelivered-emails";
 
 // The Emails page through the new backend (core's /api/v1/emails), in the
 // shapes the page and its actions already read.

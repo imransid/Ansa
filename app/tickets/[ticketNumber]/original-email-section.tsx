@@ -1,5 +1,5 @@
 import { LocalDateTime } from "@/components/local-date-time";
-import type { OriginalEmail } from "@/services/inbound-emails";
+import type { OriginalEmail } from "@/lib/types/inbound-emails";
 
 // The customer's own email, for tickets that came in by email (step 15).
 // "Not verified": it didn't pass DKIM or DMARC, so anyone could have written

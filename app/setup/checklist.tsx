@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StatusDot } from "@/components/status-dot";
-import { buildSetupChecklist, type SetupOverview } from "@/services/setup";
+import { buildSetupChecklist } from "@/lib/setup-checklist";
+import type { SetupOverview } from "@/lib/types/setup";
 
 // The "what's left to set up" list at the top of the Setup page: rows on one
 // sheet, each with its state as a dot and a word. Which steps there are, and

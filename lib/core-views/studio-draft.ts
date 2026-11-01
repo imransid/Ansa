@@ -2,8 +2,8 @@ import "server-only";
 import { callCore } from "@/lib/core-api";
 import { toMediaAsset, type CoreAsset } from "@/lib/core-views/media";
 import { draftPath } from "@/lib/core-views/studio";
-import type { ContentDraftPage } from "@/services/content-drafts";
-import type { DraftMediaPanel } from "@/services/draft-media";
+import type { ContentDraftPage } from "@/lib/types/content-drafts";
+import type { DraftMediaPanel } from "@/lib/types/draft-media";
 
 // A content draft's page through the new backend (core's GET
 // /api/v1/cofounder/drafts/{id}): the draft with its review against the

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { describeGenerationError } from "@/lib/media/error-codes";
 import { mediaLibraryLink } from "@/lib/media/library-link";
-import type { DraftMediaPanel } from "@/services/draft-media";
 import { CancelGenerationButton, StartGenerationNowButton } from "../../media/generation-job-buttons";
 import { MediaSourceBadges } from "../../media/media-badges";
 import { MediaPreview } from "../../media/media-preview";
 import { RefreshWhilePending } from "@/components/refresh-while-pending";
+import type { DraftMediaPanel } from "@/lib/types/draft-media";
 import { MakeDraftImageButton, SetDraftMediaButton } from "./draft-media-buttons";
 import { DraftMediaChoices } from "./draft-media-choices";
 

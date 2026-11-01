@@ -1,8 +1,8 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
 import { toActivityListItem, toPublishJobListItem, type CoreActivityEntry, type CorePublishJob } from "@/lib/core-views/queue";
+import type { DraftPublishing } from "@/lib/types/draft-publishing";
 import { draftIdOnlySchema } from "@/lib/validation/content-drafts";
-import type { DraftPublishing } from "@/services/draft-publishing";
 
 // A draft's Publish section through the new backend (core's GET
 // /api/v1/cofounder/publishing/drafts/{id}): its posts, the accounts of its

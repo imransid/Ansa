@@ -4,8 +4,8 @@ import { toFormErrors } from "@/lib/core-views/auth";
 import { MAX_DOCUMENT_BYTES, TOO_BIG_MESSAGE } from "@/lib/document-files";
 import type { FormResult } from "@/lib/form-result";
 import type { ProposedMenuItem } from "@/lib/menu-reading/answer";
-import type { MenuItemRow, MenuView } from "@/services/menu";
-import type { MenuReadingOutcome } from "@/services/menu-reading";
+import type { MenuItemRow, MenuView } from "@/lib/types/menu";
+import type { MenuReadingOutcome } from "@/lib/types/menu-reading";
 
 // The Menu pages and "Read my menu" through the new backend (core's
 // /api/v1/menu), in the shapes the pages and their actions already read.

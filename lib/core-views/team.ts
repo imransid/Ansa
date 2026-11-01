@@ -2,8 +2,9 @@ import "server-only";
 import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormErrors, FormResult } from "@/lib/form-result";
-import type { TeamCategories } from "@/services/categories";
-import type { CompanyUser, Team } from "@/services/team";
+import type { TeamCategories } from "@/lib/types/categories";
+import type { Team } from "@/lib/types/team";
+import type { CompanyUser } from "@/lib/types/users";
 
 // The Team page, its invites and categories (and a request's category on
 // the ticket page) through the new backend (core's /api/v1/team and

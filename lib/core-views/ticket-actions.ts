@@ -1,7 +1,7 @@
 import "server-only";
 import { callCore, type CoreAnswer } from "@/lib/core-api";
 import type { FormErrors, FormResult } from "@/lib/form-result";
-import type { CreatedTicketResult } from "@/services/manual-tickets";
+import type { CreatedTicketResult } from "@/lib/types/manual-tickets";
 
 // A request's (ticket's) actions through the new backend (core's
 // /api/v1/requests), answering as the services did (FormResult), and the

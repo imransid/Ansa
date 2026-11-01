@@ -12,14 +12,15 @@ import {
   type CoreOriginalEmail,
   type CoreSameCustomer,
 } from "@/lib/core-views/ticket-context";
+import type { CategoryChoice } from "@/lib/types/categories";
+import type { OriginalEmail } from "@/lib/types/inbound-emails";
+import type { RelatedArticle } from "@/lib/types/knowledge-search";
+import type { CustomerEmailSummary } from "@/lib/types/outgoing-emails";
+import type { SameCustomerTicket } from "@/lib/types/same-customer";
+import type { TicketHistory } from "@/lib/types/ticket-history";
+import type { TicketDetail, TicketListItem, TicketViewCounts } from "@/lib/types/tickets";
+import type { AssignableUser } from "@/lib/types/users";
 import type { TicketListQuery } from "@/lib/validation/list-queries";
-import type { CategoryChoice } from "@/services/categories";
-import type { CustomerEmailSummary } from "@/services/customer-emails";
-import type { OriginalEmail } from "@/services/inbound-emails";
-import type { RelatedArticle } from "@/services/knowledge-search";
-import type { AssignableUser } from "@/services/team";
-import type { TicketHistory } from "@/services/ticket-history";
-import type { SameCustomerTicket, TicketDetail, TicketListItem, TicketViewCounts } from "@/services/tickets";
 
 // The request (ticket) screens through the new backend (core's
 // /api/v1/requests), in the shapes the pages already read: All requests, one

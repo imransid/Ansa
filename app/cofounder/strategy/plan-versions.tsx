@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
-import type { PlanVersionSummary } from "@/services/marketing-strategy";
+import type { PlanVersionSummary } from "@/lib/types/marketing-strategy";
 
 type PlanVersionsProps = {
   // The newest ones, newest first.

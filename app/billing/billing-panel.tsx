@@ -5,7 +5,7 @@ import { openBillingPortalAction, simulateSubscriptionAction, startCheckoutActio
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { BillingView, SubscriptionSnapshot } from "@/services/billing";
+import type { BillingView, SubscriptionSnapshot } from "@/lib/types/billing";
 
 // What the Billing page shows in each mode (services/billing.ts, BillingMode).
 export function BillingPanel({ billing }: { billing: BillingView }) {

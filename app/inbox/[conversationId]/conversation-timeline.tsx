@@ -2,8 +2,8 @@ import Link from "next/link";
 import { ConciergeBell } from "lucide-react";
 import { LocalDateTime } from "@/components/local-date-time";
 import { SEND_ERROR_TEXT } from "@/lib/conversations";
+import type { ConversationEntryView } from "@/lib/types/conversation-page";
 import { cn } from "@/lib/utils";
-import type { ConversationEntryView } from "@/services/conversation-page";
 
 // A conversation's entries in order (step 47), each voice its own: the
 // customer on the left in grey, ansa in sage with its bell, a person in

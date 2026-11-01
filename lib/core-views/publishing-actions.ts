@@ -3,7 +3,7 @@ import { z } from "zod";
 import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormResult } from "@/lib/form-result";
-import type { CalendarPlanResult } from "@/services/calendar-planning";
+import type { CalendarPlanResult } from "@/lib/types/calendar-planning";
 
 // The publishing forms through the new backend (core's
 // /api/v1/cofounder/publishing, /queue and /calendar): a draft's

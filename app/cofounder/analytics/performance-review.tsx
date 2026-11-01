@@ -1,7 +1,7 @@
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { SIMULATED_LABEL } from "@/lib/analytics/kinds";
-import type { ShownReview } from "@/services/analytics-page";
+import type { ShownReview } from "@/lib/types/analytics-page";
 
 // The newest performance review (step 42): what the AI found, each finding
 // with the numbers it cites (every one checked against what it was given),

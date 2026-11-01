@@ -2,8 +2,8 @@ import "server-only";
 import { callCore } from "@/lib/core-api";
 import { coreFormErrors } from "@/lib/core-views/restaurant-setup";
 import type { FormErrors } from "@/lib/form-result";
-import type { EngineState } from "@/services/assistant-engine";
-import type { AssistantTestResult } from "@/services/assistant-test";
+import type { EngineState } from "@/lib/types/assistant-engine";
+import type { AssistantTestResult } from "@/lib/types/assistant-test";
 
 // Settings → Assistant (how ansa answers, the AI engine, "Try your
 // assistant") through the new backend (core's /api/v1/settings/assistant

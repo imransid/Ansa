@@ -15,8 +15,9 @@ import {
 import { withTypedValues, type FormErrors, type FormResult, type SaveState } from "@/lib/form-result";
 import type { KnowledgeSlice } from "@/lib/knowledge/prompt-slice";
 import { requireSessionContext } from "@/lib/session";
+import type { ImportResult } from "@/lib/types/knowledge-import";
 import { createKnowledgeArticleForSession, editKnowledgeArticleForSession } from "@/services/knowledge";
-import { importDocumentToKnowledgeForSession, type ImportResult } from "@/services/knowledge-import";
+import { importDocumentToKnowledgeForSession } from "@/services/knowledge-import";
 import { testKnowledgeSearchForSession } from "@/services/knowledge-search";
 import {
   approveKnowledgeArticleForSession,
