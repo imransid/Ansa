@@ -13,6 +13,7 @@ var good = map[string]string{
 	"DATABASE_URL":        "postgres://ansa:pw@localhost:5432/ansa",
 	"DATA_ENCRYPTION_KEY": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
 	"BRAIN_SHARED_SECRET": strings.Repeat("s", 40),
+	"BETTER_AUTH_SECRET":  strings.Repeat("a", 40),
 }
 
 func TestGoodSettingsLoadWithDefaults(t *testing.T) {

@@ -22,8 +22,8 @@
 | brain service | brain/ | FastAPI app, signature check, /health | ✅ |
 | tenant | core/internal/tenant | The CompanyID type every query takes | ✅ |
 | database | core/internal/database | Connection pool, transactions, the company-in-every-query test | ✅ |
-| ratelimit | core/internal/ratelimit | Counters in PostgreSQL, HMAC keys | ⬜ |
-| jobs | core/internal/jobs | Job queue in PostgreSQL (`SKIP LOCKED`), retries, schedules | ⬜ |
+| ratelimit | core/internal/ratelimit | Counters in PostgreSQL, HMAC keys shared with the old backend | ✅ |
+| jobs | core/internal/jobs | Job queue in PostgreSQL (`SKIP LOCKED`), retries, hand-back (table `core_jobs`, migration 0048) | ✅ |
 
 ## Phase 1: chats
 | Module | Old code | Status |

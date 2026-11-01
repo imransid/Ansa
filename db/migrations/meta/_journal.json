@@ -337,6 +337,13 @@
       "when": 1793526191702,
       "tag": "0047_post_for_me",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793531063402,
+      "tag": "0048_core_jobs",
+      "breakpoints": true
     }
   ]
 }

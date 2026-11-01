@@ -33,6 +33,7 @@ import {
   messages,
   orderItems,
   autopostSlots,
+  coreJobs,
   orders,
   mediaAssets,
   mediaGenerationJobs,
@@ -105,6 +106,8 @@ export async function cleanUpTestData() {
     await db.delete(channelConnections).where(inArray(channelConnections.companyId, testCompanyIds));
     await db.delete(telegramLinkCodes).where(inArray(telegramLinkCodes.companyId, testCompanyIds));
     await deleteTestMedia(testCompanyIds);
+    // The new backend's job queue (the rewrite).
+    await db.delete(coreJobs).where(inArray(coreJobs.companyId, testCompanyIds));
     // "Post for me" (step 54) points at drafts.
     await db.delete(autopostSlots).where(inArray(autopostSlots.companyId, testCompanyIds));
     // The Co-Founder's facts, interview, marketing plans and content drafts

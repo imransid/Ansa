@@ -27,6 +27,9 @@ type Config struct {
 	BrainSharedSecret string
 	// "development" or "production".
 	Environment string
+	// The old backend's BETTER_AUTH_SECRET: rate limit keys are derived from
+	// it the same way (both backends share counters), and logins move here later.
+	AuthSecret string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -41,6 +44,7 @@ func Load(getenv Getenv) (Config, error) {
 		BrainURL:          withDefault(getenv("BRAIN_URL"), "http://127.0.0.1:8090"),
 		BrainSharedSecret: getenv("BRAIN_SHARED_SECRET"),
 		Environment:       withDefault(getenv("ANSA_ENV"), "development"),
+		AuthSecret:        getenv("BETTER_AUTH_SECRET"),
 	}
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
@@ -54,6 +58,9 @@ func Load(getenv Getenv) (Config, error) {
 	}
 	if len(cfg.BrainSharedSecret) < 32 {
 		problems = append(problems, "BRAIN_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)")
+	}
+	if len(cfg.AuthSecret) < 32 {
+		problems = append(problems, "BETTER_AUTH_SECRET must be at least 32 characters (the old backend's value)")
 	}
 	if cfg.Environment != "development" && cfg.Environment != "production" {
 		problems = append(problems, `ANSA_ENV must be "development" or "production"`)

@@ -26,3 +26,5 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/httpserver/` | Server, headers, size caps, /health | [httpserver](../docs/backend/modules/httpserver.md) |
 | `internal/brainclient/` | Signed requests to the brain | [brainclient](../docs/backend/modules/brainclient.md) |
 | `internal/database/` | PostgreSQL pool, transactions, tenant check | [database](../docs/backend/modules/database.md) |
+| `internal/ratelimit/` | Attempt counters shared with the old backend | [ratelimit](../docs/backend/modules/ratelimit.md) |
+| `internal/jobs/` | The job queue and its worker | [jobs](../docs/backend/modules/jobs.md) |
