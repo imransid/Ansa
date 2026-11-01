@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { canManageMarketingStrategy } from "@/lib/cofounder/permissions";
+import { isCoreOn } from "@/lib/core-api";
+import { getStrategyPageFromCore } from "@/lib/core-views/cofounder-strategy";
 import { requireSessionContext } from "@/lib/session";
 import { getStrategyPageForSession, type MarketingStrategy } from "@/services/marketing-strategy";
 import { MissingFacts } from "../missing-facts";
@@ -33,10 +35,11 @@ export default function StrategyPage() {
 // for owners, and every version. Members read; owners make plans.
 async function StrategyContent() {
   const session = await requireSessionContext("/cofounder/strategy");
-  const page = await getStrategyPageForSession(session);
-  // Hiding the form and the checkbox is only for a tidy page: the services
-  // and /db refuse members.
-  const isOwner = canManageMarketingStrategy(session.role);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  // Hiding the form and the checkbox is only for a tidy page: both refuse members.
+  const { page, isOwner } = isCoreOn()
+    ? await getStrategyPageFromCore()
+    : { page: await getStrategyPageForSession(session), isOwner: canManageMarketingStrategy(session.role) };
 
   return (
     <>

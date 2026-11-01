@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isCoreOn } from "@/lib/core-api";
+import { getCalendarPageFromCore } from "@/lib/core-views/cofounder-calendar";
 import { requireSessionContext } from "@/lib/session";
 import { getCalendarPageForSession } from "@/services/publishing-pages";
 import { CalendarDays } from "./calendar-days";
@@ -31,7 +33,8 @@ export default function CalendarPage() {
 // from the marketing plan.
 async function CalendarContent() {
   const session = await requireSessionContext("/cofounder/calendar");
-  const calendar = await getCalendarPageForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const calendar = isCoreOn() ? await getCalendarPageFromCore() : await getCalendarPageForSession(session);
 
   return (
     <>
