@@ -4,6 +4,8 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoading } from "@/components/page-loading";
 import { RefreshEvery } from "@/components/refresh-every";
+import { isCoreOn } from "@/lib/core-api";
+import { getOrdersPageFromCore, takesOrdersFromCore } from "@/lib/core-views/orders";
 import { requireSessionContext } from "@/lib/session";
 import { getRestaurantProfileForSession } from "@/services/restaurant-setup";
 import { getOrdersPageForSession } from "@/services/orders";
@@ -31,11 +33,14 @@ export default function OrdersPage() {
 
 async function OrdersContent() {
   const session = await requireSessionContext("/orders");
-  const [{ open, finished }, profile] = await Promise.all([getOrdersPageForSession(session), getRestaurantProfileForSession(session)]);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const [{ open, finished }, takesOrders] = isCoreOn()
+    ? await Promise.all([getOrdersPageFromCore(), takesOrdersFromCore()])
+    : await Promise.all([getOrdersPageForSession(session), getRestaurantProfileForSession(session).then((profile) => profile.settings.takesOrders)]);
   return (
     <>
       <RefreshEvery />
-      {!profile.settings.takesOrders && (
+      {!takesOrders && (
         <p className="rounded-xl bg-attention-surface px-4 py-3 text-sm">
           ansa doesn&apos;t take orders right now.{" "}
           <Link href="/settings/business" className="font-medium underline">

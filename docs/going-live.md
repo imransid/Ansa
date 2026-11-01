@@ -435,6 +435,7 @@ ones (a check keeps the three equal). "Off" means the development stand-in.
 | `X_CLIENT_ID`, `X_CLIENT_SECRET` | the pair, once ansa's X app has credits | section 10 |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | the pair, once ansa's Google OAuth client is verified (YouTube) | section 10 |
 | `MESSENGER_VERIFY_TOKEN` | with Messenger: the word Meta's webhook setup checks once (`openssl rand -hex 32`) | section 13 |
+| `CORE_API_URL`, `SCREENS_SHARED_SECRET` | together, once the screens move to the new backend (core/, docs/backend/); unset, the screens use services/ | docs/backend/ |
 
 **Image and video generation (the Co-Founder's media library).** No image
 service is chosen yet (IMPLEMENTATION_PLAN.md, decision 9; options and prices

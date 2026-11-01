@@ -58,6 +58,13 @@ const envSchema = z
     // when it is set). Without it both routes answer 404.
     CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters").optional(),
 
+    // The new backend (core/, docs/backend/): set both and the screens that
+    // moved call the Go core's API instead of services/ (lib/core-api.ts).
+    // Unset, every screen works as before. The secret is the same value as
+    // core's SCREENS_SHARED_SECRET; it signs every request to core.
+    CORE_API_URL: z.url().optional(),
+    SCREENS_SHARED_SECRET: z.string().min(32, "SCREENS_SHARED_SECRET must be at least 32 characters").optional(),
+
     // Encrypts sensitive text at rest (lib/encryption.ts): call transcripts,
     // what Claude wrote about each call (and the customer's sentence behind a
     // "solved"), received emails' subjects, bodies and attachment names, and
@@ -142,6 +149,11 @@ const envSchema = z
   })
   .superRefine(requireSocialAppPairs)
   .superRefine(requireTelegramSettingsTogether)
+  .superRefine((values, context) => {
+    if (Boolean(values.CORE_API_URL) !== Boolean(values.SCREENS_SHARED_SECRET)) {
+      context.addIssue({ code: "custom", path: ["CORE_API_URL"], message: "CORE_API_URL and SCREENS_SHARED_SECRET must be set together" });
+    }
+  })
   .superRefine((values, context) => {
     if (values.USE_R2_STORAGE === "true") {
       for (const key of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"] as const) {
