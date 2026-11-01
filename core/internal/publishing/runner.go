@@ -21,8 +21,15 @@ const dailyLimitWaitSeconds = 60 * 60
 // The most due posts one round sends (the companies take turns in it).
 const roundSize = 50
 
-// How long the run after an answer may take (the old pages' 300 seconds).
-const runNowBudget = 300 * time.Second
+// How long the run after an answer may take.
+const runNowBudget = 10 * time.Minute
+
+// The longest one post can take when everything is slow: its image or
+// video read, the platform's slowest answer (a YouTube upload's 180 s, once
+// it is wired in), the account and the database. A post is started only
+// while this still fits before the run's end, so our own time limit never
+// cuts one off half-way (it would then need a person's check).
+const longestSend = mediaReadTimeout + 3*time.Minute + 30*time.Second
 
 // Runner sends due posts. LOGGING RULE: never a token, the post's text, a
 // file's key or anything a platform wrote: fixed lines with codes only.
@@ -62,7 +69,7 @@ func (r *Runner) RunDue(ctx context.Context, onlyCompany string) (int, error) {
 	served := map[string]bool{}
 	heldBack := map[string]bool{}
 	pairs := r.claimable()
-	for started := 0; started < roundSize; started++ {
+	for started := 0; started < roundSize && hasTimeFor(ctx); started++ {
 		claim, err := claimNext(ctx, r.Pool, keys(served, heldBack), onlyCompany, pairs)
 		if err == nil && claim == nil && len(served) > 0 {
 			// Every company with due posts had its turn: a new round of turns.
@@ -105,6 +112,10 @@ func (r *Runner) RunNow(ctx context.Context, company tenant.CompanyID, jobIDs []
 	var outcomes []string
 	pairs := r.claimable()
 	for _, jobID := range jobIDs {
+		if !hasTimeFor(ctx) {
+			// Left due: the scheduler's next round sends it.
+			break
+		}
 		claim, err := claimJob(ctx, r.Pool, company, jobID, pairs)
 		if err != nil {
 			return outcomes, err
@@ -137,6 +148,12 @@ func (r *Runner) SendSoon(company tenant.CompanyID, jobIDs []string) {
 		return
 	}
 	go work()
+}
+
+// hasTimeFor says whether a post's slowest run still fits before ctx ends.
+func hasTimeFor(ctx context.Context) bool {
+	deadline, limited := ctx.Deadline()
+	return !limited || time.Until(deadline) >= longestSend
 }
 
 // SecondsUntilNextTry is when a post that couldn't go out yet is tried
