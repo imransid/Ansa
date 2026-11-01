@@ -8,4 +8,6 @@ import "net/http"
 func (s *Server) registerCofounder(routes *http.ServeMux) {
 	s.registerCofounderProfile(routes)
 	s.registerCofounderStrategy(routes)
+	s.registerCofounderCalendar(routes)
+	routes.HandleFunc("GET /api/v1/cofounder/overview", s.withSession(s.cofounderOverview))
 }

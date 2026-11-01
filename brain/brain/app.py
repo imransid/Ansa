@@ -15,6 +15,7 @@ from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
 from brain.calls.decision import decide as decide_call
+from brain.cofounder.calendar import CalendarPlanRequest, plan_calendar
 from brain.cofounder.interview import InterviewTurnRequest, answer_turn
 from brain.cofounder.plan import MarketingPlanRequest, make_plan
 from brain.cofounder.suggestions import FactSuggestionRequest, suggest_facts
@@ -121,6 +122,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/cofounder/marketing-plan")
     def cofounder_marketing_plan(request: MarketingPlanRequest) -> dict:
         return make_plan(request, active_asker)
+
+    @app.post("/v1/cofounder/calendar-plan")
+    def cofounder_calendar_plan(request: CalendarPlanRequest) -> dict:
+        return plan_calendar(request, active_asker)
 
     return app
 

@@ -101,7 +101,7 @@ def test_odd_entries_drop_one_by_one_and_values_and_question_are_cut():
         {"topic": "prices", "value": "First"},
         {"topic": "prices", "value": "Corrected"},
     ]
-    read = read_answer(json.dumps(turn(proposed_facts=entries, next_question="Who\nbuys​? " + "q" * 600)), KEYS)
+    read = read_answer(json.dumps(turn(proposed_facts=entries, next_question="Who\nbuys\u200b? " + "q" * 600)), KEYS)
     assert [entry["topic"] for entry in read["proposed_facts"]] == ["description", "prices"]
     description = read["proposed_facts"][0]["value"]
     assert description.startswith("We bake.\n\nBread too. ") and len(description) == 2_000
