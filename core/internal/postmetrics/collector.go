@@ -1,19 +1,23 @@
 // Package postmetrics reads the numbers of published posts (the old
-// services/post-metrics-collection.ts, db/post-metrics.ts): today Facebook
-// Page posts' reactions, comments and shares, which "Post for me" learns
-// from. Each read is a snapshot (post_metrics) that is never changed; a
-// number the platform doesn't give is NULL, never 0. X, YouTube and the
-// Analytics page move with their publishing.
+// services/post-metrics-collection.ts, db/post-metrics.ts): Facebook Page
+// posts' reactions, comments and shares (which "Post for me" learns from),
+// and X's and YouTube's numbers through their connectors
+// (core/internal/platforms). LinkedIn is never asked (its post numbers need
+// a permission ansa's app can't have). Each read is a snapshot
+// (post_metrics) that is never changed; a number the platform doesn't give
+// is NULL, never 0.
 package postmetrics
 
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/platforms"
 	"ansa/core/internal/publishing"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/social"
@@ -26,7 +30,6 @@ import (
 const (
 	intervalHours    = 20
 	firstReadMinutes = 60
-	readDays         = 30
 	// The most posts one round reads.
 	roundSize = 20
 )
@@ -41,11 +44,16 @@ type Collector struct {
 	FacebookAppSecret string
 	// The real read (a test replaces it: never a platform from a test).
 	ReadFacebook func(ctx context.Context, appSecret, postID, pageToken string) (Numbers, string)
+	// X and YouTube: the account made ready (renewed first), then its
+	// connector asked. nil: those posts are not read.
+	Renewer   *social.Renewer
+	Platforms *platforms.Connectors
 }
 
 type claim struct {
-	company                     tenant.CompanyID
-	jobID, connectionID, postID string
+	company                               tenant.CompanyID
+	jobID, connectionID, postID, platform string
+	publishedAt                           time.Time
 }
 
 // RunDue reads the numbers of due posts, the longest waiting first, at most
@@ -70,6 +78,9 @@ func (c *Collector) RunDue(ctx context.Context, onlyCompany string) (int, error)
 // needs a reconnect or was disconnected is skipped with why, nothing
 // asked), Facebook asked, the answer saved.
 func (c *Collector) collect(ctx context.Context, next *claim) error {
+	if next.platform != "facebook" {
+		return c.collectOther(ctx, next)
+	}
 	page, err := social.PageForPosting(ctx, c.Pool, c.Box, next.company, next.connectionID)
 	code := ""
 	switch {
@@ -102,8 +113,9 @@ func (c *Collector) collect(ctx context.Context, next *claim) error {
 
 // claimNext claims the post of any company that waited longest for its
 // numbers in ONE UPDATE (a scalar SKIP LOCKED subquery, as the publishing
-// queue claims): a published Facebook post with Facebook's id (one marked
-// published by hand has none), out 1 hour to 30 days, not read in the last
+// queue claims): a published Facebook, X or YouTube post with the
+// platform's id (one marked published by hand has none), out 1 hour to its
+// platform's read days ago (X's 28, the others' 30), not read in the last
 // 20 hours, never a development stand-in's. metrics_attempted_at = now is
 // the claim; updated_at is untouched (the queue sorts by it).
 func claimNext(ctx context.Context, pool *database.Pool, onlyCompany string) (*claim, error) {
@@ -114,18 +126,21 @@ func claimNext(ctx context.Context, pool *database.Pool, onlyCompany string) (*c
 			SELECT jobs.id FROM publish_jobs AS jobs
 			JOIN social_connections AS accounts ON accounts.company_id = jobs.company_id AND accounts.id = jobs.connection_id
 			WHERE jobs.status = 'published' AND jobs.external_post_id IS NOT NULL
-				AND jobs.published_at >= now() - make_interval(days => $1) AND jobs.published_at <= now() - make_interval(mins => $2)
+				AND jobs.published_at >= now() - make_interval(days => CASE accounts.platform WHEN 'x' THEN $5::int ELSE $1::int END)
+				AND jobs.published_at <= now() - make_interval(mins => $2)
 				AND (jobs.metrics_attempted_at IS NULL OR jobs.metrics_attempted_at < now() - make_interval(hours => $3))
-				AND accounts.platform = 'facebook' AND NOT accounts.is_stand_in
+				AND accounts.platform IN ('facebook', 'x', 'youtube') AND NOT accounts.is_stand_in
 				AND ($4 = '' OR jobs.company_id::text = $4)
 			ORDER BY jobs.metrics_attempted_at ASC NULLS FIRST, jobs.published_at, jobs.id
 			FOR UPDATE OF jobs SKIP LOCKED
 			LIMIT 1
 		) AND status = 'published'
-		RETURNING company_id, id, connection_id, external_post_id`
+		RETURNING company_id, id, connection_id, external_post_id, published_at,
+			(SELECT platform FROM social_connections WHERE social_connections.company_id = publish_jobs.company_id AND social_connections.id = publish_jobs.connection_id)`
 	var companyText string
 	var next claim
-	err := pool.QueryRow(ctx, statement, readDays, firstReadMinutes, intervalHours, onlyCompany).Scan(&companyText, &next.jobID, &next.connectionID, &next.postID)
+	err := pool.QueryRow(ctx, statement, platforms.NumbersReadDays, firstReadMinutes, intervalHours, onlyCompany, platforms.XNumbersReadDays).Scan(&companyText, &next.jobID, &next.connectionID,
+		&next.postID, &next.publishedAt, &next.platform)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

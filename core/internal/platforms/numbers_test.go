@@ -52,7 +52,7 @@ func TestXNumbersAreOneReadOfThePostWithLinkClicksWhileYoung(t *testing.T) {
 	check(t, "request", []any{request.method, request.address, request.header.Get("Authorization"), request.hadTimeLimit},
 		[]any{"GET", "https://api.x.com/2/tweets/1790000000000000001?tweet.fields=public_metrics,non_public_metrics", "Bearer token-x", true})
 	check(t, "numbers (a 0 stays 0)", []string{failure, shown(young)}, []string{"", "views=120 reach=- reactions=8 comments=0 shares=3 clicks=5 video_views=-"})
-	check(t, "what X gives", filled(young), CollectedColumns("x"))
+	check(t, "what X gives", filled(young), []string{"views", "reactions", "comments", "shares", "clicks"})
 	old, _, platform := numbersOf("x", "1790000000000000002", 29.5, reply(200, `{"data":{"public_metrics":{"impression_count":900,"like_count":30,"reply_count":4,"retweet_count":6}}}`))
 	check(t, "past 29 days: public numbers only", platform.requests[0].address, "https://api.x.com/2/tweets/1790000000000000002?tweet.fields=public_metrics")
 	// No quote count: reposts alone would be a wrong total, so shares stay unknown.
@@ -95,7 +95,7 @@ func TestYouTubeNumbersAreVideosListStatistics(t *testing.T) {
 	check(t, "request", []string{platform.requests[0].address, platform.requests[0].header.Get("Authorization")},
 		[]string{"https://www.googleapis.com/youtube/v3/videos?part=statistics&id=dQw4w9WgXcQ", "Bearer token-youtube"})
 	check(t, "numbers", []string{failure, shown(read)}, []string{"", "views=1500 reach=- reactions=40 comments=7 shares=- clicks=- video_views=-"})
-	check(t, "what YouTube gives", filled(read), CollectedColumns("youtube"))
+	check(t, "what YouTube gives", filled(read), []string{"views", "reactions", "comments"})
 	hidden, _, _ := numbersOf("youtube", "dQw4w9WgXcR", 1, reply(200, `{"items":[{"id":"dQw4w9WgXcR","statistics":{"viewCount":"12"}}]}`))
 	check(t, "a count YouTube hides is none", shown(hidden), "views=12 reach=- reactions=- comments=- shares=- clicks=- video_views=-")
 	quota := `{"error":{"errors":[{"reason":"quotaExceeded","message":"The request cannot be completed"}]}}`
@@ -115,30 +115,10 @@ func TestYouTubeNumbersAreVideosListStatistics(t *testing.T) {
 
 func TestLinkedInNumbersAreNeverAskedForAndTheStandInMakesNoneUp(t *testing.T) {
 	_, failure, platform := numbersOf("linkedin", "urn:li:share:7000000000000000001", 1)
-	check(t, "linkedin", []any{failure, platform.count(), len(CollectedColumns("linkedin"))}, []any{"needs_permission", 0, 0})
+	check(t, "linkedin", []any{failure, platform.count()}, []any{"needs_permission", 0})
 	standIn := fake()
 	_, failure = withApps(standIn).ReadNumbers(context.Background(), "x", true, Target{}, "1", testNow)
 	check(t, "stand-in", []any{failure, standIn.count()}, []any{"stand_in", 0})
 	_, failure = (&Connectors{Transport: standIn, Development: true}).ReadNumbers(context.Background(), "x", false, Target{}, "1", testNow)
 	check(t, "not set up", failure, "not_set_up")
-}
-
-func TestEveryPlatformDefinesItsSevenNumbers(t *testing.T) {
-	for _, platform := range []string{"linkedin", "facebook", "x", "youtube"} {
-		for _, column := range MetricColumns {
-			definition, known := MetricDefinitions[platform][column]
-			switch {
-			case !known || definition.Definition == "" || strings.Contains(definition.Definition, "\n"):
-				t.Fatalf("%s %s: a one-line definition", platform, column)
-			case definition.Status == "collected" && (definition.Label == "" || definition.Field == "" || definition.Permission != ""):
-				t.Fatalf("%s %s: collected has its label and field", platform, column)
-			case definition.Status == "needs_permission" && (definition.Label == "" || definition.Field == "" || definition.Permission == ""):
-				t.Fatalf("%s %s: names its permission", platform, column)
-			case definition.Status == "not_offered" && (definition.Label != "" || definition.Field != "" || Offers(platform, column)):
-				t.Fatalf("%s %s: not offered has nothing to read", platform, column)
-			}
-		}
-	}
-	check(t, "read days", []int{ReadDays("x"), ReadDays("youtube")}, []int{28, 30})
-	check(t, "still read", []bool{StillRead("x", testNow.Add(-27*24*time.Hour), testNow), StillRead("x", testNow.Add(-28*24*time.Hour), testNow)}, []bool{true, false})
 }

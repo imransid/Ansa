@@ -7,10 +7,9 @@
 one account is a `publish_jobs` row. The checks cover **every platform and
 format** ansa publishes (`contentrules.PublishedFormats`: text and image
 posts to LinkedIn, Facebook and X, videos to YouTube). Core **sends**
-Facebook text and image posts today; LinkedIn, X and YouTube plug in at
-one place (`senderFor`, below). Until then the old backend's runner sends
-those (both runners claim jobs the same way, so a post is never sent twice).
-The calendar page is not here (it moves with the calendar).
+every one of them: Facebook built in, LinkedIn, X and YouTube through
+their connectors ([platforms](platforms.md)), wired at one place
+(`senderFor`, below). The calendar page is [calendar](calendar.md).
 
 **Drafts (`core/internal/drafts`):** `Create` saves a new draft (version 1,
 every column named; an "idea" when nothing is written; `Generated` = the
@@ -79,9 +78,14 @@ place: a `Sender` is `Ready` (the account for one post: `social.ErrNeedsReconnec
 `ErrNotConnected`, `ErrNotUsable`, or `ErrRenewalUnavailable` when the
 platform didn't answer a renewal), `Publish` (the post: its text, a
 video's title, its image or video's bytes, type and alt text) and `SetUp`
-(ansa's app is set). Facebook is built in; LinkedIn, X and YouTube go in
-`Runner.OtherSenders` (main.go), and the claim (`claimable`) then takes
-their posts too. The development stand-in account is handled here for every
+(ansa's app is set). Facebook is built in; LinkedIn, X and YouTube are in
+`Runner.OtherSenders` (`cmd/core/senders.go`: the account made ready by
+`social.Renewer.Prepare`, its permission renewed first where the platform
+allows, then `platforms.Connectors.Publish`), and the claim (`claimable`)
+takes their posts too. `longestSend` and `latestSendStart` count the
+renewal and a YouTube upload (`platforms.LongestPublish`), so a claim never
+counts as cut off while a post is still going out. Tested with a fake
+sender (`othersenders_test.go`). The development stand-in account is handled here for every
 platform (a file, below).
 
 **Facebook (`facebook.go`, `facebook_photo.go`):** `PublishToFacebook`: the

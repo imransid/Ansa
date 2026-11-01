@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"ansa/core/internal/knowledge"
 	"strings"
 	"testing"
 )
@@ -37,7 +38,7 @@ func TestTheFormsCheckWhatAPersonTypes(t *testing.T) {
 
 func TestSeveralTextsAreSearchedWithTheirWordsInTurns(t *testing.T) {
 	long := "sourdough rye spelt baguette brioche focaccia ciabatta croissant pretzel bagel muffin scone waffle crepe donut eclair tart pie cake cookie biscuit"
-	words := strings.Fields(combineSearchTexts(long, "christmas", ""))
+	words := strings.Fields(knowledge.CombineSearchTexts([]string{long, "christmas", ""}))
 	if len(words) != 20 || words[0] != "sourdough" || words[1] != "christmas" {
 		t.Fatalf("the second text's words take their turn: %v", words)
 	}

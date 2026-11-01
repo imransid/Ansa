@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/profile"
 	"ansa/core/internal/tenant"
 )
 
@@ -16,9 +17,14 @@ import (
 // OverviewCountLimit: a count past it shows as "10,000+".
 const OverviewCountLimit = 10_000
 
-// The 16 key business facts (lib/business-facts.ts, isKey).
-var keyFactTopics = []string{"company_name", "description", "industry", "products", "services", "target_customers", "customer_problems",
-	"value_proposition", "location", "languages", "goals", "brand_voice", "marketing_channels", "publishing_frequency", "competitors", "campaign_budget"}
+// The key business facts: the business profile's own list (16 of its 25).
+var keyFactTopics = func() []string {
+	var keys []string
+	for _, topic := range profile.KeyTopics() {
+		keys = append(keys, topic.Key)
+	}
+	return keys
+}()
 
 // Overview is the support numbers, and the marketing helper's once the
 // company started it (a fact, an interview answer or a draft).

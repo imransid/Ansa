@@ -47,6 +47,9 @@ func StillRead(platform string, publishedAt, now time.Time) bool {
 	return now.Sub(publishedAt) < time.Duration(ReadDays(platform))*24*time.Hour
 }
 
+// MetricColumns are post_metrics' number columns, in the pages' order.
+var MetricColumns = []string{"views", "reach", "reactions", "comments", "shares", "clicks", "video_views"}
+
 // count is a number as a platform writes it: whole, 0 to CountMax.
 func count(number whole) (*int64, bool) {
 	if !number.set {

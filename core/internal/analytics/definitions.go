@@ -9,7 +9,11 @@
 // platforms is core/internal/postmetrics.
 package analytics
 
-import "time"
+import (
+	"time"
+
+	"ansa/core/internal/platforms"
+)
 
 // Platforms ansa posts to, in the order the pages list them.
 var Platforms = []string{"linkedin", "facebook", "x", "youtube"}
@@ -32,15 +36,6 @@ var MetricLabels = map[string]string{
 
 // MetricValueMax is Postgres's integer: a number past it is not one ansa can keep.
 const MetricValueMax = 2_147_483_647
-
-// How many days after it went out a post's numbers are read. X's for
-// fewer: X gives link clicks only for a post's first 30 days, and a read
-// without them would hide the ones read before (the page and the review
-// show each post's newest snapshot).
-const (
-	metricsReadDays  = 30
-	xMetricsReadDays = 28
-)
 
 // Definition is what one platform means by one of our columns. collected:
 // ansa reads it from the platform's Field. needs_permission: the platform
@@ -119,10 +114,9 @@ var Definitions = map[string]map[string]Definition{
 // ReadDays is how many days after it went out ansa reads the numbers of a
 // post on the platform.
 func ReadDays(platform string) int {
-	if platform == "x" {
-		return xMetricsReadDays
-	}
-	return metricsReadDays
+	// One number for the page and the collector: the connectors' (X's 28:
+	// X gives link clicks only for a post's first 30 days).
+	return platforms.ReadDays(platform)
 }
 
 // NumbersStillRead: whether ansa still reads a post's numbers at now.

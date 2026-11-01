@@ -7,8 +7,10 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/files"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/platforms"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
+	"ansa/core/internal/social"
 	"ansa/core/internal/tenant"
 )
 
@@ -24,12 +26,12 @@ const roundSize = 50
 // How long the run after an answer may take.
 const runNowBudget = 10 * time.Minute
 
-// The longest one post can take when everything is slow: its image or
-// video read, the platform's slowest answer (a YouTube upload's 180 s, once
-// it is wired in), the account and the database. A post is started only
-// while this still fits before the run's end, so our own time limit never
-// cuts one off half-way (it would then need a person's check).
-const longestSend = mediaReadTimeout + 3*time.Minute + 30*time.Second
+// The longest one post can take when everything is slow: the account made
+// ready (a renewal, or waiting for another run's), its image or video read,
+// the platform's slowest answer (a YouTube upload), and the database. A
+// post is started only while this still fits before the run's end, so our
+// own time limit never cuts one off half-way (it would then need a person's check).
+const longestSend = social.LongestPreparation + mediaReadTimeout + platforms.LongestPublish + 30*time.Second
 
 // Runner sends due posts. LOGGING RULE: never a token, the post's text, a
 // file's key or anything a platform wrote: fixed lines with codes only.

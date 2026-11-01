@@ -2,7 +2,6 @@ package studio
 
 import (
 	"context"
-	"strings"
 
 	"ansa/core/internal/contentrules"
 	"ansa/core/internal/database"
@@ -46,7 +45,7 @@ func gatherInputs(ctx context.Context, pool *database.Pool, company tenant.Compa
 	if err != nil {
 		return inputs{}, err
 	}
-	query := combineSearchTexts(r.Placement.Topic, r.Placement.Pillar, r.Placement.Campaign)
+	query := knowledge.CombineSearchTexts([]string{r.Placement.Topic, r.Placement.Pillar, r.Placement.Campaign})
 	hits, err := knowledge.Search(ctx, pool, company, query, "marketing", drafts.KnowledgeHits)
 	if err != nil {
 		return inputs{}, err
@@ -144,38 +143,4 @@ func topicKeys() []string {
 		keys = append(keys, topic.Key)
 	}
 	return keys
-}
-
-// combineSearchTexts searches several texts as one (the old
-// combineSearchTexts): their words taken in turns (the first word of each,
-// then the second of each...), so one long text can't take all 20 words
-// of a search and leave the others out.
-func combineSearchTexts(texts ...string) string {
-	var wordsOfEach [][]string
-	for _, text := range texts {
-		wordsOfEach = append(wordsOfEach, searchWords(text))
-	}
-	var inTurns []string
-	for position := 0; position < 20; position++ {
-		for _, words := range wordsOfEach {
-			if position < len(words) && !drafts.In(inTurns, words[position]) {
-				inTurns = append(inTurns, words[position])
-			}
-		}
-	}
-	return strings.Join(inTurns[:min(len(inTurns), 20)], " ")
-}
-
-// searchWords are the words a search keeps of a text, in order, each once:
-// the terms of knowledge.BuildTsQuery without its prefix marks.
-func searchWords(text string) []string {
-	query := knowledge.BuildTsQuery(text)
-	if query == "" {
-		return nil
-	}
-	var words []string
-	for _, term := range strings.Split(query, " | ") {
-		words = append(words, strings.TrimSuffix(term, ":*"))
-	}
-	return words
 }

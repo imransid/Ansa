@@ -39,6 +39,7 @@ import (
 	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
+	"ansa/core/internal/social"
 	"ansa/core/internal/socialconnect"
 	"ansa/core/internal/studio"
 	"ansa/core/internal/telegram"
@@ -88,6 +89,10 @@ func main() {
 	callAnalyzer := &calls.Analyzer{Pool: pool, Box: box, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
 	worker.Handle(calls.AnalyzeJobKind, callAnalyzer.HandleJob)
 	storage := fileStore(cfg)
+	// LinkedIn, X and YouTube; the renewer gets any account ready for a
+	// platform call (the only place a token is renewed).
+	connectors := socialPlatforms(cfg)
+	renewer := &social.Renewer{Pool: pool, Box: box, Platforms: connectors}
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
@@ -113,7 +118,7 @@ func main() {
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction(),
-			Platforms: socialPlatforms(cfg)}}
+			Platforms: connectors}}
 	// "Review performance": two tries of up to 120 s, and the SDK's waits.
 	screensAPI.Reviews = &analytics.Reviewer{Pool: pool, Limiter: limiter, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
 	// The content studio's AI drafts (two tries of up to 120 s at the brain) and the media library's image service.
@@ -134,10 +139,12 @@ func main() {
 		}()
 	}
 	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, Files: storage, FacebookAppSecret: cfg.FacebookAppSecret,
-		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
+		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook,
+		OtherSenders: connectorSenders(renewer, connectors)}
 	// Posts made due by an answer (Publish now, Retry, now) go out right after it.
 	screensAPI.Publisher = publisher
-	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook}
+	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook,
+		Renewer: renewer, Platforms: connectors}
 	if !cfg.SchedulerOff {
 		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers, generations))
 	}

@@ -1,5 +1,7 @@
 package drafts
 
+import "ansa/core/internal/profile"
+
 // The business profile's topics, in the interview's order (the old
 // lib/business-facts.ts): what a draft is written from and what its claims
 // name. Only the keys and labels the content studio needs.
@@ -10,38 +12,26 @@ type Topic struct {
 	Label string `json:"label"`
 }
 
-// Topics are the profile's 25 topics, in order.
-var Topics = []Topic{
-	{"company_name", "Business name"}, {"description", "What the business does"}, {"industry", "Industry"},
-	{"products", "Products"}, {"services", "Services"}, {"target_customers", "Target customers"},
-	{"customer_problems", "Customer problems"}, {"value_proposition", "Why customers choose you"},
-	{"location", "Location"}, {"languages", "Languages"}, {"goals", "Marketing goals"}, {"brand_voice", "Brand voice"},
-	{"marketing_channels", "Marketing channels"}, {"publishing_frequency", "Publishing frequency"},
-	{"competitors", "Competitors"}, {"campaign_budget", "Campaign budget"}, {"website", "Website"}, {"prices", "Prices"},
-	{"offers_promotions", "Offers and promotions"}, {"policies", "Policies"}, {"positioning", "Positioning"},
-	{"social_accounts", "Social media accounts"}, {"content_preferences", "Content preferences"},
-	{"visual_identity", "Visual identity"}, {"words_to_avoid", "Words to avoid"},
-}
+// Topics are the profile's 25 topics, in order: the business profile's
+// own list (core/internal/profile), never a copy that could drift.
+var Topics = func() []Topic {
+	topics := make([]Topic, 0, len(profile.Topics))
+	for _, topic := range profile.Topics {
+		topics = append(topics, Topic{Key: topic.Key, Label: topic.Label})
+	}
+	return topics
+}()
 
 // TopicLabel is a topic's label, or the key itself for one this code
 // doesn't know.
 func TopicLabel(key string) string {
-	for _, topic := range Topics {
-		if topic.Key == key {
-			return topic.Label
-		}
-	}
-	return key
+	return profile.LabelOf(key)
 }
 
 // IsTopic says whether a key is one of the profile's topics.
 func IsTopic(key string) bool {
-	for _, topic := range Topics {
-		if topic.Key == key {
-			return true
-		}
-	}
-	return false
+	_, known := profile.FindTopic(key)
+	return known
 }
 
 // Fact is one confirmed fact: as a request held it (content_drafts.

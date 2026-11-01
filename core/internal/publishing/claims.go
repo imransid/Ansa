@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/platforms"
 	"ansa/core/internal/tenant"
 )
 
@@ -16,10 +17,11 @@ import (
 const staleAfter = 10 * time.Minute
 
 // The platform is asked only within this long of the claim, so even its
-// longest answer comes before the claim counts as cut off (a person may
-// then send it again). A run gets there in seconds; only a stalled
-// database makes it later, and then nothing is sent.
-const latestSendStart = staleAfter - 3*time.Minute
+// longest answer (a YouTube upload: platforms.LongestPublish) comes before
+// the claim counts as cut off (a person may then send it again). A run gets
+// there in seconds; only a stalled database makes it later, and then
+// nothing is sent.
+const latestSendStart = staleAfter - platforms.LongestPublish - 30*time.Second
 
 // Claim is what a run holds once it claimed a job. Every later read and
 // write of that run names its ClaimID: the job is only touched while it is

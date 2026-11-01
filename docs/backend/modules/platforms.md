@@ -71,7 +71,7 @@ nothing (quotaExceeded / uploadLimitExceeded = quota_exceeded); a 5xx or no
 answer during the upload is unclear (upload_interrupted), a 404 an expired
 session. Videos to LinkedIn and X are refused (video_not_supported).
 
-**Numbers (`ReadNumbers`, `metrics.go`, `definitions.go`):** one request a
+**Numbers (`ReadNumbers`, `metrics.go`):** one request a
 post. X: `GET /2/tweets/<id>` with `public_metrics`, and
 `non_public_metrics` (link clicks) while the post is under 29 days old;
 reposts + quotes as shares only when X gives both; a 200 holding only X's
@@ -81,9 +81,10 @@ never 0; a count outside 0 to Postgres's integer makes the answer
 unreadable; none at all = no_numbers. LinkedIn is never asked
 (needs_permission: its member numbers need a Community Management app of
 its own); the stand-in never makes numbers up (stand_in); not set up =
-not_set_up. `MetricDefinitions` says per platform and column what is
-collected (and from which field), needs a permission ansa doesn't ask for,
-or isn't offered; `ReadDays` is 30 days (X 28).
+not_set_up. What each number means per platform (collected, needs a
+permission, not offered) is the Analytics page's one table
+([analytics](analytics.md)); `ReadDays` (30 days, X 28) is the one number
+both the page and the collector read.
 
 **Stand-in (`standin.go`):** in development a stand-in account's post is a
 file, `.dev-social/<platform>/<time>-<id>.json` (the text, the title, the
@@ -105,6 +106,6 @@ after [social](social.md)'s `Renewer.Prepare` got the token;
 refuses to run with any platform app setting set, and the network itself
 is refused. `linkedin_test.go`, `x_test.go`, `youtube_test.go` (every
 request as the platform documents it, every answer's meaning),
-`numbers_test.go` (X and YouTube numbers, LinkedIn never asked, the seven
-definitions), `door_test.go` (the stand-in's file, production refusing it,
+`numbers_test.go` (X and YouTube numbers, LinkedIn never asked),
+`door_test.go` (the stand-in's file, production refusing it,
 time limits, no redirects, the 1 MB cap).
