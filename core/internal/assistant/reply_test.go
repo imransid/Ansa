@@ -33,11 +33,13 @@ type replyWorld struct {
 	outbox     string
 	brainCalls int
 	sent       []BrainRequest
+	// What the fake brain answers next ("" = it is down).
+	brainAnswer string
 }
 
 func newReplyWorld(t *testing.T, brainAnswer string) *replyWorld {
 	pool := database.ForTest(t)
-	w := &replyWorld{t: t, pool: pool, outbox: t.TempDir()}
+	w := &replyWorld{t: t, pool: pool, outbox: t.TempDir(), brainAnswer: brainAnswer}
 	w.companyID = database.TestCompany(t, pool)
 	w.company, _ = tenant.FromTrustedSource(w.companyID)
 	w.box, _ = secure.NewBox("BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")
@@ -47,12 +49,12 @@ func newReplyWorld(t *testing.T, brainAnswer string) *replyWorld {
 		body, _ := io.ReadAll(r.Body)
 		json.Unmarshal(body, &request)
 		w.sent = append(w.sent, request)
-		if brainAnswer == "" {
+		if w.brainAnswer == "" {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		rw.Header().Set("Content-Type", "application/json")
-		io.WriteString(rw, brainAnswer)
+		io.WriteString(rw, w.brainAnswer)
 	}))
 	t.Cleanup(brain.Close)
 	limiter := ratelimit.New(pool, "core-test-secret")

@@ -39,6 +39,7 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/hours/` | Opening and away hours | [hours](../docs/backend/modules/hours.md) |
 | `internal/assistant/` | The assistant: when it answers, the brain's slice, checks, replies, handovers | [assistant](../docs/backend/modules/assistant.md) |
 | `internal/tickets/` | Making and routing requests | [tickets](../docs/backend/modules/tickets.md) |
+| `internal/orders/`, `internal/money/` | Orders written up and priced by ansa; amounts in smallest units | [orders](../docs/backend/modules/orders.md) |
 | `internal/email/`, `internal/plaintext/` | The one door for sending email; one plain line | [email](../docs/backend/modules/email.md) |
 | `internal/alerts/` | Telling the owners a conversation needs them | [alerts](../docs/backend/modules/alerts.md) |
 | `internal/assignments/` | "A ticket is yours" emails | [assignments](../docs/backend/modules/assignments.md) |

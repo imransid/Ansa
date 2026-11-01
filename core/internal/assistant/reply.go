@@ -117,7 +117,9 @@ func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfter
 	case "no_reply":
 		return OutcomeNoReply, r.markHandledIf(ctx, turn, true, nil)
 	case "reply":
-		return r.sendOrDraft(ctx, turn, info, inputs, decision.Text)
+		return r.sendOrDraft(ctx, turn, info, inputs, decision.Text, nil)
+	case "order_summary", "order_confirmed", "order_withdrawn":
+		return r.runOrderStep(ctx, turn, info, inputs, decision)
 	}
 	return OutcomeHandedOver, r.handOver(ctx, turn, info, inputs, handoverFor(decision, inputs))
 }
@@ -139,16 +141,13 @@ func (r *Runner) decide(ctx context.Context, inputs *Inputs) Decision {
 			return Decision{Kind: "failed", Reason: reason}
 		}
 		return decision
-	case "no_reply", "needs_person":
+	case "no_reply", "needs_person", "order_summary", "order_confirmed", "order_withdrawn":
 		return decision
 	case "failed":
 		if decision.Reason != "model_unavailable" && decision.Reason != "unusable_answer" {
 			decision.Reason = "model_failed"
 		}
 		return decision
-	case "order_summary", "order_confirmed", "order_withdrawn":
-		// Orders move to core in phase 3; until then a person takes them.
-		return Decision{Kind: "failed", Reason: "order"}
 	}
 	return Decision{Kind: "failed", Reason: "unusable_answer"}
 }

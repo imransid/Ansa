@@ -1,5 +1,7 @@
 package assistant
 
+import "ansa/core/internal/orders"
+
 // BrainRequest is what core sends the brain for one reply: ONE company's
 // slice, never an id or another company's data. Its JSON names match the
 // brain's ReplyRequest (brain/brain/assistant/models.py), which refuses any
@@ -65,23 +67,11 @@ type Line struct {
 
 // Decision is the brain's answer (brain/brain/assistant/answer.py).
 type Decision struct {
-	Kind     string        `json:"kind"`
-	Text     string        `json:"text"`
-	Reason   string        `json:"reason"`
-	Subject  string        `json:"subject"`
-	Summary  string        `json:"summary"`
-	Category string        `json:"category"`
-	Order    *OrderRequest `json:"order"`
-}
-
-// OrderRequest is the order the brain names by menu label.
-type OrderRequest struct {
-	Items []struct {
-		Label    string `json:"label"`
-		Quantity int    `json:"quantity"`
-	} `json:"items"`
-	Fulfilment string `json:"fulfilment"`
-	Address    string `json:"address"`
-	Time       string `json:"time"`
-	Notes      string `json:"notes"`
+	Kind     string          `json:"kind"`
+	Text     string          `json:"text"`
+	Reason   string          `json:"reason"`
+	Subject  string          `json:"subject"`
+	Summary  string          `json:"summary"`
+	Category string          `json:"category"`
+	Order    *orders.Request `json:"order"`
 }

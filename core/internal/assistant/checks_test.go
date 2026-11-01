@@ -25,19 +25,7 @@ func TestARepliedPriceMustBeOnTheMenuOrInTheOwnersWords(t *testing.T) {
 	}
 }
 
-func TestPricesAreReadInTheCurrencysUnits(t *testing.T) {
-	cases := []struct {
-		text, currency string
-		want           int64
-	}{
-		{"9.50", "EUR", 950}, {"9,5", "EUR", 950}, {"€ 12", "EUR", 1200}, {"1200", "JPY", 1200},
-		{"9.5", "JPY", -1}, {"-5", "EUR", -1}, {"1.250", "KWD", 1250}, {"9.999", "EUR", -1},
-	}
-	for _, c := range cases {
-		if got := ParsePrice(c.text, c.currency); got != c.want {
-			t.Errorf("%q %s: got %d, want %d", c.text, c.currency, got, c.want)
-		}
-	}
+func TestThousandsWrittenWithASpaceAreOneAmount(t *testing.T) {
 	if amounts := MoneyAmounts("A party for €1 200 or 1 200 €", "EUR"); len(amounts) != 2 || amounts[0] != 120000 || amounts[1] != 120000 {
 		t.Errorf("thousands with a space: %v", amounts)
 	}
@@ -52,14 +40,5 @@ func TestTheAILabelSaysWhoItWorksFor(t *testing.T) {
 	}
 	if got := WithAILabel("Hi!", "Luigi's", "business", false); got != "Hi!" {
 		t.Errorf("only the first message: %q", got)
-	}
-}
-
-func TestMoneyIsWrittenAsTheMenuShowsIt(t *testing.T) {
-	cases := map[string]string{FormatMoney(950, "EUR"): "€9.50", FormatMoney(120000, "JPY"): "¥120,000", FormatMoney(120000, "BDT"): "BDT 1,200.00", FormatMoney(5, "USD"): "$0.05"}
-	for got, want := range cases {
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
 	}
 }

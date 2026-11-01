@@ -2,16 +2,14 @@ package assistant
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
-	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/hours"
+	"ansa/core/internal/money"
+	"ansa/core/internal/orders"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/tenant"
 )
@@ -28,18 +26,12 @@ type Inputs struct {
 	Kind         string
 	HoldingReply string
 	ReplyMode    string
-	// Menu labels (M1...) to the dish's name and price, for orders.
-	Menu []MenuChoice
+	// What ansa needs to write up an order itself: today's menu by label,
+	// whether it takes orders, closed now, delivery and pickup, the fee.
+	Ordering orders.Ordering
 	// The business saved its own key and it can't be read: ansa's key is
 	// never used in its place (nobody pays unaware), so no AI answers.
 	KeyUnreadable bool
-}
-
-// MenuChoice is one available dish as the brain's menu labels it.
-type MenuChoice struct {
-	Label      string
-	Name       string
-	PriceCents int64
 }
 
 type settingsRow struct {
@@ -94,21 +86,26 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		Conversation: lines,
 	}
 	if fee > 0 {
-		formatted := FormatMoney(fee, settings.Currency)
+		formatted := money.Format(fee, settings.Currency)
 		request.Orders.DeliveryFee = &formatted
 	}
-	choices := make([]MenuChoice, 0, len(menu))
+	choices := make([]orders.MenuChoice, 0, len(menu))
 	prices := make([]int64, 0, len(menu)+1)
 	for index, dish := range menu {
 		label := fmt.Sprintf("M%d", index+1)
-		request.Menu = append(request.Menu, MenuItem{Label: label, Category: dish.category, Name: dish.name, Description: dish.description, Price: FormatMoney(dish.priceCents, settings.Currency)})
-		choices = append(choices, MenuChoice{Label: label, Name: dish.name, PriceCents: dish.priceCents})
+		request.Menu = append(request.Menu, MenuItem{Label: label, Category: dish.category, Name: dish.name, Description: dish.description, Price: money.Format(dish.priceCents, settings.Currency)})
+		choices = append(choices, orders.MenuChoice{Label: label, Name: dish.name, PriceCents: dish.priceCents})
 		prices = append(prices, dish.priceCents)
 	}
 	if fee > 0 {
 		prices = append(prices, fee)
 	}
 	request.Hours = hoursFor(kind, settings, now)
+	if takesOrders {
+		if err := describeOrders(ctx, pool, company, conversationID, choices, &request.Orders); err != nil {
+			return nil, err
+		}
+	}
 	request.Engine = settings.AIEngine
 	keyUnreadable := false
 	if settings.AIEngine == "api_key" && settings.KeyEncrypted != nil {
@@ -127,8 +124,46 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		Kind:          kind,
 		HoldingReply:  settings.HoldingReply,
 		ReplyMode:     settings.ReplyMode,
-		Menu:          choices,
+		Ordering: orders.Ordering{
+			TakesOrders: takesOrders,
+			ClosedNow:   closedNow(takesOrders, settings, now),
+			Menu:        choices,
+			Options:     orders.Options{Delivery: settings.Delivery, Pickup: settings.Pickup, DeliveryFeeCents: fee, Currency: settings.Currency},
+		},
 	}, nil
+}
+
+// describeOrders gives the brain this conversation's order being written up
+// and its newest 3 placed ones, each line with its menu label.
+func describeOrders(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string, menu []orders.MenuChoice, into *Orders) error {
+	proposal, placed, err := orders.OfConversation(ctx, pool, company, conversationID, 3)
+	if err != nil {
+		return fmt.Errorf("orders: %w", err)
+	}
+	if proposal != nil {
+		into.InProgress = orders.DescribeForAssistant(*proposal, menu)
+	}
+	for _, order := range placed {
+		into.Placed = append(into.Placed, fmt.Sprintf("#%d: %s, %s", order.Number, order.Status, strings.Join(orders.DescribeForAssistant(order, menu), ", ")))
+	}
+	return nil
+}
+
+// closedNow is "Opens at 18:00" while the business is closed now by its own
+// hours; "" while open, or when it gave no hours (nothing to go by).
+func closedNow(takesOrders bool, s settingsRow, now time.Time) string {
+	if !takesOrders || s.TimeZone == nil {
+		return ""
+	}
+	week, ok := hours.Parse(s.OpeningHours)
+	zone, err := time.LoadLocation(*s.TimeZone)
+	if !ok || err != nil {
+		return ""
+	}
+	if open, text := hours.Now(week, zone, now); !open {
+		return text
+	}
+	return ""
 }
 
 // hoursFor is "now" and the week as the brain reads them: a business's
@@ -169,126 +204,6 @@ func hoursFor(kind string, s settingsRow, now time.Time) *Hours {
 		result.Weekly = append(result.Weekly, day.Label+": "+hours.DescribeDay(week[day.Key]))
 	}
 	return result
-}
-
-func readSettings(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (settingsRow, error) {
-	const statement = `
-		SELECT COALESCE(currency, 'EUR'), delivery_note, payment_note, instructions, holding_reply, reply_mode,
-			delivery, pickup, takes_orders, delivery_fee_cents, time_zone, public_phone, anthropic_key_encrypted,
-			opening_hours, away_hours, away_since, ai_engine
-		FROM assistant_settings WHERE company_id = $1`
-	s := settingsRow{Currency: "EUR", Pickup: true, TakesOrders: true, ReplyMode: "automatic", HoldingReply: defaultHoldingReply, AIEngine: "api_key"}
-	err := pool.QueryRow(ctx, statement, company.String()).Scan(&s.Currency, &s.DeliveryNote, &s.PaymentNote, &s.Instructions, &s.HoldingReply, &s.ReplyMode,
-		&s.Delivery, &s.Pickup, &s.TakesOrders, &s.DeliveryFeeCents, &s.TimeZone, &s.PublicPhone, &s.KeyEncrypted, &s.OpeningHours, &s.AwayHours, &s.AwaySince, &s.AIEngine)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return s, nil
-	}
-	return s, err
-}
-
-// KeyContext ties a business's own Claude key to its company (the old
-// anthropicKeyContext): a copy in another company's row can't be read.
-func KeyContext(company tenant.CompanyID) string {
-	return "assistant-anthropic-key:" + company.String()
-}
-
-// The holding reply until an owner writes their own (lib/restaurant-setup.ts).
-const defaultHoldingReply = "Thank you for your message. Our team will get back to you as soon as possible."
-
-func readFacts(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (map[string]string, error) {
-	rows, err := pool.Query(ctx, `SELECT topic, COALESCE(confirmed_value, '') FROM business_facts WHERE company_id = $1 AND topic IN ('company_name', 'description', 'location')`, company.String())
-	if err != nil {
-		return nil, fmt.Errorf("facts: %w", err)
-	}
-	facts := map[string]string{}
-	for rows.Next() {
-		var topic, value string
-		if err := rows.Scan(&topic, &value); err != nil {
-			return nil, err
-		}
-		facts[topic] = value
-	}
-	return facts, rows.Err()
-}
-
-type dish struct {
-	category, name, description string
-	priceCents                  int64
-}
-
-// readMenu lists the dishes available now (a person has none).
-func readMenu(ctx context.Context, pool *database.Pool, company tenant.CompanyID, kind, _ string) ([]dish, error) {
-	if kind == "personal" {
-		return nil, nil
-	}
-	const statement = `
-		SELECT category, name, description, price_cents FROM catalog_items
-		WHERE company_id = $1 AND (unavailable_until IS NULL OR unavailable_until <= now())
-		ORDER BY position, id`
-	rows, err := pool.Query(ctx, statement, company.String())
-	if err != nil {
-		return nil, fmt.Errorf("menu: %w", err)
-	}
-	var menu []dish
-	for rows.Next() {
-		var d dish
-		if err := rows.Scan(&d.category, &d.name, &d.description, &d.priceCents); err != nil {
-			return nil, err
-		}
-		menu = append(menu, d)
-	}
-	return menu, rows.Err()
-}
-
-// conversationLines are the newest texts of the conversation, oldest first,
-// decrypted; drafts, discarded and failed messages never reached the customer.
-func conversationLines(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) ([]Line, error) {
-	const statement = `
-		SELECT id, author, body_encrypted FROM messages
-		WHERE company_id = $1 AND conversation_id = $2 AND body_encrypted IS NOT NULL
-			AND (send_status IS NULL OR send_status NOT IN ('draft', 'discarded', 'failed'))
-		ORDER BY created_at DESC LIMIT $3`
-	rows, err := pool.Query(ctx, statement, company.String(), conversationID, conversationLinesSent)
-	if err != nil {
-		return nil, fmt.Errorf("conversation: %w", err)
-	}
-	var newestFirst []Line
-	for rows.Next() {
-		var id, author, body string
-		if err := rows.Scan(&id, &author, &body); err != nil {
-			return nil, err
-		}
-		text, err := box.Decrypt(body, conversations.MessageContext(company, id))
-		if err != nil {
-			continue
-		}
-		sender := "restaurant"
-		if author == "customer" {
-			sender = "customer"
-		}
-		newestFirst = append(newestFirst, Line{Sender: sender, Text: text})
-	}
-	lines := make([]Line, 0, len(newestFirst))
-	for i := len(newestFirst) - 1; i >= 0; i-- {
-		lines = append(lines, newestFirst[i])
-	}
-	return lines, rows.Err()
-}
-
-func activeCategories(ctx context.Context, pool *database.Pool, company tenant.CompanyID) ([]string, error) {
-	rows, err := pool.Query(ctx, `SELECT name FROM categories WHERE company_id = $1 AND archived_at IS NULL ORDER BY name`, company.String())
-	if err != nil {
-		return nil, fmt.Errorf("categories: %w", err)
-	}
-	names := []string{}
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		names = append(names, name)
-	}
-	return names, rows.Err()
 }
 
 func firstNonEmpty(values ...string) string {

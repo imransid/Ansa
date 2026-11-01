@@ -52,7 +52,8 @@
 |---|---|---|
 | menu, "Not available today" | db/menu.ts | ⬜ |
 | menu reading (brain) | lib/menu-reading/ | ⬜ |
-| orders and status messages | lib/orders.ts, order-steps.ts, db/order*.ts | ⬜ |
+| orders: pricing, summary, placing, taking back, new-order alerts | lib/orders.ts, order-steps.ts, db/order-proposals.ts, services/assistant-order.ts, order-alerts.ts | ✅ core/internal/orders, assistant/order.go, alerts/orders.go |
+| the Orders page's status changes and messages | services/orders.ts, db/order-status.ts | ⬜ with the screens' API (phase 7) |
 
 ## Phase 4: posting and marketing
 | Module | Old code | Status |

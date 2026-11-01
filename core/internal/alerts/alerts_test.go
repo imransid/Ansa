@@ -68,3 +68,38 @@ func TestOwnersAreToldWhoWhereAndWhyNeverTheMessages(t *testing.T) {
 		t.Fatal("no email while 'alert by email' is off")
 	}
 }
+
+func TestANewOrderAlertNamesTheNumberAndTotalOnly(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	database.TestOwner(t, pool, companyID)
+	messageID, _ := conversations.NewID()
+	turn, _ := conversations.InsertCustomerMessage(ctx, pool, company, conversations.ContactKey{Channel: conversations.ChannelTelegram, ExternalID: "o1"},
+		conversations.IncomingMessage{ID: messageID, BodyEncrypted: "v1:x:y:z", ChannelMessageID: "o1"})
+	var orderID string
+	err := pool.QueryRow(ctx, `INSERT INTO orders (company_id, conversation_id, status, fulfilment, address_encrypted, wanted_time, currency, subtotal_cents, delivery_fee_cents, total_cents, order_number, placed_at)
+		VALUES ($1, $2, 'new', 'delivery', 'v1:secret:secret:secret', 'As soon as possible', 'EUR', 1900, 250, 2150, 7, now()) RETURNING id`, companyID, turn.ConversationID).Scan(&orderID)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	folder := t.TempDir()
+	limiter := ratelimit.New(pool, "core-test-secret")
+	t.Cleanup(func() {
+		pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = $1`, limiter.Key("owner-alerts", companyID))
+	})
+	alerter := &Alerter{Pool: pool, Limiter: limiter, Email: &email.Sender{DevFolder: folder}, AppURL: "http://localhost:3000", Log: logging.New(io.Discard)}
+	payload, _ := json.Marshal(assistant.OrderAlertPayload{OrderID: orderID})
+	if err := alerter.HandleOrderJob(ctx, &jobs.Job{ID: "x", CompanyID: company, Payload: payload}); err != nil {
+		t.Fatalf("HandleOrderJob: %v", err)
+	}
+	files, _ := os.ReadDir(filepath.Join(folder, ".dev-emails"))
+	if len(files) != 1 {
+		t.Fatalf("%d emails", len(files))
+	}
+	page, _ := os.ReadFile(filepath.Join(folder, ".dev-emails", files[0].Name()))
+	if !strings.Contains(string(page), "A customer placed order #7 on Telegram: €21.50.") || !strings.Contains(string(page), "/orders") || strings.Contains(string(page), "secret") {
+		t.Fatal("number, who, where and the total; never the address")
+	}
+}

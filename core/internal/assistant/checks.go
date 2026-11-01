@@ -4,8 +4,9 @@
 package assistant
 
 import (
+	"ansa/core/internal/money"
+
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode"
 )
@@ -60,7 +61,7 @@ func MoneyAmounts(text, currency string) []int64 {
 	var amounts []int64
 	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
 		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
-			amounts = append(amounts, ParsePrice(dropThousandsSpaces(match[1]), currency))
+			amounts = append(amounts, money.ParsePrice(dropThousandsSpaces(match[1]), currency))
 		}
 	}
 	return amounts
@@ -122,57 +123,6 @@ func isThreeDigitsThenEnd(runes []rune, start int) bool {
 		}
 	}
 	return start+3 == len(runes) || !unicode.IsDigit(runes[start+3]) && !unicode.IsLetter(runes[start+3]) && runes[start+3] != '_'
-}
-
-// ParsePrice reads a price as people write it ("9.50", "9,50", "1 200") in
-// the currency's smallest units, or -1 (as the old lib/menu.ts parsePrice).
-func ParsePrice(text, currency string) int64 {
-	if strings.ContainsAny(text, "-−") {
-		return -1
-	}
-	digits := MinorUnitDigits(currency)
-	var kept strings.Builder
-	for _, r := range text {
-		if unicode.IsDigit(r) && r < 128 || r == '.' || r == ',' {
-			kept.WriteRune(r)
-		}
-	}
-	number := strings.TrimRight(kept.String(), ".,")
-	whole, fraction, hasFraction := strings.Cut(strings.ReplaceAll(number, ",", "."), ".")
-	if strings.Contains(fraction, ".") || len(whole) == 0 || len(whole) > 9 || (hasFraction && (len(fraction) == 0 || len(fraction) > digits)) {
-		return -1
-	}
-	wholeValue, err := strconv.ParseInt(whole, 10, 64)
-	if err != nil {
-		return -1
-	}
-	scale := int64(1)
-	for i := 0; i < digits; i++ {
-		scale *= 10
-	}
-	fractionValue := int64(0)
-	if hasFraction {
-		padded := fraction + strings.Repeat("0", digits-len(fraction))
-		fractionValue, _ = strconv.ParseInt(padded, 10, 64)
-	}
-	cents := wholeValue*scale + fractionValue
-	if cents > 100_000_000 {
-		return -1
-	}
-	return cents
-}
-
-// MinorUnitDigits is how many digits a currency's prices have after the
-// point (ISO 4217): 0 for yen or won, 3 for dinars, 2 for most.
-func MinorUnitDigits(currency string) int {
-	switch strings.ToUpper(currency) {
-	case "BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG", "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF":
-		return 0
-	case "BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND":
-		return 3
-	default:
-		return 2
-	}
 }
 
 // AILabel is ansa's own first line in a conversation (never the AI's).

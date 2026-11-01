@@ -6,14 +6,16 @@ import (
 	"ansa/core/internal/chat"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/orders"
 )
 
-// sendOrDraft saves the checked reply, with the AI label when it is the
-// first automated message: "sending" (Automatic) or a "draft" that waits for
-// a person (Ask me first; a draft waiting before is discarded), in ONE
-// transaction that checks everything again. Then it sends. A reply that
-// can't go asks a person (no holding reply: the channel refused one).
-func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, reply string) (string, error) {
+// sendOrDraft saves the checked reply (or ansa's own order question or
+// summary), with the AI label when it is the first automated message:
+// "sending" (Automatic) or a "draft" that waits for a person (Ask me first;
+// a draft waiting before is discarded), in ONE transaction that checks
+// everything again, with the order a summary describes. Then it sends. A
+// reply that can't go asks a person (no holding reply: the channel refused one).
+func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, reply string, proposal *orders.Proposal) (string, error) {
 	text := WithAILabel(reply, inputs.Name, inputs.Kind, info.FirstAutomated)
 	messageID, err := conversations.NewID()
 	if err != nil {
@@ -47,6 +49,11 @@ func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info 
 		if err := insertOutgoing(ctx, tx, turn, messageID, body, status); err != nil {
 			return err
 		}
+		if proposal != nil {
+			if err := orders.SaveProposalWithin(ctx, tx, turn.CompanyID, turn.ConversationID, messageID, *proposal); err != nil {
+				return err
+			}
+		}
 		if err := MarkHandledWithin(ctx, tx, turn); err != nil {
 			return err
 		}
@@ -65,12 +72,18 @@ func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info 
 	if outcome != OutcomeReplied {
 		return outcome, nil
 	}
+	return OutcomeReplied, r.deliver(ctx, turn, info, inputs, target, messageID, text)
+}
+
+// deliver sends a saved message and records what became of it; one the
+// channel refused asks a person (no holding reply: it would be refused too).
+func (r *Runner) deliver(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, target chat.Target, messageID, text string) error {
 	result := r.Chat.Send(ctx, target, messageID, text)
 	if err := chat.RecordDelivery(ctx, r.Pool, turn.CompanyID, messageID, result); err != nil {
-		return "", err
+		return err
 	}
 	if result.Status == "failed" {
-		return OutcomeReplied, r.handOver(ctx, turn, info, inputs, Handover{Reason: "send_failed"})
+		return r.handOver(ctx, turn, info, inputs, Handover{Reason: "send_failed"})
 	}
-	return OutcomeReplied, nil
+	return nil
 }

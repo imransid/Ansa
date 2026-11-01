@@ -20,7 +20,7 @@ passes, and sending, drafting or handing over to a person), as the old
    again by core: a reply must pass the checks below; an unknown kind is
    `unusable_answer`; the brain down is `model_failed`; an own key that
    can't be read is `model_unavailable` (ansa's key never replaces it).
-   Order answers hand over (`order`) until orders move (phase 3).
+   Order answers go to ansa's own order steps ([orders](orders.md)).
 7. A reply that passes is saved in ONE transaction that checks the gate
    again with the conversation locked: "sending" (Automatic) or a "draft"
    (Ask me first; a waiting draft is discarded), the AI label on the first
