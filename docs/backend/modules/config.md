@@ -27,7 +27,10 @@ second core beside a running one, or a preview), LINKEDIN_CLIENT_ID /
 _SECRET, X_CLIENT_ID / _SECRET and GOOGLE_CLIENT_ID / _SECRET (ansa's app on
 LinkedIn, X and YouTube, each pair both or neither, `social.go`: without one,
 development offers a stand-in account and production says the platform isn't
-set up; see [platforms](platforms.md)). The checks of each group
+set up; see [platforms](platforms.md)), MEDIA_PROVIDER (the media
+library's image service: empty or "dev-stand-in"; unset in development is the
+stand-in, and production refuses the stand-in, so generation is off there:
+see [media](media.md)). The checks of each group
 live in `checks.go`. See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are

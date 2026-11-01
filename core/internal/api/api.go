@@ -93,6 +93,8 @@ type Server struct {
 	Stripe      *billing.Stripe
 	// The Analytics page's "Review performance".
 	Reviews *analytics.Reviewer
+	// The content studio and the media library (cofounder_studio.go).
+	Studio *StudioServices
 }
 
 // Register adds every endpoint.
@@ -119,6 +121,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerCalls(routes)
 	s.registerAnalytics(routes)
 	s.registerCofounderQueue(routes)
+	s.registerStudio(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

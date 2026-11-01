@@ -15,6 +15,7 @@ from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
+from brain.content.draft import DraftRequest, write_draft
 from brain.calls.decision import decide as decide_call
 from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
@@ -112,6 +113,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """A review of one period's post numbers (core checks every number
         it cites). Never the numbers or the answer in a log."""
         return review_performance(request, active_asker)
+
+    @app.post("/v1/content/draft")
+    def content_draft(request: DraftRequest) -> dict:
+        """One content studio draft (core cleans it and marks its claims).
+        Never the facts or the draft in a log."""
+        return write_draft(request, active_asker)
 
     return app
 

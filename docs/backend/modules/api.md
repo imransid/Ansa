@@ -30,6 +30,7 @@ read strictly, and an unknown field (a "companyId") is refused.
 - Phone calls (the Calls page, a call, Analyze now, Escalate, the recording): see [calls](calls.md).
 - The Co-Founder's Analytics page and Review performance: see [analytics](analytics.md).
 - The Co-Founder's publishing queue (the queue page, a draft's Publish section, scheduling, an owner's actions on posts, auto-publish rules): see [publishing](publishing.md).
+- The content studio and the media library (drafts, approvals, uploads, images made): see [studio](studio.md), [media](media.md), [mediagen](mediagen.md).
 **Tests:** `api_test.go` (live database, a real HTTP server): another
 secret = 403, no session = 401; the list with the decrypted address and the
 lines; accepting messages the customer once with ansa's fixed text; a

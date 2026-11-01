@@ -27,6 +27,7 @@ import (
 	"ansa/core/internal/inbound"
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/mediagen"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
@@ -39,6 +40,7 @@ import (
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
 	"ansa/core/internal/socialconnect"
+	"ansa/core/internal/studio"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tickets"
 )
@@ -114,6 +116,10 @@ func main() {
 			Platforms: socialPlatforms(cfg)}}
 	// "Review performance": two tries of up to 120 s, and the SDK's waits.
 	screensAPI.Reviews = &analytics.Reviewer{Pool: pool, Limiter: limiter, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
+	// The content studio's AI drafts (two tries of up to 120 s at the brain) and the media library's image service.
+	generations := &mediagen.Service{Pool: pool, Files: storage, Limiter: limiter, Log: log, Mode: mediagen.ModeFor(cfg.MediaProvider, cfg.IsProduction())}
+	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second), Limiter: limiter, Log: log},
+		Generation: generations}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
@@ -132,7 +138,7 @@ func main() {
 	screensAPI.Publisher = publisher
 	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook}
 	if !cfg.SchedulerOff {
-		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers))
+		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers, generations))
 	}
 	go func() {
 		log.Info("core started")
