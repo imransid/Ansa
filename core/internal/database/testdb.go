@@ -47,7 +47,7 @@ func TestCompany(t *testing.T, pool *Pool) string {
 var cleanupOrder = []string{
 	"core_jobs", "order_items", "orders", "catalog_items", "messages", "assistant_activity", "ticket_activity", "tickets",
 	"user_categories", "categories",
-	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings",
+	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings", "social_connections",
 	"users",
 }
 

@@ -94,3 +94,30 @@ func TestTheStandInWritesAFileOnlyWhereAllowedAndDeliveryIsRecordedOnce(t *testi
 		t.Fatalf("a late failure must not undo sent: %s", status)
 	}
 }
+
+func TestMessengerNeedsItsPageConnectedHereAndAllowedToMessage(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	owner := database.TestOwner(t, pool, companyID)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	id, _ := conversations.NewID()
+	turn := customerTurn(t, pool, company, conversations.ContactKey{Channel: conversations.ChannelMessenger, ExternalID: "90901:4242"}, id)
+	if _, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != RefusedNotConnected {
+		t.Fatalf("no Page: %q", refusal)
+	}
+	pool.Exec(ctx, `INSERT INTO social_connections (company_id, platform, external_account_id, display_name, account_kind, access_token_encrypted, connected_by_user_id)
+		VALUES ($1, 'facebook', '90901', 'Page', 'page', 'v1:x:y:z', $2)`, companyID, owner)
+	if _, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != RefusedCannotReply {
+		t.Fatalf("connected for posts only: %q", refusal)
+	}
+	pool.Exec(ctx, `UPDATE social_connections SET scopes = ARRAY['pages_messaging'] WHERE company_id = $1`, companyID)
+	target, refusal := routeOf(t, pool, company, turn.ConversationID)
+	if refusal != "" || target.MessengerPageID != "90901" || target.MessengerPSID != "4242" || target.MessengerConnectionID == "" || target.CompanyID != company {
+		t.Fatalf("allowed: %+v %q", target, refusal)
+	}
+	sender := &Sender{}
+	if result := sender.Send(ctx, target, id, "Hi"); result.Status != "failed" || result.Error != "not_connected" {
+		t.Fatalf("without ansa's Meta app nothing is sent: %+v", result)
+	}
+}

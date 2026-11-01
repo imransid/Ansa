@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -44,6 +45,12 @@ type Config struct {
 	SendRealEmail bool
 	EmailFrom     string
 	ResendAPIKey  string
+	// ansa's Meta app (both or neither): Facebook Pages and Messenger. The
+	// secret signs every Messenger webhook. MessengerVerifyToken answers
+	// Meta's one-time setup check (32-256 letters, digits, _ or -).
+	FacebookAppID        string
+	FacebookAppSecret    string
+	MessengerVerifyToken string
 	// Where development stand-ins write (.dev-emails, .dev-messages): the
 	// repository's root by default, the folder the old backend writes to.
 	DevFolder string
@@ -70,6 +77,9 @@ func Load(getenv Getenv) (Config, error) {
 		EmailFrom:             getenv("EMAIL_FROM"),
 		ResendAPIKey:          getenv("RESEND_API_KEY"),
 		DevFolder:             withDefault(getenv("ANSA_DEV_FOLDER"), ".."),
+		FacebookAppID:         getenv("FACEBOOK_APP_ID"),
+		FacebookAppSecret:     getenv("FACEBOOK_APP_SECRET"),
+		MessengerVerifyToken:  getenv("MESSENGER_VERIFY_TOKEN"),
 	}
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
@@ -103,6 +113,7 @@ func Load(getenv Getenv) (Config, error) {
 		problems = append(problems, `ANSA_ENV must be "development" or "production"`)
 	}
 	problems = append(problems, emailAndLinkProblems(cfg)...)
+	problems = append(problems, metaProblems(cfg)...)
 	if len(problems) > 0 {
 		return Config{}, errors.New("settings: " + strings.Join(problems, "; "))
 	}
@@ -121,6 +132,20 @@ func emailAndLinkProblems(cfg Config) []string {
 	}
 	if cfg.SendRealEmail && (!strings.Contains(cfg.EmailFrom, "@") || cfg.ResendAPIKey == "") {
 		problems = append(problems, "SEND_REAL_EMAIL needs EMAIL_FROM (an address) and RESEND_API_KEY")
+	}
+	return problems
+}
+
+var verifyTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{32,256}$`)
+
+// metaProblems checks ansa's Meta app settings.
+func metaProblems(cfg Config) []string {
+	var problems []string
+	if (cfg.FacebookAppID == "") != (cfg.FacebookAppSecret == "") {
+		problems = append(problems, "FACEBOOK_APP_ID and FACEBOOK_APP_SECRET must be set together")
+	}
+	if cfg.MessengerVerifyToken != "" && !verifyTokenPattern.MatchString(cfg.MessengerVerifyToken) {
+		problems = append(problems, "MESSENGER_VERIFY_TOKEN must be 32 to 256 letters, digits, _ or - (openssl rand -hex 32)")
 	}
 	return problems
 }

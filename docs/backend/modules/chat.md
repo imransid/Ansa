@@ -7,10 +7,16 @@ conversation row locked):** Telegram needs the company's account connected
 (not removed), allowed to reply, and the customer's last message under 24
 hours old; the development stand-in always routes; calls and emails are not
 chats. A refusal (`not-found`, `not-chat`, `not-connected`, `cannot-reply`,
-`window-closed`) means nothing is saved. Messenger joins with its module.
-**Send (`Sender.Send`):** Telegram through `internal/telegram`; the stand-in
+`window-closed`) means nothing is saved. Messenger needs the Page the
+customer wrote to connected in this company and allowed to send messages
+(`pages_messaging` granted, or a development stand-in), and the same 24
+hours.
+**Send (`Sender.Send`):** Telegram through `internal/telegram`; Messenger
+through `internal/messenger` with the Page's token, read right before by
+`internal/social` (a Page that can't be used now fails `not_connected`); the stand-in
 writes a private file (mode 600) to the stand-in folder in development only;
 anything not set up fails `not_connected`, never silently.
 **Record (`RecordDelivery`):** sent / failed / unclear with a code, only over
 `sending`, so a late result never undoes another.
-**Tests:** `chat_test.go` (live database).
+**Tests:** `chat_test.go` (live database): Telegram's route; Messenger's
+(no Page, a Page for posts only, allowed; nothing sent without ansa's Meta app).

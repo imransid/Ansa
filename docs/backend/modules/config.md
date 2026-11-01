@@ -10,7 +10,10 @@ with the old backend), TELEGRAM_BOT_TOKEN / _USERNAME / TELEGRAM_WEBHOOK_SECRET
 development), SEND_REAL_EMAIL (exactly "true" sends through Resend and then
 needs EMAIL_FROM and RESEND_API_KEY; production requires it), ANSA_DEV_FOLDER
 (where development stand-ins write `.dev-emails/` and `.dev-messages/`: the
-repository's root by default). See `core/.env.core.example`.
+repository's root by default), FACEBOOK_APP_ID / FACEBOOK_APP_SECRET
+(ansa's Meta app, both or neither: its secret signs Messenger's webhook),
+MESSENGER_VERIFY_TOKEN (Meta's one-time setup check, 32-256 letters, digits,
+_ or -). See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are
 named, never shown; real email needs its sender; production needs real email

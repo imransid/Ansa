@@ -7,7 +7,11 @@ package httpserver
 import (
 	"errors"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
+	"strconv"
+	"strings"
 	"time"
 
 	"ansa/core/internal/logging"
@@ -64,4 +68,50 @@ func ReadBody(r *http.Request, maxBytes int64) ([]byte, error) {
 // check joins it with the database module.
 func Health(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// ClientIP is the caller's address as the key for per-IP rate limits (its
+// only use), the same as the old lib/request-ip.ts so both backends count
+// together: X-Forwarded-For's first entry (only trustworthy behind a host
+// that overwrites it), else X-Real-IP, else the connection's own address. An
+// IPv6 address counts as its /64 network ("2001:db8:1:2::/64"): whoever has
+// one IPv6 connection usually has a whole /64, endless fresh counters.
+func ClientIP(r *http.Request) string {
+	return rateLimitAddress(clientAddress(r))
+}
+
+func clientAddress(r *http.Request) string {
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		first, _, _ := strings.Cut(forwarded, ",")
+		return strings.TrimSpace(first)
+	}
+	if real := r.Header.Get("X-Real-IP"); real != "" {
+		return real
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
+func rateLimitAddress(address string) string {
+	// "fe80::1%eth0": the part after "%" only names a network card.
+	withoutZone, _, _ := strings.Cut(address, "%")
+	ip, err := netip.ParseAddr(withoutZone)
+	if err != nil || !ip.Is6() {
+		return address
+	}
+	bytes := ip.As16()
+	groups := make([]string, 4)
+	allZero := true
+	for i := range groups {
+		value := uint16(bytes[2*i])<<8 | uint16(bytes[2*i+1])
+		groups[i] = strconv.FormatUint(uint64(value), 16)
+		allZero = allZero && value == 0
+	}
+	// ::/64 holds loopback and IPv4 written as IPv6: not one person's network.
+	if allZero {
+		return strings.ToLower(withoutZone)
+	}
+	return strings.Join(groups, ":") + "::/64"
 }

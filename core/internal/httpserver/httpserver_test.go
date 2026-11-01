@@ -39,3 +39,27 @@ func TestReadBodyRefusesMoreThanItsCap(t *testing.T) {
 		t.Fatalf("expected ErrTooLarge, got %v", err)
 	}
 }
+
+func TestClientIPCountsAsTheOldBackendDoes(t *testing.T) {
+	cases := map[string]string{
+		"203.0.113.5, 10.0.0.1": "203.0.113.5",
+		"2001:0DB8:1:2:3:4:5:6": "2001:db8:1:2::/64",
+		"2001:db8::1":           "2001:db8:0:0::/64",
+		"fe80::1%eth0":          "fe80:0:0:0::/64",
+		"::1":                   "::1",
+		"::ffff:203.0.113.5":    "::ffff:203.0.113.5",
+		"not an address":        "not an address",
+	}
+	for forwarded, want := range cases {
+		r := httptest.NewRequest(http.MethodPost, "/", nil)
+		r.Header.Set("X-Forwarded-For", forwarded)
+		if got := ClientIP(r); got != want {
+			t.Errorf("ClientIP(%q) = %q, want %q", forwarded, got, want)
+		}
+	}
+	r := httptest.NewRequest(http.MethodPost, "/", nil)
+	r.RemoteAddr = "198.51.100.9:1234"
+	if got := ClientIP(r); got != "198.51.100.9" {
+		t.Errorf("without a proxy header: %q", got)
+	}
+}

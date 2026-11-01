@@ -34,6 +34,8 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/conversations/` | Contacts, conversations, messages | [conversations](../docs/backend/modules/conversations.md) |
 | `internal/telegram/` | The Telegram Business channel | [telegram](../docs/backend/modules/telegram.md) |
 | `internal/chat/` | The one door for sending to customers | [chat](../docs/backend/modules/chat.md) |
+| `internal/messenger/` | The Facebook Messenger channel | [messenger](../docs/backend/modules/messenger.md) |
+| `internal/social/` | The only place a social account's token is decrypted | [social](../docs/backend/modules/social.md) |
 | `internal/hours/` | Opening and away hours | [hours](../docs/backend/modules/hours.md) |
 | `internal/assistant/` | The assistant: when it answers, the brain's slice, checks, replies, handovers | [assistant](../docs/backend/modules/assistant.md) |
 | `internal/tickets/` | Making and routing requests | [tickets](../docs/backend/modules/tickets.md) |

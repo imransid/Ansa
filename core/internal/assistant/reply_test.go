@@ -18,7 +18,6 @@ import (
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
-	"ansa/core/internal/telegram"
 	"ansa/core/internal/tenant"
 )
 
@@ -243,11 +242,5 @@ func TestAnUnreadableOwnKeyIsNeverReplacedByAnsas(t *testing.T) {
 	turn := w.customerSays("io", "Hi")
 	if got := w.answer(turn); got != OutcomeHandedOver || w.brainCalls != 0 {
 		t.Fatalf("outcome: %s, %d brain calls", got, w.brainCalls)
-	}
-}
-
-func TestTheChannelsQueueTheSameJob(t *testing.T) {
-	if telegram.ReplyJobKind != ReplyJobKind {
-		t.Fatal("telegram queues a job the assistant doesn't handle")
 	}
 }

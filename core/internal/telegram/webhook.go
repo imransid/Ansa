@@ -10,7 +10,6 @@ import (
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/httpserver"
-	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
@@ -21,8 +20,6 @@ const (
 	// Telegram's updates are small: one message of at most 4,096 characters.
 	maxBodyBytes = 256 << 10
 	secretHeader = "X-Telegram-Bot-Api-Secret-Token"
-	// The assistant's job for a customer's message (Phase 2 handles it).
-	ReplyJobKind = "assistant.reply"
 )
 
 // Every restaurant's messages come from Telegram's few addresses: a ceiling
@@ -58,7 +55,7 @@ func (h *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	over, err := h.Limiter.Over(r.Context(), "telegram-webhook", clientIP(r), webhookLimit)
+	over, err := h.Limiter.Over(r.Context(), "telegram-webhook", httpserver.ClientIP(r), webhookLimit)
 	if err != nil || over {
 		h.Log.Warn("telegram webhook rejected", logging.Code("rate_limited"))
 		w.WriteHeader(http.StatusTooManyRequests)
@@ -121,7 +118,7 @@ func (h *Webhook) handleBusinessMessage(ctx context.Context, message *Message) e
 	if err != nil || turn == nil {
 		return err
 	}
-	return enqueueReply(ctx, h.Pool, turn)
+	return conversations.QueueReply(ctx, h.Pool, turn)
 }
 
 func (h *Webhook) handleDeleted(ctx context.Context, deleted *DeletedMessages) error {
@@ -141,23 +138,6 @@ func (h *Webhook) encryptedMessage(company tenant.CompanyID, text, channelMessag
 	return conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: channelMessageID}, err
 }
 
-// enqueueReply asks the assistant to answer this message, once.
-// ReplySettle is how long a reply waits for more messages.
-const ReplySettle = 1500 * time.Millisecond
-
-func enqueueReply(ctx context.Context, pool *database.Pool, turn *conversations.Turn) error {
-	payload := map[string]string{"conversationId": turn.ConversationID, "triggerMessageId": turn.TriggerMessageID}
-	// Customers often send a few messages in a row: the answer starts a
-	// moment later, so one answer covers them all (an older message's run
-	// then stays quiet).
-	job := jobs.NewJob{Kind: ReplyJobKind, Payload: payload, RunAfter: time.Now().Add(ReplySettle), DedupeKey: "reply:" + turn.TriggerMessageID}
-	_, err := jobs.Enqueue(ctx, pool, turn.CompanyID, job)
-	if err == jobs.ErrDuplicate {
-		return nil
-	}
-	return err
-}
-
 func customerContact(chat Chat) conversations.ContactKey {
 	contact := conversations.ContactKey{Channel: conversations.ChannelTelegram, ExternalID: chat.ID}
 	if name := DisplayName(chat.FirstName, chat.LastName, chat.Username); name != "" {
@@ -172,18 +152,4 @@ func sameSecret(given, expected string) bool {
 	a := sha256.Sum256([]byte(given))
 	b := sha256.Sum256([]byte(expected))
 	return subtle.ConstantTimeCompare(a[:], b[:]) == 1
-}
-
-// clientIP is the address the host's proxy reports (x-forwarded-for's first
-// entry), else the connection's.
-func clientIP(r *http.Request) string {
-	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-		for i := 0; i < len(forwarded); i++ {
-			if forwarded[i] == ',' {
-				return forwarded[:i]
-			}
-		}
-		return forwarded
-	}
-	return r.RemoteAddr
 }

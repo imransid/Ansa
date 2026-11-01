@@ -17,7 +17,7 @@ import (
 )
 
 // ReplyJobKind answers one customer message (queued by the channels).
-const ReplyJobKind = "assistant.reply"
+const ReplyJobKind = conversations.ReplyJobKind
 
 // What one run did.
 const (

@@ -29,9 +29,9 @@
 | Module | Old code | Status |
 |---|---|---|
 | conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | 🔨 saving messages done |
-| chat delivery (one door) | lib/chat-delivery.ts | ✅ Telegram + stand-in (Messenger with its module) |
+| chat delivery (one door) | lib/chat-delivery.ts | ✅ Telegram, Messenger and the stand-in |
 | Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | 🔨 webhook, messages, deletions, sending, connecting by link code done; making the code moves with the screens' API |
-| Messenger | services/messenger-*.ts, adapters/messenger.ts | ⬜ |
+| Messenger | services/messenger-*.ts, adapters/messenger.ts | ✅ core/internal/messenger, social (switching a Page's messages on moves with the social connect flow) |
 | development stand-ins | adapters/dev-chat-outbox.ts, scripts/simulate-*.ts | ⬜ |
 
 ## Phase 2: the assistant

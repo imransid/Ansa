@@ -25,10 +25,13 @@ import (
 	"ansa/core/internal/httpserver"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/messenger"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
+	"ansa/core/internal/social"
 	"ansa/core/internal/telegram"
+	"ansa/core/internal/tenant"
 	"ansa/core/internal/tickets"
 )
 
@@ -64,6 +67,9 @@ func main() {
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
+	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken}
+	routes.Handle("POST /webhooks/messenger", messengerHook)
+	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
 	workCtx, stopWork := context.WithCancel(context.Background())
@@ -93,7 +99,11 @@ func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter 
 		Pool: pool, Box: box, Limiter: limiter, Log: log,
 		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout),
 		Chat: &chat.Sender{
-			TelegramToken:   cfg.TelegramBotToken,
+			TelegramToken:      cfg.TelegramBotToken,
+			MessengerAppSecret: cfg.FacebookAppSecret,
+			PageToken: func(ctx context.Context, company tenant.CompanyID, connectionID string) (string, error) {
+				return social.PageToken(ctx, pool, box, company, connectionID)
+			},
 			StandInsAllowed: !cfg.IsProduction(),
 			StandInDir:      filepath.Join(cfg.DevFolder, ".dev-messages"),
 		},
@@ -104,6 +114,7 @@ func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter 
 	worker.Handle(assistant.ReplyJobKind, runner.HandleJob)
 	worker.Handle(assistant.AlertJobKind, alerter.HandleJob)
 	worker.Handle(tickets.AssignedJobKind, notifier.HandleJob)
+	worker.Handle(messenger.NameJobKind, (&messenger.Names{Pool: pool, Box: box, AppSecret: cfg.FacebookAppSecret}).HandleJob)
 	return worker
 }
 
