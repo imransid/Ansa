@@ -125,6 +125,9 @@ func (s *Server) answerGeneration(w http.ResponseWriter, result studio.Result, e
 	switch {
 	case err != nil:
 		s.failed(w, "draft generation", err)
+	case result.Outcome == studio.Stale:
+		// Changed since the page showed it (before or while the AI wrote).
+		problem(w, http.StatusConflict, result.Refusal)
 	case result.Refusal != "":
 		problem(w, http.StatusUnprocessableEntity, result.Refusal)
 	case result.Outcome == studio.Changed || result.Outcome == "created":

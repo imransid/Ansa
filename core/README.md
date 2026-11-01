@@ -71,4 +71,6 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/postmetrics/` | Reading published posts' numbers (Facebook) | [postmetrics](../docs/backend/modules/postmetrics.md) |
 | `internal/socialconnect/` | Connecting Facebook Pages (Facebook's sign-in), disconnecting | [socialconnect](../docs/backend/modules/socialconnect.md) |
 | `internal/calls/`, `internal/download/` | Phone calls: Vapi's webhook, the live knowledge search, the AI's decision, the Calls page; downloads from allowed hosts | [calls](../docs/backend/modules/calls.md) |
+| `internal/studio/` | The content studio: drafts written, edited, approved, rejected, archived; the AI's drafts | [studio](../docs/backend/modules/studio.md) |
+| `internal/media/`, `internal/mediagen/` | The media library: uploads, alt text, deleting, attaching; making images (the one door, the stand-in) | [media](../docs/backend/modules/media.md), [mediagen](../docs/backend/modules/mediagen.md) |
 | `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |

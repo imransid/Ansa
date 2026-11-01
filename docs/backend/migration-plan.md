@@ -60,7 +60,7 @@
 |---|---|---|
 | Post for me (topic brain, writer, checks, switch, page) | lib/autopost/, services/autopost*.ts | ✅ core/internal/autopost, brain/brain/posts |
 | content drafts (create, read, claims check) | db/content-draft*.ts | ✅ core/internal/drafts |
-| content studio edits and approvals, media library | db/content-draft*.ts, services/media-*.ts | ⬜ |
+| content studio edits and approvals, media library | db/content-draft*.ts, services/content-*.ts, services/media-*.ts | ✅ core/internal/studio, media, mediagen (the development stand-in only: no real image service is chosen); brain/brain/content |
 | social connections: Facebook Pages (connect, return, stand-in, disconnect) | services/social-connect.ts, social-oauth-callback.ts, adapters/facebook.ts | ✅ core/internal/socialconnect |
 | social connections: LinkedIn, X, YouTube (OAuth, PKCE, renewals, revokes) | adapters/linkedin, x, youtube, services/social-tokens.ts | ⬜ |
 | publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
