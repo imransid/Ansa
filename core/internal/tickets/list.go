@@ -13,11 +13,13 @@ import (
 
 // The list's views: "mine" is always the session's own person ($2, declared
 // once in a WITH so its type is known whichever view a statement uses).
+// Pieces of a WHERE (only the requests table has these columns in the
+// statements that use them, which name the company themselves).
 var views = map[string]string{
-	"open":       `tickets.status = 'open'`,
-	"mine":       `tickets.status = 'open' AND tickets.assigned_to_user_id = (SELECT id FROM viewer)`,
-	"unassigned": `tickets.status = 'open' AND tickets.assigned_to_user_id IS NULL`,
-	"solved":     `tickets.status = 'solved'`,
+	"open":       `status = 'open'`,
+	"mine":       `status = 'open' AND assigned_to_user_id = (SELECT id FROM viewer)`,
+	"unassigned": `status = 'open' AND assigned_to_user_id IS NULL`,
+	"solved":     `status = 'solved'`,
 	"all":        `true`,
 }
 
