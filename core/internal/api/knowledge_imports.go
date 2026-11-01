@@ -37,12 +37,13 @@ func (s *Server) testKnowledge(w http.ResponseWriter, r *http.Request, body []by
 		s.failed(w, "knowledge test", err)
 		return
 	}
+	// Exactly what the chat assistant reads (its 3 pieces within 3,000
+	// characters), and the one line the phone assistant hears.
 	kept, text := knowledge.Slice(hits, 3_000)
-	titles := []string{}
-	for _, hit := range kept {
-		titles = append(titles, hit.Title)
+	if kept == nil {
+		kept = []knowledge.Hit{}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"titles": titles, "assistantReads": text})
+	writeJSON(w, http.StatusOK, map[string]any{"slice": map[string]any{"hits": kept, "text": text}, "callAnswer": knowledge.BuildCallAnswer(hits).Text})
 }
 
 // importAllowed: owners only, within the company's hourly imports.

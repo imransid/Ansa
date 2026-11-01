@@ -9,7 +9,8 @@ to ansa (`pages_messaging` granted), its forwarding address
 (`c-<companies.inbound_token>@INBOUND_EMAIL_DOMAIN`) and when the last
 email reached it, ansa's phone numbers linked to it with each one's last
 call, and Telegram's mode ("real" with ansa's bot, "stand-in" in
-development without it, "not-set-up" in production without it).
+development without it, "not-set-up" in production without it), and
+Facebook's the same way (ansa's Meta app), each Page with its connection id.
 **Owners (60 settings changes per 10 minutes):**
 - `POST /api/v1/channels/telegram/link`: a one-time code (32 random bytes,
   43 characters; only its SHA-256 is stored, 10 minutes) in a link to ansa's

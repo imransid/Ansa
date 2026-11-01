@@ -15,7 +15,16 @@ phone number however written (3+ digits), and "#57" or "57".
 **A request (`GET /api/v1/requests/{number}`):** its fields, who solved it
 and how, who set the customer's email, its newest 200 history entries oldest
 first (notes decrypted with `ticket-note:<company>:<ticket>:<note>`), the
-people it can be given to (confirmed, not removed) and the categories.
+people it can be given to (confirmed, not removed) and the categories. Each
+history entry names who did it and who it was about (the wording tells "took
+it" from "gave it to Ana"), a note that can't be decrypted says so
+(`noteUnreadable`), and `olderEntriesHidden` says when there are more than
+200. Also: its newest customer email with what Resend reported after
+sending (`deliveryProblem`), the email it came from (`originalEmail`:
+sender, verified or not, Reply-To, subject and body decrypted, attachments
+named, "could not be decrypted" said), the same customer's other open
+requests (the newest 20, by phone digits or address), and up to 3 approved
+support articles matching its subject and category (`relatedKnowledge`).
 **Changes (120 per 10 minutes per person; each with its history row in the
 same transaction):**
 - `POST .../{id}/assign {"assigneeId": "" | id}`: the person read in the

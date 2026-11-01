@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"net/netip"
+	"strings"
 	"testing"
 
 	"ansa/core/internal/files"
@@ -36,7 +37,9 @@ func TestTheKnowledgePageThroughCoresAPI(t *testing.T) {
 		t.Fatalf("article: %v", article)
 	}
 	_, answer = w.call("POST", "/api/v1/knowledge/test", `{"question":"Is parking free?"}`, screensSecret, w.cookie)
-	if titles := answer["titles"].([]any); len(titles) != 1 || titles[0] != "Parking hours" {
+	slice, _ := answer["slice"].(map[string]any)
+	hits, _ := slice["hits"].([]any)
+	if len(hits) != 1 || hits[0].(map[string]any)["title"] != "Parking hours" || !strings.Contains(answer["callAnswer"].(string), `<article title="Parking hours">`) {
 		t.Fatalf("test search: %v", answer)
 	}
 	upload := `{"fileName":"faq.txt","data":"` + base64.StdEncoding.EncodeToString([]byte("Q: Delivery?\n\nA: Within 3 km.")) + `"}`

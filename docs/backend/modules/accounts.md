@@ -72,7 +72,8 @@ never repeating the name typed at signup; links put their token after "#"
 the screens send the browser's IP, browser and known-device cookie in the
 body, and set the cookies core answers): `POST /api/v1/auth/signup`,
 `/join`, `/invite-preview`, `/login`, `/confirm`, `/reset-request`, `/reset`.
-Logged in: `POST /api/v1/auth/logout`, `GET /api/v1/account`, `POST
+Logout needs no live login (`POST /api/v1/auth/logout`: an ended login
+still gets the cookie that clears it). Logged in: `GET /api/v1/account`, `POST
 /api/v1/account/name`, `/password`, `/logout-others`.
 
 **Tests:** `vectors_test.go` (Better Auth's own hash and link work here,

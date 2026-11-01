@@ -40,7 +40,8 @@ came from, who wrote, changed and approved it, its pieces, and what this
 person may do); `POST /api/v1/knowledge/articles` (anyone; `fromTicket`
 for "Save as knowledge"); `.../{id}/edit` `{revision, ...}`; `.../{id}/status`
 `{change, revision}`; `.../{id}/delete`; `POST /api/v1/knowledge/test`
-`{question}` (exactly what the assistant would read; 30 a minute per
+`{question}` (exactly what the chat assistant reads, its pieces and the
+text, and the one line the phone assistant hears; 30 a minute per
 person); `POST /api/v1/knowledge/import/document` `{documentId}`; `POST
 /api/v1/knowledge/import/web` `{url}` (the log names the fetch's code,
 never the address). Writes: 60 per 10 minutes per person.

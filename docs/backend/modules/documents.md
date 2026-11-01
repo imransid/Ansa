@@ -30,7 +30,11 @@ reads the forwarding address, the last email and the phone lines
 ([channels](channels.md)) and what the checklist counts (active categories,
 people, people without categories, documents).
 
-**API ([api](api.md)):** `GET /api/v1/settings/support`; `POST
+**API ([api](api.md)):** `GET /api/v1/settings/support` (with what became
+of the last email: received when, its status, why it was skipped, its
+request, stuck or not); `POST /api/v1/settings/support/company-name`
+`{companyName}` (owners: 2-100 characters, one line; it is the sender name
+of every customer email); `POST
 /api/v1/settings/support/reply-to` `{replyToEmail}`; `POST
 /api/v1/settings/support/addresses` `{address}`; `POST
 /api/v1/settings/support/addresses/remove` `{address}`; `POST

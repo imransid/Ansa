@@ -47,7 +47,9 @@ social-security numbers and email addresses hidden, angle brackets replaced,
 at most 6,000 characters; answers a summary, a subject (under 80) and one of
 the company's categories exactly, or why not.
 **The Emails page:** `GET /api/v1/emails?page=` (who, when, what became of
-it, stuck or not; never the content); `POST .../{id}/process-again` and
+it, stuck or not; never the content; how many in all; and the customer
+"solved" emails never delivered: the newest 20 and how many, each
+request's current solve only, `internal/outbox/undelivered.go`); `POST .../{id}/process-again` and
 `.../{id}/ticket-anyway` (never for ansa's own mail).
 **Settings:** RESEND_WEBHOOK_SECRET; SEND_REAL_EMAIL, RESEND_API_KEY and
 INBOUND_EMAIL_DOMAIN as for email out.

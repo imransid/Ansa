@@ -19,8 +19,11 @@ import (
 
 // Hit is one matching piece of an approved article (at most 1,500 characters).
 type Hit struct {
-	ArticleID, Title, Kind, Text string
-	Rank                         float64
+	ArticleID string  `json:"articleId"`
+	Title     string  `json:"title"`
+	Kind      string  `json:"kind"`
+	Text      string  `json:"text"`
+	Rank      float64 `json:"-"`
 }
 
 // The most words one query keeps, the longest word, and the length from

@@ -6,7 +6,8 @@
 - `presence`: business or person, on or paused, "Always" or "Only when I'm
   away", away now (said "I'm away", or one of the away hours), a few words
   ("You're away: ansa answers", "You're available: ansa answers after 10
-  min"), and whether this person may change it (owners).
+  min"), "I'm away" since when, the minutes ansa waits for you, and
+  whether this person may change it (owners).
 - `gettingStarted` (owners only; empty once all are done): Telegram
   connected and allowed to reply, an AI ready (the business's own key,
   ansa's key, or Claude Code in development: the brain's signed `/v1/status`
@@ -18,6 +19,22 @@
 - `needsYou` (the newest 5 conversations that need a person, how many, and
   whether more than one person takes requests), `newOrders`, `activity`
   ("What ansa did", newest 6).
+- `overview` ("Your business in numbers", `overview.go`): open and
+  unassigned requests, calls of the last 7 days and those the AI solved,
+  emails being read and stuck, conversations that need a person; once the
+  company started the marketing helper (a fact, an interview answer or a
+  draft) also drafts waiting, posts scheduled within 7 days, needing
+  attention and failed in the last 7 days, key facts confirmed (of 16) and
+  social accounts to reconnect as of now. Each count reads at most 10,001
+  rows ("10,000+") with the condition of the list it links to.
+- `undeliveredEmails` (customer emails never delivered, as the Emails
+  page lists them) and `handlesNoCategory` (the company has categories,
+  this person handles none).
+
+**The sidebar's foot (`GET /api/v1/glance`, every page):** the company's
+name, the person's name, address and role, what ansa does now ("Paused",
+"Away: ansa answers for you", "Answers on its own"...) and today's hours
+in the business's own time zone ("Open until 23:00").
 **Switches (owners; 60 settings changes per 10 minutes per person):**
 `POST /api/v1/assistant/status {"status": "on"|"paused"}`,
 `.../away {"away": bool}`, `.../answer-when {"answerWhen": "always"|"when_away"}`.

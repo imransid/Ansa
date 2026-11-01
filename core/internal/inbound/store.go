@@ -205,3 +205,10 @@ func List(ctx context.Context, pool *database.Pool, company tenant.CompanyID, pa
 	}
 	return lines, rows.Err()
 }
+
+// Count is how many emails the company received (the Emails page's pages).
+func Count(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (int, error) {
+	var total int
+	err := pool.QueryRow(ctx, `SELECT count(*) FROM inbound_emails WHERE company_id = $1`, company.String()).Scan(&total)
+	return total, err
+}

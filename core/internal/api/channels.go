@@ -35,7 +35,11 @@ func (s *Server) channelsPage(w http.ResponseWriter, r *http.Request, _ []byte, 
 		s.failed(w, "channels", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"page": page, "canManage": who.IsOwner(), "telegramMode": s.telegramMode()})
+	facebookMode := "not-set-up"
+	if s.Social != nil {
+		facebookMode = s.Social.Mode()
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"page": page, "canManage": who.IsOwner(), "telegramMode": s.telegramMode(), "facebookMode": facebookMode})
 }
 
 // telegramLink: a one-time link to ansa's bot ({"link"}), 10 minutes.

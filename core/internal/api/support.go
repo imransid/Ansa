@@ -10,6 +10,7 @@ import (
 	"ansa/core/internal/documents"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
+	"ansa/core/internal/settings"
 	"ansa/core/internal/supportsetup"
 )
 
@@ -21,6 +22,7 @@ var (
 
 func (s *Server) registerSupport(routes *http.ServeMux) {
 	routes.HandleFunc("GET /api/v1/settings/support", s.withSession(s.supportPage))
+	routes.HandleFunc("POST /api/v1/settings/support/company-name", s.withSession(s.ownersOnly("Only owners can change this.", s.saveCompanyName)))
 	routes.HandleFunc("POST /api/v1/settings/support/reply-to", s.withSession(s.ownersOnly("Only owners can change this.", s.saveReplyTo)))
 	routes.HandleFunc("POST /api/v1/settings/support/addresses", s.withSession(s.ownersOnly("Only owners can change this.", s.addSupportAddress)))
 	routes.HandleFunc("POST /api/v1/settings/support/addresses/remove", s.withSession(s.ownersOnly("Only owners can change this.", s.removeSupportAddress)))
@@ -48,8 +50,38 @@ func (s *Server) supportPage(w http.ResponseWriter, r *http.Request, _ []byte, w
 		s.failed(w, "support page", err)
 		return
 	}
+	lastEmail, err := supportsetup.ReadLastEmail(r.Context(), s.Pool, who.CompanyID)
+	if err != nil {
+		s.failed(w, "support page", err)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"overview": overview, "forwardingAddress": connections.ForwardingAddress, "lastEmailAt": connections.LastEmailAt,
-		"phoneLines": connections.PhoneLines, "documents": list, "canManage": who.IsOwner()})
+		"lastEmail": lastEmail, "phoneLines": connections.PhoneLines, "documents": list, "canManage": who.IsOwner()})
+}
+
+// saveCompanyName: {companyName} (also the sender name of every customer email).
+func (s *Server) saveCompanyName(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
+	var input struct {
+		CompanyName string `json:"companyName"`
+	}
+	if !readJSON(body, &input) {
+		problem(w, http.StatusBadRequest, "Something went wrong. Reload the page.")
+		return
+	}
+	name, why := supportsetup.CheckCompanyName(input.CompanyName)
+	if why != "" {
+		fieldProblems(w, map[string]string{"companyName": why})
+		return
+	}
+	outcome, err := supportsetup.SaveCompanyName(r.Context(), s.Pool, who.CompanyID, who.UserID, name)
+	switch {
+	case err != nil:
+		s.failed(w, "company name", err)
+	case outcome != settings.Saved:
+		problem(w, http.StatusForbidden, "Only owners can change this.")
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{"outcome": "saved"})
+	}
 }
 
 // customerAddress reads {field: address}: the customer address rule, never

@@ -71,4 +71,7 @@ func TestSignupConfirmAndLogoutThroughCoresAPI(t *testing.T) {
 	if code, _ := w.call("GET", "/api/v1/account", "", screensSecret, cookie); code != 401 {
 		t.Fatalf("that login ended: %d", code)
 	}
+	if code, answer := w.call("POST", "/api/v1/auth/logout", "", screensSecret, cookie); code != 200 || answer["cookies"] == nil {
+		t.Fatalf("an ended login still gets the clearing cookie: %d %v", code, answer)
+	}
 }

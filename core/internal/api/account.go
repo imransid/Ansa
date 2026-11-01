@@ -10,15 +10,17 @@ import (
 )
 
 func (s *Server) registerAccount(routes *http.ServeMux) {
-	routes.HandleFunc("POST /api/v1/auth/logout", s.withSession(s.logOut))
+	// Signed by the screens, no live login needed: a login that already
+	// ended still gets the cookie that clears it from the browser.
+	routes.HandleFunc("POST /api/v1/auth/logout", s.withScreens(s.logOut))
 	routes.HandleFunc("GET /api/v1/account", s.withSession(s.accountPage))
 	routes.HandleFunc("POST /api/v1/account/name", s.withSession(s.changeName))
 	routes.HandleFunc("POST /api/v1/account/password", s.withSession(s.changePassword))
 	routes.HandleFunc("POST /api/v1/account/logout-others", s.withSession(s.logOutOthers))
 }
 
-// logOut ends this login and answers the cookie that clears it.
-func (s *Server) logOut(w http.ResponseWriter, r *http.Request, _ []byte, _ *session.Session) {
+// logOut ends this login (if it still exists) and answers the cookie that clears it.
+func (s *Server) logOut(w http.ResponseWriter, r *http.Request, _ []byte) {
 	cleared, err := s.Accounts.LogOut(r.Context(), s.Sessions.Token(r))
 	if err != nil {
 		s.failed(w, "logout", err)

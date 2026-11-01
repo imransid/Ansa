@@ -40,6 +40,8 @@ type Telegram struct {
 
 // FacebookPage is a connected Page and whether its messages come to ansa.
 type FacebookPage struct {
+	// The connection's id (Disconnect names it).
+	ID          string `json:"id"`
 	DisplayName string `json:"displayName"`
 	Status      string `json:"status"`
 	CanMessage  bool   `json:"canMessage"`
@@ -82,7 +84,7 @@ func Read(ctx context.Context, pool *database.Pool, company tenant.CompanyID, fo
 
 func facebookPages(ctx context.Context, pool *database.Pool, company tenant.CompanyID) ([]FacebookPage, error) {
 	rows, err := pool.Query(ctx, `
-		SELECT display_name, status, is_stand_in OR 'pages_messaging' = ANY(scopes), is_stand_in FROM social_connections
+		SELECT id, display_name, status, is_stand_in OR 'pages_messaging' = ANY(scopes), is_stand_in FROM social_connections
 		WHERE company_id = $1 AND platform = 'facebook' AND status <> 'disconnected' ORDER BY display_name`, company.String())
 	if err != nil {
 		return nil, err
@@ -90,7 +92,7 @@ func facebookPages(ctx context.Context, pool *database.Pool, company tenant.Comp
 	pages := []FacebookPage{}
 	for rows.Next() {
 		var p FacebookPage
-		if err := rows.Scan(&p.DisplayName, &p.Status, &p.CanMessage, &p.IsStandIn); err != nil {
+		if err := rows.Scan(&p.ID, &p.DisplayName, &p.Status, &p.CanMessage, &p.IsStandIn); err != nil {
 			return nil, err
 		}
 		pages = append(pages, p)

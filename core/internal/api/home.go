@@ -7,6 +7,7 @@ import (
 	"ansa/core/internal/home"
 	"ansa/core/internal/inbox"
 	"ansa/core/internal/orders"
+	"ansa/core/internal/outbox"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 	"ansa/core/internal/settings"
@@ -21,10 +22,22 @@ const needsYouShown = 5
 
 func (s *Server) registerHome(routes *http.ServeMux) {
 	routes.HandleFunc("GET /api/v1/home", s.withSession(s.homePage))
+	routes.HandleFunc("GET /api/v1/glance", s.withSession(s.glance))
 	routes.HandleFunc("POST /api/v1/home/away-summary/seen", s.withSession(s.awaySummarySeen))
 	routes.HandleFunc("POST /api/v1/assistant/status", s.withSession(s.ownerSwitch("status")))
 	routes.HandleFunc("POST /api/v1/assistant/away", s.withSession(s.ownerSwitch("away")))
 	routes.HandleFunc("POST /api/v1/assistant/answer-when", s.withSession(s.ownerSwitch("answerWhen")))
+}
+
+// glance: GET /api/v1/glance, the sidebar's foot on every page: who you are,
+// your company, what ansa does now and today's hours.
+func (s *Server) glance(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+	glance, err := home.ReadGlance(r.Context(), s.Pool, who.CompanyID, time.Now())
+	if err != nil {
+		s.failed(w, "glance", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"glance": glance, "userName": who.Name, "email": who.Email, "role": who.Role})
 }
 
 // homePage: GET /api/v1/home, everything Home shows (members read it too).
@@ -50,6 +63,9 @@ func (s *Server) homePage(w http.ResponseWriter, r *http.Request, _ []byte, who 
 	}
 	if err == nil {
 		err = s.addNeedsYou(r, who, page)
+	}
+	if err == nil {
+		err = s.addNumbers(r, who, page)
 	}
 	if err != nil {
 		s.failed(w, "home", err)
@@ -79,6 +95,21 @@ func (s *Server) addNeedsYou(r *http.Request, who *session.Session, page map[str
 		return err
 	}
 	page["activity"], err = inbox.ListActivity(ctx, s.Pool, who.CompanyID, "", 6)
+	return err
+}
+
+// addNumbers adds the business's numbers, the customer emails never
+// delivered, and whether this person handles no category.
+func (s *Server) addNumbers(r *http.Request, who *session.Session, page map[string]any) error {
+	ctx := r.Context()
+	var err error
+	if page["overview"], err = home.ReadOverview(ctx, s.Pool, who.CompanyID, who.Role); err != nil {
+		return err
+	}
+	if page["undeliveredEmails"], err = outbox.CountUndelivered(ctx, s.Pool, who.CompanyID); err != nil {
+		return err
+	}
+	page["handlesNoCategory"], err = home.HandlesNoCategory(ctx, s.Pool, who.CompanyID, who.UserID)
 	return err
 }
 

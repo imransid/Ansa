@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ansa/core/internal/inbound"
+	"ansa/core/internal/outbox"
 	"ansa/core/internal/session"
 )
 
@@ -16,7 +17,9 @@ func (s *Server) registerEmails(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/emails/{id}/ticket-anyway", s.withSession(s.slowChange(s.ticketAnyway)))
 }
 
-// listEmails: GET /api/v1/emails?page=, everyone in the company.
+// listEmails: GET /api/v1/emails?page=, everyone in the company: the
+// received emails (and how many in all), and the customer emails that were
+// never delivered (the newest 20, and how many).
 func (s *Server) listEmails(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	lines, err := inbound.List(r.Context(), s.Pool, who.CompanyID, page)
@@ -24,7 +27,17 @@ func (s *Server) listEmails(w http.ResponseWriter, r *http.Request, _ []byte, wh
 		s.failed(w, "emails", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"lines": lines})
+	total, err := inbound.Count(r.Context(), s.Pool, who.CompanyID)
+	if err != nil {
+		s.failed(w, "email count", err)
+		return
+	}
+	undelivered, undeliveredTotal, err := outbox.ListUndelivered(r.Context(), s.Pool, who.CompanyID)
+	if err != nil {
+		s.failed(w, "undelivered emails", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"lines": lines, "total": total, "undelivered": undelivered, "undeliveredTotal": undeliveredTotal})
 }
 
 // processAgain: content unavailable, a processing error, or stuck. The filters apply.

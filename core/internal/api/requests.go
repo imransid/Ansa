@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"ansa/core/internal/conversations"
+	"ansa/core/internal/inbound"
 	"ansa/core/internal/inbox"
+	"ansa/core/internal/knowledge"
 	"ansa/core/internal/outbox"
 	"ansa/core/internal/plaintext"
 	"ansa/core/internal/ratelimit"
@@ -94,7 +96,44 @@ func (s *Server) requestPage(w http.ResponseWriter, r *http.Request, _ []byte, w
 		s.failed(w, "request email", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"request": detail, "people": people, "categories": categories, "canReopen": who.IsOwner(), "latestEmail": latest})
+	page := map[string]any{"request": detail, "people": people, "categories": categories, "canReopen": who.IsOwner(), "latestEmail": latest}
+	if err := s.addRequestContext(r, who, detail, page); err != nil {
+		s.failed(w, "request context", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+// addRequestContext adds the email the request came from, the same
+// customer's other open requests, and up to 3 approved support articles
+// matching its subject and category (one piece each, best first).
+func (s *Server) addRequestContext(r *http.Request, who *session.Session, detail *tickets.Detail, page map[string]any) error {
+	ctx := r.Context()
+	var err error
+	if page["originalEmail"], err = inbound.ReadOriginal(ctx, s.Pool, s.Box, who.CompanyID, detail.ID); err != nil {
+		return err
+	}
+	if page["sameCustomer"], err = tickets.OtherOpenFromSameCustomer(ctx, s.Pool, who.CompanyID, detail.ID); err != nil {
+		return err
+	}
+	query := detail.Subject
+	if detail.Category != nil {
+		query += " " + *detail.Category
+	}
+	hits, err := knowledge.Search(ctx, s.Pool, who.CompanyID, query, "support", 10)
+	if err != nil {
+		return err
+	}
+	related := []knowledge.Hit{}
+	seen := map[string]bool{}
+	for _, hit := range hits {
+		if !seen[hit.ArticleID] && len(related) < 3 {
+			seen[hit.ArticleID] = true
+			related = append(related, hit)
+		}
+	}
+	page["relatedKnowledge"] = related
+	return nil
 }
 
 // requestAction is one change of a request: ok, or the words saying why not.

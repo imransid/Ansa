@@ -36,17 +36,25 @@ type Detail struct {
 	CallID                 *string    `json:"callId"`
 	CreatedAt              time.Time  `json:"createdAt"`
 	History                []History  `json:"history"`
+	// The page shows the newest 200 entries: older ones exist.
+	OlderEntriesHidden bool `json:"olderEntriesHidden"`
 }
 
 // History is one entry of a request's history: a change, or a note (decrypted).
 type History struct {
-	ID         string    `json:"id"`
-	Kind       string    `json:"kind"`
-	ActorName  *string   `json:"actorName"`
-	TargetName *string   `json:"targetName"`
-	Category   *string   `json:"category"`
-	Note       *string   `json:"note"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID        string  `json:"id"`
+	Kind      string  `json:"kind"`
+	ActorName *string `json:"actorName"`
+	// Who did it and who it was about (the wording tells "took it" from
+	// "gave it to Ana"); nil = routing or ansa itself.
+	ActorUserID  *string `json:"actorUserId"`
+	TargetUserID *string `json:"targetUserId"`
+	// A note that could not be decrypted (said, never shown as empty).
+	NoteUnreadable bool      `json:"noteUnreadable"`
+	TargetName     *string   `json:"targetName"`
+	Category       *string   `json:"category"`
+	Note           *string   `json:"note"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
 
 // ErrNoTicket: no such request in this company.
@@ -81,19 +89,22 @@ func ReadDetail(ctx context.Context, pool *database.Pool, box *secure.Box, compa
 		return nil, err
 	}
 	d.History, err = history(ctx, pool, box, company, d.ID)
+	if len(d.History) > historyShown {
+		d.History, d.OlderEntriesHidden = d.History[len(d.History)-historyShown:], true
+	}
 	return &d, err
 }
 
 func history(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, ticketID string) ([]History, error) {
 	const statement = `
 		SELECT ticket_activity.id, ticket_activity.kind, actor.name, target.name, ticket_activity.category, ticket_activity.body_encrypted,
-			ticket_activity.created_at
+			ticket_activity.created_at, ticket_activity.actor_user_id, ticket_activity.target_user_id
 		FROM ticket_activity
 		LEFT JOIN users AS actor ON actor.id = ticket_activity.actor_user_id AND actor.company_id = ticket_activity.company_id
 		LEFT JOIN users AS target ON target.id = ticket_activity.target_user_id AND target.company_id = ticket_activity.company_id
 		WHERE ticket_activity.company_id = $1 AND ticket_activity.ticket_id = $2
-		ORDER BY ticket_activity.created_at DESC, ticket_activity.id DESC LIMIT 200`
-	rows, err := pool.Query(ctx, statement, company.String(), ticketID)
+		ORDER BY ticket_activity.created_at DESC, ticket_activity.id DESC LIMIT $3`
+	rows, err := pool.Query(ctx, statement, company.String(), ticketID, historyShown+1)
 	if err != nil {
 		return nil, err
 	}
@@ -101,15 +112,16 @@ func history(ctx context.Context, pool *database.Pool, box *secure.Box, company 
 	for rows.Next() {
 		var h History
 		var body *string
-		if err := rows.Scan(&h.ID, &h.Kind, &h.ActorName, &h.TargetName, &h.Category, &body, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.Kind, &h.ActorName, &h.TargetName, &h.Category, &body, &h.CreatedAt, &h.ActorUserID, &h.TargetUserID); err != nil {
 			return nil, err
 		}
 		if body != nil {
 			text, err := box.Decrypt(*body, NoteContext(company, ticketID, h.ID))
 			if err != nil {
-				text = "(could not be decrypted)"
+				h.NoteUnreadable = true
+			} else {
+				h.Note = &text
 			}
-			h.Note = &text
 		}
 		newestFirst = append(newestFirst, h)
 	}
@@ -119,6 +131,9 @@ func history(ctx context.Context, pool *database.Pool, box *secure.Box, company 
 	}
 	return oldestFirst, rows.Err()
 }
+
+// The page shows a request's newest 200 history entries.
+const historyShown = 200
 
 // Person is someone a request can be given to (confirmed, not removed).
 type Person struct {

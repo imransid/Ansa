@@ -24,6 +24,10 @@ type Presence struct {
 	Status     string `json:"status"`
 	AnswerWhen string `json:"answerWhen"`
 	AwayNow    bool   `json:"awayNow"`
+	// "I'm away" since (nil: not pressed), and the minutes ansa waits for
+	// you before answering (nil: never): the status card's two kinds of away.
+	AwaySince         *time.Time `json:"awaySince"`
+	ReplyGraceMinutes *int       `json:"replyGraceMinutes"`
 	// A few words: "You're away: ansa answers".
 	CoverText string `json:"coverText"`
 	// Owners change it; members read it.
@@ -46,6 +50,7 @@ func ReadPresence(ctx context.Context, pool *database.Pool, company tenant.Compa
 	}
 	p.AnswerWhen = availability.AnswerWhen
 	p.AwayNow = assistant.IsAwayNow(availability, now)
+	p.AwaySince, p.ReplyGraceMinutes = availability.AwaySince, availability.ReplyGraceMinutes
 	p.CoverText = describeCover(availability, p.AwayNow)
 	return p, nil
 }
