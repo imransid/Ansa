@@ -111,8 +111,8 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Emails page: the list, Process again, Make a ticket anyway | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`), one view file per area (`lib/core-views/`) | ✅ behind the switch: CORE_API_URL and SCREENS_SHARED_SECRET set = every switched page and action calls core; unset = the old services, unchanged |
 | Calls page: list, a call, Analyze now, Escalate, the recording | ✅ in core's API |
-| Screens switched (869cd05): logins, account, billing; Home, Settings, setup, Post for me; Inbox, requests, Emails; menu, Connections, Team, knowledge, the old Setup page | ✅ (the second round, the last reads and the Calls screens: 🔨) |
-| The hidden marketing pages (interview, strategy, studio, media, calendar, queue, analytics) and LinkedIn, X, YouTube | ⬜ the owner decides: move them to core or remove them (step 57) |
+| Screens switched (869cd05, 2f7e6f1): logins, account, billing; Home, Settings, setup, Post for me; Inbox, requests, Emails; menu, Connections, Team, knowledge, the old Setup page; the Calls page | ✅ |
+| The marketing pages (Overview, Interview, Profile, Strategy and its versions, Calendar, Content studio, a draft's page and Publish section, Media library, Queue, Accounts, Analytics) and LinkedIn, X, YouTube (5a6bf72, b92e055, a7ce1a9) | ✅ moved to core (the owner chose to keep them, 2026-11-01) and their screens switched |
 
 ## Phase 8: switch-over
 Deploy core and brain, point the webhooks at core, watch, then remove the old

@@ -1,5 +1,6 @@
 import "server-only";
 import { callCore } from "@/lib/core-api";
+import { toActivityListItem, toPublishJobListItem, type CoreActivityEntry, type CorePublishJob } from "@/lib/core-views/queue";
 import { draftIdOnlySchema } from "@/lib/validation/content-drafts";
 import type { DraftPublishing } from "@/services/draft-publishing";
 
@@ -9,18 +10,9 @@ import type { DraftPublishing } from "@/services/draft-publishing";
 // own activity, in the shape the section already reads. Its actions
 // (schedule, cancel, retry, ...) are the publishing queue's.
 
-type Job = DraftPublishing["jobs"][number];
-type Entry = DraftPublishing["activity"][number];
-
-// Dates come as ISO text.
-type CoreJob = Omit<Job, "scheduledFor" | "runAfter" | "publishedAt" | "updatedAt"> & {
-  scheduledFor: string;
-  runAfter: string;
-  publishedAt: string | null;
-  updatedAt: string;
-};
-type CoreEntry = Omit<Entry, "createdAt"> & { createdAt: string };
-type CoreDraftPublishing = Omit<DraftPublishing, "jobs" | "activity"> & { jobs: CoreJob[]; activity: CoreEntry[] };
+// Dates come as ISO text: the posts and activity lines are read as the
+// queue page reads them (lib/core-views/queue.ts).
+type CoreDraftPublishing = Omit<DraftPublishing, "jobs" | "activity"> & { jobs: CorePublishJob[]; activity: CoreActivityEntry[] };
 
 // One draft's section; null for a malformed id, an unknown draft or another company's.
 export async function getDraftPublishingFromCore(draftId: string): Promise<DraftPublishing | null> {
@@ -36,15 +28,5 @@ export async function getDraftPublishingFromCore(draftId: string): Promise<Draft
     throw new Error(`Core answered ${answer.status}`);
   }
   const { jobs, activity, ...rest } = answer.data;
-  return {
-    ...rest,
-    jobs: jobs.map((job) => ({
-      ...job,
-      scheduledFor: new Date(job.scheduledFor),
-      runAfter: new Date(job.runAfter),
-      publishedAt: job.publishedAt ? new Date(job.publishedAt) : null,
-      updatedAt: new Date(job.updatedAt),
-    })),
-    activity: activity.map((entry) => ({ ...entry, createdAt: new Date(entry.createdAt) })),
-  };
+  return { ...rest, jobs: jobs.map(toPublishJobListItem), activity: activity.map(toActivityListItem) };
 }
