@@ -68,7 +68,7 @@
 ## Phase 5: support (tickets, calls, email)
 | Module | Old code | Status |
 |---|---|---|
-| tickets, routing, categories, notes, history | db/ticket*.ts, db/routing.ts | ⬜ |
+| tickets, routing, categories, notes, history | db/ticket*.ts, db/routing.ts | 🔨 the list and search, a request's page and history, assign, category routing, notes, close without email, Done, reopen (in core's API); solving with the email, the customer's email, edits and typed-in requests next |
 | calls (Vapi webhook, call brain, recordings) | services/vapi-*.ts, lib/call-brain/ | ⬜ |
 | email in (Resend webhook, filters, triage) | services/inbound-email-*.ts, lib/email-triage/ | ⬜ |
 | email out (outbox, solved emails) | services/customer-emails.ts, lib/send-email.ts | ⬜ |
@@ -96,6 +96,7 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | /welcome and Settings → What it knows: every setup section, finish | ✅ in core's API |
 | Menu: dishes, order, availability, "Looks right" | ✅ in core's API |
 | Connections: Telegram link, stand-in, disconnect; Pages, forwarding address, phone lines | ✅ in core's API |
+| All requests and a request's page (part A) | ✅ in core's API |
 | the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over

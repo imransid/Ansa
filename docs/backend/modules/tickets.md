@@ -20,5 +20,6 @@ assistant opens when it hands a conversation to a person.
 **Tests:** `tickets_test.go` (live database): the least busy confirmed expert
 gets it; no category = unassigned; numbers follow; the history row.
 `assignments_test.go` covers the email the routing queues.
+**People's work on requests:** see [requests](requests.md).
 **Still on the old backend:** typed-in tickets, call and email tickets,
-same-customer routing, reassigning, solving, notes and history pages (Phase 5).
+same-customer routing, solving with the customer's email (phase 5).

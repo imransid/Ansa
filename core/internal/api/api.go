@@ -67,6 +67,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerSetup(routes)
 	s.registerMenu(routes)
 	s.registerChannels(routes)
+	s.registerRequests(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.
