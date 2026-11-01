@@ -74,8 +74,11 @@ func TestEmailBounceMarksTheSentEmail(t *testing.T) {
 	w := newTestWorld(t)
 	address := w.runningEmailCore()
 	ctx := context.Background()
-	if _, err := w.run("email-bounce", "missing.html", "--core", address); err == nil || !strings.Contains(err.Error(), "no such file") {
-		t.Fatalf("a file that isn't there: %v", err)
+	os.MkdirAll(filepath.Join(w.settings["ANSA_DEV_FOLDER"], ".dev-emails"), 0o700)
+	for _, notAnEmail := range []string{"missing.html", "..", "."} {
+		if _, err := w.run("email-bounce", notAnEmail, "--core", address); err == nil || !strings.Contains(err.Error(), "no such file") {
+			t.Fatalf("%q isn't an email in .dev-emails/: %v", notAnEmail, err)
+		}
 	}
 	number, err := tickets.CreateManual(ctx, w.pool, w.company, w.ownerID, tickets.NewRequest{Subject: "Late order", Description: "Where is it?"})
 	if err != nil {
@@ -84,7 +87,6 @@ func TestEmailBounceMarksTheSentEmail(t *testing.T) {
 	var ticketID string
 	w.pool.QueryRow(ctx, `SELECT id FROM tickets WHERE company_id = $1 AND ticket_number = $2`, w.company.String(), number).Scan(&ticketID)
 	name := "2026-11-01T10-00-00.000Z-" + randomHex(4) + ".html"
-	os.MkdirAll(filepath.Join(w.settings["ANSA_DEV_FOLDER"], ".dev-emails"), 0o700)
 	os.WriteFile(filepath.Join(w.settings["ANSA_DEV_FOLDER"], ".dev-emails", name), []byte("<p>solved</p>"), 0o600)
 	_, err = w.pool.Exec(ctx, `INSERT INTO outgoing_emails (company_id, ticket_id, kind, to_email, status, provider_message_id, sent_at)
 		VALUES ($1, $2, 'ticket_solved', 'customer@example.com', 'sent', $3, now())`, w.company.String(), ticketID, "dev-outbox:"+name)

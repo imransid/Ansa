@@ -44,7 +44,7 @@ func runEmailBounce(ctx context.Context, w *world, args []string) error {
 		return refusal
 	}
 	fileName := filepath.Base(args[0])
-	if _, err := os.Stat(filepath.Join(w.cfg.DevFolder, ".dev-emails", fileName)); err != nil {
+	if info, err := os.Stat(filepath.Join(w.cfg.DevFolder, ".dev-emails", fileName)); err != nil || !info.Mode().IsRegular() {
 		return commands.Refusal("There is no such file in .dev-emails/.")
 	}
 	// The development outbox records "dev-outbox:<file name>" where Resend's id would be.
