@@ -19,7 +19,7 @@ company.
 | Find the company of a forwarding address's token | internal/resend/webhook.go | Only ansa makes forwarding addresses; the token names the company, only when exactly one matches; ids only. |
 | Record a delivery problem on a sent email by Resend's id | internal/resend/webhook.go | Resend's id names one sent email of one company; only that row changes. |
 | Claim the next due post | internal/publishing/claims.go | The publishing queue serves every company: one UPDATE claims one due job (a scalar SKIP LOCKED subquery) and returns its ids; the post then runs with its own company. |
-| Find posts cut off while sending | internal/publishing/claims.go | Still "publishing" 10+ minutes after their claim, of every company; ids only, each handed to a person through the company-scoped path. |
+| Find posts cut off while sending | internal/publishing/handover.go | Still "publishing" 10+ minutes after their claim, of every company; ids only, each handed to a person through the company-scoped path. |
 | List the companies with "Post for me" on | internal/autopost/store.go | The runs serve every company that has it on: ids and their posting settings only; each post is then written through company-scoped paths. |
 | Claim the next post due for its numbers | internal/postmetrics/collector.go | The collector serves every company: one UPDATE claims one published post (a scalar SKIP LOCKED subquery) and returns its ids; the read then runs with its own company. |
 | Delete expired connection attempts, used-up Telegram link codes, finished jobs past 30 days | internal/maintenance/cleanup.go | Housekeeping by age alone: nobody can use such a row any more; nothing is read. |

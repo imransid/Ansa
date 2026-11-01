@@ -30,6 +30,7 @@ import (
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
+	"ansa/core/internal/publishing"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/safefetch"
 	"ansa/core/internal/secure"
@@ -71,6 +72,8 @@ type Server struct {
 	Inbound *inbound.Processor
 	// "Post for me", for "Post one now".
 	Posts *autopost.Writer
+	// The publishing queue's runner: posts made due go out right after the answer.
+	Publisher *publishing.Runner
 	// Connecting Facebook Pages.
 	Social *socialconnect.Connector
 	// The app's own address (invite links).
@@ -115,6 +118,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerBilling(routes)
 	s.registerCalls(routes)
 	s.registerAnalytics(routes)
+	s.registerCofounderQueue(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

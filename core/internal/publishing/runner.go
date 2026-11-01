@@ -2,14 +2,14 @@ package publishing
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/files"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
-	"ansa/core/internal/social"
+	"ansa/core/internal/tenant"
 )
 
 // Per company, every try counted (each post on a platform may cost ansa).
@@ -21,20 +21,38 @@ const dailyLimitWaitSeconds = 60 * 60
 // The most due posts one round sends (the companies take turns in it).
 const roundSize = 50
 
-// Runner sends due posts. LOGGING RULE: never a token, the post's text or
-// anything a platform wrote: fixed lines with codes only.
+// How long the run after an answer may take.
+const runNowBudget = 10 * time.Minute
+
+// The longest one post can take when everything is slow: its image or
+// video read, the platform's slowest answer (a YouTube upload's 180 s, once
+// it is wired in), the account and the database. A post is started only
+// while this still fits before the run's end, so our own time limit never
+// cuts one off half-way (it would then need a person's check).
+const longestSend = mediaReadTimeout + 3*time.Minute + 30*time.Second
+
+// Runner sends due posts. LOGGING RULE: never a token, the post's text, a
+// file's key or anything a platform wrote: fixed lines with codes only.
 type Runner struct {
 	Pool    *database.Pool
 	Box     *secure.Box
 	Limiter *ratelimit.Limiter
 	Log     *logging.Logger
+	// Private file storage: a post's image or video is read right before sending.
+	Files *files.Store
 	// ansa's Meta app secret ("": no real Page can post).
 	FacebookAppSecret string
 	// Development only: the stand-in account writes its posts to StandInDir.
 	StandInsAllowed bool
 	StandInDir      string
-	// The real call (a test replaces it: never a platform from a test).
-	PublishFacebook func(ctx context.Context, appSecret, pageID, pageToken, text string) PostResult
+	// The real call to Facebook (a test replaces it: never a platform from a test).
+	PublishFacebook func(ctx context.Context, appSecret, pageID, pageToken string, post OutgoingPost) PostResult
+	// LinkedIn, X and YouTube by platform, once their connectors exist
+	// (see senderFor). nil: core sends to Facebook only.
+	OtherSenders map[string]*Sender
+	// After runs work once an answer is out (nil: its own goroutine; a test
+	// runs it at once).
+	After func(work func())
 }
 
 // RunDue is one round of the queue (the scheduler calls it): the posts cut
@@ -50,12 +68,13 @@ func (r *Runner) RunDue(ctx context.Context, onlyCompany string) (int, error) {
 	}
 	served := map[string]bool{}
 	heldBack := map[string]bool{}
-	for started := 0; started < roundSize; started++ {
-		claim, err := claimNext(ctx, r.Pool, keys(served, heldBack), onlyCompany)
+	pairs := r.claimable()
+	for started := 0; started < roundSize && hasTimeFor(ctx); started++ {
+		claim, err := claimNext(ctx, r.Pool, keys(served, heldBack), onlyCompany, pairs)
 		if err == nil && claim == nil && len(served) > 0 {
 			// Every company with due posts had its turn: a new round of turns.
 			served = map[string]bool{}
-			claim, err = claimNext(ctx, r.Pool, keys(heldBack), onlyCompany)
+			claim, err = claimNext(ctx, r.Pool, keys(heldBack), onlyCompany, pairs)
 		}
 		if err != nil || claim == nil {
 			return handled, err
@@ -85,93 +104,59 @@ func keys(sets ...map[string]bool) []string {
 	return all
 }
 
-// send checks one claimed job again and sends it: "published", "failed",
-// "needs_attention", "requeued", "held_back" or "lost" (this run no longer
-// held it).
-func (r *Runner) send(ctx context.Context, claim *Claim) (string, error) {
-	job, err := readSnapshot(ctx, r.Pool, claim)
-	if err != nil || job == nil {
-		return "lost", err
+// RunNow sends these posts of one company one after another, each claimed
+// first while it waits and is due (right after the answer that made them
+// due: scheduled for now, "Publish now", a Retry). One another run took
+// first is left to it. Returns the outcome of each one it sent.
+func (r *Runner) RunNow(ctx context.Context, company tenant.CompanyID, jobIDs []string) ([]string, error) {
+	var outcomes []string
+	pairs := r.claimable()
+	for _, jobID := range jobIDs {
+		if !hasTimeFor(ctx) {
+			// Left due: the scheduler's next round sends it.
+			break
+		}
+		claim, err := claimJob(ctx, r.Pool, company, jobID, pairs)
+		if err != nil {
+			return outcomes, err
+		}
+		if claim == nil {
+			continue
+		}
+		outcome, err := r.send(ctx, claim)
+		if err != nil {
+			return outcomes, err
+		}
+		outcomes = append(outcomes, outcome)
 	}
-	if reason := ReasonNotToPublish(job.check); reason != "" {
-		return r.fail(ctx, claim, reason, "")
-	}
-	// WHY before the account is read: a post held back costs nothing more.
-	over, err := r.Limiter.Over(ctx, "publish-attempts", claim.Company.String(), attemptsPerCompany)
-	if err != nil {
-		return "lost", err
-	}
-	if over {
-		r.Log.Warn("publishing: held back", logging.Code("daily_limit"))
-		written, err := requeue(ctx, r.Pool, claim, dailyLimitWaitSeconds, "daily_limit", false)
-		return outcomeOf(written, err, "held_back")
-	}
-	page, err := social.PageForPosting(ctx, r.Pool, r.Box, claim.Company, claim.ConnectionID)
-	switch {
-	case errors.Is(err, social.ErrNeedsReconnect):
-		return r.fail(ctx, claim, "reauthorization_needed", "")
-	case errors.Is(err, social.ErrNotConnected):
-		return r.fail(ctx, claim, "account_disconnected", "")
-	case errors.Is(err, social.ErrNotUsable):
-		return r.fail(ctx, claim, "account_unreadable", "")
-	case err != nil:
-		return "lost", err
-	case page.IsStandIn && !r.StandInsAllowed, !page.IsStandIn && r.FacebookAppSecret == "":
-		return r.fail(ctx, claim, "platform_not_set_up", "")
-	}
-	held, err := stillHeld(ctx, r.Pool, claim)
-	if err != nil || held == "lost" {
-		return "lost", err
-	}
-	if held == "too_late" {
-		r.Log.Warn("publishing: delayed", logging.Code("run_too_slow"))
-		written, err := requeue(ctx, r.Pool, claim, 0, "run_too_slow", false)
-		return outcomeOf(written, err, "requeued")
-	}
-	var result PostResult
-	if page.IsStandIn {
-		result = publishToStandIn(r.StandInDir, "facebook", claim.JobID, job.text)
-	} else {
-		result = r.PublishFacebook(ctx, r.FacebookAppSecret, page.ExternalID, page.Token, job.text)
-	}
-	return r.save(ctx, claim, result, page.StoredToken)
+	return outcomes, nil
 }
 
-// save records the platform's answer.
-func (r *Runner) save(ctx context.Context, claim *Claim, result PostResult, storedToken string) (string, error) {
-	switch {
-	case result.Kind == "published":
-		written, err := recordPublished(ctx, r.Pool, claim, result)
-		return outcomeOf(written, err, "published")
-	case result.Kind == "unclear":
-		r.Log.Warn("publishing: needs attention", logging.Code(result.Code))
-		written, err := recordNeedsAttention(ctx, r.Pool, claim, result.Code)
-		return outcomeOf(written, err, "needs_attention")
-	case result.Code == "rate_limited" && claim.Attempt < maxAttempts:
-		r.Log.Warn("publishing: delayed", logging.Code(result.Code))
-		wait := SecondsUntilNextTry(claim.Attempt, result.RetryAfterSeconds)
-		written, err := requeue(ctx, r.Pool, claim, wait, result.Code, true)
-		return outcomeOf(written, err, "requeued")
-	case result.Code == "token_rejected":
-		return r.fail(ctx, claim, result.Code, storedToken)
+// SendSoon sends these posts once the answer is out, with a time of their
+// own (the request's ends with the answer). The scheduler's 15-second
+// round is the fallback: a post this misses goes out with it.
+func (r *Runner) SendSoon(company tenant.CompanyID, jobIDs []string) {
+	work := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), runNowBudget)
+		defer cancel()
+		if _, err := r.RunNow(ctx, company, jobIDs); err != nil {
+			r.Log.Error("publishing: run after the answer failed", logging.ErrorType(err))
+		}
 	}
-	return r.fail(ctx, claim, result.Code, "")
-}
-
-func (r *Runner) fail(ctx context.Context, claim *Claim, code, storedToken string) (string, error) {
-	r.Log.Warn("publishing: failed", logging.Code(code))
-	written, err := recordFailed(ctx, r.Pool, claim, code, storedToken)
-	return outcomeOf(written, err, "failed")
-}
-
-func outcomeOf(written bool, err error, outcome string) (string, error) {
-	if err != nil || !written {
-		return "lost", err
+	if r.After != nil {
+		r.After(work)
+		return
 	}
-	return outcome, nil
+	go work()
 }
 
-// SecondsUntilNextTry is when a post a platform asked to slow down is tried
+// hasTimeFor says whether a post's slowest run still fits before ctx ends.
+func hasTimeFor(ctx context.Context) bool {
+	deadline, limited := ctx.Deadline()
+	return !limited || time.Until(deadline) >= longestSend
+}
+
+// SecondsUntilNextTry is when a post that couldn't go out yet is tried
 // again: what the platform asked for, kept within 30 seconds and a day;
 // otherwise 1, 2, 4, then 8 minutes after the first, second, third and
 // fourth try.

@@ -4,10 +4,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/drafts"
+	"ansa/core/internal/files"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
@@ -30,13 +32,23 @@ func newWorld(t *testing.T) *world {
 	w := &world{pool: database.ForTest(t)}
 	companyID := database.TestCompany(t, w.pool)
 	w.company, _ = tenant.FromTrustedSource(companyID)
-	w.owner = database.TestOwner(t, w.pool, companyID)
+	// Better Auth's ids are 32 letters and digits, never uuids.
+	w.owner = w.person(t, "owner")
 	w.box, _ = secure.NewBox("BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")
 	w.answer = PostResult{Kind: "published", PostID: "1_2", URL: "https://www.facebook.com/1_2"}
-	w.runner = &Runner{Pool: w.pool, Box: w.box, Limiter: ratelimit.New(w.pool, "test-secret"), Log: logging.New(os.Stderr),
-		FacebookAppSecret: "app-secret", StandInsAllowed: true, StandInDir: t.TempDir(),
-		PublishFacebook: func(_ context.Context, _, pageID, token, text string) PostResult {
-			w.posted = append(w.posted, pageID+"|"+token+"|"+text)
+	limiter := ratelimit.New(w.pool, "test-secret")
+	t.Cleanup(func() {
+		w.pool.Exec(context.Background(), `DELETE FROM rate_limits WHERE key = ANY($1)`,
+			[]string{limiter.Key("publish-attempts", companyID), limiter.Key("publishing-changes", w.owner)})
+	})
+	w.runner = &Runner{Pool: w.pool, Box: w.box, Limiter: limiter, Log: logging.New(os.Stderr), Files: &files.Store{DevFolder: t.TempDir()},
+		FacebookAppSecret: "app-secret", StandInsAllowed: true, StandInDir: t.TempDir(), After: func(work func()) { work() },
+		PublishFacebook: func(_ context.Context, _, pageID, token string, post OutgoingPost) PostResult {
+			sent := pageID + "|" + token + "|" + post.Text
+			if post.Media != nil {
+				sent += "|" + post.Media.ContentType + "|" + post.Media.AltText + "|" + strconv.Itoa(len(post.Media.Bytes))
+			}
+			w.posted = append(w.posted, sent)
 			return w.answer
 		}}
 	return w

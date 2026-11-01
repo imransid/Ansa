@@ -3,7 +3,9 @@ package publishing
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -25,6 +27,9 @@ type PostResult struct {
 // How long one Graph API call may take.
 const facebookTimeout = 15 * time.Second
 
+// Graph answers in kilobytes; anything bigger is not an answer we use.
+const facebookAnswerMax = 1 << 20
+
 var facebookClient = &http.Client{Timeout: facebookTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 
 var facebookPostID = regexp.MustCompile(`^[\d_]{1,60}$`)
@@ -34,13 +39,20 @@ var facebookNotCreated = map[int]string{506: "duplicate", 190: "token_rejected",
 
 var facebookThrottled = map[int]bool{4: true, 17: true, 32: true, 341: true, 613: true, 80001: true}
 
-// PublishToFacebook posts a text to a Page's /feed (the old
-// adapters/facebook-posts.ts), with appsecret_proof. The call creates the
-// post itself, so no answer, a 5xx or an answer without an id is unclear.
-// Meta's words are never read or logged (the token is in the body).
-// NOT TESTED against Facebook (ansa's Meta app needs App Review first).
-func PublishToFacebook(ctx context.Context, appSecret, pageID, pageToken, text string) PostResult {
-	form := url.Values{"message": {text}, "access_token": {pageToken}, "appsecret_proof": {messenger.AppSecretProof(pageToken, appSecret)}}
+// PublishToFacebook posts to a Page (the old adapters/facebook-posts.ts),
+// with appsecret_proof: a photo with its caption to /photos, or the text
+// alone to /feed. Each call creates the post itself, so no answer, a 5xx
+// or an answer without an id is unclear. Meta's words are never read or
+// logged (the token is in the body). Videos need Meta's resumable upload:
+// not built. NOT TESTED against Facebook (ansa's Meta app needs App Review first).
+func PublishToFacebook(ctx context.Context, appSecret, pageID, pageToken string, post OutgoingPost) PostResult {
+	if post.Media != nil && post.Media.Kind == "video" {
+		return PostResult{Kind: "not_created", Code: "video_not_supported"}
+	}
+	if post.Media != nil {
+		return publishFacebookPhoto(ctx, appSecret, pageID, pageToken, post)
+	}
+	form := url.Values{"message": {post.Text}, "access_token": {pageToken}, "appsecret_proof": {messenger.AppSecretProof(pageToken, appSecret)}}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, messenger.GraphURL+"/"+url.PathEscape(pageID)+"/feed", strings.NewReader(form.Encode()))
 	if err != nil {
 		return PostResult{Kind: "not_created", Code: "invalid_request"}
@@ -48,9 +60,15 @@ func PublishToFacebook(ctx context.Context, appSecret, pageID, pageToken, text s
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	response, err := facebookClient.Do(request)
 	if err != nil {
-		return PostResult{Kind: "unclear", Code: "no_answer"}
+		return PostResult{Kind: "unclear", Code: noAnswerCode(err)}
 	}
 	defer response.Body.Close()
+	return readFacebookAnswer(response)
+}
+
+// readFacebookAnswer is the new post's id (a photo's post_id is its post),
+// or what the error means.
+func readFacebookAnswer(response *http.Response) PostResult {
 	var answer struct {
 		ID     string `json:"id"`
 		PostID string `json:"post_id"`
@@ -58,15 +76,16 @@ func PublishToFacebook(ctx context.Context, appSecret, pageID, pageToken, text s
 			Code int `json:"code"`
 		} `json:"error"`
 	}
-	decodeErr := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&answer)
+	decodeErr := json.NewDecoder(io.LimitReader(response.Body, facebookAnswerMax)).Decode(&answer)
 	if response.StatusCode/100 == 2 {
+		readable := decodeErr == nil && facebookPostID.MatchString(answer.ID) && (answer.PostID == "" || facebookPostID.MatchString(answer.PostID))
+		if !readable {
+			// It may well be up, but there's nothing to point at.
+			return PostResult{Kind: "unclear", Code: "no_post_id"}
+		}
 		id := answer.PostID
 		if id == "" {
 			id = answer.ID
-		}
-		if decodeErr != nil || !facebookPostID.MatchString(id) {
-			// It may well be up, but there's nothing to point at.
-			return PostResult{Kind: "unclear", Code: "no_post_id"}
 		}
 		return PostResult{Kind: "published", PostID: id, URL: "https://www.facebook.com/" + id}
 	}
@@ -94,6 +113,16 @@ func facebookRefusal(response *http.Response, code int) PostResult {
 		return PostResult{Kind: "unclear", Code: "server_error"}
 	}
 	return PostResult{Kind: "unclear", Code: "unexpected_answer"}
+}
+
+// noAnswerCode is why a request got no answer: its time ran out, or the
+// connection broke (the error itself can name the host: only its kind is kept).
+func noAnswerCode(err error) string {
+	var netErr net.Error
+	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()) {
+		return "timeout"
+	}
+	return "network_error"
 }
 
 // secondsToRegainAccess reads Meta's usage header: per business, minutes

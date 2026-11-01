@@ -11,18 +11,22 @@ import (
 	"ansa/core/internal/drafts"
 )
 
-// snapshot is what the check right before sending decides on, and the text
-// that goes out.
+// snapshot is what the check right before sending decides on, and what
+// goes out: the published text, a video's title, and where the draft's
+// image or video is stored (nil: none attached).
 type snapshot struct {
-	check RunInput
-	text  string
+	check    RunInput
+	platform string
+	text     string
+	title    string
+	media    *attachedMedia
 }
 
 // readSnapshot reads one claimed job in ONE snapshot (a repeatable read,
 // read-only transaction): the job, its draft as stored now, whether its
 // approver is still an active owner, its rule and the owners behind it, its
-// account, and the confirmed facts now. Nothing is trusted from when it was
-// scheduled. nil: this run no longer holds the job.
+// account, its image or video, and the confirmed facts now. Nothing is
+// trusted from when it was scheduled. nil: this run no longer holds the job.
 func readSnapshot(ctx context.Context, pool *database.Pool, claim *Claim) (*snapshot, error) {
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -63,10 +67,15 @@ func readSnapshot(ctx context.Context, pool *database.Pool, claim *Claim) (*snap
 	if err != nil {
 		return nil, err
 	}
-	in.Draft, in.Blocked = forChecks(&draft, facts)
+	// The same snapshot: the draft's title, script and media as read above.
+	content, err := readContentWithin(ctx, tx, claim.Company, claim.DraftID)
+	if err != nil {
+		return nil, err
+	}
+	in.Draft, in.Blocked = forChecks(&draft, content, facts)
 	if hasRule {
 		in.Rule = &rule
 	}
 	text := contentrules.PublishedText(contentrules.Post{Body: draft.Body, CallToAction: draft.CallToAction, Hashtags: draft.Hashtags})
-	return &snapshot{check: in, text: text}, nil
+	return &snapshot{check: in, platform: draft.Platform, text: text, title: content.Title, media: content.Media}, nil
 }

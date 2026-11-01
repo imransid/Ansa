@@ -13,15 +13,20 @@ const StandInAccountID = "dev:stand-in"
 // publishToStandIn "publishes" a post as a file (development only, as the
 // old adapters/dev-social.ts): .dev-social/<platform>/<time>-<id>.json, and
 // answers "published" with a dev id and no address. Nothing leaves this
-// machine. Only the file name could be logged, never the post.
-func publishToStandIn(folder, platform, jobID, text string) PostResult {
+// machine. The image or video itself is not copied: its kind, type, size
+// and alt text only. Only the file name could be logged, never the post.
+func publishToStandIn(folder, platform, jobID string, post OutgoingPost) PostResult {
+	var media map[string]any
+	if post.Media != nil {
+		media = map[string]any{"kind": post.Media.Kind, "content_type": post.Media.ContentType, "size_bytes": len(post.Media.Bytes), "alt_text": post.Media.AltText}
+	}
 	record := map[string]any{
 		"note":       "Development stand-in: this post was NOT published anywhere.",
 		"platform":   platform,
 		"account_id": StandInAccountID,
-		"title":      "",
-		"text":       text,
-		"media":      nil,
+		"title":      post.Title,
+		"text":       post.Text,
+		"media":      media,
 		"written_at": time.Now().UTC().Format(time.RFC3339),
 	}
 	body, _ := json.MarshalIndent(record, "", "  ")

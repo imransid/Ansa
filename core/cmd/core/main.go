@@ -125,8 +125,10 @@ func main() {
 			worker.Run(workCtx)
 		}()
 	}
-	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, FacebookAppSecret: cfg.FacebookAppSecret,
+	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, Files: storage, FacebookAppSecret: cfg.FacebookAppSecret,
 		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
+	// Posts made due by an answer (Publish now, Retry, now) go out right after it.
+	screensAPI.Publisher = publisher
 	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook}
 	if !cfg.SchedulerOff {
 		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers))

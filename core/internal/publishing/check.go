@@ -1,9 +1,10 @@
 // Package publishing is the publishing queue (the old services/publish-*.ts,
 // db/publish-*.ts, lib/publishing/): one post of one draft to one account
 // is a publish_jobs row. Permission is decided when a post RUNS, on one
-// snapshot, never trusted from when it was scheduled. Today it publishes
-// Facebook text posts (what "Post for me" writes); images, videos and the
-// other platforms move with the content studio and the media library.
+// snapshot, never trusted from when it was scheduled. The checks cover
+// every platform and format ansa publishes (contentrules.PublishedFormats);
+// core sends Facebook text and image posts today, and LinkedIn, X and
+// YouTube plug in at senderFor (sender.go).
 package publishing
 
 // Draft is a draft as the checks read it.
@@ -12,8 +13,6 @@ type Draft struct {
 	Version                          int
 	ApprovedByUserID                 *string
 	ApprovedVersion                  *int
-	Body, CallToAction               string
-	Hashtags                         []string
 	// The AI's text with no hand edit since (generated_version = version),
 	// and no claim that isn't backed: no owner's check needed.
 	ClaimsChecked bool
@@ -27,9 +26,6 @@ type Rule struct {
 	Pillar       string
 	OwnersActive bool
 }
-
-// Formats ansa publishes per platform (today: Facebook text posts).
-var published = map[string]map[string]bool{"facebook": {"post": true}}
 
 // HasApprovalOf: an owner approved exactly this version.
 func HasApprovalOf(d Draft, version int) bool {
@@ -67,7 +63,7 @@ func DecideSchedule(in ScheduleInput) (mode, refusal string) {
 		return "", "stale"
 	case !underARule[d.Status] && !withApproval[d.Status]:
 		return "", "wrong-status"
-	case !published[d.Platform][d.Format]:
+	case !publishes(d.Platform, d.Format):
 		return "", "format-not-published"
 	}
 	switch {
@@ -131,7 +127,7 @@ func ReasonNotToPublish(in RunInput) string {
 		return "draft_changed"
 	case d.Status != "scheduled" && d.Status != "approved":
 		return "approval_no_longer_valid"
-	case !published[d.Platform][d.Format]:
+	case !publishes(d.Platform, d.Format):
 		return "format_not_published"
 	}
 	if in.ApprovalMode == "owner" {
