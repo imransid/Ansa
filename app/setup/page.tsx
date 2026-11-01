@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireSessionContext } from "@/lib/session";
+import { isCoreOn } from "@/lib/core-api";
+import { getCompanyNameFromCore, getSupportSetupFromCore } from "@/lib/core-views/support-setup";
+import { requireSessionContext, type SessionContext } from "@/lib/session";
 import { getDashboardSummary } from "@/services/dashboard";
 import { listDocumentsForSession } from "@/services/documents";
 import { getSetupForSession } from "@/services/setup";
@@ -31,14 +33,9 @@ export default function SetupPage() {
 
 async function SetupContent() {
   const session = await requireSessionContext("/setup");
-  const [summary, setup, documents] = await Promise.all([
-    getDashboardSummary(session),
-    getSetupForSession(session),
-    listDocumentsForSession(session),
-  ]);
-  // Hiding the forms is only for a tidy page. services/setup.ts and
-  // services/documents.ts refuse non-owners.
-  const isOwner = session.role === "owner";
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  // Hiding the forms is only for a tidy page: both refuse non-owners.
+  const { companyName, setup, documents, isOwner } = isCoreOn() ? await getSetupFromCore(session) : await getSetupFromServices(session);
 
   return (
     <>
@@ -51,9 +48,9 @@ async function SetupContent() {
       <section className="grid gap-3">
         <h2 className="text-lg font-semibold">Company name</h2>
         <p className="text-sm text-muted-foreground">
-          Customers see it in the sender of every email we send for you (&quot;{summary.companyName} via ansa&quot;).
+          Customers see it in the sender of every email we send for you (&quot;{companyName} via ansa&quot;).
         </p>
-        {isOwner ? <CompanyNameForm current={summary.companyName} /> : <p className="text-sm">{summary.companyName}</p>}
+        {isOwner ? <CompanyNameForm current={companyName} /> : <p className="text-sm">{companyName}</p>}
       </section>
 
       <EmailSection setup={setup} isOwner={isOwner} />
@@ -90,4 +87,25 @@ async function SetupContent() {
       </section>
     </>
   );
+}
+
+// The page as services/ read it before the new backend.
+async function getSetupFromServices(session: SessionContext) {
+  const [summary, setup, documents] = await Promise.all([
+    getDashboardSummary(session),
+    getSetupForSession(session),
+    listDocumentsForSession(session),
+  ]);
+  return { companyName: summary.companyName, setup, documents, isOwner: session.role === "owner" };
+}
+
+// The same through the new backend, but for the last email's story (what
+// became of it): core doesn't answer that yet, so services/ reads it.
+async function getSetupFromCore(session: SessionContext) {
+  const [support, companyName, lastInboundEmail] = await Promise.all([
+    getSupportSetupFromCore(),
+    getCompanyNameFromCore(),
+    getSetupForSession(session).then((setup) => setup.lastInboundEmail),
+  ]);
+  return { companyName, setup: { ...support.setup, lastInboundEmail }, documents: support.documents, isOwner: support.isOwner };
 }

@@ -2,14 +2,16 @@ import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSessionContext, requireSessionContext } from "@/lib/session";
+import { isCoreOn } from "@/lib/core-api";
+import { getRequestPageFromCore, type RequestPage, type TicketView } from "@/lib/core-views/tickets";
+import { getSessionContext, requireSessionContext, type SessionContext } from "@/lib/session";
 import { readCustomerEmail } from "@/lib/validation/customer-email";
 import { listActiveCategoryNamesForSession } from "@/services/categories";
 import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
 import { getOriginalEmailForSession, type OriginalEmail } from "@/services/inbound-emails";
 import { listAssigneeChoicesForSession } from "@/services/team";
 import { getTicketHistoryForSession } from "@/services/ticket-history";
-import { getTicketForSession, listOtherOpenTicketsFromCustomerForSession, type TicketDetail } from "@/services/tickets";
+import { getTicketForSession, listOtherOpenTicketsFromCustomerForSession } from "@/services/tickets";
 import { listAssigneeMenu } from "./assignee-menu";
 import { CustomerEmailSection, type EmailOrigin, type SuggestedEmail } from "./customer-email-section";
 import { CustomerEmailStatus } from "./customer-email-status";
@@ -33,7 +35,7 @@ export async function generateMetadata({ params }: PageProps<"/tickets/[ticketNu
   if (!session) {
     return { title: "Ticket - ansa" };
   }
-  const ticket = await readTicket(session, ticketNumber);
+  const ticket = isCoreOn() ? (await getRequestPageFromCore(ticketNumber))?.ticket : await readTicket(session, ticketNumber);
   if (!ticket) {
     return { title: "Ticket not found - ansa" };
   }
@@ -61,7 +63,9 @@ async function TicketContent({
   const { ticketNumber } = await params;
   // Logging in brings them back to this ticket (an assignment email's link).
   const session = await requireSessionContext(`/tickets/${encodeURIComponent(ticketNumber)}`);
-  const ticket = await readTicket(session, ticketNumber);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const fromCore = isCoreOn() ? await getRequestPageFromCore(ticketNumber) : null;
+  const ticket = isCoreOn() ? fromCore?.ticket : await readTicket(session, ticketNumber);
   // Unknown number, bad number, or a number that only exists in another
   // company: all look the same (./not-found.tsx), so nothing leaks about
   // other companies.
@@ -69,10 +73,12 @@ async function TicketContent({
     notFound();
   }
 
-  const [assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history] = await Promise.all([
-    listAssigneeChoicesForSession(session),
+  // The new backend doesn't give the latest customer email, the original
+  // email, the same customer's other tickets or the history yet: those come
+  // from services/ either way.
+  const [{ assigneeChoices, categoryNames }, latestEmail, originalEmail, sameCustomerTickets, history] = await Promise.all([
+    fromCore ?? readMenusFromServices(session),
     getLatestCustomerEmailForSession(session, ticket.id),
-    listActiveCategoryNamesForSession(session),
     getOriginalEmailForSession(session, ticket.id),
     listOtherOpenTicketsFromCustomerForSession(session, ticket.id),
     getTicketHistoryForSession(session, ticket.id),
@@ -117,8 +123,14 @@ async function TicketContent({
   );
 }
 
+// Who the ticket can be given to and the categories, from services/ (the old backend).
+async function readMenusFromServices(session: SessionContext): Promise<Pick<RequestPage, "assigneeChoices" | "categoryNames">> {
+  const [assigneeChoices, categoryNames] = await Promise.all([listAssigneeChoicesForSession(session), listActiveCategoryNamesForSession(session)]);
+  return { assigneeChoices, categoryNames };
+}
+
 // Where the customer's email came from, shown next to the address.
-function describeEmailOrigin(ticket: TicketDetail): EmailOrigin {
+function describeEmailOrigin(ticket: TicketView): EmailOrigin {
   if (!ticket.customerEmail) {
     return null;
   }
@@ -133,7 +145,7 @@ function describeEmailOrigin(ticket: TicketDetail): EmailOrigin {
 // the customer there), and the sender unless it was filled in. None on a
 // ticket closed without emailing: that was on purpose (spam, a forged
 // sender), so nothing should invite emailing it later.
-function suggestCustomerEmails(originalEmail: OriginalEmail | null, ticket: TicketDetail): SuggestedEmail[] {
+function suggestCustomerEmails(originalEmail: OriginalEmail | null, ticket: TicketView): SuggestedEmail[] {
   if (!originalEmail || ticket.solvedWithoutEmail) {
     return [];
   }

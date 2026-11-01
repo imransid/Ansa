@@ -8,7 +8,7 @@ import { StatusDot } from "@/components/status-dot";
 import { buttonVariants } from "@/components/ui/button";
 import { HANDOVER_REASON_TEXT } from "@/lib/assistant/reasons";
 import { ACTIVITY_TEXT } from "@/lib/conversations";
-import type { ConversationPage } from "@/services/conversation-page";
+import type { ConversationView } from "@/lib/core-views/inbox";
 
 // The smaller parts of one conversation's page (step 47): the assistant's
 // waiting reply, someone marked important, who answers it, and its history.
@@ -58,7 +58,7 @@ export function Importance({ conversationId, important }: { conversationId: stri
 }
 
 // Who answers this conversation, and the button that changes it.
-export function Handler({ conversation }: { conversation: ConversationPage }) {
+export function Handler({ conversation }: { conversation: ConversationView }) {
   const fields = { conversationId: conversation.id };
   if (conversation.handledBy === "person") {
     return (
@@ -92,7 +92,7 @@ export function Handler({ conversation }: { conversation: ConversationPage }) {
   );
 }
 
-export function History({ activity }: { activity: ConversationPage["activity"] }) {
+export function History({ activity }: { activity: ConversationView["activity"] }) {
   if (activity.length === 0) {
     return null;
   }

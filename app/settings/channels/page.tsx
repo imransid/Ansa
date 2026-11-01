@@ -9,12 +9,14 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { PageLoading } from "@/components/page-loading";
 import { StatusDot } from "@/components/status-dot";
-import { requireSessionContext } from "@/lib/session";
+import { isCoreOn } from "@/lib/core-api";
+import { getConnectionsFromCore, type ConnectionsPage } from "@/lib/core-views/channels";
+import { requireSessionContext, type SessionContext } from "@/lib/session";
 import { CONNECTION_STATUS_TEXT } from "@/lib/telegram";
 import { getSetupStateForSession } from "@/services/assistant-settings";
 import { getSetupForSession } from "@/services/setup";
 import { getSocialAccountsPageForSession } from "@/services/social-accounts";
-import { getChannelsPageForSession, type ChannelsPage } from "@/services/telegram-connect";
+import { getChannelsPageForSession } from "@/services/telegram-connect";
 
 export const metadata: Metadata = { title: "Connections - ansa" };
 
@@ -40,11 +42,12 @@ export default function ChannelsSettingsPage() {
 
 async function Channels() {
   const session = await requireSessionContext("/settings/channels");
-  const [page, social, setup, mail] = await Promise.all([
-    getChannelsPageForSession(session),
+  const [page, social] = await Promise.all([
+    // The new backend when it is switched on (lib/core-api.ts), else services/.
+    isCoreOn() ? getConnectionsFromCore() : getConnectionsFromServices(session),
+    // Always services/: core doesn't say yet whether Facebook is set up
+    // (its mode), nor anything of LinkedIn, X and YouTube.
     getSocialAccountsPageForSession(session),
-    getSetupStateForSession(session),
-    getSetupForSession(session),
   ]);
   const facebook = social.platforms.find((platform) => platform.platform === "facebook");
   const otherPlatforms = social.platforms.filter((platform) => platform.platform !== "facebook");
@@ -61,22 +64,22 @@ async function Channels() {
           <h2 id="messenger-heading" className="text-lg font-semibold">
             Facebook Messenger
           </h2>
-          <MessengerSection facebook={facebook} canManage={social.canManage} personal={setup.kind === "personal"} />
+          <MessengerSection facebook={facebook} canManage={social.canManage} personal={page.kind === "personal"} />
         </section>
       )}
       <section aria-labelledby="email-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
         <h2 id="email-heading" className="text-lg font-semibold">
           Email
         </h2>
-        <EmailConnection address={mail.forwardingAddress} lastEmailAt={mail.lastInboundEmail?.receivedAt ?? null} />
+        <EmailConnection address={page.forwardingAddress} lastEmailAt={page.lastEmailAt} />
       </section>
       <section aria-labelledby="phone-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
         <h2 id="phone-heading" className="text-lg font-semibold">
           Phone calls
         </h2>
-        <PhoneConnection lines={mail.phoneLines.map((line) => ({ id: line.vapiPhoneNumberId, lastCallAt: line.lastCallAt }))} />
+        <PhoneConnection lines={page.phoneLines} />
       </section>
-      {setup.kind === "business" && (
+      {page.kind === "business" && (
         <section aria-labelledby="posting-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
           <h2 id="posting-heading" className="text-lg font-semibold">
             Posts on other platforms
@@ -89,7 +92,21 @@ async function Channels() {
   );
 }
 
-function TelegramSection({ page }: { page: ChannelsPage }) {
+// The page as services/ read it before the new backend.
+async function getConnectionsFromServices(session: SessionContext): Promise<ConnectionsPage> {
+  const [page, setup, mail] = await Promise.all([getChannelsPageForSession(session), getSetupStateForSession(session), getSetupForSession(session)]);
+  return {
+    canManage: page.canManage,
+    telegramMode: page.telegramMode,
+    telegram: page.telegram,
+    kind: setup.kind,
+    forwardingAddress: mail.forwardingAddress,
+    lastEmailAt: mail.lastInboundEmail?.receivedAt ?? null,
+    phoneLines: mail.phoneLines.map((line) => ({ id: line.vapiPhoneNumberId, lastCallAt: line.lastCallAt })),
+  };
+}
+
+function TelegramSection({ page }: { page: ConnectionsPage }) {
   const { telegram } = page;
   if (telegram) {
     return (

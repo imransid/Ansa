@@ -4,11 +4,11 @@ import { TicketActions } from "@/app/tickets/[ticketNumber]/ticket-actions";
 import { NoteForm } from "@/app/tickets/[ticketNumber]/note-form";
 import { ActionButton } from "@/components/action-button";
 import { StatusDot } from "@/components/status-dot";
-import type { ConversationPage } from "@/services/conversation-page";
+import type { ConversationView } from "@/lib/core-views/inbox";
 
 type RequestBoxProps = {
-  conversation: ConversationPage;
-  ticket: NonNullable<ConversationPage["openTicket"]>;
+  conversation: ConversationView;
+  ticket: NonNullable<ConversationView["openTicket"]>;
   teamMembers: Parameters<typeof TicketActions>[0]["teamMembers"];
   // A business with more than one person who takes requests.
   canAssign: boolean;

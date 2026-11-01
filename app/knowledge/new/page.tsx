@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isCoreOn } from "@/lib/core-api";
+import { getSolvedTicketForArticleFromCore } from "@/lib/core-views/knowledge";
 import { requireSessionContext } from "@/lib/session";
 import { getSolvedTicketForArticleForSession } from "@/services/knowledge";
 import { ArticleForm, type ArticleFormValues } from "../article-form";
@@ -28,7 +30,8 @@ const EMPTY_ARTICLE: ArticleFormValues = { title: "", kind: "faq", body: "", use
 async function NewArticleContent({ searchParams }: Pick<PageProps<"/knowledge/new">, "searchParams">) {
   const { fromTicket } = await searchParams;
   const session = await requireSessionContext("/knowledge/new");
-  const ticket = await getSolvedTicketForArticleForSession(session, fromTicket);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const ticket = isCoreOn() ? await getSolvedTicketForArticleFromCore(fromTicket) : await getSolvedTicketForArticleForSession(session, fromTicket);
   const initial: ArticleFormValues = ticket ? { ...EMPTY_ARTICLE, title: ticket.subject, kind: "solution" } : EMPTY_ARTICLE;
 
   return (

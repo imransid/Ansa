@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { isCoreOn } from "@/lib/core-api";
+import { getAccountFromCore } from "@/lib/core-views/account";
 import { requireSessionContext } from "@/lib/session";
 import { getAccountForSession } from "@/services/account";
 import { NameForm, OtherDevicesForm, PasswordForm } from "./account-forms";
@@ -22,7 +24,8 @@ export default function AccountPage({ searchParams }: PageProps<"/account">) {
 async function AccountContent({ searchParams }: Pick<PageProps<"/account">, "searchParams">) {
   const passwordWasChanged = (await searchParams).changed === "password";
   const session = await requireSessionContext("/account");
-  const account = await getAccountForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const account = isCoreOn() ? await getAccountFromCore() : await getAccountForSession(session);
 
   return (
     <>

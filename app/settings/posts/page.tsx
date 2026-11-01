@@ -10,6 +10,8 @@ import { StatusDot } from "@/components/status-dot";
 import { POST_KIND_LABELS } from "@/lib/autopost/brain";
 import { AUTOPOST_FREQUENCY_LABELS } from "@/lib/autopost/schedule";
 import { SKIP_REASON_TEXT } from "@/lib/autopost/slots";
+import { isCoreOn } from "@/lib/core-api";
+import { getAutopostPageFromCore } from "@/lib/core-views/autopost";
 import { requireSessionContext } from "@/lib/session";
 import { getAutopostPageForSession } from "@/services/autopost";
 import { PostedList } from "./posted-list";
@@ -45,7 +47,8 @@ export default function PostsForMePage() {
 
 async function PostsForMe() {
   const session = await requireSessionContext("/settings/posts");
-  const page = await getAutopostPageForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const page = isCoreOn() ? await getAutopostPageFromCore() : await getAutopostPageForSession(session);
   return (
     <>
       {page.pages.length === 0 && (

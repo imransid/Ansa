@@ -2,8 +2,10 @@ import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isCoreOn } from "@/lib/core-api";
+import { getKnowledgeArticleFromCore } from "@/lib/core-views/knowledge";
 import { canEditKnowledgeArticle, canManageKnowledge } from "@/lib/knowledge/permissions";
-import { getSessionContext, requireSessionContext } from "@/lib/session";
+import { getSessionContext, requireSessionContext, type SessionContext } from "@/lib/session";
 import { getKnowledgeArticleForSession, type KnowledgeArticlePage } from "@/services/knowledge";
 import { ArticleForm } from "../article-form";
 import { ArticleStatusActions } from "./article-status-actions";
@@ -11,6 +13,19 @@ import { ArticleSummary } from "./article-summary";
 
 // One read per request: the tab title and the page both need the article.
 const readArticle = cache(getKnowledgeArticleForSession);
+const readArticleFromCore = cache(getKnowledgeArticleFromCore);
+
+// The article and what this person may do with it: the new backend when it
+// is switched on (lib/core-api.ts), else services/. Hiding what would be
+// refused is only for a tidy page: both check the same rules again
+// (lib/knowledge/permissions.ts).
+async function readArticleAndRights(session: SessionContext, articleId: string) {
+  if (isCoreOn()) {
+    return readArticleFromCore(articleId);
+  }
+  const article = await readArticle(session, articleId);
+  return article ? { article, canEdit: canEditKnowledgeArticle(session.role, article.status), isOwner: canManageKnowledge(session.role) } : null;
+}
 
 // "Returns policy - Knowledge - ansa". A long title is cut here.
 export async function generateMetadata({ params }: PageProps<"/knowledge/[articleId]">): Promise<Metadata> {
@@ -20,10 +35,11 @@ export async function generateMetadata({ params }: PageProps<"/knowledge/[articl
   if (!session) {
     return { title: "Article - ansa" };
   }
-  const article = await readArticle(session, articleId);
-  if (!article) {
+  const found = await readArticleAndRights(session, articleId);
+  if (!found) {
     return { title: "Article not found - ansa" };
   }
+  const { article } = found;
   const title = article.title.length > 60 ? `${article.title.slice(0, 60).trimEnd()}...` : article.title;
   return { title: `${title} - Knowledge - ansa` };
 }
@@ -43,14 +59,12 @@ export default function ArticlePage({ params }: PageProps<"/knowledge/[articleId
 async function ArticleContent({ params }: Pick<PageProps<"/knowledge/[articleId]">, "params">) {
   const { articleId } = await params;
   const session = await requireSessionContext(`/knowledge/${encodeURIComponent(articleId)}`);
-  const article = await readArticle(session, articleId);
+  const found = await readArticleAndRights(session, articleId);
   // Unknown id, bad id, or another company's article: all look the same (../not-found.tsx).
-  if (!article) {
+  if (!found) {
     notFound();
   }
-  // Hiding what would be refused is only for a tidy page: the services and
-  // /db check the same rules (lib/knowledge/permissions.ts).
-  const isOwner = canManageKnowledge(session.role);
+  const { article, canEdit, isOwner } = found;
 
   return (
     <>
@@ -63,7 +77,7 @@ async function ArticleContent({ params }: Pick<PageProps<"/knowledge/[articleId]
       ) : (
         <p className="text-sm text-muted-foreground">Only owners can approve, archive or delete articles.</p>
       )}
-      {canEditKnowledgeArticle(session.role, article.status) ? <EditSection article={article} /> : <ReadOnlyText article={article} />}
+      {canEdit ? <EditSection article={article} /> : <ReadOnlyText article={article} />}
     </>
   );
 }

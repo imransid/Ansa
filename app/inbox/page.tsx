@@ -6,6 +6,8 @@ import { FilterLinks } from "@/components/filter-links";
 import { PageLoading } from "@/components/page-loading";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
+import { isCoreOn } from "@/lib/core-api";
+import { getAccountKindFromCore, getInboxFromCore } from "@/lib/core-views/inbox";
 import { parseInboxView } from "@/lib/inbox";
 import { buildListUrl, parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
@@ -35,7 +37,10 @@ async function InboxContent({ searchParams }: Pick<PageProps<"/inbox">, "searchP
   const view = parseInboxView(urlQuery.view);
   const page = parsePageNumber(urlQuery.page);
   const session = await requireSessionContext("/inbox");
-  const [{ rows, counts }, { kind }] = await Promise.all([getInboxForSession(session, view, page), getSetupStateForSession(session)]);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const [{ rows, counts }, kind] = isCoreOn()
+    ? await Promise.all([getInboxFromCore(view, page), getAccountKindFromCore()])
+    : await Promise.all([getInboxForSession(session, view, page), getSetupStateForSession(session).then((state) => state.kind)]);
   const personal = kind === "personal";
   return (
     <>

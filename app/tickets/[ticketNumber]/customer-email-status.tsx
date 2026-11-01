@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import { LocalDateTime } from "@/components/local-date-time";
+import type { TicketView } from "@/lib/core-views/tickets";
 import { lastDeliveryProblemFor } from "@/lib/last-delivery-problem";
 import type { CustomerEmailSummary } from "@/services/customer-emails";
-import type { TicketDetail } from "@/services/tickets";
 import { RetryEmailButton } from "./retry-email-button";
 
 type CustomerEmailStatusProps = {
-  ticket: TicketDetail;
+  ticket: TicketView;
   latestEmail: CustomerEmailSummary | null;
 };
 
@@ -80,7 +80,7 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
   return (
     <div className="flex flex-wrap items-center gap-3">
       <StatusLine text={describeUnsentEmail(latestEmail)} />
-      <RetryEmailButton emailId={latestEmail.id} mayAlreadyHaveBeenDelivered={latestEmail.mayAlreadyHaveBeenDelivered} />
+      <RetryEmailButton ticketId={ticket.id} emailId={latestEmail.id} mayAlreadyHaveBeenDelivered={latestEmail.mayAlreadyHaveBeenDelivered} />
     </div>
   );
 }

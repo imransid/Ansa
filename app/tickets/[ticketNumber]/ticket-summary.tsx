@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { LocalDateTime } from "@/components/local-date-time";
+import type { TicketView } from "@/lib/core-views/tickets";
 import { describeAssignment } from "@/lib/ticket-history-text";
-import type { TicketDetail } from "@/services/tickets";
 import { TicketDetailsForm } from "./ticket-details-form";
 
-const CHANNEL_LABELS: Record<TicketDetail["channel"], string> = {
+const CHANNEL_LABELS: Record<TicketView["channel"], string> = {
   phone: "phone",
   email: "email",
   // Typed in by a teammate (step 31).
@@ -19,7 +19,7 @@ const CHANNEL_LABELS: Record<TicketDetail["channel"], string> = {
 // edited (step 31). Everything a customer or the AI wrote wraps anywhere
 // (wrap-anywhere): one long link or token must never push the page wider
 // than a phone's screen.
-export function TicketSummary({ ticket }: { ticket: TicketDetail }) {
+export function TicketSummary({ ticket }: { ticket: TicketView }) {
   return (
     <section className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center gap-3">

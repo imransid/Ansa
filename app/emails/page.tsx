@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { PaginationLinks } from "@/components/pagination-links";
+import { isCoreOn } from "@/lib/core-api";
+import { listReceivedEmailsFromCore } from "@/lib/core-views/emails";
 import { parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
 import { countInboundEmailsForSession, listInboundEmailsForSession } from "@/services/inbound-emails";
@@ -30,8 +32,11 @@ export default function EmailsPage({ searchParams }: PageProps<"/emails">) {
 async function EmailsContent({ searchParams }: Pick<PageProps<"/emails">, "searchParams">) {
   const page = parsePageNumber((await searchParams).page);
   const session = await requireSessionContext("/emails");
+  // The received emails from the new backend when it is switched on
+  // (lib/core-api.ts), else services/. Core doesn't give their total or the
+  // undelivered customer emails yet, so those always come from services/.
   const [emails, totalEmails, undelivered, totalUndelivered] = await Promise.all([
-    listInboundEmailsForSession(session, page),
+    isCoreOn() ? listReceivedEmailsFromCore(page) : listInboundEmailsForSession(session, page),
     countInboundEmailsForSession(session),
     listUndeliveredCustomerEmailsForSession(session),
     countUndeliveredCustomerEmailsForSession(session),

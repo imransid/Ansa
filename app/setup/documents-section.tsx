@@ -13,8 +13,11 @@ import { NO_CUSTOMER_DATA_IMPORT_NOTICE } from "@/lib/knowledge/limits";
 import type { CompanyDocument } from "@/services/documents";
 import { AddToKnowledgeButton } from "./add-to-knowledge-button";
 
+// Where a file is stored never reaches the page (the new backend doesn't send it).
+type ListedDocument = Omit<CompanyDocument, "storageKey">;
+
 type DocumentsSectionProps = {
-  documents: CompanyDocument[];
+  documents: ListedDocument[];
   canManage: boolean;
 };
 
@@ -36,7 +39,7 @@ export function DocumentsSection({ documents, canManage }: DocumentsSectionProps
   );
 }
 
-function DocumentRow({ document, canManage }: { document: CompanyDocument; canManage: boolean }) {
+function DocumentRow({ document, canManage }: { document: ListedDocument; canManage: boolean }) {
   return (
     <li className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm">
       {/* A plain link: the route sends the file as a download. */}

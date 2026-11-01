@@ -5,6 +5,8 @@ import { retryCustomerEmailAction } from "@/app/actions/tickets";
 import { Button } from "@/components/ui/button";
 
 type RetryEmailButtonProps = {
+  // The request the email belongs to: the new backend names it in its address.
+  ticketId: string;
   emailId: string;
   // The email was first tried more than 23 hours ago. Resend only recognises
   // a repeat for 24 hours, so it may already be in the customer's inbox:
@@ -12,7 +14,7 @@ type RetryEmailButtonProps = {
   mayAlreadyHaveBeenDelivered: boolean;
 };
 
-export function RetryEmailButton({ emailId, mayAlreadyHaveBeenDelivered }: RetryEmailButtonProps) {
+export function RetryEmailButton({ ticketId, emailId, mayAlreadyHaveBeenDelivered }: RetryEmailButtonProps) {
   const [errors, retryAction, isRetrying] = useActionState(retryCustomerEmailAction, undefined);
   const [confirming, setConfirming] = useState(false);
 
@@ -26,6 +28,7 @@ export function RetryEmailButton({ emailId, mayAlreadyHaveBeenDelivered }: Retry
 
   return (
     <form action={retryAction} className="grid gap-2">
+      <input type="hidden" name="ticketId" value={ticketId} />
       <input type="hidden" name="emailId" value={emailId} />
       {confirming && (
         <>

@@ -2,6 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isCoreOn } from "@/lib/core-api";
+import {
+  changeArticleStatusThroughCore,
+  createArticleThroughCore,
+  deleteArticleThroughCore,
+  editArticleThroughCore,
+  importDocumentThroughCore,
+  importWebPageThroughCore,
+} from "@/lib/core-views/knowledge";
 import { withTypedValues, type FormErrors, type FormResult, type SaveState } from "@/lib/form-result";
 import type { KnowledgeSlice } from "@/lib/knowledge/prompt-slice";
 import { requireSessionContext } from "@/lib/session";
@@ -18,7 +27,9 @@ import { importWebPageToKnowledgeForSession } from "@/services/knowledge-web-imp
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // call a service (which checks company, role, input and rate limits),
-// refresh the pages that show knowledge.
+// refresh the pages that show knowledge. Each uses the new backend when it
+// is switched on (lib/core-api.ts), else services/; "Test what the AI finds"
+// stays on services/ (core doesn't answer each piece's text or the phone line).
 
 // What "Test what the AI finds" shows: the hits and the phone assistant's
 // one line for them, or why there are none.
@@ -30,10 +41,8 @@ export type ImportState = { result?: ImportResult; values?: Record<string, strin
 // "New article": on success, opens the new article.
 export async function createKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
-  const result = await createKnowledgeArticleForSession(session, {
-    ...articleFields(formData),
-    fromTicket: formData.get("fromTicket"),
-  });
+  const input = { ...articleFields(formData), fromTicket: formData.get("fromTicket") };
+  const result = isCoreOn() ? await createArticleThroughCore(input) : await createKnowledgeArticleForSession(session, input);
   if (!result.ok) {
     return result.errors;
   }
@@ -44,11 +53,8 @@ export async function createKnowledgeArticleAction(_previous: FormErrors | undef
 
 export async function editKnowledgeArticleAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
   const session = await requireSessionContext();
-  const result = await editKnowledgeArticleForSession(session, {
-    ...articleFields(formData),
-    articleId: formData.get("articleId"),
-    revision: formData.get("revision"),
-  });
+  const input = { ...articleFields(formData), articleId: formData.get("articleId"), revision: formData.get("revision") };
+  const result = isCoreOn() ? await editArticleThroughCore(input) : await editKnowledgeArticleForSession(session, input);
   if (!result.ok) {
     return { errors: result.errors };
   }
@@ -59,23 +65,34 @@ export async function editKnowledgeArticleAction(_previous: SaveState | undefine
 export async function approveKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData) {
   const session = await requireSessionContext();
   const input = { articleId: formData.get("articleId"), revision: formData.get("revision") };
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await changeArticleStatusThroughCore(input.articleId, "approve", input.revision));
+  }
   return refreshOrReturnErrors(await approveKnowledgeArticleForSession(session, input));
 }
 
 export async function archiveKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData) {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await changeArticleStatusThroughCore(formData.get("articleId"), "archive"));
+  }
   return refreshOrReturnErrors(await archiveKnowledgeArticleForSession(session, { articleId: formData.get("articleId") }));
 }
 
 export async function restoreKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData) {
   const session = await requireSessionContext();
+  if (isCoreOn()) {
+    return refreshOrReturnErrors(await changeArticleStatusThroughCore(formData.get("articleId"), "restore"));
+  }
   return refreshOrReturnErrors(await restoreKnowledgeArticleForSession(session, { articleId: formData.get("articleId") }));
 }
 
 // On success the article is gone, so its page leads back to the list.
 export async function deleteKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   const session = await requireSessionContext();
-  const result = await deleteKnowledgeArticleForSession(session, { articleId: formData.get("articleId") });
+  const result = isCoreOn()
+    ? await deleteArticleThroughCore(formData.get("articleId"))
+    : await deleteKnowledgeArticleForSession(session, { articleId: formData.get("articleId") });
   if (!result.ok) {
     return result.errors;
   }
@@ -94,7 +111,9 @@ export async function testKnowledgeSearchAction(_previous: KnowledgeTestState | 
 
 export async function importDocumentToKnowledgeAction(_previous: ImportState | undefined, formData: FormData): Promise<ImportState> {
   const session = await requireSessionContext();
-  const result = await importDocumentToKnowledgeForSession(session, { documentId: formData.get("documentId") });
+  const result = isCoreOn()
+    ? await importDocumentThroughCore(formData.get("documentId"))
+    : await importDocumentToKnowledgeForSession(session, { documentId: formData.get("documentId") });
   if (result.ok) {
     refreshKnowledgePages();
   }
@@ -103,7 +122,7 @@ export async function importDocumentToKnowledgeAction(_previous: ImportState | u
 
 export async function importWebPageAction(_previous: ImportState | undefined, formData: FormData): Promise<ImportState> {
   const session = await requireSessionContext();
-  const result = await importWebPageToKnowledgeForSession(session, { url: formData.get("url") });
+  const result = isCoreOn() ? await importWebPageThroughCore(formData.get("url")) : await importWebPageToKnowledgeForSession(session, { url: formData.get("url") });
   if (result.ok) {
     refreshKnowledgePages();
     return { result };

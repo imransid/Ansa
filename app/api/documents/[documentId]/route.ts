@@ -1,3 +1,5 @@
+import { isCoreOn } from "@/lib/core-api";
+import { getDocumentFromCore } from "@/lib/core-views/support-setup";
 import { fileUnavailableResponse, privateFileResponse } from "@/lib/private-file-response";
 import { getSessionContext } from "@/lib/session";
 import { getDocumentForSession } from "@/services/documents";
@@ -10,7 +12,9 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/docu
   if (!session) {
     return new Response(null, { status: 401 });
   }
-  const document = await getDocumentForSession(session, (await params).documentId);
+  const { documentId } = await params;
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const document = isCoreOn() ? await getDocumentFromCore(documentId) : await getDocumentForSession(session, documentId);
   if (document === "rate-limited" || document === null) {
     return fileUnavailableResponse(document);
   }

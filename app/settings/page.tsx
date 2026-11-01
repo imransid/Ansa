@@ -6,6 +6,8 @@ import { logoutAction } from "@/app/actions/auth";
 import { PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { COFOUNDER_PAGES } from "@/lib/cofounder/pages";
+import { isCoreOn } from "@/lib/core-api";
+import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
 import { getSetupStateForSession } from "@/services/assistant-settings";
 
@@ -69,7 +71,8 @@ export default function SettingsPage() {
 async function SettingsLists() {
   const session = await requireSessionContext("/settings");
   const billing = session.role === "owner" ? [BILLING_LINK] : [];
-  const { kind } = await getSetupStateForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const { kind } = isCoreOn() ? await getSetupStateFromCore() : await getSetupStateForSession(session);
   if (kind === "personal") {
     return (
       <>

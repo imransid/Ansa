@@ -6,6 +6,8 @@ import { DishForm } from "@/components/menu/dish-form";
 import { DishRow } from "@/components/menu/dish-row";
 import { PageLoading } from "@/components/page-loading";
 import { buttonVariants } from "@/components/ui/button";
+import { isCoreOn } from "@/lib/core-api";
+import { getMenuFromCore } from "@/lib/core-views/menu";
 import { groupByCategory } from "@/lib/menu";
 import { requireSessionContext } from "@/lib/session";
 import { getMenuForSession } from "@/services/menu";
@@ -36,7 +38,8 @@ export default function MenuPage({ searchParams }: PageProps<"/settings/menu">) 
 async function Menu({ searchParams }: Pick<PageProps<"/settings/menu">, "searchParams">) {
   const session = await requireSessionContext("/settings/menu");
   const { added } = await searchParams;
-  const menu = await getMenuForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const menu = isCoreOn() ? await getMenuFromCore() : await getMenuForSession(session);
   if (!menu.currency) {
     return (
       <p className="rounded-xl bg-attention-surface px-4 py-3 text-sm">

@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isCoreOn } from "@/lib/core-api";
+import { saveAssistantSettingsThroughCore } from "@/lib/core-views/assistant";
+import { finishSetupStepThroughCore, saveSetupSectionThroughCore } from "@/lib/core-views/restaurant-setup";
 import { withTypedValues, type SaveState } from "@/lib/form-result";
 import { hoursFieldName, RANGES_PER_DAY, WEEKDAYS } from "@/lib/opening-hours";
 import { requireSessionContext } from "@/lib/session";
@@ -75,7 +78,8 @@ export async function saveAssistantSettingsAction(_previous: SaveState | undefin
     holdingReply: formData.get("holdingReply"),
     alertByEmail: formData.get("alertByEmail"),
   };
-  const result = await saveAssistantSettingsForSession(session, input);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const result = isCoreOn() ? await saveAssistantSettingsThroughCore(formData) : await saveAssistantSettingsForSession(session, input);
   if (!result.ok) {
     return { errors: withTypedValues(result.errors, formData, ["instructions", "holdingReply"]) };
   }
@@ -85,7 +89,7 @@ export async function saveAssistantSettingsAction(_previous: SaveState | undefin
 
 export async function completeChannelsStepAction(_previous: SaveState | undefined): Promise<SaveState> {
   const session = await requireSessionContext();
-  const result = await completeChannelsStepForSession(session);
+  const result = isCoreOn() ? await finishSetupStepThroughCore("connect") : await completeChannelsStepForSession(session);
   if (!result.ok) {
     return { errors: result.errors };
   }
@@ -94,7 +98,7 @@ export async function completeChannelsStepAction(_previous: SaveState | undefine
 
 export async function finishSetupAction(_previous: SaveState | undefined): Promise<SaveState> {
   const session = await requireSessionContext();
-  const result = await finishSetupForSession(session);
+  const result = isCoreOn() ? await finishSetupStepThroughCore("finish") : await finishSetupForSession(session);
   if (!result.ok) {
     return { errors: result.errors };
   }
@@ -105,7 +109,8 @@ export async function finishSetupAction(_previous: SaveState | undefined): Promi
 async function saveSection(section: SetupSection, formData: FormData, typedFields: string[], input: unknown): Promise<SaveState> {
   const session = await requireSessionContext();
   const from = formData.get("from") === "setup" ? "setup" : "settings";
-  const result = await saveSetupSectionForSession(session, section, input, from);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const result = isCoreOn() ? await saveSetupSectionThroughCore(section, formData, from) : await saveSetupSectionForSession(session, section, input, from);
   if (!result.ok) {
     return { errors: withTypedValues(result.errors, formData, typedFields) };
   }

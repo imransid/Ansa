@@ -3,6 +3,15 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { isCoreOn } from "@/lib/core-api";
+import {
+  confirmEmailThroughCore,
+  logInThroughCore,
+  logOutThroughCore,
+  requestPasswordResetThroughCore,
+  resetPasswordThroughCore,
+  signUpThroughCore,
+} from "@/lib/core-views/auth";
 import { withTypedValues, type FormErrors, type FormResult } from "@/lib/form-result";
 import { KNOWN_DEVICE_COOKIE_NAME, knownDeviceCookieOptions } from "@/lib/known-device";
 import { destinationAfterLogin } from "@/lib/login-redirect";
@@ -17,6 +26,8 @@ import { signUpCompanyOwner } from "@/services/signup";
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // call a service (which validates and rate limits), then redirect. A refused
 // form gets back what was typed, never the password (withTypedValues).
+// Each uses the new backend when it is switched on (lib/core-api.ts), else
+// services/; both answer in the same shapes.
 
 // Given to the login services: after a login that worked they hand this
 // browser a known-device cookie (lib/known-device.ts). Not exported, so it is
@@ -29,14 +40,12 @@ export async function signupAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const result = await signUpCompanyOwner(
-    {
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-    },
-    await headers(),
-  );
+  const input = {
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  };
+  const result = isCoreOn() ? await signUpThroughCore(input) : await signUpCompanyOwner(input, await headers());
   if (!result.ok) {
     return withTypedValues(result.errors, formData, ["name", "email"]);
   }
@@ -51,14 +60,12 @@ export async function loginAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const result = await logIn(
-    {
-      email: formData.get("email"),
-      password: formData.get("password"),
-    },
-    await headers(),
-    rememberThisBrowser,
-  );
+  const input = {
+    email: formData.get("email"),
+    password: formData.get("password"),
+  };
+  // Core's answer holds the known-device cookie too (set with the session's).
+  const result = isCoreOn() ? await logInThroughCore(input) : await logIn(input, await headers(), rememberThisBrowser);
   if (!result.ok) {
     return withTypedValues(result.errors, formData, ["email"]);
   }
@@ -66,7 +73,11 @@ export async function loginAction(
 }
 
 export async function logoutAction(): Promise<void> {
-  await logOut(await headers());
+  if (isCoreOn()) {
+    await logOutThroughCore();
+  } else {
+    await logOut(await headers());
+  }
   redirect("/login");
 }
 
@@ -74,14 +85,14 @@ export async function logoutAction(): Promise<void> {
 // and the password typed on the page. Returns instead of redirecting, so the
 // page can show an error if the call itself fails.
 export async function confirmEmailAction(formData: FormData): Promise<FormResult> {
-  return confirmEmailWithPassword(
-    {
-      token: formData.get("token"),
-      password: formData.get("password"),
-    },
-    await headers(),
-    rememberThisBrowser,
-  );
+  const input = {
+    token: formData.get("token"),
+    password: formData.get("password"),
+  };
+  if (isCoreOn()) {
+    return confirmEmailThroughCore(input);
+  }
+  return confirmEmailWithPassword(input, await headers(), rememberThisBrowser);
 }
 
 export type ForgotPasswordState = {
@@ -95,11 +106,11 @@ export async function requestPasswordResetAction(
   _previousState: ForgotPasswordState | undefined,
   formData: FormData,
 ): Promise<ForgotPasswordState> {
-  const result = await requestPasswordReset(
-    { email: formData.get("email") },
-    await headers(),
-    (task) => after(task),
-  );
+  const input = { email: formData.get("email") };
+  // Core sends the email after its own answer, so the timing is the same there too.
+  const result = isCoreOn()
+    ? await requestPasswordResetThroughCore(input)
+    : await requestPasswordReset(input, await headers(), (task) => after(task));
   return result.ok ? { sent: true } : { errors: withTypedValues(result.errors, formData, ["email"]) };
 }
 
@@ -107,11 +118,12 @@ export async function requestPasswordResetAction(
 // and the new password. Returns instead of redirecting, like confirmEmailAction,
 // because the page shows what happened (see ResetPasswordResult).
 export async function resetPasswordAction(formData: FormData): Promise<ResetPasswordResult> {
-  return resetPasswordWithToken(
-    {
-      token: formData.get("token"),
-      newPassword: formData.get("newPassword"),
-    },
-    await headers(),
-  );
+  const input = {
+    token: formData.get("token"),
+    newPassword: formData.get("newPassword"),
+  };
+  if (isCoreOn()) {
+    return resetPasswordThroughCore(input);
+  }
+  return resetPasswordWithToken(input, await headers());
 }

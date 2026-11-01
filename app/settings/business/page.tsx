@@ -7,6 +7,8 @@ import { ContactForm } from "@/components/restaurant-setup/contact-form";
 import { HoursForm } from "@/components/restaurant-setup/hours-form";
 import { OrdersForm } from "@/components/restaurant-setup/orders-form";
 import { RestaurantSummary } from "@/components/restaurant-setup/restaurant-summary";
+import { isCoreOn } from "@/lib/core-api";
+import { getRestaurantProfileFromCore } from "@/lib/core-views/restaurant-setup";
 import { currencyOptions, timeZoneOptions } from "@/lib/locale-options";
 import { requireSessionContext } from "@/lib/session";
 import { getRestaurantProfileForSession } from "@/services/restaurant-setup";
@@ -36,7 +38,8 @@ export default function WhatItKnowsPage() {
 
 async function WhatItKnows() {
   const session = await requireSessionContext("/settings/business");
-  const profile = await getRestaurantProfileForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const profile = isCoreOn() ? await getRestaurantProfileFromCore() : await getRestaurantProfileForSession(session);
   const extraInfo = (
     <>
     <Section title="Menu">

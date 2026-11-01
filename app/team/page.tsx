@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { requireSessionContext } from "@/lib/session";
+import { isCoreOn } from "@/lib/core-api";
+import { getTeamPageFromCore } from "@/lib/core-views/team";
+import { requireSessionContext, type SessionContext } from "@/lib/session";
 import { getTeamCategoriesForSession } from "@/services/categories";
 import { getTeamForSession } from "@/services/team";
 import { CategoriesSection } from "./categories-section";
@@ -26,10 +28,8 @@ export default function TeamPage() {
 // Reads the session once and hands it to everything on the page.
 async function TeamContent() {
   const session = await requireSessionContext("/team");
-  const [team, teamCategories] = await Promise.all([
-    getTeamForSession(session),
-    getTeamCategoriesForSession(session),
-  ]);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const { team, teamCategories, currentUserId, isOwner } = isCoreOn() ? await getTeamPageFromCore() : await getTeamFromServices(session);
 
   return (
     <>
@@ -39,7 +39,7 @@ async function TeamContent() {
             services/team.ts refuses non-owners. */}
         <MembersTable
           members={team.members}
-          currentUserId={session.userId}
+          currentUserId={currentUserId}
           canManageTeam={team.canManageTeam}
           teamCategories={teamCategories}
         />
@@ -54,7 +54,7 @@ async function TeamContent() {
         </section>
       )}
       {/* Hiding this is only for a tidy page. services/categories.ts refuses non-owners. */}
-      {session.role === "owner" && (
+      {isOwner && (
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Categories</h2>
           <p className="text-sm text-muted-foreground">
@@ -77,4 +77,13 @@ async function TeamContent() {
       )}
     </>
   );
+}
+
+// The page as services/ read it before the new backend.
+async function getTeamFromServices(session: SessionContext) {
+  const [team, teamCategories] = await Promise.all([
+    getTeamForSession(session),
+    getTeamCategoriesForSession(session),
+  ]);
+  return { team, teamCategories, currentUserId: session.userId, isOwner: session.role === "owner" };
 }

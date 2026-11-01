@@ -10,6 +10,9 @@ import { HoursForm } from "@/components/restaurant-setup/hours-form";
 import { RestaurantSummary } from "@/components/restaurant-setup/restaurant-summary";
 import { requireSessionContext } from "@/lib/session";
 import { AI_ENGINE_LABELS } from "@/lib/assistant/engine";
+import { isCoreOn } from "@/lib/core-api";
+import { getEngineStateFromCore } from "@/lib/core-views/assistant";
+import { getRestaurantProfileFromCore } from "@/lib/core-views/restaurant-setup";
 import { timeZoneOptions } from "@/lib/locale-options";
 import { getEngineStateForSession } from "@/services/assistant-engine-settings";
 import { getRestaurantProfileForSession } from "@/services/restaurant-setup";
@@ -38,7 +41,10 @@ export default function AssistantSettingsPage() {
 
 async function AssistantSettings() {
   const session = await requireSessionContext("/settings/assistant");
-  const [profile, engine] = await Promise.all([getRestaurantProfileForSession(session), getEngineStateForSession(session)]);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const [profile, engine] = isCoreOn()
+    ? await Promise.all([getRestaurantProfileFromCore(), getEngineStateFromCore()])
+    : await Promise.all([getRestaurantProfileForSession(session), getEngineStateForSession(session)]);
   if (!profile.canManage) {
     return (
       <>

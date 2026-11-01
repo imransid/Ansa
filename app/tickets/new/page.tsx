@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isCoreOn } from "@/lib/core-api";
+import { listActiveCategoriesFromCore } from "@/lib/core-views/tickets";
 import { requireSessionContext } from "@/lib/session";
 import { listActiveCategoriesForSession } from "@/services/categories";
 import { NewTicketForm } from "./new-ticket-form";
@@ -23,7 +25,8 @@ export default function NewTicketPage() {
 // team some other way. Anyone in the company may create one.
 async function NewTicketContent() {
   const session = await requireSessionContext("/tickets/new");
-  const categories = await listActiveCategoriesForSession(session);
+  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  const categories = isCoreOn() ? await listActiveCategoriesFromCore() : await listActiveCategoriesForSession(session);
 
   return (
     <>

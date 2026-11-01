@@ -1,6 +1,6 @@
 import { labelAssigneeOptions, type AssigneeOption } from "@/lib/assignee-menu";
+import type { TicketView } from "@/lib/core-views/tickets";
 import type { AssignableUser } from "@/services/team";
-import type { TicketDetail } from "@/services/tickets";
 
 // The "Assigned to" menu: everyone who can take tickets, with the email next
 // to a name two people share (lib/assignee-menu.ts). A solved ticket may still
@@ -8,7 +8,7 @@ import type { TicketDetail } from "@/services/tickets";
 // added, marked, so the menu doesn't pretend the ticket is unassigned. Saving
 // the menu unchanged changes nothing; giving them any other ticket is refused
 // (db/ticket-updates.ts).
-export function listAssigneeMenu(choices: AssignableUser[], ticket: TicketDetail): AssigneeOption[] {
+export function listAssigneeMenu(choices: AssignableUser[], ticket: Pick<TicketView, "assignedToUserId" | "assigneeName">): AssigneeOption[] {
   const currentAssigneeId = ticket.assignedToUserId;
   if (!currentAssigneeId || choices.some((person) => person.id === currentAssigneeId)) {
     return labelAssigneeOptions(choices);
