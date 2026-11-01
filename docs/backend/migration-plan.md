@@ -30,7 +30,7 @@
 |---|---|---|
 | conversations, contacts, messages | db/conversation*.ts, services/conversations.ts | 🔨 saving messages done |
 | chat delivery (one door) | lib/chat-delivery.ts | ⬜ |
-| Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | 🔨 reading updates done (core/internal/telegram/update.go) |
+| Telegram (webhook, link codes, connect) | services/telegram-*.ts, adapters/telegram.ts | 🔨 webhook, messages, deletions done; link codes and sending next |
 | Messenger | services/messenger-*.ts, adapters/messenger.ts | ⬜ |
 | development stand-ins | adapters/dev-chat-outbox.ts, scripts/simulate-*.ts | ⬜ |
 

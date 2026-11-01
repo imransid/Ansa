@@ -30,6 +30,11 @@ type Config struct {
 	// The old backend's BETTER_AUTH_SECRET: rate limit keys are derived from
 	// it the same way (both backends share counters), and logins move here later.
 	AuthSecret string
+	// Telegram (all three or none): ansa's bot token, its username, and the
+	// webhook secret Telegram sends back. Without them the webhook refuses all.
+	TelegramBotToken      string
+	TelegramBotUsername   string
+	TelegramWebhookSecret string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -38,13 +43,16 @@ type Getenv func(name string) string
 // Load reads and checks every setting. All problems are reported at once.
 func Load(getenv Getenv) (Config, error) {
 	cfg := Config{
-		ListenAddr:        withDefault(getenv("CORE_LISTEN_ADDR"), "127.0.0.1:8080"),
-		DatabaseURL:       getenv("DATABASE_URL"),
-		DataEncryptionKey: getenv("DATA_ENCRYPTION_KEY"),
-		BrainURL:          withDefault(getenv("BRAIN_URL"), "http://127.0.0.1:8090"),
-		BrainSharedSecret: getenv("BRAIN_SHARED_SECRET"),
-		Environment:       withDefault(getenv("ANSA_ENV"), "development"),
-		AuthSecret:        getenv("BETTER_AUTH_SECRET"),
+		ListenAddr:            withDefault(getenv("CORE_LISTEN_ADDR"), "127.0.0.1:8080"),
+		DatabaseURL:           getenv("DATABASE_URL"),
+		DataEncryptionKey:     getenv("DATA_ENCRYPTION_KEY"),
+		BrainURL:              withDefault(getenv("BRAIN_URL"), "http://127.0.0.1:8090"),
+		BrainSharedSecret:     getenv("BRAIN_SHARED_SECRET"),
+		Environment:           withDefault(getenv("ANSA_ENV"), "development"),
+		AuthSecret:            getenv("BETTER_AUTH_SECRET"),
+		TelegramBotToken:      getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramBotUsername:   getenv("TELEGRAM_BOT_USERNAME"),
+		TelegramWebhookSecret: getenv("TELEGRAM_WEBHOOK_SECRET"),
 	}
 	var problems []string
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
@@ -61,6 +69,18 @@ func Load(getenv Getenv) (Config, error) {
 	}
 	if len(cfg.AuthSecret) < 32 {
 		problems = append(problems, "BETTER_AUTH_SECRET must be at least 32 characters (the old backend's value)")
+	}
+	setTelegram := 0
+	for _, value := range []string{cfg.TelegramBotToken, cfg.TelegramBotUsername, cfg.TelegramWebhookSecret} {
+		if value != "" {
+			setTelegram++
+		}
+	}
+	if setTelegram != 0 && setTelegram != 3 {
+		problems = append(problems, "TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET must be set together")
+	}
+	if cfg.TelegramWebhookSecret != "" && len(cfg.TelegramWebhookSecret) < 32 {
+		problems = append(problems, "TELEGRAM_WEBHOOK_SECRET must be at least 32 characters")
 	}
 	if cfg.Environment != "development" && cfg.Environment != "production" {
 		problems = append(problems, `ANSA_ENV must be "development" or "production"`)

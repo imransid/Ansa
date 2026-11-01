@@ -47,4 +47,19 @@ func TestCompany(t *testing.T, pool *Pool) string {
 var cleanupOrder = []string{
 	"core_jobs", "order_items", "orders", "messages", "assistant_activity", "tickets",
 	"conversations", "contacts", "channel_connections", "telegram_link_codes", "assistant_settings",
+	"users",
+}
+
+// TestOwner adds a confirmed owner to a test company and returns their id.
+func TestOwner(t *testing.T, pool *Pool, companyID string) string {
+	t.Helper()
+	var id string
+	err := pool.QueryRow(context.Background(), `
+		INSERT INTO users (id, company_id, role, name, email, email_verified)
+		VALUES (gen_random_uuid()::text, $1, 'owner', 'Core Test Owner', gen_random_uuid()::text || '@core-test.example', true)
+		RETURNING id`, companyID).Scan(&id)
+	if err != nil {
+		t.Fatalf("making a test owner: %v", err)
+	}
+	return id
 }
