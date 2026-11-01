@@ -17,6 +17,7 @@ var TenantTables = []string{
 	"orders", "order_items", "catalog_items", "autopost_slots", "content_drafts", "publish_jobs",
 	"social_connections", "knowledge_articles", "knowledge_chunks", "business_facts",
 	"inbound_emails", "outgoing_emails", "calls", "invites", "company_billing", "core_jobs",
+	"autopublish_rules", "cofounder_activity", "post_metrics",
 }
 
 // Statements allowed to read across companies: each is listed with why in

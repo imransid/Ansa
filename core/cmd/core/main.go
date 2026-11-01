@@ -31,6 +31,7 @@ import (
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
+	"ansa/core/internal/publishing"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/resend"
 	"ansa/core/internal/schedule"
@@ -109,7 +110,9 @@ func main() {
 			worker.Run(workCtx)
 		}()
 	}
-	go schedule.Run(workCtx, log, scheduledTasks(pool))
+	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, FacebookAppSecret: cfg.FacebookAppSecret,
+		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-social"), PublishFacebook: publishing.PublishToFacebook}
+	go schedule.Run(workCtx, log, scheduledTasks(pool, publisher))
 	go func() {
 		log.Info("core started")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -148,10 +151,13 @@ func chatSender(cfg config.Config, pool *database.Pool, box *secure.Box) *chat.S
 
 // scheduledTasks is core's periodic work, each claimed in the database so
 // several core processes never do it twice.
-func scheduledTasks(pool *database.Pool) []schedule.Task {
+func scheduledTasks(pool *database.Pool, publisher *publishing.Runner) []schedule.Task {
 	return []schedule.Task{
 		{Name: "assistant catch-up", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return assistant.QueueDueReplies(ctx, pool)
+		}},
+		{Name: "publishing queue", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
+			return publisher.RunDue(ctx, "")
 		}},
 	}
 }

@@ -4,9 +4,9 @@
 // adapter. Tokens are stored encrypted with the context
 // "social-<kind>-token:<company>:<connection>", as the old backend wrote them.
 //
-// Today it reads Facebook Page tokens (Messenger). Page tokens don't run
-// out, so nothing is renewed here; renewing X's and Google's tokens moves
-// with the publishing module (phase 4).
+// Today it reads Facebook Page tokens (Messenger and posts). Page tokens
+// don't run out, so nothing is renewed here; renewing X's and Google's
+// tokens moves with their publishing.
 package social
 
 import (
@@ -48,4 +48,54 @@ func PageToken(ctx context.Context, pool *database.Pool, box *secure.Box, compan
 		return "", ErrNotUsable
 	}
 	return token, nil
+}
+
+// ErrNotConnected: the account was disconnected, or needs a reconnect.
+var ErrNotConnected = errors.New("social: the account is not connected")
+
+// Page is a connected Facebook Page ready for one post.
+type Page struct {
+	// Facebook's Page id ("dev:stand-in" for the development stand-in).
+	ExternalID string
+	Token      string
+	// The token as stored: a refusal marks the account only while it still
+	// holds this one (a reconnect meanwhile stands).
+	StoredToken string
+	IsStandIn   bool
+}
+
+// PageForPosting reads one connected Facebook Page of one company for a
+// post: ErrNotConnected when it isn't connected now, ErrNotUsable when its
+// token can't be read.
+func PageForPosting(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, connectionID string) (*Page, error) {
+	const statement = `
+		SELECT id, external_account_id, status, is_stand_in, access_token_encrypted FROM social_connections
+		WHERE company_id = $1 AND id = $2 AND platform = 'facebook'`
+	var storedID, status string
+	var stored *string
+	var page Page
+	err := pool.QueryRow(ctx, statement, company.String(), connectionID).Scan(&storedID, &page.ExternalID, &status, &page.IsStandIn, &stored)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (status != "connected" || stored == nil)) {
+		return nil, ErrNotConnected
+	}
+	if err != nil {
+		return nil, err
+	}
+	token, err := box.Decrypt(*stored, TokenContext(company, storedID, "access"))
+	if err != nil || token == "" {
+		return nil, ErrNotUsable
+	}
+	page.Token, page.StoredToken = token, *stored
+	return &page, nil
+}
+
+// MarkNeedsReconnectWithin marks a connection as needing a reconnect (the
+// platform refused its token), only while it still holds storedToken. True
+// when it did; the caller records it in the activity log.
+func MarkNeedsReconnectWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, connectionID, storedToken, code string) (bool, error) {
+	const statement = `
+		UPDATE social_connections SET status = 'needs_reauth', last_error = $4, renewal_started_at = NULL, updated_at = now()
+		WHERE company_id = $1 AND id = $2 AND status = 'connected' AND access_token_encrypted = $3`
+	tag, err := tx.Exec(ctx, statement, company.String(), connectionID, storedToken, code)
+	return tag.RowsAffected() == 1, err
 }

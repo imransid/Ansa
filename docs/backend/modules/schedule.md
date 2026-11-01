@@ -8,6 +8,6 @@ own beat until the service stops; a failure is logged with its class only, a
 round that did something logs how many. Several core processes may run the
 same tasks: each task claims its work in the database (`FOR UPDATE SKIP
 LOCKED`), so nothing is done twice.
-**Tasks today (`cmd/core/main.go`):** the assistant's catch-up, every 15 s.
-Publishing, post numbers, "Post for me" and the daily cleanup join as their
-modules move.
+**Tasks today (`cmd/core/main.go`):** the assistant's catch-up and the
+publishing queue ([publishing](publishing.md)), each every 15 s. Post
+numbers, "Post for me" and the daily cleanup join as their modules move.

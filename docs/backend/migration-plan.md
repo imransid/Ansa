@@ -59,9 +59,11 @@
 | Module | Old code | Status |
 |---|---|---|
 | Post for me (topic brain, writer, checks) | lib/autopost/, services/autopost*.ts | ⬜ |
-| content drafts, media library | db/content-draft*.ts, services/media-*.ts | ⬜ |
+| content drafts (create, read, claims check) | db/content-draft*.ts | ✅ core/internal/drafts |
+| content studio edits and approvals, media library | db/content-draft*.ts, services/media-*.ts | ⬜ |
 | social connections (OAuth per platform) | adapters/linkedin, facebook, x, youtube | ⬜ |
-| publishing queue, post numbers, analytics | services/publish-*.ts, post-metrics*.ts | ⬜ |
+| publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
+| publishing images, videos, LinkedIn, X, YouTube; post numbers, analytics | services/publish-*.ts, post-metrics*.ts | ⬜ |
 | knowledge base and search | db/knowledge*.ts, lib/knowledge/ | ⬜ |
 | business profile, plans, calendar, reviews | services/marketing-*.ts, calendar-*.ts, performance-*.ts | ⬜ |
 

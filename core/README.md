@@ -58,4 +58,5 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/home/`, `internal/settings/` | Home's reads; the owner's switches | [home](../docs/backend/modules/home.md) |
 | `internal/setup/` | /welcome and Settings → What it knows | [setup](../docs/backend/modules/setup.md) |
 | `internal/channels/` | Settings → Connections | [channels](../docs/backend/modules/channels.md) |
+| `internal/publishing/`, `internal/drafts/`, `internal/contentrules/` | The publishing queue (Facebook text posts); content drafts; what a post may say | [publishing](../docs/backend/modules/publishing.md), [contentrules](../docs/backend/modules/contentrules.md) |
 | `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |
