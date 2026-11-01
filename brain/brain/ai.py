@@ -35,6 +35,15 @@ AUTOPOST = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=60, max_r
 # "Read my menu": a whole menu copied into a list (long answers, a photo or a PDF).
 MENU_READING = UseSettings(effort="low", max_tokens=16_000, timeout_seconds=120, max_retries=1)
 
+# The Co-Founder (the old adapters/claude-settings.ts): one interview answer
+# read (the owner waits on the page); one knowledge article read against
+# every topic; a whole marketing plan in ONE long try (a retry after a
+# timeout could never finish inside the page's 300 s); two weeks of post ideas.
+ONBOARDING_TURN = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=40, max_retries=1)
+FACT_SUGGESTION = UseSettings(effort="medium", max_tokens=4_000, timeout_seconds=45, max_retries=1)
+MARKETING_PLAN = UseSettings(effort="high", max_tokens=16_000, timeout_seconds=270, max_retries=0)
+CALENDAR_PLAN = UseSettings(effort="medium", max_tokens=6_000, timeout_seconds=90, max_retries=1)
+
 
 @dataclass(frozen=True)
 class ModelResult:

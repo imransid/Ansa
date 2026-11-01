@@ -110,6 +110,7 @@ func main() {
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
+	screensAPI.CofounderBrain = brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 285*time.Second)
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

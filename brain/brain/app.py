@@ -15,6 +15,8 @@ from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
 from brain.calls.decision import decide as decide_call
+from brain.cofounder.interview import InterviewTurnRequest, answer_turn
+from brain.cofounder.suggestions import FactSuggestionRequest, suggest_facts
 from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
 from brain.email.triage import TriageRequest
@@ -105,6 +107,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """One "Post for me" post about what core's topic brain chose (core
         checks it before it can go out). Never the post in a log."""
         return write_post(request, asker_for(request.engine, active.development))
+
+    # The Co-Founder (marketing): core checks every answer before it is saved.
+    @app.post("/v1/cofounder/interview-turn")
+    def cofounder_interview_turn(request: InterviewTurnRequest) -> dict:
+        return answer_turn(request, active_asker)
+
+    @app.post("/v1/cofounder/fact-suggestions")
+    def cofounder_fact_suggestions(request: FactSuggestionRequest) -> dict:
+        return suggest_facts(request, active_asker)
 
     return app
 
