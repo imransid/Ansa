@@ -37,7 +37,16 @@ plan, status texts); `assistant/order_test.go` (live database, a fake brain:
 summary priced by ansa with the address encrypted, a "yes" places #1 with
 ansa's total, sends the confirmation and queues the alert, the brain sees
 the order in progress, a second "yes" goes to a person; a "no" takes it
-back); `money_test.go`; `alerts_test.go` (the new-order email).
-**Still on the old backend:** the Orders page and its buttons (Accept, On
-its way / Ready, Done, Cancel with the customer's short message): they move
-with the screens' API (phase 7); `StatusText` is ready for them.
+back); `money_test.go`; `alerts_test.go` (the new-order email); `api_test.go`
+(the page's list and a status change through core's API).
+**The Orders page (`page.go`, `status.go`):** "To do" (new, accepted,
+ready; oldest first, 100) and "Finished" (newest 30), each order with its
+lines, fee, total, how, when, the address and notes decrypted ("(could not
+be decrypted)" otherwise). One button for the next step (`Change`): anyone
+in the company (read again FOR SHARE); the status checked in the UPDATE (a
+second press finds it changed); the customer's short fixed message
+(`StatusText`) saved in the same transaction as a person's message that
+doesn't take the conversation over, only when the chat may take one now;
+otherwise the status still changes and the page says why. Served by core's
+API ([api](api.md)); the page itself still calls the old backend until the
+screens switch (phase 7). `CountNew` is Home's "N new orders".

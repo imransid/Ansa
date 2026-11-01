@@ -15,3 +15,4 @@ company.
 | Claim a Telegram link code by its hash; find the code a Telegram user claimed | internal/telegram/linkstore.go | The code ansa made names its company (only its hash is stored); returns that code's id, company and maker only. |
 | Update the Telegram account a business connection id names; find which company an account is tied to | internal/telegram/linkstore.go, linking.go | Telegram's connection id names the one company a code tied it to; only that row (its company id) is read or changed. |
 | Find the one company that has a Facebook Page connected | internal/messenger/store.go | The Page id Meta signed names the company, only when exactly one has it; returns the company and connection ids only. |
+| Find who a session cookie belongs to | internal/session/session.go | The session token names one person; returns their id, company, role, name and address, and only their own company is used after. |

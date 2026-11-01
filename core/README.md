@@ -49,3 +49,5 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/alerts/` | Telling the owners a conversation needs them | [alerts](../docs/backend/modules/alerts.md) |
 | `internal/assignments/` | "A ticket is yours" emails | [assignments](../docs/backend/modules/assignments.md) |
 | `internal/schedule/` | Periodic work inside the service | [schedule](../docs/backend/modules/schedule.md) |
+| `internal/session/` | Who is asking: Better Auth's session, read by core | [session](../docs/backend/modules/session.md) |
+| `internal/api/` | The API for the screens (signed, logged in) | [api](../docs/backend/modules/api.md) |

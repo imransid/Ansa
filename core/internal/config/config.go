@@ -51,6 +51,10 @@ type Config struct {
 	FacebookAppID        string
 	FacebookAppSecret    string
 	MessengerVerifyToken string
+	// Signs every request the screens (Next.js's server) send core's API (at
+	// least 32 characters; the same value in the screens' settings). Empty:
+	// the API refuses every request.
+	ScreensSharedSecret string
 	// Where development stand-ins write (.dev-emails, .dev-messages): the
 	// repository's root by default, the folder the old backend writes to.
 	DevFolder string
@@ -77,6 +81,7 @@ func Load(getenv Getenv) (Config, error) {
 		EmailFrom:             getenv("EMAIL_FROM"),
 		ResendAPIKey:          getenv("RESEND_API_KEY"),
 		DevFolder:             withDefault(getenv("ANSA_DEV_FOLDER"), ".."),
+		ScreensSharedSecret:   getenv("SCREENS_SHARED_SECRET"),
 		FacebookAppID:         getenv("FACEBOOK_APP_ID"),
 		FacebookAppSecret:     getenv("FACEBOOK_APP_SECRET"),
 		MessengerVerifyToken:  getenv("MESSENGER_VERIFY_TOKEN"),
@@ -114,6 +119,9 @@ func Load(getenv Getenv) (Config, error) {
 	}
 	problems = append(problems, emailAndLinkProblems(cfg)...)
 	problems = append(problems, metaProblems(cfg)...)
+	if cfg.ScreensSharedSecret != "" && len(cfg.ScreensSharedSecret) < 32 {
+		problems = append(problems, "SCREENS_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)")
+	}
 	if len(problems) > 0 {
 		return Config{}, errors.New("settings: " + strings.Join(problems, "; "))
 	}

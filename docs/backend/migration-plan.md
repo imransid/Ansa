@@ -85,6 +85,12 @@
 ## Phase 7: screens on core's API
 Every page and action in `app/` calls core instead of `services/`. Then
 `services/`, `db/` (TypeScript) and `adapters/` are deleted.
+| Module | Status |
+|---|---|
+| core reads Better Auth's session itself (`core/internal/session`) | ✅ |
+| the API's frame: the screens' signature, the session, JSON (`core/internal/api`) | ✅ |
+| Orders page: list and status changes | ✅ in core's API; the page switches with the others |
+| the screens' side: one helper that signs and calls core (`lib/core-api.ts`) | ⬜ |
 
 ## Phase 8: switch-over
 Deploy core and brain, point the webhooks at core, watch, then remove the old

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"ansa/core/internal/alerts"
+	"ansa/core/internal/api"
 	"ansa/core/internal/assignments"
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/brainclient"
@@ -26,9 +27,11 @@ import (
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/messenger"
+	"ansa/core/internal/orders"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
+	"ansa/core/internal/session"
 	"ansa/core/internal/social"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tenant"
@@ -63,13 +66,18 @@ func main() {
 	defer pool.Close()
 
 	limiter := ratelimit.New(pool, cfg.AuthSecret)
-	worker := newWorker(cfg, pool, box, limiter, log)
+	sender := chatSender(cfg, pool, box)
+	worker := newWorker(cfg, pool, box, limiter, sender, log)
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
 	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken}
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
+	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
+		Sessions: &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
+		Orders:   &orders.StatusChange{Pool: pool, Box: box, Sender: sender}}
+	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
 	workCtx, stopWork := context.WithCancel(context.Background())
@@ -93,20 +101,12 @@ func main() {
 }
 
 // newWorker registers every job core runs.
-func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, log *logging.Logger) *jobs.Worker {
+func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, sender *chat.Sender, log *logging.Logger) *jobs.Worker {
 	mail := &email.Sender{Real: cfg.SendRealEmail, ResendKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder, FromAddress: cfg.EmailFrom}
 	runner := &assistant.Runner{
 		Pool: pool, Box: box, Limiter: limiter, Log: log,
 		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout),
-		Chat: &chat.Sender{
-			TelegramToken:      cfg.TelegramBotToken,
-			MessengerAppSecret: cfg.FacebookAppSecret,
-			PageToken: func(ctx context.Context, company tenant.CompanyID, connectionID string) (string, error) {
-				return social.PageToken(ctx, pool, box, company, connectionID)
-			},
-			StandInsAllowed: !cfg.IsProduction(),
-			StandInDir:      filepath.Join(cfg.DevFolder, ".dev-messages"),
-		},
+		Chat:  sender,
 	}
 	alerter := &alerts.Alerter{Pool: pool, Limiter: limiter, Email: mail, TelegramToken: cfg.TelegramBotToken, AppURL: cfg.AppURL, Log: log}
 	notifier := &assignments.Notifier{Pool: pool, Email: mail, AppURL: cfg.AppURL, Log: log}
@@ -117,6 +117,19 @@ func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter 
 	worker.Handle(tickets.AssignedJobKind, notifier.HandleJob)
 	worker.Handle(messenger.NameJobKind, (&messenger.Names{Pool: pool, Box: box, AppSecret: cfg.FacebookAppSecret}).HandleJob)
 	return worker
+}
+
+// chatSender is the one door for messages to customers.
+func chatSender(cfg config.Config, pool *database.Pool, box *secure.Box) *chat.Sender {
+	return &chat.Sender{
+		TelegramToken:      cfg.TelegramBotToken,
+		MessengerAppSecret: cfg.FacebookAppSecret,
+		PageToken: func(ctx context.Context, company tenant.CompanyID, connectionID string) (string, error) {
+			return social.PageToken(ctx, pool, box, company, connectionID)
+		},
+		StandInsAllowed: !cfg.IsProduction(),
+		StandInDir:      filepath.Join(cfg.DevFolder, ".dev-messages"),
+	}
 }
 
 // scheduledTasks is core's periodic work, each claimed in the database so

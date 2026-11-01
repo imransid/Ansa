@@ -56,6 +56,15 @@ Nothing is parsed before the signature is checked.
 - Core checks every proposal before it reaches a customer (prices, links,
   refund and offer words); the brain's own text is never trusted blindly.
 
+## 6b. Screens ↔ core
+- Core's API (`/api/v1/...`) is called only by the Next.js server, over the
+  private network. Every request is signed (HMAC-SHA256 with
+  `SCREENS_SHARED_SECRET` over the method, the path and the body, within 60
+  seconds) AND carries the person's Better Auth session cookie, which core
+  verifies itself (`core/internal/session`). The company comes from that
+  session only; a body naming a company is refused (unknown fields are).
+- Test: `core/internal/api/api_test.go`, `core/internal/session/session_test.go`.
+
 ## 7. Inputs
 - Every input is validated with an explicit schema (Go structs with checks;
   Pydantic in Python) before it is used. Unknown fields are refused where the
