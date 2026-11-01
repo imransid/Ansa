@@ -34,4 +34,5 @@ state. Read `docs/backend/README.md` first.
 | `brain/posts/` | Writing one "Post for me" post from the business's own details | [autopost](../docs/backend/modules/autopost.md) |
 | `brain/analytics/` | Reviewing one period's post numbers (aggregates only; core checks every number) | [analytics](../docs/backend/modules/analytics.md) |
 | `brain/content/` | Writing one content studio draft from the confirmed facts (core marks its claims) | [studio](../docs/backend/modules/studio.md) |
+| `brain/cofounder/` | The Co-Founder: an interview turn, facts from a knowledge article, a marketing plan, two weeks of post ideas | [profile](../docs/backend/modules/profile.md), [strategy](../docs/backend/modules/strategy.md), [calendar](../docs/backend/modules/calendar.md) |
 | `brain/text.py` | Escaping and hiding secrets in prompts | [brain-assistant](../docs/backend/modules/brain-assistant.md) |

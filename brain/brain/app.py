@@ -17,6 +17,10 @@ from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
 from brain.content.draft import DraftRequest, write_draft
 from brain.calls.decision import decide as decide_call
+from brain.cofounder.calendar import CalendarPlanRequest, plan_calendar
+from brain.cofounder.interview import InterviewTurnRequest, answer_turn
+from brain.cofounder.plan import MarketingPlanRequest, make_plan
+from brain.cofounder.suggestions import FactSuggestionRequest, suggest_facts
 from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
 from brain.email.triage import TriageRequest
@@ -119,6 +123,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """One content studio draft (core cleans it and marks its claims).
         Never the facts or the draft in a log."""
         return write_draft(request, active_asker)
+
+    # The Co-Founder (marketing): core checks every answer before it is saved.
+    @app.post("/v1/cofounder/interview-turn")
+    def cofounder_interview_turn(request: InterviewTurnRequest) -> dict:
+        return answer_turn(request, active_asker)
+
+    @app.post("/v1/cofounder/fact-suggestions")
+    def cofounder_fact_suggestions(request: FactSuggestionRequest) -> dict:
+        return suggest_facts(request, active_asker)
+
+    @app.post("/v1/cofounder/marketing-plan")
+    def cofounder_marketing_plan(request: MarketingPlanRequest) -> dict:
+        return make_plan(request, active_asker)
+
+    @app.post("/v1/cofounder/calendar-plan")
+    def cofounder_calendar_plan(request: CalendarPlanRequest) -> dict:
+        return plan_calendar(request, active_asker)
 
     return app
 

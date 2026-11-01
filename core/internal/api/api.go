@@ -95,6 +95,9 @@ type Server struct {
 	Reviews *analytics.Reviewer
 	// The content studio and the media library (cofounder_studio.go).
 	Studio *StudioServices
+	// The Co-Founder's AI (interview, suggestions, plans, calendar): a time
+	// long enough for a marketing plan's one try of 270 s.
+	CofounderBrain *brainclient.Client
 }
 
 // Register adds every endpoint.
@@ -122,6 +125,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerAnalytics(routes)
 	s.registerCofounderQueue(routes)
 	s.registerStudio(routes)
+	s.registerCofounder(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

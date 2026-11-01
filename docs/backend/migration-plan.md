@@ -70,7 +70,8 @@
 | publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
 | knowledge search and the AI's article slice (the assistant reads them) | db/knowledge-search.ts, lib/knowledge/search-query.ts, prompt-slice.ts | ✅ core/internal/knowledge |
 | knowledge base: writing, approving, imports (documents incl. PDF via the brain, web pages via safefetch), the Knowledge page | db/knowledge*.ts, lib/knowledge/, lib/safe-fetch.ts | ✅ core/internal/knowledge, safefetch; brain/brain/documents |
-| business profile, plans, calendar, reviews | services/marketing-*.ts, calendar-*.ts, performance-*.ts | ⬜ |
+| business profile, interview, fact suggestions, marketing plans and the Strategy page, the calendar and "Plan the next 2 weeks", the Overview | services/business-profile.ts, onboarding-*.ts, fact-suggestions.ts, marketing-*.ts, calendar-planning.ts, cofounder-overview.ts | ✅ core/internal/profile, strategy, calendar, cofounder; brain/brain/cofounder (in core's API; the screens still call the old services) |
+| performance reviews | services/performance-*.ts | ⬜ |
 
 ## Phase 5: support (tickets, calls, email)
 | Module | Old code | Status |

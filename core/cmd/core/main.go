@@ -120,6 +120,7 @@ func main() {
 	generations := &mediagen.Service{Pool: pool, Files: storage, Limiter: limiter, Log: log, Mode: mediagen.ModeFor(cfg.MediaProvider, cfg.IsProduction())}
 	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second), Limiter: limiter, Log: log},
 		Generation: generations}
+	screensAPI.CofounderBrain = brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 285*time.Second)
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
