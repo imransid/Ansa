@@ -155,8 +155,10 @@ export async function finishSocialConnectionThroughCore(session: SessionContext 
     return redirectTo(buildLoginUrl(ACCOUNTS_PAGE));
   }
   // URLSearchParams writes the query fully encoded, so fetch sends it as
-  // signed (core checks the signature on the address it receives).
-  const answer = await callCore<{ location: string }>("GET", `/api/v1/social/${platform}/callback?${query.toString()}`);
+  // signed (core checks the signature on the address it receives). No "?"
+  // without a query: fetch would drop it, and the signature with it.
+  const search = query.toString();
+  const answer = await callCore<{ location: string }>("GET", `/api/v1/social/${platform}/callback${search ? `?${search}` : ""}`);
   if (!answer.ok && answer.status === 401) {
     return redirectTo(buildLoginUrl(ACCOUNTS_PAGE));
   }
