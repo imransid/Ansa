@@ -21,7 +21,13 @@ integers, texts capped) → handle. An update ansa can't read is answered 200.
   read listed in `CROSS_COMPANY.md`).
 - Still on the old backend (`links.go` answers 200 and changes nothing): the
   link codes and `business_connection` updates that tie an account to a company.
+**Sending (`send.go`):** `Send(token, chatID, text, businessConnectionID)`:
+one request with a 15-second limit, no redirects (the token is in the
+address); only `ok`, the message id and the HTTP status are read; 429 =
+`rate_limited`, 401/404 = `bot_rejected`, other refusals = `refused`; no
+answer or a 5xx = `unclear` (Telegram may have it: never sent again by itself).
 **Settings:** TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, TELEGRAM_WEBHOOK_SECRET (all or none).
 **Tests:** `update_test.go`; `webhook_test.go` (live database): a wrong or
 missing secret saves nothing; a customer message is saved once, encrypted,
-with one reply job; the business's own message, the bot's echo and deletions.
+with one reply job; the business's own message, the bot's echo and deletions;
+`send_test.go`: sent, rate limited, unclear, a wrong token.
