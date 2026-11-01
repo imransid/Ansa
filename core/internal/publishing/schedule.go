@@ -71,7 +71,7 @@ func scheduleWithin(ctx context.Context, tx database.Tx, company tenant.CompanyI
 	if err != nil {
 		return Scheduled{}, err
 	}
-	in, ruleID, err := readScheduleInputWithin(ctx, tx, company, draft, r)
+	in, ruleID, err := readScheduleInputWithin(ctx, tx, company, draft, r, "")
 	if err != nil {
 		return Scheduled{}, err
 	}
@@ -113,12 +113,17 @@ func scheduleWithin(ctx context.Context, tx database.Tx, company tenant.CompanyI
 
 // readScheduleInputWithin reads what deciding a schedule needs, after the
 // draft's row is locked, and the covering rule's id ("" = none).
-func readScheduleInputWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, draft *drafts.Draft, r ScheduleRequest) (ScheduleInput, string, error) {
+// excludeJobID: a Retry's own job, which doesn't count as already there.
+func readScheduleInputWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, draft *drafts.Draft, r ScheduleRequest, excludeJobID string) (ScheduleInput, string, error) {
 	facts, err := drafts.ConfirmedFacts(ctx, tx, company)
 	if err != nil {
 		return ScheduleInput{}, "", err
 	}
-	checked, blocked := forChecks(draft, facts)
+	content, err := readContentWithin(ctx, tx, company, draft.ID)
+	if err != nil {
+		return ScheduleInput{}, "", err
+	}
+	checked, blocked := forChecks(draft, content, facts)
 	in := ScheduleInput{ShownVersion: r.ShownVersion, WithoutApproval: r.WithoutApproval, Draft: checked, PickedAccounts: r.ConnectionIDs, Blocked: blocked}
 	if draft.ApprovedByUserID != nil {
 		role, err := team.RoleWithin(ctx, tx, company, *draft.ApprovedByUserID)
@@ -135,7 +140,7 @@ func readScheduleInputWithin(ctx context.Context, tx database.Tx, company tenant
 	if in.Accounts, err = lockAccountsWithin(ctx, tx, company, r.ConnectionIDs); err != nil {
 		return ScheduleInput{}, "", err
 	}
-	in.AccountsWithLive, err = accountsWithLiveJobWithin(ctx, tx, company, draft.ID, r.ConnectionIDs)
+	in.AccountsWithLive, err = accountsWithLiveJobWithin(ctx, tx, company, draft.ID, r.ConnectionIDs, excludeJobID)
 	return in, ruleID, err
 }
 
@@ -187,13 +192,13 @@ func lockAccountsWithin(ctx context.Context, tx database.Tx, company tenant.Comp
 }
 
 // accountsWithLiveJobWithin are the picked accounts that have this draft
-// on its way, out or waiting for a person already.
-func accountsWithLiveJobWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, draftID string, ids []string) ([]string, error) {
+// on its way, out or waiting for a person already (but excludeJobID: "" = none).
+func accountsWithLiveJobWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, draftID string, ids []string, excludeJobID string) ([]string, error) {
 	const statement = `
 		SELECT connection_id FROM publish_jobs
 		WHERE company_id = $1 AND draft_id = $2 AND connection_id::text = ANY($3::text[])
-			AND status IN ('queued', 'publishing', 'published', 'needs_attention')`
-	rows, err := tx.Query(ctx, statement, company.String(), draftID, ids)
+			AND status IN ('queued', 'publishing', 'published', 'needs_attention') AND id::text <> $4`
+	rows, err := tx.Query(ctx, statement, company.String(), draftID, ids, excludeJobID)
 	if err != nil {
 		return nil, err
 	}

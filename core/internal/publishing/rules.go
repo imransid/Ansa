@@ -47,18 +47,8 @@ func SetAnyPillarRule(ctx context.Context, pool *database.Pool, company tenant.C
 		if enabled == on {
 			return nil
 		}
-		const update = `
-			UPDATE autopublish_rules SET enabled = $3, enabled_by_user_id = CASE WHEN $3 THEN $4::uuid END, enabled_at = CASE WHEN $3 THEN now() END, updated_at = now()
-			WHERE company_id = $1 AND id = $2`
-		if _, err := tx.Exec(ctx, update, company.String(), ruleID, on, actorUserID); err != nil {
-			return err
-		}
 		outcome = "changed"
-		action := "rule_disabled"
-		if on {
-			action = "rule_enabled"
-		}
-		return recordWithin(ctx, tx, company, Activity{Action: action, ActorUserID: actorUserID, RuleID: ruleID})
+		return switchRuleWithin(ctx, tx, company, actorUserID, ruleID, on)
 	})
 	return outcome, err
 }
