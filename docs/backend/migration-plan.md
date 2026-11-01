@@ -64,7 +64,8 @@
 | social connections: Facebook Pages (connect, return, stand-in, disconnect) | services/social-connect.ts, social-oauth-callback.ts, adapters/facebook.ts | ✅ core/internal/socialconnect |
 | social connections: LinkedIn, X, YouTube (OAuth, PKCE, renewals, revokes) | adapters/linkedin, x, youtube, services/social-tokens.ts | ⬜ |
 | publishing queue (Facebook text posts) | services/publish-*.ts, db/publish-*.ts | ✅ core/internal/publishing |
-| publishing images, videos, LinkedIn, X, YouTube; post numbers, analytics | services/publish-*.ts, post-metrics*.ts | ⬜ |
+| post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
+| publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
 | knowledge base and search | db/knowledge*.ts, lib/knowledge/ | ⬜ |
 | business profile, plans, calendar, reviews | services/marketing-*.ts, calendar-*.ts, performance-*.ts | ⬜ |
 

@@ -108,6 +108,8 @@ func (r *Runner) send(ctx context.Context, claim *Claim) (string, error) {
 	}
 	page, err := social.PageForPosting(ctx, r.Pool, r.Box, claim.Company, claim.ConnectionID)
 	switch {
+	case errors.Is(err, social.ErrNeedsReconnect):
+		return r.fail(ctx, claim, "reauthorization_needed", "")
 	case errors.Is(err, social.ErrNotConnected):
 		return r.fail(ctx, claim, "account_disconnected", "")
 	case errors.Is(err, social.ErrNotUsable):

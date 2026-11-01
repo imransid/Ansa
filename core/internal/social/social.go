@@ -50,8 +50,12 @@ func PageToken(ctx context.Context, pool *database.Pool, box *secure.Box, compan
 	return token, nil
 }
 
-// ErrNotConnected: the account was disconnected, or needs a reconnect.
+// ErrNotConnected: the account was disconnected (or isn't the company's).
 var ErrNotConnected = errors.New("social: the account is not connected")
+
+// ErrNeedsReconnect: the platform no longer accepts ansa's permission for
+// the account: an owner connects it again.
+var ErrNeedsReconnect = errors.New("social: the account needs a reconnect")
 
 // Page is a connected Facebook Page ready for one post.
 type Page struct {
@@ -65,8 +69,8 @@ type Page struct {
 }
 
 // PageForPosting reads one connected Facebook Page of one company for a
-// post: ErrNotConnected when it isn't connected now, ErrNotUsable when its
-// token can't be read.
+// post: ErrNeedsReconnect or ErrNotConnected when it isn't connected now,
+// ErrNotUsable when its token can't be read.
 func PageForPosting(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, connectionID string) (*Page, error) {
 	const statement = `
 		SELECT id, external_account_id, status, is_stand_in, access_token_encrypted FROM social_connections
@@ -75,11 +79,15 @@ func PageForPosting(ctx context.Context, pool *database.Pool, box *secure.Box, c
 	var stored *string
 	var page Page
 	err := pool.QueryRow(ctx, statement, company.String(), connectionID).Scan(&storedID, &page.ExternalID, &status, &page.IsStandIn, &stored)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (status != "connected" || stored == nil)) {
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		return nil, ErrNotConnected
-	}
-	if err != nil {
+	case err != nil:
 		return nil, err
+	case status == "needs_reauth":
+		return nil, ErrNeedsReconnect
+	case status != "connected" || stored == nil:
+		return nil, ErrNotConnected
 	}
 	token, err := box.Decrypt(*stored, TokenContext(company, storedID, "access"))
 	if err != nil || token == "" {
