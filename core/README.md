@@ -64,7 +64,8 @@ From `core/`: `make check` (formatting, `go vet`, every test).
 | `internal/documents/`, `internal/supportsetup/` | Phone, email and documents: uploads, downloads, reply-to and support addresses | [documents](../docs/backend/modules/documents.md) |
 | `internal/teammates/` | The Team page: invites, roles, removing someone, categories | [teammates](../docs/backend/modules/teammates.md) |
 | `internal/maintenance/` | Hourly cleanup of rows nobody can use any more | [maintenance](../docs/backend/modules/maintenance.md) |
-| `internal/knowledge/` | Searching approved articles; the escaped slice the AI reads | [knowledge](../docs/backend/modules/knowledge.md) |
+| `internal/knowledge/` | The knowledge base: articles, approvals, search, the AI's slice, imports | [knowledge](../docs/backend/modules/knowledge.md) |
+| `internal/safefetch/` | Fetching a typed web address without reaching anything private | [safefetch](../docs/backend/modules/safefetch.md) |
 | `internal/postmetrics/` | Reading published posts' numbers (Facebook) | [postmetrics](../docs/backend/modules/postmetrics.md) |
 | `internal/socialconnect/` | Connecting Facebook Pages (Facebook's sign-in), disconnecting | [socialconnect](../docs/backend/modules/socialconnect.md) |
 | `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |

@@ -30,6 +30,7 @@ import (
 	"ansa/core/internal/publishing"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/resend"
+	"ansa/core/internal/safefetch"
 	"ansa/core/internal/schedule"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
@@ -94,7 +95,7 @@ func main() {
 		Assistant:   runner,
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
-		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: fileStore(cfg), EmailFrom: cfg.EmailFrom,
+		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: fileStore(cfg), EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction()}}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)

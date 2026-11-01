@@ -27,6 +27,7 @@ import (
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
 	"ansa/core/internal/ratelimit"
+	"ansa/core/internal/safefetch"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
 	"ansa/core/internal/socialconnect"
@@ -74,6 +75,8 @@ type Server struct {
 	// (never a company's reply-to or support address).
 	Files     *files.Store
 	EmailFrom string
+	// "Import a web page" fetches only through it.
+	WebFetcher *safefetch.Fetcher
 }
 
 // Register adds every endpoint.
@@ -93,6 +96,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerSocial(routes)
 	s.registerTeam(routes)
 	s.registerSupport(routes)
+	s.registerKnowledge(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

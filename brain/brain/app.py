@@ -13,6 +13,7 @@ from brain import ai, claude_code
 from brain.assistant.answer import read_answer
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
+from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.email.triage import SYSTEM_PROMPT as TRIAGE_SYSTEM_PROMPT
 from brain.email.triage import TriageRequest
 from brain.email.triage import build_prompt as build_triage_prompt
@@ -45,7 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.url.path == "/health":
             return await call_next(request)
         body = await request.body()
-        cap = MENU_BODY_BYTES if request.url.path == "/v1/menu/read" else MAX_BODY_BYTES
+        cap = MENU_BODY_BYTES if request.url.path in ("/v1/menu/read", "/v1/documents/pdf-text") else MAX_BODY_BYTES
         if len(body) > cap:
             return Response(status_code=413)
         if not is_signed_by_core(active.shared_secret, request.headers.get(TIMESTAMP_HEADER), request.headers.get(SIGNATURE_HEADER), body):
@@ -85,6 +86,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def email_triage(request: TriageRequest) -> dict:
         """A received email's summary, subject and category (or why not)."""
         return triage_email(request, active_asker)
+
+    @app.post("/v1/documents/pdf-text")
+    def documents_pdf_text(request: PdfTextRequest) -> dict:
+        """A PDF's text for "Add to knowledge" (never logged)."""
+        return read_pdf_text(request)
 
     @app.post("/v1/posts/write")
     def posts_write(request: PostRequest) -> dict:

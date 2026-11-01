@@ -29,5 +29,6 @@ state. Read `docs/backend/README.md` first.
 | `brain/assistant/` | The reply's prompt, answer and models | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
 | `brain/email/` | Triaging a customer email (the customer's own words only) | [email-in](../docs/backend/modules/email-in.md) |
 | `brain/menu/` | Reading a menu (a photo, a PDF or text) into rows | [menu](../docs/backend/modules/menu.md) |
+| `brain/documents/` | A PDF's text for "Add to knowledge" (pypdf) | [knowledge](../docs/backend/modules/knowledge.md) |
 | `brain/posts/` | Writing one "Post for me" post from the business's own details | [autopost](../docs/backend/modules/autopost.md) |
 | `brain/text.py` | Escaping and hiding secrets in prompts | [brain-assistant](../docs/backend/modules/brain-assistant.md) |

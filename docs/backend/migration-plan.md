@@ -67,7 +67,7 @@
 | post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
 | publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
 | knowledge search and the AI's article slice (the assistant reads them) | db/knowledge-search.ts, lib/knowledge/search-query.ts, prompt-slice.ts | ✅ core/internal/knowledge |
-| knowledge base: writing, approving, imports, the Knowledge page | db/knowledge*.ts, lib/knowledge/ | ⬜ |
+| knowledge base: writing, approving, imports (documents incl. PDF via the brain, web pages via safefetch), the Knowledge page | db/knowledge*.ts, lib/knowledge/, lib/safe-fetch.ts | ✅ core/internal/knowledge, safefetch; brain/brain/documents |
 | business profile, plans, calendar, reviews | services/marketing-*.ts, calendar-*.ts, performance-*.ts | ⬜ |
 
 ## Phase 5: support (tickets, calls, email)

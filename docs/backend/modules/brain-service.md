@@ -17,3 +17,8 @@ core's topic brain chose, from the business's own details: `{"kind": "ok",
 "body", "call_to_action", "hashtags"}` or `{"kind": "failed", "reason":
 "model_unavailable" | "model_failed" | "unusable_answer"}`. Core checks the
 text before it can go out. See [autopost](autopost.md).
+**`POST /v1/documents/pdf-text` (signed, up to 6 MB):** a PDF's text
+(`{"kind": "ok", "text"}` or `{"kind": "failed", "reason": "unreadable" |
+"no_text"}`), at most 1,000 pages and 400,000 characters; pypdf's own
+warnings are switched off (they can name what is inside the file). Core
+cleans and cuts the text ([knowledge](knowledge.md)).
