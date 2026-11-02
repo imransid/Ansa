@@ -27,7 +27,11 @@ replies, bulk mail, bounces, 10 an hour per sender) → the brain's triage
 while the email is still claimed: the request (routed like every new one),
 the email encrypted (subject, body, attachment names), and the sender's
 conversation. Whatever fails after the content arrived still saves one
-fallback request.
+fallback request. A run cut off (core stopped) leaves the email
+"processing": the job comes back after its 10-minute lease, finds it
+still claimed and fails as "still_processing" (not for good), and its next
+tries (5 in all, waits of 2 and 8 minutes) reach the 15 minutes after which
+the claim takes it again. Test: `TestAnEmailCutOffWhileProcessingIsTriedAgain`.
 **The sender (`inbound/sender.go`):** filled in as the customer ONLY when
 Resend's own DKIM or DMARC passed (never SPF alone, never a header anyone
 can write), every From text holds exactly one "@" and names the same

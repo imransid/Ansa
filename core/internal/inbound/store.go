@@ -51,6 +51,15 @@ func markIgnored(ctx context.Context, pool *database.Pool, company tenant.Compan
 	return err
 }
 
+// stillProcessing: the email is "processing" (a run holds it, or held it
+// when core stopped).
+func stillProcessing(ctx context.Context, pool *database.Pool, company tenant.CompanyID, inboundEmailID string) (bool, error) {
+	const statement = `SELECT EXISTS (SELECT 1 FROM inbound_emails WHERE company_id = $1 AND id = $2 AND status = 'processing')`
+	var processing bool
+	err := pool.QueryRow(ctx, statement, company.String(), inboundEmailID).Scan(&processing)
+	return processing, err
+}
+
 func supportAddresses(ctx context.Context, pool *database.Pool, company tenant.CompanyID) ([]string, error) {
 	return readStrings(ctx, pool, `SELECT lower(address) FROM inbound_addresses WHERE company_id = $1`, company)
 }

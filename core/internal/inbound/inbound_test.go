@@ -2,6 +2,8 @@ package inbound
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +16,7 @@ import (
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/resend"
@@ -126,5 +129,42 @@ func TestHTMLIsReadAsText(t *testing.T) {
 	got := HTMLToText(`<html><head><title>x</title><style>p{}</style></head><body><p>Hello &amp; welcome</p><table><tr><td>Email</td><td>ana@x.com</td></tr></table><script>alert(1)</script></body></html>`, 1000)
 	if got != "Hello & welcome\n\nEmail\tana@x.com" {
 		t.Fatalf("text: %q", got)
+	}
+}
+
+// Core stopped in the middle of an email: the job that comes back after its
+// lease finds it still "processing" and tries again later, until the claim
+// may take it (15 minutes after that run started); an email that is done
+// ends the job.
+func TestAnEmailCutOffWhileProcessingIsTriedAgain(t *testing.T) {
+	w := newEmailWorld(t)
+	ctx := context.Background()
+	id := w.received(`{"from":"ana@shop-customer.example","subject":"Late","text":"It is late.","authentication":null}`)
+	payload, _ := json.Marshal(resend.ProcessPayload{InboundEmailID: id})
+	job := &jobs.Job{CompanyID: w.company, Kind: resend.ProcessJobKind, Payload: payload, Attempt: 2}
+	cutOff := func(minutesAgo int) {
+		_, err := w.pool.Exec(ctx, `UPDATE inbound_emails SET status = 'processing', processing_started_at = now() - make_interval(mins => $3::int)
+			WHERE company_id = $1 AND id = $2`, w.company.String(), id, minutesAgo)
+		if err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+	}
+
+	cutOff(11)
+	var failure *jobs.Failure
+	if err := w.processor.HandleJob(ctx, job); !errors.As(err, &failure) || failure.Code != "still_processing" || failure.Permanent {
+		t.Fatalf("a run cut off 11 minutes ago: %v", err)
+	}
+	cutOff(16)
+	if err := w.processor.HandleJob(ctx, job); err != nil {
+		t.Fatalf("15 minutes on: %v", err)
+	}
+	var status string
+	w.pool.QueryRow(ctx, `SELECT status FROM inbound_emails WHERE company_id = $1 AND id = $2`, w.company.String(), id).Scan(&status)
+	if status != "ticketed" {
+		t.Fatalf("status: %s", status)
+	}
+	if err := w.processor.HandleJob(ctx, job); err != nil {
+		t.Fatalf("done already: %v", err)
 	}
 }

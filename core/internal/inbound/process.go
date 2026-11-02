@@ -51,8 +51,23 @@ func (p *Processor) HandleJob(ctx context.Context, job *jobs.Job) error {
 	if json.Unmarshal(job.Payload, &payload) != nil || payload.InboundEmailID == "" {
 		return &jobs.Failure{Code: "bad_payload", Permanent: true}
 	}
-	_, err := p.Process(ctx, job.CompanyID, payload.InboundEmailID, claimNew, true)
-	return err
+	outcome, err := p.Process(ctx, job.CompanyID, payload.InboundEmailID, claimNew, true)
+	if err != nil || outcome != NotClaimed {
+		return err
+	}
+	// Core stopped in the middle of this email: the job comes back after its
+	// 10-minute lease, but the claim takes the email only 15 minutes after
+	// that run started. Try again later (the webhook gives the job 5 tries,
+	// whose growing waits reach past those 15 minutes) instead of ending
+	// with the email stuck until someone presses "Process again".
+	processing, err := stillProcessing(ctx, p.Pool, job.CompanyID, payload.InboundEmailID)
+	if err != nil {
+		return err
+	}
+	if processing {
+		return &jobs.Failure{Code: "still_processing"}
+	}
+	return nil
 }
 
 // Process claims the email with `claim`, fetches its content and turns it

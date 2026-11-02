@@ -205,7 +205,7 @@ func saveAndQueue(ctx context.Context, pool *database.Pool, company tenant.Compa
 		if err != nil {
 			return ignoreNoRows(err)
 		}
-		_, err = jobs.EnqueueWithin(ctx, tx, company, jobs.NewJob{Kind: ProcessJobKind, Payload: ProcessPayload{InboundEmailID: id}, MaxAttempts: 3})
+		_, err = jobs.EnqueueWithin(ctx, tx, company, jobs.NewJob{Kind: ProcessJobKind, Payload: ProcessPayload{InboundEmailID: id}, MaxAttempts: 5})
 		return err
 	})
 }
