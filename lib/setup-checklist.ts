@@ -7,8 +7,8 @@ import type { SetupOverview } from "@/lib/types/setup";
 // is another page.
 export type ChecklistItem = { label: string; done: boolean; href?: string };
 
-// The "what's left to set up" list (Setup page; the dashboard counts what is
-// left for owners). Email and phone count as done only once something really
+// The "what's left to set up" list (the Setup page: Home no longer shows
+// it). Email and phone count as done only once something really
 // arrived: a saved setting proves nothing about whether mail or calls reach
 // ansa. The email item says only what we know: Gmail's confirmation email, or
 // a customer replying to a "solved" email, can reach the forwarding address
