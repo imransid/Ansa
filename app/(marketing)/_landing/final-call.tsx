@@ -3,8 +3,8 @@ import { ConciergeBell } from "lucide-react";
 
 // The last word: one line, one button (the same as the hero's).
 //
-// LAUNCH CHECK (step 57): "No card needed" holds while signup asks for none;
-// packages and limits (step 56) may change that.
+// LAUNCH CHECK (step 58): "No card needed" holds while signup asks for none;
+// packages and limits (step 57) may change that.
 export function FinalCall() {
   return (
     <section className="bg-background">

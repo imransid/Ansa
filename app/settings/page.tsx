@@ -46,7 +46,7 @@ const ACCOUNT_LINK: SettingsLink = { href: "/account", label: "Your account", de
 const BILLING_LINK: SettingsLink = { href: "/billing", label: "Billing", description: "Your subscription and payments." };
 
 // The Co-Founder's pages the sidebar no longer links (step 44): everything
-// but the studio and media library and the accounts (above). Step 57
+// but the studio and media library and the accounts (above). Step 58
 // removes them or gives them a place; until then they wait, folded away.
 const OLDER_LINKS: SettingsLink[] = COFOUNDER_PAGES.filter((page) => !["studio", "media", "accounts"].includes(page.segment ?? "")).map(
   (page) => ({ href: page.href, label: page.label, description: "Marketing helper, from before the redesign." }),

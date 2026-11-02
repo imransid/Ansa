@@ -5,7 +5,7 @@
 kept as Stripe has it, written ONLY from Stripe's signed webhooks (or the
 development stand-in), never from what a browser sends. It records who
 pays and enforces nothing yet: packages, limits and what happens when a
-payment fails are the owner's decision (build step 56).
+payment fails are the owner's decision (build step 57).
 
 **Stripe (`stripe.go`):** its REST API over HTTPS, no SDK: the secret key
 as Basic auth, the old library's API version pinned (`2026-09-30.endive`),

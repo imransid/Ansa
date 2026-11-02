@@ -3,14 +3,14 @@ import { ConciergeBell } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { AwayCard } from "./away-card";
 
-// The website's first screen (step 57, built early; rewritten 2026-11-01
+// The website's first screen (step 58, built early; rewritten 2026-11-01
 // around the owner's core: ansa is your AI stand-in when you can't answer,
 // for you or for your whole business). One promise, one button, who it is
 // for, and the signature: a late-night chat answered for you, and the "While
 // you were away" note you wake up to, hanging over the hero's edge. Both
 // are examples, and say so.
 //
-// LAUNCH CHECK (step 57): answering on Telegram (steps 48-51) works; a
+// LAUNCH CHECK (step 58): answering on Telegram (steps 48-51) works; a
 // phone call taken as a note needs calls live (step 55) before this goes public.
 const FOR_WHOM = ["Freelancers", "Consultants", "Agents", "Clinics", "Shops", "Restaurants", "Busy teams"];
 

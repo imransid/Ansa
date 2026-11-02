@@ -1,10 +1,10 @@
 // A few honest answers to what people ask before they hand their messages
 // to an assistant (rewritten 2026-11-01 for a person or a business), each
 // opening on its own (no script needed). The price isn't decided yet
-// (step 56), so the answer says only what is true today.
+// (step 57), so the answer says only what is true today.
 //
-// LAUNCH CHECK (step 57): the channels (steps 53 and 55) and the price
-// (step 56) must be settled first.
+// LAUNCH CHECK (step 58): the channels (steps 53 and 55) and the price
+// (step 57) must be settled first.
 const QUESTIONS = [
   {
     question: "Will people think they're talking to me?",

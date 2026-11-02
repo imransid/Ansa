@@ -16,7 +16,7 @@ type OrderTicketProps = {
 // An order set like a printed kitchen ticket: torn top edge, the dishes with
 // dotted lines to their prices, a large serif total. Shown by the website's
 // first hero; unused since its rewrite of 2026-11-01 (the Orders page, step
-// 52, has its own card, app/orders/order-card.tsx). Step 57 decides.
+// 52, has its own card, app/orders/order-card.tsx). Step 58 decides.
 export function OrderTicket({ title, detail, lines, total, note, className }: OrderTicketProps) {
   return (
     <div className={cn("ticket-edge rounded-b-xl bg-[#fbf8f1] px-5 pt-7 pb-5 text-[#11211a] shadow-[0_18px_40px_rgb(0_10_5/0.35),0_2px_6px_rgb(0_10_5/0.25)]", className)}>

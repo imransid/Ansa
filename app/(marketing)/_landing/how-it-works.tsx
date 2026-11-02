@@ -1,7 +1,7 @@
 // "How it works": three steps on paper, numbered in the display serif, under
 // a brass rule (rewritten 2026-11-01 for a person or a business).
 //
-// LAUNCH CHECK (step 57): the channels named in step 2 must work (Telegram
+// LAUNCH CHECK (step 58): the channels named in step 2 must work (Telegram
 // does; email replies, calls and Messenger: steps 53 and 55).
 const STEPS = [
   {

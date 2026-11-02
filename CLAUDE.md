@@ -1652,7 +1652,7 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   same as its placeholder, so nothing moves when the session arrives. A
   phone has no sidebar: Settings lists Account and Log out, Billing
   (owners), and every page the sidebar doesn't link (the Co-Founder's other
-  pages under "Older pages" until step 57; a person's account doesn't list
+  pages under "Older pages" until step 58; a person's account doesn't list
   the marketing pages); the Inbox links Calls and Emails. An error boundary sits beside the sidebar
   (components/page-error-boundary.tsx, Next's catchError), so it stays
   when a page or a server action fails. Pages never render the navigation,
@@ -2275,13 +2275,17 @@ Automatic by default; "Ask me first" is an option:
 54. Weekly Facebook post suggestions with owner approval
 55. Phone calls follow the account's settings (a person forwards unanswered
     calls to ansa's number). Real calls BLOCKED (no Vapi account)
-56. Packages and usage limits (names, limits and prices: the owner decides)
-57. Website, clean-up of hidden pages, final checks
+56. WhatsApp Business: customers' messages (and calls, if Meta allows it)
+    answered as on Telegram. Real customers BLOCKED until Meta's approval
+57. Packages and usage limits (names, limits and prices: the owner decides)
+58. Website, clean-up of hidden pages, final checks
 
 Steps 50 and 51 were added on 2026-11-01 by the owner's direction: ansa is a
 representative that answers for you when you can't, for a business (its
 customers) or for one person (their shadow). The old steps 50 to 55 became
 52 to 57; decision log entries keep the numbers they had at the time.
+WhatsApp Business was added as step 56 on 2026-11-03 (the owner's yes):
+packages and the website became 57 and 58.
 
 Every outside service gets a local stand-in (like .dev-emails/), so each step can
 be built and tested before the real account exists.
@@ -3178,7 +3182,7 @@ this order and is done on the laptop, deploying aside
   sidebar links Home, Inbox and Settings only (and Orders for a business
   that takes orders). Calls and Emails are reached from the Inbox, and the
   Co-Founder's Overview, Interview, Profile, Strategy, Calendar, Queue and
-  Analytics from Settings → "Older pages" (folded), until step 57 moves or
+  Analytics from Settings → "Older pages" (folded), until step 58 moves or
   removes them. A bookmark of the old ticket list (/dashboard?view=...)
   opens Home, which ignores the view. On a phone there is no logo or
   company name on screen (the bottom bar has only the sections).
@@ -4065,3 +4069,11 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   part (screens, core, brain, audit). The rules above keep the old file
   names as where each rule was first written (Architecture rules says how to
   read them). Deploying (hosting for core and the brain) is open.
+- 2026-11-03: The owner's direction for every outside service still to
+  come: development runs on the laptop for free (a local stand-in, no
+  account, no credit card), and the paid provider is chosen only for
+  production, plugged in behind one door in core so nothing else changes.
+  Calls (step 55) first: on the laptop a practice phone, in production the
+  best of Vapi, Twilio, Telnyx or LiveKit, chosen then. WhatsApp Business
+  became step 56 (personal WhatsApp stays impossible: no allowed API).
+

@@ -214,7 +214,7 @@
   }
 }
 
-/* The website's one moment of motion (step 57, done early): in the hero, the
+/* The website's one moment of motion (step 58, done early): in the hero, the
    customer's messages arrive one after the other, then the order ticket
    prints out of the conversation, once. Nothing moves for anyone whose
    device asks for less motion: without this media query the classes do

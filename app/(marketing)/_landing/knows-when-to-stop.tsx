@@ -2,7 +2,7 @@
 // a business): what ansa will not do on its own, which is what anyone fears
 // most about an AI talking to the people in their life or their customers.
 //
-// LAUNCH CHECK (step 57): every promise here works in chats today (steps
+// LAUNCH CHECK (step 58): every promise here works in chats today (steps
 // 49-52: totals worked out by ansa since step 52).
 const PROMISES = [
   { title: "It says it’s an AI.", text: "Its first message says it is your AI assistant. It never pretends to be you." },

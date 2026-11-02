@@ -5,7 +5,7 @@ import { StatusDot, type StatusTone } from "@/components/status-dot";
 // are part of the story on purpose: knowing what needs you is the product.
 // An example, and labelled so: no real person or numbers.
 //
-// LAUNCH CHECK (step 57): the missed call taken as a note needs phone calls
+// LAUNCH CHECK (step 58): the missed call taken as a note needs phone calls
 // live (step 55); everything else here works on Telegram today.
 const DAY: { time: string; channel: string; asked: string; did: string; tone: StatusTone; outcome: string }[] = [
   { time: "09:12", channel: "Telegram", asked: "“Are you free for a new project in March?”", did: "Said Maya is in workshops today, and noted the dates.", tone: "attention", outcome: "Note for Maya" },

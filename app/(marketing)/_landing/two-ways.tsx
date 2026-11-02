@@ -5,7 +5,7 @@ import { Building2, Check, UserRound } from "lucide-react";
 // shadow while they're away) and for a business (a front desk that never
 // closes), side by side, so every visitor finds themselves in one of them.
 //
-// LAUNCH CHECK (step 57): taking orders works in chats (step 52); the
+// LAUNCH CHECK (step 58): taking orders works in chats (step 52); the
 // channels named (steps 53 and 55) must work before this goes public.
 const WAYS = [
   {

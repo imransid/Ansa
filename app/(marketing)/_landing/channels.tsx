@@ -4,7 +4,7 @@ import { StatusDot } from "@/components/status-dot";
 // so nobody signs up for one that isn't there yet, and the two that can never
 // be connected, said plainly (trust is the product).
 //
-// LAUNCH CHECK (step 57): update each status as steps 53 and 55 land.
+// LAUNCH CHECK (step 58): update each status as steps 53 and 55 land.
 const CHANNELS: { name: string; status: "now" | "next"; note: string }[] = [
   { name: "Telegram", status: "now", note: "Your own account, for you or your business." },
   { name: "Email", status: "now", note: "Forward it to ansa: every email becomes a note in your inbox. Replies come next." },
