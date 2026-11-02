@@ -199,6 +199,28 @@ func TestResetChangesThePasswordOnceAndEndsEveryLogin(t *testing.T) {
 	}
 }
 
+// A teammate removed (their password deleted) and brought back by hand
+// (deactivated_at cleared in the database) gets a password from a reset
+// link, and it works.
+func TestAResetGivesAPasswordToSomeoneWhoHasNone(t *testing.T) {
+	w := newAccountsWorld(t)
+	ctx := context.Background()
+	r := Request{IP: w.ip}
+	cy := address()
+	w.service.SignUp(ctx, NewPerson{Name: "Cy", Email: cy, Password: "first password ok"}, r)
+	w.service.ConfirmEmail(ctx, tokenIn(w.mail.last(t, cy)), "first password ok", r)
+	if _, err := w.service.Pool.Exec(ctx, `DELETE FROM accounts WHERE user_id = (SELECT id FROM users WHERE email = $1)`, cy); err != nil {
+		t.Fatal(err)
+	}
+	w.service.sendResetLink(ctx, cy)
+	if outcome, _, err := w.service.ResetWithToken(ctx, tokenIn(w.mail.last(t, cy)), "a brand new password", r); outcome != "password-changed" || err != nil {
+		t.Fatalf("reset: %q %v", outcome, err)
+	}
+	if answer, _ := w.service.LogIn(ctx, cy, "a brand new password", r); len(answer.Cookies) != 2 {
+		t.Fatalf("the new password works: %+v", answer)
+	}
+}
+
 func TestAnInvitedTypoIsRemovedByItsResetLink(t *testing.T) {
 	w := newAccountsWorld(t)
 	ctx := context.Background()

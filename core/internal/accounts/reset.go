@@ -125,8 +125,7 @@ func (s *Service) setNewPassword(ctx context.Context, token, userID, newPassword
 			return err
 		}
 		used = true
-		const password = `UPDATE accounts SET password = $2, updated_at = now() WHERE user_id = $1 AND provider_id = 'credential' AND account_id = $1`
-		if _, err := tx.Exec(ctx, password, userID, hash); err != nil {
+		if err := savePasswordWithin(ctx, tx, userID, hash); err != nil {
 			return err
 		}
 		return endLoginsAndLinksWithin(ctx, tx, userID)
@@ -135,6 +134,27 @@ func (s *Service) setNewPassword(ctx context.Context, token, userID, newPassword
 		return "", linkNotValid, err
 	}
 	return "password-changed", "", nil
+}
+
+// savePasswordWithin sets the person's password, or gives them one when they
+// have none: a teammate removed (which deletes their password) and brought
+// back by hand chooses a new one with "Forgot password", as Better Auth's own
+// reset did.
+func savePasswordWithin(ctx context.Context, tx database.Tx, userID, hash string) error {
+	const update = `UPDATE accounts SET password = $2, updated_at = now() WHERE user_id = $1 AND provider_id = 'credential' AND account_id = $1`
+	tag, err := tx.Exec(ctx, update, userID, hash)
+	if err != nil || tag.RowsAffected() > 0 {
+		return err
+	}
+	accountID, err := newID(32)
+	if err != nil {
+		return err
+	}
+	const insert = `
+		INSERT INTO accounts (id, account_id, provider_id, user_id, password, created_at, updated_at)
+		VALUES ($1, $2, 'credential', $2, $3, now(), now())`
+	_, err = tx.Exec(ctx, insert, accountID, userID, hash)
+	return err
 }
 
 // joinedThroughInvite: an invite for this address was used to join this company.

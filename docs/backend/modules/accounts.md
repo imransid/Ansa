@@ -55,8 +55,10 @@ ones too, a removed person nothing. Using a link (20 per 15 minutes per IP):
 a removed person's does nothing; an unconfirmed account that joined
 through an invite is REMOVED instead (`teammates.RemoveUnconfirmed`: the
 address may be a typo or an owner's squat), freeing the address; otherwise
-ONE transaction sets the password, uses the link up, ends every login and
-voids the other links.
+ONE transaction sets the password (creating it for someone who has none: a
+teammate removed, which deletes it, and brought back by hand, as Better
+Auth's own reset did), uses the link up, ends every login and voids the
+other links.
 
 **Account (`account.go`):** your name (30 changes per 10 minutes); your
 password once the current one checks out (10 tries per 15 minutes): every
