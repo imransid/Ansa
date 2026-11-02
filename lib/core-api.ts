@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { cookies, headers } from "next/headers";
+import { connection } from "next/server";
 import { env } from "@/lib/env";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
 
@@ -29,8 +30,10 @@ export type CoreCookie = { name: string; value: string; maxAge: number; httpOnly
 
 // Calls core. GET with no body; POST with a JSON body.
 export async function callCore<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<CoreAnswer<T>> {
-  // The browser's cookie first: reading the request is what tells Next this
-  // render belongs to the request, before the clock is read for the signature.
+  // This call belongs to the request (never to a page built ahead of time),
+  // said before the clock is read for the signature: Next refuses a clock
+  // read in a render it could prerender.
+  await connection();
   const cookie = await sessionCookieHeader();
   const text = body === undefined ? "" : JSON.stringify(body);
   const timestamp = Math.floor(Date.now() / 1000).toString();
