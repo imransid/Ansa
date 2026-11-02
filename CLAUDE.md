@@ -2140,8 +2140,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   every /api route must show ƒ (dynamic). app/robots.ts and app/sitemap.ts
   call it too, so they use the running server's APP_URL, not the build's.
   Health, for an uptime monitor, is core's GET /health: 200 after one
-  `SELECT 1` within 3 seconds, 503 when the database fails, never a body
-  (the brain answers its own GET /health).
+  `SELECT 1` within 3 seconds, 503 when the database fails, never a body,
+  and at most one check a second whatever the traffic (the answer is
+  reused: httpserver.HealthCheck); the brain answers its own GET /health.
 - The database pool (core/internal/database): at most 10 connections per core
   process, opening one gives up after 10 s, and an error's text is never
   logged (it can hold the database address). Never put statement_timeout or

@@ -107,15 +107,9 @@ func scheduledTasks(pool *database.Pool, log *logging.Logger, publisher *publish
 }
 
 // healthCheck answers 200 when the database answers, 503 when it doesn't:
-// the uptime monitor's check. Never a body.
+// the uptime monitor's check, at most once a second. Never a body.
 func healthCheck(pool *database.Pool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := database.Ping(r.Context(), pool); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		httpserver.Health(w, r)
-	}
+	return httpserver.HealthCheck(func(ctx context.Context) error { return database.Ping(ctx, pool) }, time.Second)
 }
 
 // waitForStop finishes requests in progress and lets running jobs end (up

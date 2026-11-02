@@ -5,6 +5,7 @@
 package httpserver
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"ansa/core/internal/logging"
@@ -68,6 +70,33 @@ func ReadBody(r *http.Request, maxBytes int64) ([]byte, error) {
 // check joins it with the database module.
 func Health(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// HealthCheck answers the uptime monitor: 200 while check passes, 503 when
+// it fails, never a body. Each answer is reused for `every`, so whatever the
+// traffic the check runs at most once in that time: a flood of /health
+// can't take database connections from real work (a per-address counter
+// would itself write to the database on every call).
+func HealthCheck(check func(context.Context) error, every time.Duration) http.HandlerFunc {
+	var mu sync.Mutex
+	var checkedAt time.Time
+	var healthy bool
+	return func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		if checkedAt.IsZero() || time.Since(checkedAt) >= every {
+			// Not the caller's context: a caller who gives up mustn't make
+			// the next ones see a failure (the check has its own time limit).
+			healthy = check(context.Background()) == nil
+			checkedAt = time.Now()
+		}
+		answer := healthy
+		mu.Unlock()
+		if !answer {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		Health(w, r)
+	}
 }
 
 // ClientIP is the caller's address as the key for per-IP rate limits (its

@@ -2,10 +2,13 @@ package httpserver
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"ansa/core/internal/logging"
 )
@@ -61,5 +64,37 @@ func TestClientIPCountsAsTheOldBackendDoes(t *testing.T) {
 	r.RemoteAddr = "198.51.100.9:1234"
 	if got := ClientIP(r); got != "198.51.100.9" {
 		t.Errorf("without a proxy header: %q", got)
+	}
+}
+
+// /health checks the database at most once in its window, whatever the
+// traffic, and says 503 while the check fails.
+func TestTheHealthCheckRunsAtMostOnceAWindow(t *testing.T) {
+	checks := 0
+	failing := false
+	handler := HealthCheck(func(context.Context) error {
+		checks++
+		if failing {
+			return errors.New("down")
+		}
+		return nil
+	}, 50*time.Millisecond)
+	status := func() int {
+		recorder := httptest.NewRecorder()
+		handler(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
+		return recorder.Code
+	}
+	for range 20 {
+		if status() != http.StatusOK {
+			t.Fatal("healthy")
+		}
+	}
+	if checks != 1 {
+		t.Fatalf("checked %d times in one window", checks)
+	}
+	failing = true
+	time.Sleep(60 * time.Millisecond)
+	if status() != http.StatusServiceUnavailable || checks != 2 {
+		t.Fatalf("a failing check after the window: %d checks", checks)
 	}
 }

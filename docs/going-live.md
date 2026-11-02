@@ -1168,8 +1168,10 @@ service, a log service, both) is still open; these need no code change:
 
 1. **Uptime.** Point an uptime monitor at `https://<core address>/health`,
    every 1 to 5 minutes. It answers `200` while core can reach its database
-   (checked within 3 seconds) and `503` when it can't, with no body and no
-   rate limit. A second monitor on `https://<app address>/` only says the
+   (checked within 3 seconds) and `503` when it can't, with no body. It has
+   no rate limit, but checks the database at most once a second whatever
+   the traffic (the answer is reused), so a flood can't take core's
+   database connections from real work. A second monitor on `https://<app address>/` only says the
    screens' host is up: it is a static page and stays up while core is down.
    The brain's `/health` (always `200` while it runs) can only be checked
    from inside its private network (your host's own health check); from
