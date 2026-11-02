@@ -17,8 +17,8 @@ signed link (or the bytes in development); 200 per 10 minutes per person,
 then 429 (never 404). Deleting removes the file FIRST, then the row (storage
 refusing keeps the document listed to try again), clearing the source of
 knowledge articles made from it in the row's transaction (the articles
-stay). Uploads: 20 per 10 minutes per person. "Add to knowledge" moves with
-the Knowledge page.
+stay). Uploads: 20 per 10 minutes per person. "Add to knowledge":
+[knowledge](knowledge.md) (imports).
 
 **Addresses (`supportsetup`):** the reply-to address of customer emails
 ("" clears it: replies go to the forwarding address) and the support

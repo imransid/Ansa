@@ -3,7 +3,7 @@
 **What:** the `ticket.assigned` job: emails a person that a ticket is now
 theirs (the old `services/assignment-notifications.ts`).
 **How:** `tickets.QueueAssignedEmailWithin` queues it in the assignment's own
-transaction (routing today; a person assigning when that moves). The job
+transaction (routing, and a person assigning someone else). The job
 reads the ticket again: only while it is still open and assigned to exactly
 that person, and only while they can take tickets (confirmed address, not
 removed: an unconfirmed address may not be theirs). The email holds the

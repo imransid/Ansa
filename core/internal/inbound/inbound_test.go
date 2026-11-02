@@ -168,3 +168,16 @@ func TestAnEmailCutOffWhileProcessingIsTriedAgain(t *testing.T) {
 		t.Fatalf("done already: %v", err)
 	}
 }
+
+// "Make a ticket anyway" takes an older email skipped for having no valid
+// sender, as the screens offer it (lib/inbound-email-reasons.ts).
+func TestAnOldBadSenderEmailCanBeTicketedAnyway(t *testing.T) {
+	w := newEmailWorld(t)
+	id := w.received(`{"from":"","subject":"Help","text":"My order.","authentication":null}`)
+	if _, err := w.pool.Exec(context.Background(), `UPDATE inbound_emails SET status = 'ignored', ignored_reason = 'bad_sender' WHERE company_id = $1 AND id = $2`, w.company.String(), id); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if got := w.process(id, ClaimAnyway, false); got != Ticketed {
+		t.Fatalf("outcome: %s", got)
+	}
+}

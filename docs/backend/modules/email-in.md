@@ -63,7 +63,10 @@ database, a fake brain: a verified sender becomes the customer and joins
 their conversation, a card number never reaches the subject; a forged sender
 is never filled in; ansa's own mail is a loop even "anyway"; an automatic
 reply is skipped, then made a request anyway; content unavailable; HTML read
-as text); `brain/tests/test_email.py` (the customer's own words; secrets and
-tags hidden; the answer strict).
-**Still to move:** the scheduled run of stuck emails (with the maintenance
-job), the "not delivered" list.
+as text; a run cut off is tried again by its job; an older email skipped
+for having no valid sender made a request anyway); `brain/tests/test_email.py`
+(the customer's own words; secrets and tags hidden; the answer strict).
+**Stuck emails:** no scheduled sweep is needed: the job tries again by
+itself (above). One still stuck shows on the Emails page, with "Process
+again", and on Home. The page's "Customer emails not delivered" list is
+`core/internal/outbox/undelivered.go`.

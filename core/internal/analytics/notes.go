@@ -43,7 +43,7 @@ func describeMetricsError(code, platform string) string {
 	case "needs_permission":
 		return platform + " gives these numbers only with a permission ansa doesn't have yet."
 	case "stand_in":
-		return "A development stand-in account: its numbers come only from pnpm simulate:post-metrics."
+		return "A development stand-in account: its numbers come only from make simulate-post-metrics (in core/)."
 	case "not_set_up":
 		return platform + " isn't set up by ansa on this server, so its numbers can't be read."
 	case "reauthorization_needed":

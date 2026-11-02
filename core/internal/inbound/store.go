@@ -19,11 +19,13 @@ import (
 
 // The claims (fixed SQL, never input): a new email (or one whose run was
 // cut off 15+ minutes ago); "Process again" (content unavailable, a
-// processing error, or stuck); "Make a ticket anyway" (what the filters skipped).
+// processing error, or stuck); "Make a ticket anyway" (what the filters
+// skipped, and older emails skipped for having no valid sender: the screens'
+// TICKET_ANYWAY_REASONS, lib/inbound-email-reasons.ts).
 const (
 	claimNew    = `status = 'received' OR (status = 'processing' AND processing_started_at < now() - interval '15 minutes')`
 	ClaimAgain  = claimNew + ` OR (status = 'ignored' AND ignored_reason IN ('content_unavailable', 'processing_error'))`
-	ClaimAnyway = `status = 'ignored' AND ignored_reason IN ('support_address', 'auto_reply', 'bulk', 'bounce', 'rate_limited')`
+	ClaimAnyway = `status = 'ignored' AND ignored_reason IN ('support_address', 'auto_reply', 'bulk', 'bounce', 'rate_limited', 'bad_sender')`
 )
 
 // claimEmail claims the email in ONE UPDATE (two runs never both get it)
