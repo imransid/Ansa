@@ -58,7 +58,11 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   it is now. The old `pnpm` operator and simulate scripts are core's `make`
   targets (core/README.md); "the daily job" and "/api/cron/publish" are
   core's own scheduler (docs/backend/modules/schedule.md); a webhook's
-  "after()" is a job in core's queue (docs/backend/modules/jobs.md).
+  "after()" is a job in core's queue (docs/backend/modules/jobs.md). "A
+  check" in a rule meant the old checks (scripts/tenant-isolation/, deleted
+  with the old backend): what guards the rule now is listed on its module's
+  page (core's and the brain's tests) or in pnpm check:screens, and a rule
+  listed in neither is guarded by review only.
 - Multi-tenant. EVERY tenant table has company_id. EVERY query filters by it.
   - Exceptions: Better Auth's tables (sessions, accounts, verifications) are
     keyed by user, not company. rate_limits is keyed by an HMAC of the IP or
@@ -2288,9 +2292,6 @@ this order and is done on the laptop, deploying aside
 (docs/backend/migration-plan.md).
 
 ## Known gaps (revisit later)
-- Email verification (step 12) and password reset (step 22) work, but their links
-  only reach people once real email is on (SEND_REAL_EMAIL=true). Until then links
-  land in .dev-emails/.
 - An address someone else took first (and never confirmed) stays blocked until its
   inbox owner takes it back with a password reset. Taken by a signup: reset, log
   in, then confirm with the new link + that password; they get the squatter's
@@ -2315,9 +2316,6 @@ this order and is done on the laptop, deploying aside
   failing 100 times in 15 minutes blocks that office's new logins. A password
   reset doesn't clear the limits: someone who failed 10 times in 15 minutes from
   one place still waits out those 15 minutes after resetting.
-- Asking for a password reset: Better Auth's own work still differs a little
-  between an address with an account (one insert) and one without (a lookup and a
-  cleanup delete), about a quarter millisecond locally. Not padded.
 - A login can't be extended: everyone logs in again 7 days after logging in. There
   is no list of devices, only a count and "log out on all other devices".
 - Signup can still reveal whether an address has an account: sign it up, then log
@@ -2341,45 +2339,54 @@ this order and is done on the laptop, deploying aside
   has nobody to run billing, setup or the team until ansa changes a role in the
   database.
 - A login that slips in at the very moment someone is removed can leave a session
-  row behind until it expires (7 days); lib/session-context.ts refuses it on every
-  request, so it opens nothing.
-- An invite is marked used just before Better Auth saves the new user. If saving
-  then fails, the invite is spent and the owner has to create a new one.
-- Signup inserts the company before Better Auth inserts the user, in separate
-  transactions. If the user insert fails, an empty company row is left behind.
-- The IP used for rate limiting comes from x-forwarded-for. That header is only
-  trustworthy behind a host that overwrites it (Vercel, Cloudflare). Check when hosting is picked.
-- The daily cleanup (step 17) deletes old rate limit counters, expired sessions and
-  expired password reset links, in batches of 10,000 for at most 10 seconds per
-  table per run (step 33). A flood bigger than that takes several runs to clear
-  (the log says "Cleanup stopped at its time limit"). Nothing else is ever
-  deleted automatically (no data retention policy yet for calls, emails or
-  tickets). The same job runs stuck
-  emails and calls again (step 27), at most 25 of each per run and only those
-  unfinished 15+ minutes, and only while the slowest one still fits in the run
-  (the first ~74 s of the job for a call, ~107 s for an email); it runs daily (all
-  Vercel Hobby allows), so a stuck one can wait up to a day unless someone uses
-  the Emails page (Setup's last email links there when it is stuck) or "Analyze
-  now", or the job is scheduled more often.
-- Production must set SEND_REAL_EMAIL=true. Otherwise emails go to .dev-emails/,
-  which fails on read-only hosting, and tickets show "Email failed". On a
-  writable disk they count as sent and are never sent later, even once real email
-  is on (an owner reopens and solves to send one). The same goes for files: what
-  was saved in .dev-files/ is never copied to R2, and can't be opened once
-  USE_R2_STORAGE=true. A startup warning names such a folder still holding files
-  (docs/going-live.md, sections 2 and 3).
-- No automatic email retries: if the server stops between saving and sending, the
-  email stays "not sent yet" (or "sending was interrupted") until someone clicks
-  Retry on the ticket, which the page offers 10 minutes after it was queued or
-  the send started. Such emails are listed on the Emails page ("Customer emails
-  not delivered") and counted on the dashboard, but the job never retries them. If Resend accepted an email we failed to record, a Retry more
-  than 24 hours after its first try sends it again: the page asks first, but
+  row behind until it expires (7 days); core's session reader
+  (core/internal/session) refuses it on every request, so it opens nothing.
+- The IP used for rate limiting comes from X-Forwarded-For's first entry:
+  the screens read it for the login pages' limits and send it on to core
+  (lib/request-ip.ts), and core reads it itself for its webhooks (else
+  X-Real-IP, else the connection's address: core/internal/httpserver). That
+  header is only trustworthy behind a host that overwrites it (Vercel,
+  Cloudflare). Check both hosts when hosting is picked.
+- Core's cleanup runs every hour (core/internal/maintenance): it deletes old
+  rate limit counters, expired sessions, password reset links, social
+  connection attempts and Telegram link codes, Telegram connections no code
+  named, and core's own finished jobs 30 days after they ended, in batches
+  of 10,000 for at most 10 seconds per table per run. A flood bigger than
+  that takes several runs to clear (the log says "maintenance: cleanup
+  stopped at its time limit"). Nothing else is ever deleted automatically
+  (no data retention policy yet for calls, emails or tickets). No scheduled
+  job runs stuck emails and calls again any more: each is a job of its own,
+  tried again by itself (a call 3 times within about 3 minutes, an email 5
+  times over about 45 minutes), and handed back after its 10-minute lease
+  when cut off (an email cut off waits a little longer, below).
+  One whose tries all failed (a database outage) waits for someone's
+  "Process again" on the Emails page or "Analyze now" on the call (Home
+  counts stuck emails; the Calls list says "Stuck: analyze now").
+- Core runs as production unless ANSA_ENV is "development" (a missing
+  ANSA_ENV counts as production, and core's "core started" line names its
+  mode); only development allows the stand-ins (stand-in accounts and
+  chats, Billing's simulate buttons, and .dev-emails/ and .dev-files/ while
+  real email and R2 are off). In production core refuses to start without
+  SEND_REAL_EMAIL=true and USE_R2_STORAGE=true (core/internal/config). What
+  development wrote is never moved: emails in .dev-emails/ count as sent and
+  are never sent later (an owner reopens and solves to send one), and files
+  in .dev-files/ are never copied to R2 and can't be opened once
+  USE_R2_STORAGE=true (docs/going-live.md, sections 2 and 3).
+- Customer "solved" emails are retried by core: the delivery is a job saved
+  with the solve, tried up to 3 times within about 3 minutes (safe: the row
+  id is Resend's idempotency key), and a restart doesn't lose it. After
+  that, or when the daily limit held it back, the email waits for someone's
+  Retry on the ticket, which the page offers once no delivery is under way
+  (10 minutes after it was queued or a send started). Such emails are
+  listed on the Emails page ("Customer emails not delivered") and counted on
+  Home. If Resend accepted an email we failed to record, a Retry more than
+  24 hours after its first try sends it again: the page asks first, but
   can't know whether it arrived.
-- Better Auth stores each session's IP address and browser (sessions table) in
-  plain text; only rate limit keys are HMACs. Changing BETTER_AUTH_SECRET resets
-  every rate limit counter.
-- In development with SEND_REAL_EMAIL=true, the Resend SDK itself prints its API
-  errors (free text) to the console; it stays silent in production.
+- Core stores each login's IP address and browser in the sessions table
+  (Better Auth's format, kept) in plain text; only rate limit keys are
+  HMACs. Changing BETTER_AUTH_SECRET resets every rate limit counter, and
+  also ends every login and voids every emailed confirmation link and
+  known-device cookie (core signs them with it).
 - Bounces, spam reports, suppressions and Resend failures (steps 17 and 27) are
   recorded for customer "solved" emails only, not for verification or assignment
   emails. Such an email is shown on the ticket (and, except a spam report, on the
@@ -2387,23 +2394,22 @@ this order and is done on the laptop, deploying aside
   a reopen (owner) and solve. The reopened ticket keeps warning about it while it
   has that address. One company's bounce or spam report suppresses the address
   for every company (one Resend account). Such an event that arrives before
-  "sent" is recorded (db/email-delivery-events.ts matches only "sent" rows;
+  "sent" is recorded (core/internal/resend/webhook.go matches only "sent" rows;
   email.suppressed can come at once) matches nothing and is answered 200, so it
   is lost: the email then shows as delivered.
-- No error monitoring service yet, and nothing alerts anyone: failed requests are
-  one data-free JSON line in the hosting logs ("event":"request_error"), and
-  failures the code catches itself (webhooks, work after a webhook answered, the
-  daily job) are one fixed line each, with no request_error. Those lines give the
-  class name only where the code handles call or email content (Rule 1), and the
-  class, Postgres code, constraint and stack frames elsewhere
-  (describeErrorWithFrames). Error messages are never logged
-  (lib/safe-error-logging.ts), which also hides them from you: debug with what the
-  line gives, or reproduce locally. A wrong setting at startup prints one line
-  naming the setting and the rule broken (lib/env.ts), never its value. Choosing
-  an uptime monitor (on /api/health) and a log service that keeps logs and alerts
-  is open; docs/going-live.md (Monitoring) lists the lines to alert on. A stalled
-  pipeline that logs nothing (Vapi or Resend no longer calling) only shows as
-  silence.
+- No error monitoring service yet, and nothing alerts anyone. Core writes
+  one JSON line per event, a fixed name with safe fields only (a code, a
+  count, a duration, an error's Go type: core/internal/logging), never an
+  error's message, which also hides it from you: debug with what the line
+  gives, or reproduce locally. A failed job also keeps its code on its
+  core_jobs row for 30 days. The screens log a failed request as one
+  data-free JSON line ("event":"request_error", lib/error-reporting.ts). A
+  wrong setting at startup stops core (core/internal/config) or the screens
+  (lib/env.ts) with one line naming the setting and the rule broken, never
+  its value. Choosing an uptime monitor (on core's GET /health) and a log
+  service that keeps logs and alerts is open; docs/going-live.md
+  (Monitoring) lists the lines to alert on. A stalled pipeline that logs
+  nothing (Vapi or Resend no longer calling) only shows as silence.
 - Payments (step 18) record who pays but enforce NOTHING: a company that never
   paid, or whose payment failed, keeps full access. Deciding what happens then
   (trial length, lockout, grace period) is open, and so is pricing. No free
@@ -2415,15 +2421,17 @@ this order and is done on the laptop, deploying aside
 - No Content-Security-Policy header yet (Next.js inline scripts need nonces).
   The other security headers are set in next.config.ts.
 - Vapi's real signing format is NOT confirmed yet (no account). On the first real
-  call, compare Vapi's Webhook Logs (dashboard) with the VAPI_* settings in
-  lib/env.ts and adjust env only. Also confirm the end-of-call-report field paths
-  in lib/validation/vapi.ts. Vapi only signs when the server URL comes from saved
+  call, compare Vapi's Webhook Logs (dashboard) with core's VAPI_* settings
+  (core/internal/config/vapi.go) and adjust those settings only. Also
+  confirm the end-of-call-report field paths in core/internal/calls/webhook.go.
+  Vapi only signs when the server URL comes from saved
   config (assistant, phone number, Server Configuration), not inline API calls.
-- Testing real calls locally needs a tunnel (e.g. cloudflared) so Vapi can reach
-  /api/webhooks/vapi. Until then use pnpm simulate:vapi-call, pnpm
-  simulate:solved-call for a call the AI marked solved (a stand-in answers for
-  Claude; local database only), and pnpm simulate:vapi-tool-call for the
-  assistant's knowledge search during a call (step 35).
+- Testing real calls locally needs a tunnel (e.g. cloudflared) so Vapi can
+  reach core's /webhooks/vapi. Until then, from core/, use
+  make simulate-vapi-call, make simulate-solved-call for a call the AI
+  marked solved (a stand-in answers for the brain; local database only),
+  and make simulate-vapi-tool-call for the assistant's knowledge search
+  during a call (step 35).
 - Knowledge during live calls (step 35) is NOT tested against a real Vapi
   account: the tool-calls message (toolCallList, arguments as an object or a
   JSON string, call.phoneNumberId), the answer's shape and the signing of tool
@@ -2436,9 +2444,9 @@ this order and is done on the laptop, deploying aside
   label keep an approved article's words from being taken as instructions
   (docs/going-live.md, section 4, step 7). The question is never stored, so
   the call page shows what was found, not what was asked. A tool call
-  refused by the shared per-IP limit (429), over 1 MB (413), or whose per-IP
-  count fails (a database error: an empty 500, one "Vapi webhook failed:
-  <class>" line) gets no answer at all (Vapi ignores anything but 200), and
+  refused by the shared per-IP limit (429, also when counting fails: a
+  database error, logged as "vapi webhook rejected", rate_limited) or over
+  1 MB (413) gets no answer at all (Vapi ignores anything but 200), and
   the assistant goes on without it, not told to offer a ticket. Lookups are
   kept forever, like calls.
 - Call recordings (step 14): copied once, right after the webhook answers. If the
@@ -2450,10 +2458,11 @@ this order and is done on the laptop, deploying aside
   There is no key rotation yet (the "v1:" prefix leaves room for it).
 - Setup page (step 16): owners list their support addresses there (shown, and
   used to skip mail from the company itself). Phone numbers are linked by ansa
-  (pnpm link:phone-line; pnpm unlink:phone-line works only before a number's
-  first call) and shown read-only by their Vapi id with their last call: the
-  number customers dial is not stored. The checklist marks email and phone done
-  only once an email or a call has arrived. Uploaded documents (PDF, .docx,
+  (make link-phone-line in core/; make unlink-phone-line works only before
+  a number's first call) and shown read-only by their Vapi id with their
+  last call: the number customers dial is not stored. The checklist marks
+  email and phone done only once an email or a call has arrived. Uploaded
+  documents (PDF, .docx,
   .txt, .md, .csv, max 4 MB each, at most 100 files and 200 MB per company,
   checked before each upload, so two at once can go over by a file) are stored
   and listed; the AI never reads a file itself: "Add to knowledge" (step 34)
@@ -2462,8 +2471,8 @@ this order and is done on the laptop, deploying aside
   4.5 MB, so larger files would need direct-to-R2 uploads. The upload form
   refuses a file over 4 MB in the browser, so such a file is never sent (with
   JavaScript off it is sent, and refused with an error page).
-- What Claude reads of an email is cut by known patterns (lib/email-triage/
-  own-text.ts): signatures without a "-- " line (most Outlook and Apple Mail
+- What Claude reads of an email is cut by known patterns (brain/brain/email/
+  own_text.py): signatures without a "-- " line (most Outlook and Apple Mail
   ones: name, title, phone; and all of them in text made from HTML, where
   that line loses its space) still reach it, as do phone numbers and quoted
   threads in formats or languages it doesn't know. With text above it, an
@@ -2482,8 +2491,8 @@ this order and is done on the laptop, deploying aside
   needs size limits and a decision). The text made from an HTML-only email is
   a simple tag strip: a ">" inside an attribute shows the rest of that tag as
   text, a <title>, <style> or <script> that is never closed hides everything
-  after it (the ticket then says no text could be taken from the HTML), and
-  only common named entities are decoded. If fetching the content still fails after 3
+  after it (the ticket then says no text could be taken from the HTML). If
+  fetching the content still fails after 3
   tries, the email is "content_unavailable" with "Process again" on the Emails
   page, which fetches from Resend again and works only while Resend keeps the
   email (its retention is not confirmed). Not tested against a real Resend
@@ -2501,18 +2510,23 @@ this order and is done on the laptop, deploying aside
   in, even from a verified sender: a contact form's relay sends from its own
   address. An expert picks the Reply-To or the sender on the ticket. A customer
   whose own mail program sets a different Reply-To gets the same treatment.
-- A processing run longer than 15 minutes (impossible on Vercel with
-  maxDuration 300, possible self-hosted) can be claimed by a second run. Only
-  one ticket is ever made (the save locks the row), but whichever run finishes
-  first decides, and a late run's "content unavailable" can win over a ticket
-  the other run was about to make (shown on the Emails page, "Process again").
+- An email whose processing was cut off (a crash, or a deploy that outlasts
+  core's 20-second stop) stays "processing" until its job comes back after
+  its 10-minute lease; the email may be claimed again only 15 minutes after
+  its run started, so the job keeps trying (5 tries, waits of 2 and then 8
+  minutes) and processes it about 20 minutes after the cut. Meanwhile the
+  Emails page lists it as stuck after 15 minutes ("Process again") and Home
+  counts it. A call cut off the same way is analyzed again by its job (its
+  claim waits only 5 minutes). Two runs of one email no longer overlap: a
+  run ends with its job's lease.
 - Forwarding (step 24) is not tested against a real Resend account. Before
   launch, forward ONE real email (Gmail or Google Workspace) to a forwarding
   address and check in Resend's dashboard which field carries that address:
   normally `to`, but in May 2026 Resend showed the original To header there by
   mistake (since reverted). The code reads to, cc, bcc and received_for, so either
-  works; if none carries it, the email is dropped with "no forwarding address" in
-  the logs. Gmail's forwarding confirmation is expected to become a ticket (the
+  works; if none carries it, the email is dropped with "inbound email
+  ignored" (no_forwarding_address) in the logs. Gmail's forwarding
+  confirmation is expected to become a ticket (the
   owner clicks its link there); if our filters take it for automatic mail, Setup
   says it did not become a ticket and tells the owner to contact ansa, whose
   operator reads the code in Resend's dashboard (owners can't). The checklist's
@@ -2527,9 +2541,10 @@ this order and is done on the laptop, deploying aside
   company Claude is skipped (no Claude call and no category, so no routing and
   no assignment email), but every email still becomes a ticket: there is no
   per-company cap on tickets, and no per-domain limit. Companies can't change their
-  address; ansa's operator can (pnpm replace:forwarding-address), and then the
-  old one stops at once: the company must forward to the new one (Gmail asks to
-  confirm again), and replies to emails sent before no longer arrive.
+  address; ansa's operator can (make replace-forwarding-address in core/),
+  and then the old one stops at once: the company must forward to the new
+  one (Gmail asks to confirm again), and replies to emails sent before no
+  longer arrive.
 - A customer's reply to a "solved" email (it goes to the forwarding address when
   the company has no reply-to) becomes a NEW ticket, routed like any other
   (maybe to another expert), with no link to the solved ticket, which stays
@@ -2563,9 +2578,10 @@ this order and is done on the laptop, deploying aside
   same turn if Claude misses it (the slice always shows the end of the last
   two turns).
 - The transcript parser assumes Vapi's "AI:" / "User:" labels, one turn per
-  line. Confirm with the first real transcript (lib/call-brain/transcript-slice.ts).
-  A transcript that arrives as one line still splits on a label said
-  mid-sentence. Phone numbers said in a call are not redacted from the slice.
+  line. Confirm with the first real transcript
+  (brain/brain/calls/transcript.py). A transcript that arrives as one line
+  still splits on a label said mid-sentence. Phone numbers said in a call
+  are not redacted from the slice.
 - Transcript slices are sent to Anthropic, which keeps API data for a limited
   time by default, and so are the Co-Founder's interview messages, business
   facts and the knowledge articles an owner picks (step 36), and what a
@@ -2574,7 +2590,8 @@ this order and is done on the laptop, deploying aside
   if allowed, ticket counts per category), and what a performance review
   reads (step 42: each post's topic, platform, format, pillar, weekday and
   hour, and its numbers), and a menu an owner reads in (step 46: the photo
-  itself, or the text of the file or of what was pasted). Zero data retention is an org-level arrangement
+  or PDF itself, or the text of a Word file or of what was pasted). Zero
+  data retention is an org-level arrangement
   with Anthropic.
 - The system prompt is too short for prompt caching to apply, so it isn't cached.
 - Tickets from calls have no customer email (we never extract one from a
@@ -2607,9 +2624,10 @@ this order and is done on the laptop, deploying aside
 - Every escalation makes a ticket, including silent or abnormal calls. Expect noise
   (robocalls); filter by reason once real volume shows what to drop.
 - Calls escalated before step 8 have no ticket (test data only, no backfill).
-- Assignment emails (step 13) are best effort: sent right after the assignment is
-  saved, not through the outbox table, so a failed send is only logged (no retry).
-  There is no way to turn them off yet, and no in-app notification.
+- Assignment emails (step 13) are best effort: core's ticket.assigned job is
+  queued in the assignment's own transaction (not the outbox table), so a
+  restart doesn't lose one, but a send that fails is only logged (no
+  retry). There is no way to turn them off yet, and no in-app notification.
 - Teammates who haven't confirmed their address get no categories, tickets or
   assignment emails until they do. Categories ticked for them before step 23 stay
   and start routing once they confirm. Open tickets they held before step 23 were
@@ -2634,45 +2652,51 @@ this order and is done on the laptop, deploying aside
   ticket's "routed" history rows do (a category, or empty for same customer).
 - A caller who hides their number arrives with a placeholder: Twilio spells a word
   on the keypad (+266696687 = ANONYMOUS, also RESTRICTED, UNAVAILABLE, UNKNOWN,
-  BLOCKED). lib/phone-number.ts never counts those, or a number of one repeated
-  digit, as a customer. Not confirmed with Vapi (no account): on the first real
+  BLOCKED). Core's CustomerPhoneDigits (core/internal/tickets/manual.go)
+  never counts those, or a number of one repeated digit, as a customer. Not
+  confirmed with Vapi (no account): on the first real
   call from a hidden number, check its customer.number and add any other
   placeholder to that list. An unlisted one makes every hidden caller one
   customer: their tickets follow each other's expert and list each other.
 - Routing waiting tickets (someone picks categories, a category is restored)
-  emails each new assignee one by one inside the request: a backlog of hundreds
-  makes that save slow, and Resend's rate limit may drop some (best effort).
+  queues one email job per new assignee in the same transaction, sent by
+  core's workers after commit: a backlog of hundreds may meet Resend's rate
+  limit, and a send it refuses is only logged (best effort).
 - Search has no trigram index: ILIKE scans the company's tickets (and the senders
   of its received emails). Fine for thousands per company; add pg_trgm if it gets
   slow. Step 33's indexes cover the lists, views and lookups, not search.
-- The per-view ticket counts (dashboard) and the Calls page's counts read every
-  ticket or call of the company on each view, about 10 ms per 100,000. A very
-  large company would need stored counts.
-- The app sets no statement timeout (Neon's pooler refuses or drops one sent with
-  the connection): until it is set on the database role (docs/going-live.md,
-  section 1), a runaway query keeps its connection, and maybe the company's
-  ticket lock, until the host kills the request.
-- On Vercel Fluid compute, Vercel advises attachDatabasePool (@vercel/functions)
-  so idle connections are closed before an instance is suspended. Not added while
-  hosting is undecided: the first query after a quiet spell can find a dead
-  connection and fail that one request.
-- CI (.github/workflows/checks.yml) has never run: the repository has no git
-  remote yet, so this machine holds the only copy of the code. Its first run on
-  GitHub also tries the action versions for the first time.
+- The per-view ticket counts (All requests) and the Calls page's counts read
+  every ticket or call of the company on each view, about 10 ms per 100,000.
+  A very large company would need stored counts.
+- Core sets no statement timeout of its own: until one is set on the
+  database role (docs/going-live.md, section 1), a runaway query runs on,
+  holding its locks (maybe the company's row lock), until it ends by
+  itself: core giving up on it (a request's or a job's time running out)
+  only closes its connection.
+- CI (.github/workflows/checks.yml: one job each for the screens, core and
+  the brain, and an audit) has never run in this form: the branch holding
+  it (rewrite/go-python) was never pushed, so this machine holds the only
+  copy of everything after origin's last known main (2026-10-28; the
+  repository does have that git remote). Its first run also tries the Go
+  and Python jobs' action versions (actions/setup-go v6,
+  actions/setup-python v6) for the first time.
 - Ticket and call searches are plain GET (?q=), and the view links and
-  Previous/Next keep it, so what was searched, often a customer's phone number or
-  email, sits in the URL: the browser history and the hosting provider's request
-  logs (and any log drain) keep it. The app's own logs never do (error lines hold
-  the route pattern only). Check the host's log retention when hosting is picked
-  (docs/going-live.md). Keeping it out of URLs needs a POST search, and searches
-  could then no longer be bookmarked or shared.
+  Previous/Next keep it, so what was searched, often a customer's phone
+  number or email, sits in the URL: the browser history and the hosting
+  provider's request logs (and any log drain) keep it, and the screens pass
+  it on to core in the address of their request (/api/v1/requests?q=,
+  /api/v1/calls?q=), so whatever sits in front of core may log it too.
+  Neither part's own logs hold it (the screens' error lines hold the route
+  pattern only; core logs no address). Check each host's log retention when
+  hosting is picked (docs/going-live.md). Keeping it out of URLs needs a
+  POST search, and searches could then no longer be bookmarked or shared.
 - The Setup checklist's "Everyone picked the categories they handle" counts
-  owners too, so an owner who never takes tickets keeps it "to do", and the
-  dashboard keeps telling them "Pick the categories you handle" (step 32).
-  There is no way to say "I don't take tickets" yet. The dashboard's "Setup
-  isn't finished" shows only until the company's first ticket (some steps are
-  never done for some companies: no phone line, a one-person team, no
-  documents); after that only the Setup page lists the steps left.
+  owners too, so an owner who never takes tickets keeps it "to do", and Home
+  keeps telling them "You don't handle any kind of request yet" (step 32).
+  There is no way to say "I don't take tickets" yet. Home no longer lists
+  the Setup steps left (the "easy to use" pass): only the Setup page does,
+  and some are never done for some companies (no phone line, a one-person
+  team, no documents).
 - Tickets assigned before step 10 were marked "assigned by a person" by the
   migration (db/migrations/0009, hand-added UPDATE).
 - Ticket history (step 30) starts with this step: older tickets show only
@@ -2713,19 +2737,22 @@ this order and is done on the laptop, deploying aside
   switch in the app to choose light or dark.
 - The assign menu adds a teammate's email only when two people share a name;
   the ticket list shows the assignee's email on hover only.
-- Knowledge (step 34): only the phone assistant reads it, during live calls
-  (step 35); Claude's call brain and email triage don't, and otherwise
-  approved support articles only show on tickets and in "Test what the AI
-  finds". The search matches words, not meaning (no embeddings,
+- Knowledge (step 34): the phone assistant reads it during live calls
+  (step 35) and the chat assistant with each reply (step 49: the best 3
+  approved support articles, within 3,000 characters); the call brain and
+  email triage don't, and otherwise approved support articles only show on
+  tickets and in "Test what the AI finds". The search matches words, not
+  meaning (no embeddings,
   IMPLEMENTATION_PLAN decision 2): "refund" doesn't find "money back", and the
   stop words are English only. A scanned PDF has no text (no OCR). A web
   import is that one page (links are not followed, pages behind a login or
   built by JavaScript give little or nothing), and no import is ever
   refreshed when the document or page changes: importing again adds new
-  drafts beside the old ones, which stay until someone deletes them. Text is
-  read from a PDF inside the server process: a hostile PDF can make that slow
-  or memory-hungry (a .docx is unpacked once under a 50 MB cap first; PDFs
-  have no such guard). What someone types or pastes into an article,
+  drafts beside the old ones, which stay until someone deletes them. A PDF's
+  text is read by the brain (pypdf, at most 1,000 pages and 400,000
+  characters): a hostile PDF can still make that slow or memory-hungry there
+  (a .docx's text part is unpacked by core under a 50 MB cap). What someone
+  types or pastes into an article,
   customer details included, is stored in plain text and, once approved,
   could be quoted to any customer: only the notice on every form stops it,
   and "Save as knowledge" starts the title as the ticket's subject, which can
@@ -2734,10 +2761,7 @@ this order and is done on the laptop, deploying aside
   title search on /knowledge is ILIKE with no trigram index. Two people
   editing the same article: the second save is refused and must be redone by
   hand (no merge). The search needs ICU's "und-x-icu" collation in Postgres
-  (docs/going-live.md, section 1). A web import's DNS lookup can't be
-  stopped: one slower than the 10 s keeps one of Node's lookup threads (4 by
-  default, shared with file and crypto work) busy until the system's resolver
-  gives up, though nothing is fetched after it.
+  (docs/going-live.md, section 1).
 - Co-Founder (step 36): the marketing plan (step 37) and the content
   studio (step 38) use the facts. The interview's quality is
   unmeasured (no eval set): Claude may miss or misread a fact, which only
@@ -2818,17 +2842,17 @@ this order and is done on the laptop, deploying aside
   left-to-right and right-to-left marks with the other hidden format
   characters (punctuation in a call to action mixing directions may then
   show elsewhere); the text keeps them all.
-- Error class names in a production build: the server's code is minified,
-  so a log line that names an error by error.constructor.name (webhooks,
-  call analysis, recordings, email delivery, lib/safe-error-logging.ts)
-  shows a letter for an error of a library bundled into the server
-  (Drizzle's, Resend's, Stripe's); Node's own and pg's (kept external by
-  Next) keep their names. Claude's errors are named by the SDK's classes
-  instead (adapters/claude-errors.ts, step 38); the others are not fixed.
+- Error class names in the screens' production build: their code is
+  minified, so a line lib/safe-error-logging.ts writes (an error named by
+  error.constructor.name) may show a letter for an error of a library
+  bundled into the screens; Node's own keep their names. Core names an error
+  by its Go type (core/internal/logging, never shortened) and the brain
+  names Claude's errors by the SDK's classes (brain/brain/ai.py), so the
+  backend's lines are not affected.
 - Media library (step 39): no real image or video service is chosen (OPEN,
   IMPLEMENTATION_PLAN.md decision 9, options and prices in
   docs/research/vapi-tools-media-anthropic.md), so production has no
-  generation at all ("off", with a startup warning) and development only the
+  generation at all ("off", said on its pages) and development only the
   stand-in's flat-colour PNGs; no video is ever generated in development (an
   honest "no_video_provider"). The provider interface, polling, result
   downloads, claims and retries are checked with fake services only: no
@@ -2847,8 +2871,8 @@ this order and is done on the laptop, deploying aside
   new alt text, in another tab) only reaches the library: someone attaches
   it from the picker. A result that comes back to a library filled meanwhile
   (uploads don't wait for open requests) was made, and with a real service
-  paid for, but is not kept ("library_full"). A stuck request waits for the
-  daily job (Vercel Hobby) unless someone presses "Start now"; a run whose
+  paid for, but is not kept ("library_full"). A stuck request is taken up
+  again by core within a minute (or by "Start now"); a run whose
   service never answers the start in time fails ("provider_timeout"),
   although the service may have made (and charged) it, since there is no id
   to ask; a run cut off after the start but before the id was saved asks
@@ -2867,9 +2891,10 @@ this order and is done on the laptop, deploying aside
   LinkedIn: needs ansa's app (Share on LinkedIn + Sign In with LinkedIn,
   self-serve); that /rest/posts takes such a token, that urn:li:person:<sub>
   is the author, and how hashtags and escaped characters show
-  (lib/linkedin-text.ts) are NOT CONFIRMED; member tokens end after 60 days
-  (a reconnect, unless LinkedIn makes ansa a partner); post numbers need the
-  Community Management API on an app of its own (legal entity, screencast);
+  (core/internal/platforms/linkedin_text.go) are NOT CONFIRMED; member
+  tokens end after 60 days (a reconnect, unless LinkedIn makes ansa a
+  partner); post numbers need the Community Management API on an app of its
+  own (legal entity, screencast);
   organization pages are not offered. Facebook: needs Meta App Review for
   each permission and Business Verification; only the first 100 Pages a
   person manages are offered; whether a Page token stops when Meta's 90-day
@@ -2909,32 +2934,31 @@ this order and is done on the laptop, deploying aside
   once each, the later one's tokens winning. A token that can't be
   decrypted (a wrong DATA_ENCRYPTION_KEY) leaves the connection looking
   connected while nothing can use it. Connections and their attempts are
-  kept forever (the attempts until the daily job: up to a day past their
-  10 minutes); the platform's display name is shown as the platform gave
-  it.
+  kept forever (the attempts until core's hourly cleanup: up to an hour
+  past their 10 minutes); the platform's display name is shown as the
+  platform gave it.
 
-- Publishing queue (step 41): posts scheduled for later go out on time
-  only while something calls /api/cron/publish often (Vercel Pro's
-  every-minute cron or an outside pinger, docs/going-live.md section 8):
-  vercel.json keeps the daily job only (Vercel Hobby allows nothing more
-  often), so on Hobby a post waits for the 04:00 UTC run unless an owner
-  presses "Publish now". The platforms' own scheduling (Facebook's, a
-  private YouTube video's release) is never used: ansa's queue sends each
-  post when it is due, so a post is as late as the next run. Nothing has
+- Publishing queue (step 41): posts scheduled for later go out at the
+  queue's next round, every 15 seconds while core runs with its scheduler
+  on (CORE_SCHEDULER not "off"; a long round delays the next). The
+  platforms' own scheduling (Facebook's, a private YouTube video's release)
+  is never used: ansa's queue sends each post when it is due, so a post is
+  as late as the next round. Nothing has
   met a real platform (step 40's gaps): the stand-in's posts are files and
   have no address. A run cut off between its claim and the platform call
   (a deploy, a crash) leaves the post "publishing", and 10 minutes later it
   needs a person's check although nothing was sent (a false alarm, by
-  design: the run can't know how far it got); a run cut off by its host
-  mid-send is the same, and then the post may really be out. The pages
-  show it as needing attention from then on, but until a runner or a
-  person's Mark or Retry records it, its draft still says Scheduled. The
+  design: the run can't know how far it got); a run cut off mid-send is
+  the same, and then the post may really be out. The pages show it as
+  needing attention from then on, and the queue's next round records it
+  within 15 seconds (its draft says Scheduled until then). The
   daily limit (30 tries a company) counts tries, also refused ones, each
   run of a post a platform keeps slowing down, and tries whose account or
   media then wasn't ready (it is counted first). A company past it has one
-  post held back per run (back an hour later, a "waits" row in its
-  activity log each time: with a pinger every minute, one a minute while
-  it lasts); its other due posts wait for later runs. Retry publishes the
+  post held back per round (back an hour later, a "waits" row in its
+  activity log each time: with a round every 15 seconds, up to four a
+  minute while it lasts); its other due posts wait for later rounds. Retry
+  publishes the
   draft's CURRENT approved version, not the one first scheduled. A
   needs-attention post blocks a new one to the same account until it is
   marked. A post's text is not kept on the job: after an edit, the draft
@@ -2947,12 +2971,11 @@ this order and is done on the laptop, deploying aside
   leaves its rule matching nothing. Jobs, rules and the activity log are
   kept forever (no retention rule; the log is never trimmed, the pages
   show the newest 200).
-  Publishing to several accounts sends them one after another, each
-  started only while its slowest run fits (about 30 s of a run's 300 for
-  the first) and at most 50 a run: a long list waits for the next run
-  (logged). The companies take turns within a run, one post each per
-  round, but a run doesn't remember the last one: across runs, the
-  longest waiting company's post goes first each time.
+  Publishing to several accounts sends them one after another, at most 50
+  in one round of the queue: a longer list waits for the next round. The
+  companies take turns within a round, one post each per turn, but a round
+  doesn't remember the last one: across rounds, the longest waiting
+  company's post goes first each time.
 - Calendar (step 41): the planned day of an idea comes from "Plan the next
   2 weeks" only; moving it (or planning a draft made in the studio) isn't
   built: scheduling it picks its real time. The days are worked out in the
@@ -2978,8 +3001,8 @@ this order and is done on the laptop, deploying aside
   ($0.005): a post read daily for its 28 days costs about $0.14. A post is
   read about once a day (20 hours after its last try), from an hour after
   it went out until 30 days after (X's 28: its link clicks end at 30), at
-  most 100 a daily run and 10 a call of /api/cron/publish: on Vercel Hobby
-  a bigger backlog waits (logged); a post an owner marked as published has
+  most 20 a round of core's collector, every 5 minutes (a bigger backlog
+  waits for later rounds); a post an owner marked as published has
   no id on the platform, so its numbers are never read. Nothing is read
   after those days: a post never read by then (published before step 42,
   or held up by a backlog) keeps none, and the page says so. A post
@@ -3000,8 +3023,9 @@ this order and is done on the laptop, deploying aside
   when it was made, and the planner reads the newest review whatever its
   age. Each try counts against the hour's 10 reviews only once a review
   can be made.
-- Inbox (step 47): calls and emails show, replies to them don't exist
-  (as before); chats are answered on Telegram (step 48) and the stand-ins. Calls and emails from before step 47 aren't in any
+- Inbox (step 47): calls and emails show, replies to them don't exist (as
+  before); chats are answered on Telegram (step 48), Messenger (step 53)
+  and the stand-ins. Calls and emails from before step 47 aren't in any
   conversation (All requests lists their tickets). A caller is matched on
   the digits as written: "+39 051..." and "0039 051..." are two customers.
   A conversation a removed teammate took over stays "taken over" until
@@ -3016,9 +3040,9 @@ this order and is done on the laptop, deploying aside
   profiles can't be automated (no official API; unofficial tools break
   their terms and get numbers banned); Gmail reading needs Google's
   verification and a yearly security assessment (not built). "Haven't
-  answered within N minutes" needs something calling /api/cron/publish
-  every minute (Vercel Pro or an outside pinger; on Hobby the daily job:
-  the wait can be a day) and counts only answers ansa sees (in ansa, or
+  answered within N minutes" is checked every 15 seconds by core's
+  scheduler (the wait can run that much longer) and counts only answers
+  ansa sees (in ansa, or
   in the person's own Telegram app when Telegram sends them: NOT
   CONFIRMED). Away hours are weekly only (no holidays), cross midnight as
   two times, and "I'm away" has no end time: it lasts until "I'm back".
@@ -3031,17 +3055,22 @@ this order and is done on the laptop, deploying aside
   is right; an amount written without a currency mark ("8.50") or in words
   isn't checked, nor is a price in another currency's symbol with the same
   number. Refund words are matched in English, Italian, Spanish, French
-  and German only. A run cut off by its host (after the webhook's 200) leaves the
-  message unanswered and nothing retries it (the Inbox shows it). Only
-  chats are answered (Telegram, the stand-ins): calls and emails stay as
-  they were. The assistant sends what Claude wrote, checked, in Automatic
+  and German only. Each reply is a job: a run cut off (a crash, or a
+  deploy that outlasts core's 20-second stop) is tried again after its
+  10-minute lease, unless it had saved its reply already: that reply then
+  stays "Sending..." in the Inbox (it may or may not have gone out), never
+  sent again by itself. Only chats are answered
+  (Telegram, Messenger, the stand-ins): calls and emails stay as they were.
+  The assistant sends what Claude wrote, checked, in Automatic
   mode: a wrong but plausible answer within the menu's prices can reach a
   customer. Claude Code (development) is slower (a program starts for each
   answer) and its consumer data terms differ from the API's: never point
   it at real customers. A restaurant's own key is used only for the
-  assistant (menu reading, calls, emails and the Co-Founder use ansa's).
-  Alerts are best effort (no retry), and a customer's display name is
-  shown in them as Telegram gave it.
+  assistant and "Post for me" (menu reading, calls, emails and the
+  Co-Founder use ansa's). Alerts are a job saved with the handover (a
+  restart doesn't lose one), but a send that fails is only logged (no
+  retry), and a customer's display name is shown in them as the channel
+  gave it.
 - Orders (step 52): nothing has met a real customer: checked with a fake
   model and the stand-in chat. The AI must name dishes by label; one it
   can't place, or a "yes" with no summary seen, goes to a person (the
@@ -3063,9 +3092,9 @@ this order and is done on the laptop, deploying aside
   a refused hand back leaves the request closed and the conversation taken
   over (the page then offers "Hand back to ansa").
 - "Post for me" (step 54): nothing has met Facebook (step 40's gaps):
-  posts go out only once ansa's Meta app passed review, and on Vercel
-  Hobby at the next daily run unless something calls /api/cron/publish
-  every minute. Posts are text only (no image service yet). The brain is
+  posts go out only once ansa's Meta app passed review (core writes each
+  one up to a day before its time, and its queue sends it within about 15
+  seconds of it). Posts are text only (no image service yet). The brain is
   rules and numbers, not an AI: its mix, its few special days (no
   Ramadan, Easter or national holidays, whose dates move) and its weights
   are fixed in code, and it learns only from the numbers Facebook gives
@@ -3119,7 +3148,8 @@ this order and is done on the laptop, deploying aside
   the restaurant's midnight, also for a place open past it. Reading
   quality is unmeasured (no eval set): the owner checks every row, and a
   dish the AI missed is added by hand. iPhone HEIC photos are refused
-  (phones usually send JPEG); a scanned PDF has no text (a photo works).
+  (phones usually send JPEG); a PDF goes to the AI as itself, so a scanned
+  one can be read too.
   Reading again adds the dishes again: nothing spots duplicates.
 - Restaurant setup (step 45): hours past midnight are two days (18:00 to
   00:00, then 00:00 to 02:00 the day after), at most two times a day, and
@@ -3130,28 +3160,27 @@ this order and is done on the laptop, deploying aside
   worked out when a page loads, not live. Saving the setup's name,
   description or address replaces those confirmed facts without the
   Profile page's stale check (two owners at once: the later save wins).
-  The email alert setting is stored only: alerts come with step 49. The
-  old Setup page (/setup, "Phone, email and documents") stays, and its
+  The old Setup page (/setup, "Phone, email and documents") stays, and its
   checklist is still the support one.
-- Navigation (step 44): the sidebar links Home, Inbox, Content and
-  Settings only. Calls and Emails are reached from the Inbox, and the
+- Navigation (step 44; three sections since the "easy to use" pass): the
+  sidebar links Home, Inbox and Settings only (and Orders for a business
+  that takes orders). Calls and Emails are reached from the Inbox, and the
   Co-Founder's Overview, Interview, Profile, Strategy, Calendar, Queue and
-  Analytics from Settings → "Older pages", until step 57 moves or removes
-  them. A bookmark of the old ticket list (/dashboard?view=...) opens Home,
-  which ignores the view. On a phone there is no logo or company name on
-  screen (the bottom bar has only the four sections).
+  Analytics from Settings → "Older pages" (folded), until step 57 moves or
+  removes them. A bookmark of the old ticket list (/dashboard?view=...)
+  opens Home, which ignores the view. On a phone there is no logo or
+  company name on screen (the bottom bar has only the sections).
 - Business overview (step 43): a count stops at "10,000+" (the list it
   links to has the exact number). "Failed in the last 7 days" counts posts
   by their last change, also one scheduled again on its account since (as
   the queue's Failed list does), and "scheduled for the next 7 days"
-  includes posts already due and waiting for the next run (on Vercel Hobby,
-  the daily job); its link opens the queue's Scheduled list, which also
-  lists posts due later than 7 days. "Calls in the last 7 days" counts by when the call was
-  saved, and the Calls page it links to has no date filter (it is newest
-  first). The overview adds up to five queries to every dashboard view, each
-  count bounded (the ticket views' own counts still read every ticket, a
-  gap above). Members see
-  the Co-Founder's numbers too, as they read its pages. The Overview's
+  includes posts already due and waiting for the queue's next round
+  (within about 15 seconds); its link opens the queue's Scheduled list,
+  which also lists posts due later than 7 days. "Calls in the last 7 days"
+  counts by when the call was saved, and the Calls page it links to has no
+  date filter (it is newest first). The overview adds up to three queries
+  to every view of Home, each count bounded. Members see the Co-Founder's
+  numbers too, as they read its pages. The Overview's
   checklist counts real state of any kind: a development stand-in account
   as connected and simulated numbers as numbers (both say so), a post that
   failed as a post scheduled, and the interview is done only once it
@@ -3163,16 +3192,18 @@ this order and is done on the laptop, deploying aside
   deleting media, disconnecting an account or deleting an article leaves
   what went out (the stand-in's files in .dev-social/ too); a person
   removes it on the platform. Nothing of the Co-Founder is deleted on a
-  schedule (only expired connection attempts are, by the daily job): facts,
+  schedule (only expired connection attempts are, by core's cleanup): facts,
   interview messages until Start over, plans, drafts, media, posts, numbers,
   reviews and the activity log are kept, with no retention rule and no
   export. Removing a company or a person's data on request is done by hand
   in the database.
-- The end-to-end journey (step 43, journey-checks.ts) runs with a stand-in
-  for Claude, the development stand-in account and simulated numbers: it
-  proves ansa's own path from signup to a checked review, not Anthropic's
-  answers, a platform's API or a real phone call (each BLOCKED on its
-  account, IMPLEMENTATION_PLAN.md's acceptance checklist).
+- The end-to-end journey check (step 43, journey-checks.ts) was deleted with
+  the old backend's checks (Phase 8): core's and the brain's tests prove
+  each module on its own (a fake brain, the stand-in account, simulated
+  numbers), and nothing walks one company from signup to a checked review
+  any more. None of them proves Anthropic's answers, a platform's API or a
+  real phone call (each BLOCKED on its account, IMPLEMENTATION_PLAN.md's
+  acceptance checklist).
 
 ## Before launch (not code)
 - Fill in lib/site.ts: registered company name, contact email, governing law.
@@ -3187,17 +3218,21 @@ For the Co-Founder (docs/going-live.md, sections 5, 7, 8, 10 and 11):
   proposes nothing, and no plan, draft, calendar plan or review is made.
   Decide on zero data retention with Anthropic (Known gaps: what each use sends).
 - Choose an image and video service (IMPLEMENTATION_PLAN.md decision 9),
-  write its adapter and set MEDIA_PROVIDER; until then production has
-  uploads only.
+  write its provider in core (core/internal/mediagen; its name in ModeFor
+  and in core's MEDIA_PROVIDER check) and set MEDIA_PROVIDER; until then
+  production has uploads only.
 - Get ansa's developer app on each platform and set its pair of settings:
   LinkedIn (Share on LinkedIn and Sign In with OpenID Connect; post numbers
   need the Community Management API on an app of its own), Meta (App
   Review for pages_show_list, pages_read_engagement and pages_manage_posts,
   and Business Verification), X (pay-per-use credits and a spending limit),
   Google (OAuth verification; YouTube's audit past 100 uploads a day).
-- Have a scheduler call /api/cron/publish every minute (Vercel Pro's cron
-  or an outside pinger): on Vercel Hobby a post scheduled for later waits
-  for the daily job.
+- Run core on a host that keeps it running all the time (never one that
+  stops it between requests), one copy with its scheduler on
+  (CORE_SCHEDULER unset; "off" on any other): scheduled posts, the
+  assistant's catch-up, "Post for me", post numbers, stuck image requests
+  and the cleanup run inside it, and nothing outside calls them
+  (docs/going-live.md, section 8).
 - Agree with each customer before switching on any auto-publish rule (none
   is on, and nothing switches one on but an owner).
 - Check the first real connection, post and numbers of each platform
@@ -3210,8 +3245,10 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
 - Check whether a Telegram account without Premium can add a chatbot;
   if not, the bot-per-restaurant fallback replaces step 48's connect.
 - Make ansa's bot with @BotFather (Business Mode on), set its three
-  settings, run `pnpm telegram:webhook set`, and check one connection,
-  message, reply and removal with ansa's own test company.
+  settings in core, point it at core with
+  `make telegram-webhook ACTION=set URL=https://<core's public address>`
+  (from core/), and check one connection, message, reply and removal with
+  ansa's own test company.
 - For Messenger (docs/going-live.md, section 13): add the Messenger
   product to ansa's Meta app, set MESSENGER_VERIFY_TOKEN and the webhook
   (messages, message_echoes), pass App Review for pages_messaging and
