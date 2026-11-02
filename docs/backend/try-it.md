@@ -68,7 +68,15 @@ change (`pnpm install`), restart `pnpm dev` too.
 - Team (invite link, roles, categories), Saved answers (knowledge), Phone,
   email and documents, Account (name, password), Billing (simulate).
 - Log out and log in again; "Forgot password" (the link is in `.dev-emails/`).
-- Calls: no Vapi account yet. Link a made-up number (`make link-phone-line
+- **A phone call, answered live (free, on this computer):** Settings →
+  Connections → "practice phone". Pretend to be a caller, press Talk, speak,
+  press "Stop and send", and hear ansa answer with your Mac's voice; or type
+  what the caller says. Hang up, then open the call in the Inbox. Hearing
+  your voice needs whisper.cpp once: `brew install whisper-cpp`, a model
+  (`ggml-small.bin` from https://huggingface.co/ggerganov/whisper.cpp, in
+  `~/.cache/ansa-whisper/`), `WHISPER_MODEL_PATH` in `.env.core`, then
+  restart the brain. Typing works without it.
+- Finished calls the old way (Vapi's report after the call): link a made-up number (`make link-phone-line
   OWNER=<your login email> NUMBER=pn-local-test YES=1`), set
   VAPI_WEBHOOK_SECRET in `.env.core` and restart core, then `make
   simulate-vapi-call NUMBER=pn-local-test` (a call a person must follow up)

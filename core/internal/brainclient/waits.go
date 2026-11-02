@@ -28,4 +28,6 @@ const (
 	CofounderWait = 285 * time.Second
 	// The brain's status (which AI engines it can use): no AI.
 	StatusWait = 5 * time.Second
+	// Hearing a practice call's recording with local Whisper (development only).
+	VoiceWait = 70 * time.Second
 )

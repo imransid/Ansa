@@ -18,6 +18,8 @@ import (
 
 // NewChatTicket is a request the assistant opens in a conversation.
 type NewChatTicket struct {
+	// "chat", or "phone" for a request from a live call ("" = chat).
+	Channel        string
 	Subject        string
 	Description    string
 	CategoryID     string
@@ -46,10 +48,14 @@ func CreateChatTicketWithin(ctx context.Context, tx database.Tx, company tenant.
 	}
 	const insert = `
 		INSERT INTO tickets (company_id, ticket_number, subject, description, channel, category, customer_name, conversation_id)
-		VALUES ($1, $2, $3, $4, 'chat', $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $8::ticket_channel, $5, $6, $7)
 		RETURNING id`
+	channel := "chat"
+	if input.Channel == "phone" {
+		channel = "phone"
+	}
 	var id string
-	if err := tx.QueryRow(ctx, insert, company.String(), number, input.Subject, input.Description, category, input.CustomerName, input.ConversationID).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, insert, company.String(), number, input.Subject, input.Description, category, input.CustomerName, input.ConversationID, channel).Scan(&id); err != nil {
 		return Created{}, err
 	}
 	created := Created{ID: id, Number: number}

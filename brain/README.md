@@ -13,6 +13,10 @@ state. Read `docs/backend/README.md` first.
      gets the business's holding reply and a request for a person.
    - `ANSA_ENV=development` allows the "Claude Code on this computer" engine
      (never in production; the default is production).
+   - `WHISPER_MODEL_PATH` (development, optional): the whisper.cpp model the
+     practice phone hears your voice with (`brew install whisper-cpp`, then
+     `ggml-small.bin` from https://huggingface.co/ggerganov/whisper.cpp);
+     `WHISPER_CLI_PATH` only when `whisper-cli` isn't on the PATH.
 3. Check it: `curl -i http://127.0.0.1:8090/health`.
 
 ## Test it
@@ -30,6 +34,7 @@ state. Read `docs/backend/README.md` first.
 | `brain/email/` | Triaging a customer email (the customer's own words only) | [email-in](../docs/backend/modules/email-in.md) |
 | `brain/menu/` | Reading a menu (a photo, a PDF or text) into rows | [menu](../docs/backend/modules/menu.md) |
 | `brain/calls/` | A finished call: the transcript slice, the decision and the strict "solved" check | [calls](../docs/backend/modules/calls.md) |
+| `brain/voice/` | Development only: hears the practice phone's recordings with whisper.cpp on this computer | [phone](../docs/backend/modules/phone.md) |
 | `brain/documents/` | A PDF's text for "Add to knowledge" (pypdf) | [knowledge](../docs/backend/modules/knowledge.md) |
 | `brain/posts/` | Writing one "Post for me" post from the business's own details | [autopost](../docs/backend/modules/autopost.md) |
 | `brain/analytics/` | Reviewing one period's post numbers (aggregates only; core checks every number) | [analytics](../docs/backend/modules/analytics.md) |

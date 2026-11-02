@@ -119,6 +119,7 @@ catch-up every 15 seconds).
 | `internal/socialconnect/` | Connecting and disconnecting social accounts (Facebook Pages, LinkedIn, X, YouTube); the Accounts page | [socialconnect](../docs/backend/modules/socialconnect.md) |
 | `internal/platforms/` | LinkedIn, X and YouTube: signing in, renewing, revoking, posting, numbers, the stand-in | [platforms](../docs/backend/modules/platforms.md) |
 | `internal/calls/`, `internal/download/` | Phone calls: Vapi's webhook, the live knowledge search, the AI's decision, the Calls page; downloads from allowed hosts | [calls](../docs/backend/modules/calls.md) |
+| `internal/phone/` | Calls answered live (step 55): the one door every phone line uses (start, turn, end), the practice phone in development | [phone](../docs/backend/modules/phone.md) |
 | `internal/studio/` | The content studio: drafts written, edited, approved, rejected, archived; the AI's drafts | [studio](../docs/backend/modules/studio.md) |
 | `internal/media/`, `internal/mediagen/` | The media library: uploads, alt text, deleting, attaching; making images (the one door, the stand-in) | [media](../docs/backend/modules/media.md), [mediagen](../docs/backend/modules/mediagen.md) |
 | `internal/menu/`, `internal/menureading/` | The menu: dishes, prices, availability; Read my menu | [menu](../docs/backend/modules/menu.md) |

@@ -47,6 +47,26 @@ func TestTheSummaryIsAnsasOwnWords(t *testing.T) {
 	}
 }
 
+// On a live call ansa's own words are spoken: sentences a voice reads well,
+// "say yes", no promise to message the caller later, "tell" not "send".
+func TestTheSpokenTextsForACall(t *testing.T) {
+	order, _ := Price(Request{Items: []Item{{"M1", 2}}, Fulfilment: "delivery", Address: "Via Roma 1", Time: "20:00", Notes: "No basil"}, menu, both)
+	want := "Here is your order: 2 Margherita, €19.00. Delivery, €2.50. Total, €21.50. Delivered to Via Roma 1. When: 20:00. Notes: No basil. Shall I place the order? Please say yes to confirm."
+	if got := SpokenSummaryText(order); got != want {
+		t.Fatalf("spoken summary:\n%s", got)
+	}
+	if got := SpokenPlacedText(12); got != "Thank you! Your order number 12 is placed." {
+		t.Fatalf("placed: %s", got)
+	}
+	if got := SpokenQuestion(GapAddress, both); got != "Where should we deliver it? Please tell me the full address." {
+		t.Fatalf("address question: %s", got)
+	}
+	step := PlanStep("order_summary", &Request{Items: []Item{{"M1", 1}}, Fulfilment: "pickup", Time: "now"}, Ordering{TakesOrders: true, Spoken: true, Menu: menu, Options: both}, "business")
+	if step.Kind != StepPropose || !strings.HasPrefix(step.Text, "Here is your order: 1 Margherita") {
+		t.Fatalf("a spoken plan proposes in spoken words: %+v", step)
+	}
+}
+
 func TestThePlan(t *testing.T) {
 	open := Ordering{TakesOrders: true, Menu: menu, Options: both}
 	request := &Request{Items: []Item{{"M1", 1}}, Fulfilment: "pickup"}

@@ -5,6 +5,7 @@ import { EmailConnection, PhoneConnection, PostingPlatforms } from "@/components
 import { PageLoading } from "@/components/page-loading";
 import { getAccountsPageFromCore } from "@/lib/core-views/accounts";
 import { getConnectionsFromCore, type ConnectionsPage } from "@/lib/core-views/channels";
+import { getPracticePhoneFromCore } from "@/lib/core-views/phone";
 import { requireSessionContext } from "@/lib/session";
 import type { PlatformView, SocialAccountsPage } from "@/lib/types/social-accounts";
 import { MessengerFromCore } from "./messenger-from-core";
@@ -38,9 +39,11 @@ async function Channels() {
   // LinkedIn, X and YouTube (core's Accounts page), read only for a
   // business, the one that shows them.
   const social = page.kind === "business" ? await getAccountsPageFromCore() : null;
+  const practice = await getPracticePhoneFromCore();
   return (
     <ConnectionsSections
       page={page}
+      practicePhone={practice.available}
       messenger={<MessengerFromCore messenger={page.messenger} canManage={page.canManage} personal={page.kind === "personal"} />}
       posting={social && <PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
     />
@@ -53,7 +56,7 @@ function postingPlatformsOf(social: SocialAccountsPage): PlatformView[] {
 }
 
 // The page's sections, whichever backend read them.
-function ConnectionsSections({ page, messenger, posting }: { page: ConnectionsPage; messenger: ReactNode; posting: ReactNode }) {
+function ConnectionsSections({ page, practicePhone, messenger, posting }: { page: ConnectionsPage; practicePhone: boolean; messenger: ReactNode; posting: ReactNode }) {
   return (
     <div className="grid gap-6">
       <section aria-labelledby="telegram-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
@@ -81,6 +84,15 @@ function ConnectionsSections({ page, messenger, posting }: { page: ConnectionsPa
           Phone calls
         </h2>
         <PhoneConnection lines={page.phoneLines} />
+        {practicePhone && (
+          <p className="text-sm">
+            Development: try a call on this computer with the{" "}
+            <Link href="/settings/channels/practice-call" className="text-link hover:underline">
+              practice phone
+            </Link>
+            .
+          </p>
+        )}
       </section>
       {page.kind === "business" && posting && (
         <section aria-labelledby="posting-heading" className="grid gap-4 rounded-2xl border bg-card p-5">

@@ -64,6 +64,8 @@ class ReplyRequest(Strict):
     knowledge: str = Field(default="", max_length=10_000)
     categories: list[str] = Field(default_factory=list, max_length=200)
     conversation: list[Line] = Field(max_length=40)
+    # "call": a live phone call, where the reply is read aloud (step 55).
+    channel: Literal["chat", "call"] = "chat"
     # Which AI answers: the Claude API (the business's own key, decrypted by
     # core, or None for ansa's), or Claude Code on this computer (development only).
     engine: Literal["api_key", "claude_code"] = "api_key"

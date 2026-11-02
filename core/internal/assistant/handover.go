@@ -65,7 +65,7 @@ func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info con
 			return err
 		}
 		if h.SendHoldingReply {
-			if holdingSaved, target, err = r.saveHoldingReply(ctx, tx, turn, holdingID, holdingText); err != nil {
+			if holdingSaved, target, err = r.saveHoldingReply(ctx, tx, turn, inputs, holdingID, holdingText); err != nil {
 				return err
 			}
 		}
@@ -95,8 +95,8 @@ func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info con
 
 // saveHoldingReply saves the holding reply "sending" when the channel can
 // take a message now; it reports whether it saved one, and where it goes.
-func (r *Runner) saveHoldingReply(ctx context.Context, tx database.Tx, turn conversations.Turn, id, text string) (bool, chat.Target, error) {
-	target, refusal, err := chat.RouteWithin(ctx, tx, turn.CompanyID, turn.ConversationID)
+func (r *Runner) saveHoldingReply(ctx context.Context, tx database.Tx, turn conversations.Turn, inputs *Inputs, id, text string) (bool, chat.Target, error) {
+	target, refusal, err := routeWithin(ctx, tx, turn, inputs)
 	if err != nil || refusal != "" {
 		return false, chat.Target{}, err
 	}
@@ -140,7 +140,7 @@ func requestFields(ctx context.Context, tx database.Tx, turn conversations.Turn,
 		}
 	}
 	categoryID, err := activeCategoryID(ctx, tx, turn, h.CategoryName)
-	return tickets.NewChatTicket{Subject: subject, Description: description, CategoryID: categoryID, CustomerName: name, ConversationID: info.ConversationID}, err
+	return tickets.NewChatTicket{Channel: info.Channel, Subject: subject, Description: description, CategoryID: categoryID, CustomerName: name, ConversationID: info.ConversationID}, err
 }
 
 // activeCategoryID is the id of the company's active category with this

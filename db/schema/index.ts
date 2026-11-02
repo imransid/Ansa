@@ -14,6 +14,7 @@ export * from "./business-facts";
 export * from "./assistant-settings";
 export * from "./catalog-items";
 export * from "./conversations";
+export * from "./phone-calls";
 export * from "./messages";
 export * from "./channels";
 export * from "./onboarding-messages";

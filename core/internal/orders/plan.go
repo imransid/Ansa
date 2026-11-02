@@ -20,6 +20,8 @@ type Step struct {
 // Ordering is what a step needs to know about the business today.
 type Ordering struct {
 	TakesOrders bool
+	// A live call: ansa's texts are the spoken ones (SpokenQuestion, SpokenSummaryText).
+	Spoken bool
 	// "Opens at 18:00" while closed now by its own hours; "" when open or no hours were given.
 	ClosedNow string
 	Menu      []MenuChoice
@@ -48,9 +50,15 @@ func PlanStep(kind string, request *Request, ordering Ordering, companyKind stri
 	priced, gap := Price(*request, ordering.Menu, ordering.Options)
 	switch gap {
 	case "":
+		if ordering.Spoken {
+			return Step{Kind: StepPropose, Order: priced, Text: SpokenSummaryText(priced)}
+		}
 		return Step{Kind: StepPropose, Order: priced, Text: SummaryText(priced)}
 	case GapUnknownItem:
 		return Step{Kind: StepHandover, Reason: "order_unclear"}
+	}
+	if ordering.Spoken {
+		return Step{Kind: StepAsk, Text: SpokenQuestion(gap, ordering.Options)}
 	}
 	return Step{Kind: StepAsk, Text: Question(gap, ordering.Options)}
 }

@@ -218,6 +218,14 @@ Neon keeps point-in-time backups; check the retention on your plan.
 
 ## 4. Calls (Vapi)
 
+Two kinds of calls exist. **Answered live** (step 55): ansa talks with the
+caller turn by turn, with the same assistant as chats. On the laptop that is
+the practice phone; for production a provider must be chosen first (Vapi,
+Twilio, Telnyx or LiveKit), and its line written: one file behind core's
+phone door (docs/backend/modules/phone.md), nothing else. Until then there
+is no live answering in production. **Finished-call reports** (below): Vapi
+runs the conversation itself and sends core the transcript afterwards.
+
 1. Server URL: `https://<core address>/webhooks/vapi`.
 2. Generate a secret (`openssl rand -hex 32`), put it in a Vapi HMAC credential
    and in core's `VAPI_WEBHOOK_SECRET` (at least 32 characters; without it

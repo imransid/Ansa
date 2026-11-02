@@ -90,6 +90,19 @@ important person is handed over without the brain; "when away" waits, then
 the catch-up's run answers; the brain down = the holding reply; an own key
 that can't be read is never replaced by ansa's.
 
+**Calls (`call.go`, step 55, [phone](phone.md)):** `AnswerCall` runs the
+same run for a live call's turn (the caller's words are the newest message
+of their phone conversation): whatever the away settings say, never a
+draft, the brain told `channel: "call"` (spoken words), ansa's own order
+texts the spoken ones, and the words saved for the call to speak
+(`routeWithin`: the phone target). `SpokenAfter` reads what ansa said after
+the caller's words. When the run stays quiet (paused, a person handling it,
+a request open) ansa takes a message instead (`MessageTakenText`, no AI);
+after a `no_reply` it keeps the line open ("Is there anything else...").
+`CallMessagesLeftWithin` opens the request for messages taken once the call
+ends (reason `call_message`, unless one is open), with the activity line and
+the owners' alert ("ansa took their message on the call").
+
 **Catch-up (`catchup.go`, the old `services/assistant-due.ts`):** every 15 s
 (core's scheduler, see [schedule](schedule.md)) core claims the
 conversations whose "if I haven't answered within N minutes" is due, of every

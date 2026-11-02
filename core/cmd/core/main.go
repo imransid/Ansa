@@ -30,6 +30,7 @@ import (
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
+	"ansa/core/internal/phone"
 	"ansa/core/internal/postmetrics"
 	"ansa/core/internal/publishing"
 	"ansa/core/internal/ratelimit"
@@ -104,11 +105,13 @@ func main() {
 	stripe := &billing.Stripe{SecretKey: cfg.StripeSecretKey, PriceID: cfg.StripePriceID}
 	routes.Handle("POST /webhooks/stripe", &billing.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.StripeWebhookSecret, Stripe: stripe})
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
-		Sessions:    &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
-		Orders:      &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
-		Replies:     &inbox.Replies{Pool: pool, Box: box, Sender: sender},
-		Brain:       brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.StatusWait),
-		Assistant:   runner,
+		Sessions:  &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
+		Orders:    &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
+		Replies:   &inbox.Replies{Pool: pool, Box: box, Sender: sender},
+		Brain:     brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.StatusWait),
+		Assistant: runner,
+		Phone: &phone.Service{Pool: pool, Box: box, Assistant: runner, Log: log,
+			Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.VoiceWait)},
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.MenuReadingWait),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
 		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: storage, EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},

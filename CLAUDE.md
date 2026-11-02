@@ -2134,6 +2134,49 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     changes and the page says the customer wasn't told. Home's "Needs you"
     counts new orders ("N new orders to accept"), and a conversation's page
     lists that customer's orders.
+- Calls answered live (step 55, core/internal/phone, docs/backend/modules/
+  phone.md): someone who couldn't reach the person or the business talks
+  with ansa turn by turn, answered by the SAME assistant as chats (details,
+  menu, saved answers, instructions, core's checks, orders priced by ansa,
+  handovers with a request and the owners' alert). The call is the caller's
+  conversation (contacts.channel "phone", by their number's digits); their
+  words and ansa's are its messages, encrypted. ONE door for every phone
+  line: Start (number and name: the conversation, a live call in
+  phone_calls, the greeting), Turn (the caller's words as text: ansa's
+  answer), End (hang up). The practice phone is the development line; a
+  production provider (Vapi, Twilio, Telnyx or LiveKit, chosen at launch:
+  the 2026-11-03 decision) becomes another line, one file and a name in
+  phone_calls_line_known, and the person's phone forwards calls it can't
+  take to ansa's number.
+  - A call reaches ansa only when the person couldn't answer: ansa answers
+    whatever "Only when I'm away" says, never as a draft ("Ask me first"
+    can't hold a caller). The brain gets channel "call": short spoken
+    sentences, no links or lists, never a silent no_reply. ansa's own order
+    texts are the spoken ones (core/internal/orders: SpokenSummaryText, "say
+    yes to confirm", no promise to message the caller later).
+  - The greeting carries the AI label ("Hello! I'm Rafa's AI assistant.
+    Rafa can't take your call right now. How can I help?"): it never
+    pretends to be the person.
+  - When ansa may not answer itself (paused, a person handling the
+    conversation, a request already open) it takes messages: fixed words,
+    no AI, counted on the call; at the end a request "A caller left a
+    message" (reason call_message, routed, owners alerted: "ansa took their
+    message on the call") unless one is open. The caller's words stay in
+    the encrypted conversation, never on the request. After a handover
+    during the call ansa says the holding reply and takes messages.
+  - Only the assistant answering a live call speaks into a phone
+    conversation: chat.RouteWithin refuses it to everyone else (a person's
+    reply, an order's status message); requests from a call are channel
+    "phone". One live call per conversation (a partial unique index).
+  - The practice phone (Settings → Connections → practice phone,
+    /settings/channels/practice-call; owners; development only, refused by
+    core in production): pretend to be a caller, talk or type, hear ansa
+    with the computer's own voice (the browser's speech). A recording (16
+    kHz mono WAV made in the browser, lib/practice-phone/recording.ts) is
+    heard by whisper.cpp on this computer through the brain
+    (/v1/voice/transcribe, development only, locked down like Claude Code:
+    WHISPER_MODEL_PATH, WHISPER_CLI_PATH). 30 calls and 300 turns an hour
+    per company.
 - A GET route handler that reads no params is prerendered at BUILD time unless it
   calls `await connection()` first; lib/core-api.ts does that for every call
   to core, so nothing that asks core is built ahead. Check the build output:
@@ -3101,6 +3144,21 @@ this order and is done on the laptop, deploying aside
   that the status changes and the page says the customer wasn't told.
   "Closed now" reads the opening hours only (no holidays). Orders are kept
   forever (no retention rule), their address and notes encrypted.
+- Calls answered live (step 55): only the development practice phone
+  exists. No real phone line is connected (no provider chosen: Vapi,
+  Twilio, Telnyx or LiveKit at launch), so nobody can call ansa's number
+  yet, and the person's "forward calls I can't take" is a setting on their
+  own phone that needs that number. The practice phone hears with
+  whisper.cpp (the "small" model: good English, weaker in other languages
+  such as Bangla) and speaks with the browser's own voices; a real line
+  will hear and speak with its provider's. Each turn waits for the whole
+  answer (no streaming): with Claude Code on this computer a few seconds or
+  more, so a caller hears a pause; nothing interrupts ansa while it speaks
+  (no barge-in). Messages taken while ansa can't answer are fixed words;
+  the request only says a caller left a message (their words are in the
+  conversation). Calls aren't listed on the Calls page (that is still Vapi's
+  finished-call reports): they are conversations in the Inbox. ansa never
+  ends a call by itself: the caller hangs up.
 - The "easy to use" pass (2026-11-01): Home, Settings, Settings →
   Assistant and the conversation page were simplified by hand; nothing
   measures how easy they are (no user testing yet). "Done" on a chat's
@@ -4076,4 +4134,20 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   Calls (step 55) first: on the laptop a practice phone, in production the
   best of Vapi, Twilio, Telnyx or LiveKit, chosen then. WhatsApp Business
   became step 56 (personal WhatsApp stays impossible: no allowed API).
+- 2026-11-03: Step 55, calls answered live. Decisions where the plan left
+  room: a call is the caller's conversation (their words and ansa's as its
+  messages), answered turn by turn by the SAME assistant as chats rather
+  than a second brain, so calls get the same checks, orders, handovers and
+  "While you were away"; one door for every phone line (start, turn, end),
+  with the practice phone as the development line and the production
+  provider still to choose; calls reach ansa only when the person couldn't
+  answer, so they're answered whatever the away settings say and never wait
+  as drafts; when ansa may not answer it takes messages (no AI) and opens
+  one request when the call ends; the caller hears ansa through the
+  browser's speech in development and whisper.cpp hears them (one free
+  install, offline). Migration 0049_phone_calls (the table and the
+  call_message reason); no new package; WHISPER_MODEL_PATH and
+  WHISPER_CLI_PATH are development settings of the brain. Also: the
+  database's catalog is checked again against core's tenant table list
+  (away_summary_reads and user_categories were missing from it).
 

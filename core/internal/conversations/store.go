@@ -46,6 +46,47 @@ func InsertCustomerMessage(ctx context.Context, pool *database.Pool, company ten
 	return turn, err
 }
 
+// ConversationFor returns the contact's conversation, made with its contact
+// on first use (a call starts in it before anyone has said a word).
+func ConversationFor(ctx context.Context, pool *database.Pool, company tenant.CompanyID, contact ContactKey) (string, error) {
+	var conversationID string
+	err := database.InTx(ctx, pool, func(tx database.Tx) error {
+		var err error
+		conversationID, err = conversationForContact(ctx, tx, company, contact)
+		return err
+	})
+	return conversationID, err
+}
+
+// InsertCallerWords saves what a caller just said on a live call, in the
+// call's conversation (nil when the company has no such conversation).
+// Unlike a chat message it queues no reply job: the phone line answers at
+// once, while the caller waits (core/internal/phone).
+func InsertCallerWords(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string, message IncomingMessage) (*Turn, error) {
+	var turn *Turn
+	err := database.InTx(ctx, pool, func(tx database.Tx) error {
+		const insert = `
+			INSERT INTO messages (id, company_id, conversation_id, direction, author, body_encrypted, channel_message_id)
+			SELECT $1::uuid, conversations.company_id, conversations.id, 'in', 'customer', $4::text, $5::text
+			FROM conversations WHERE conversations.company_id = $2 AND conversations.id = $3
+			RETURNING id`
+		var id string
+		err := tx.QueryRow(ctx, insert, message.ID, company.String(), conversationID, message.BodyEncrypted, message.ChannelMessageID).Scan(&id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := touchConversation(ctx, tx, company, conversationID, true); err != nil {
+			return err
+		}
+		turn = &Turn{CompanyID: company, ConversationID: conversationID, TriggerMessageID: id}
+		return nil
+	})
+	return turn, err
+}
+
 // InsertBusinessAccountMessage saves a message the business wrote in its own
 // app (Telegram, Meta Business Suite): sent, no teammate named. You answered
 // yourself, so the assistant stops waiting to step in. False when it was

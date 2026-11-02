@@ -23,6 +23,9 @@ export const HANDOVER_REASONS = [
   // order ansa couldn't write up (a dish it can't place, nothing to confirm).
   "order_change",
   "order_unclear",
+  // Step 55: a caller left a message while ansa could only take messages
+  // (the assistant paused, a person handling the conversation).
+  "call_message",
 ] as const;
 export type HandoverReason = (typeof HANDOVER_REASONS)[number];
 
@@ -54,4 +57,5 @@ export const HANDOVER_REASON_TEXT: Record<HandoverReason, string> = {
   send_failed: "The assistant's reply couldn't be sent.",
   order_change: "They want to change or cancel an order they placed.",
   order_unclear: "ansa couldn't write up their order (a dish it couldn't find on the menu).",
+  call_message: "They called and left a message.",
 };

@@ -15,7 +15,9 @@ type NeedsYou struct {
 	ChannelLabel     string
 	Reason           string
 	HoldingReplySent bool
-	Link             string
+	// They called (step 55): ansa spoke to them on the call.
+	OnACall bool
+	Link    string
 }
 
 // Rendered is an email's subject and both bodies.
@@ -45,10 +47,7 @@ func (n NeedsYou) Email(ownerName string) Rendered {
 	if len(subject) > 150 {
 		subject = subject[:150]
 	}
-	sent := "No reply reached them."
-	if n.HoldingReplySent {
-		sent = "ansa sent them your holding reply."
-	}
+	sent := n.whatTheyHeard()
 	text := strings.Join([]string{"Hi " + ownerName + ",", "", customer + " needs you on " + n.ChannelLabel + ". " + why, "", sent, "", "Open the conversation: " + n.Link}, "\n")
 	page := `<!doctype html>
 <html>
@@ -60,6 +59,21 @@ func (n NeedsYou) Email(ownerName string) Rendered {
   </body>
 </html>`
 	return Rendered{Subject: string(subject), HTML: page, Text: text}
+}
+
+// whatTheyHeard: what reached the customer before a person does.
+func (n NeedsYou) whatTheyHeard() string {
+	switch {
+	case n.OnACall && n.Reason == "call_message":
+		return "ansa took their message on the call."
+	case n.OnACall && n.HoldingReplySent:
+		return "ansa gave them your holding reply on the call."
+	case n.OnACall:
+		return "ansa answered their call."
+	case n.HoldingReplySent:
+		return "ansa sent them your holding reply."
+	}
+	return "No reply reached them."
 }
 
 // TelegramNote is the same alert as one short message from ansa's bot.

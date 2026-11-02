@@ -58,6 +58,12 @@ func (s *Sender) Send(ctx context.Context, target Target, messageID, text string
 		return telegram.Send(ctx, s.TelegramToken, target.ExternalID, text, target.TelegramConnectionID)
 	case target.Channel == conversations.ChannelMessenger && target.MessengerConnectionID != "":
 		return s.sendMessenger(ctx, target, text)
+	case target.Channel == conversations.ChannelPhone:
+		// Words for a live call: the phone line speaks them, reading them
+		// back from the conversation (core/internal/phone). Only the
+		// assistant answering that call makes such a target: RouteWithin
+		// refuses a phone conversation to everyone else.
+		return Result{Status: "sent"}
 	default:
 		return Result{Status: "failed", Error: "not_connected"}
 	}

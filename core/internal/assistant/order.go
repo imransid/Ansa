@@ -91,6 +91,9 @@ func (r *Runner) place(ctx context.Context, turn conversations.Turn, info conver
 		if _, err := jobs.EnqueueWithin(ctx, tx, turn.CompanyID, alert); err != nil && !errors.Is(err, jobs.ErrDuplicate) {
 			return "", "", err
 		}
+		if inputs.Spoken {
+			return orders.SpokenPlacedText(placed.Number), "order_placed", nil
+		}
 		return orders.PlacedText(placed.Number), "order_placed", nil
 	})
 	if err == nil && outcome == outcomeNothingToDo {
@@ -127,7 +130,7 @@ func (r *Runner) saveFixedAndSend(ctx context.Context, turn conversations.Turn, 
 			return err
 		}
 		var refusal string
-		if target, refusal, err = chat.RouteWithin(ctx, tx, turn.CompanyID, turn.ConversationID); err != nil || refusal != "" {
+		if target, refusal, err = routeWithin(ctx, tx, turn, inputs); err != nil || refusal != "" {
 			cannotSend = refusal != ""
 			return err
 		}

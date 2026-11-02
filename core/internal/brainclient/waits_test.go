@@ -68,6 +68,11 @@ func TestTheBrainAnswersBeforeCoreStopsWaiting(t *testing.T) {
 			t.Errorf("Claude Code may take %v, but core waits %v", limit, wait)
 		}
 	}
+	// Whisper (development) hears the practice phone's recordings.
+	hearing := secondsIn(t, claudeCode, readBrainFile(t, "../../../brain/brain/voice/whisper.py"), "TIMEOUT_SECONDS")
+	if hearing+brainOverhead > VoiceWait {
+		t.Errorf("Whisper may take %v, but core waits %v", hearing, VoiceWait)
+	}
 }
 
 func readBrainFile(t *testing.T, path string) string {

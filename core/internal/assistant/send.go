@@ -25,7 +25,8 @@ func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info 
 	if err != nil {
 		return "", err
 	}
-	waitForPerson := inputs.ReplyMode == "ask_first"
+	// A caller on the line can't wait for a person's approval.
+	waitForPerson := inputs.ReplyMode == "ask_first" && !inputs.Spoken
 	outcome := OutcomeQuiet
 	cannotSend := false
 	var target chat.Target
@@ -38,7 +39,7 @@ func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info 
 		if !waitForPerson {
 			status, action = "sending", "replied"
 			var refusal string
-			if target, refusal, err = chat.RouteWithin(ctx, tx, turn.CompanyID, turn.ConversationID); err != nil || refusal != "" {
+			if target, refusal, err = routeWithin(ctx, tx, turn, inputs); err != nil || refusal != "" {
 				cannotSend = refusal != ""
 				return err
 			}
@@ -73,6 +74,16 @@ func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info 
 		return outcome, nil
 	}
 	return OutcomeReplied, r.deliver(ctx, turn, info, inputs, target, messageID, text)
+}
+
+// routeWithin is where the assistant's words go: on a live call they are
+// spoken (the phone line reads them back from the conversation); otherwise
+// the chat's own route, checked in this transaction.
+func routeWithin(ctx context.Context, tx database.Tx, turn conversations.Turn, inputs *Inputs) (chat.Target, string, error) {
+	if inputs.Spoken {
+		return chat.Target{CompanyID: turn.CompanyID, Channel: conversations.ChannelPhone}, "", nil
+	}
+	return chat.RouteWithin(ctx, tx, turn.CompanyID, turn.ConversationID)
 }
 
 // deliver sends a saved message and records what became of it; one the

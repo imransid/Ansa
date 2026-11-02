@@ -151,6 +151,11 @@ func Question(gap string, options Options) string {
 	return "We don't deliver, but you can pick it up. Is pickup all right?"
 }
 
+// SpokenQuestion is Question for a live call: the caller tells, never sends.
+func SpokenQuestion(gap string, options Options) string {
+	return strings.Replace(Question(gap, options), "Please send the full address.", "Please tell me the full address.", 1)
+}
+
 // SummaryText is what the customer says yes to: every line, the fee, the
 // total, how and when, written by ansa from the priced order.
 func SummaryText(order Priced) string {
@@ -175,9 +180,41 @@ func SummaryText(order Priced) string {
 	return strings.Join(append(lines, "", "Shall I place the order? Reply “yes” to confirm."), "\n")
 }
 
+// SpokenSummaryText is SummaryText for a live call: the same lines as
+// sentences a voice reads well ("2 Margherita, €17.00."), and "say yes",
+// since a caller doesn't reply in writing. It keeps "Here is your order",
+// which the assistant looks for to know what a yes answers.
+func SpokenSummaryText(order Priced) string {
+	price := func(cents int64) string { return money.Format(cents, order.Currency) }
+	parts := []string{"Here is your order:"}
+	for _, line := range order.Lines {
+		parts = append(parts, strconv.Itoa(line.Quantity)+" "+line.Name+", "+price(line.LineTotalCents)+".")
+	}
+	if order.DeliveryFeeCents > 0 {
+		parts = append(parts, "Delivery, "+price(order.DeliveryFeeCents)+".")
+	}
+	parts = append(parts, "Total, "+price(order.TotalCents)+".")
+	if order.Fulfilment == "delivery" {
+		parts = append(parts, "Delivered to "+order.Address+".")
+	} else {
+		parts = append(parts, "For pickup.")
+	}
+	parts = append(parts, "When: "+order.Time+".")
+	if order.Notes != "" {
+		parts = append(parts, "Notes: "+order.Notes+".")
+	}
+	return strings.Join(append(parts, "Shall I place the order? Please say yes to confirm."), " ")
+}
+
 // PlacedText confirms a placed order (sent at once, never waits).
 func PlacedText(number int) string {
 	return "Thank you! Your order #" + strconv.Itoa(number) + " is placed. We'll message you as soon as it's accepted."
+}
+
+// SpokenPlacedText confirms an order placed on a call: nobody can message a
+// caller afterwards, so it promises nothing more.
+func SpokenPlacedText(number int) string {
+	return "Thank you! Your order number " + strconv.Itoa(number) + " is placed."
 }
 
 // WithdrawnText answers a customer who doesn't want the order after all.

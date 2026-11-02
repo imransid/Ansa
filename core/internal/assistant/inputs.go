@@ -33,6 +33,17 @@ type Inputs struct {
 	// The business saved its own key and it can't be read: ansa's key is
 	// never used in its place (nobody pays unaware), so no AI answers.
 	KeyUnreadable bool
+	// This answer is a live call's (onACall): spoken, never a draft.
+	Spoken bool
+}
+
+// onACall makes this answer a live call's (step 55): the brain writes for a
+// voice, ansa's order texts are the spoken ones, and the words go to the
+// call (routeWithin) and never wait as a draft: the caller is on the line.
+func (i *Inputs) onACall() {
+	i.Spoken = true
+	i.Request.Channel = "call"
+	i.Ordering.Spoken = true
 }
 
 type settingsRow struct {
@@ -88,6 +99,7 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		Instructions: settings.Instructions,
 		Categories:   categories,
 		Conversation: lines,
+		Channel:      "chat",
 	}
 	if fee > 0 {
 		formatted := money.Format(fee, settings.Currency)

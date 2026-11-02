@@ -58,11 +58,24 @@ PERSONAL_SYSTEM_PROMPT = "\n".join(
 )
 
 
+CALL_RULES = "\n".join(
+    [
+        "THIS CONVERSATION IS A LIVE PHONE CALL, not a chat: the caller hears your reply read aloud by a voice, right away.",
+        "Answer in one to three short, natural spoken sentences. No lists, no links, no emoji, no symbols or abbreviations a voice would read badly.",
+        "Never use action no_reply on a call: a thank-you or a goodbye gets a short friendly answer.",
+        "Someone who wants to leave a message for a person: action needs_person (asked_for_person), with their message in request_summary.",
+    ]
+)
+
+
 def build_request(request: ReplyRequest) -> tuple[str, str, dict]:
     """The system prompt, the prompt with the data in tags, and the answer's schema."""
+    system = PERSONAL_SYSTEM_PROMPT if request.kind == "personal" else BUSINESS_SYSTEM_PROMPT
+    if request.channel == "call":
+        system = system + "\n" + CALL_RULES
     if request.kind == "personal":
-        return PERSONAL_SYSTEM_PROMPT, _personal_prompt(request), ANSWER_JSON_SCHEMA
-    return BUSINESS_SYSTEM_PROMPT, _business_prompt(request), ANSWER_JSON_SCHEMA
+        return system, _personal_prompt(request), ANSWER_JSON_SCHEMA
+    return system, _business_prompt(request), ANSWER_JSON_SCHEMA
 
 
 def _business_prompt(r: ReplyRequest) -> str:

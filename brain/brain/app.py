@@ -8,6 +8,7 @@ Run: BRAIN_SHARED_SECRET=... .venv/bin/uvicorn brain.app:create_app --factory --
 import os
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 
 from brain import ai, claude_code
 from brain.analytics.review import ReviewRequest, review_performance
@@ -37,11 +38,14 @@ from brain.posts.autopost import build_prompt as build_post_prompt
 from brain.posts.autopost import read_answer as read_post_answer
 from brain.security import SIGNATURE_HEADER, TIMESTAMP_HEADER, is_signed_by_core
 from brain.settings import Settings, load_settings
+from brain.voice.whisper import TranscribeRequest, hear
 
 # The biggest request core sends (one conversation's slice and the company's details).
 MAX_BODY_BYTES = 512 * 1024
-# A menu to read: a photo or a PDF of up to 4 MB, as base64.
+# A menu to read: a photo or a PDF of up to 4 MB, as base64 (and a practice
+# call's recording, up to 2.5 MB).
 MENU_BODY_BYTES = 6 * 1024 * 1024
+BIG_BODY_PATHS = ("/v1/menu/read", "/v1/documents/pdf-text", "/v1/calls/decide", "/v1/voice/transcribe")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -54,7 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.url.path == "/health":
             return await call_next(request)
         body = await request.body()
-        cap = MENU_BODY_BYTES if request.url.path in ("/v1/menu/read", "/v1/documents/pdf-text", "/v1/calls/decide") else MAX_BODY_BYTES
+        cap = MENU_BODY_BYTES if request.url.path in BIG_BODY_PATHS else MAX_BODY_BYTES
         if len(body) > cap:
             return Response(status_code=413)
         if not is_signed_by_core(active.shared_secret, request.headers.get(TIMESTAMP_HEADER), request.headers.get(SIGNATURE_HEADER), body):
@@ -140,6 +144,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/cofounder/calendar-plan")
     def cofounder_calendar_plan(request: CalendarPlanRequest) -> dict:
         return plan_calendar(request, active_asker)
+
+    @app.post("/v1/voice/transcribe", response_model=None)
+    def voice_transcribe(request: TranscribeRequest):
+        """DEVELOPMENT ONLY: the practice phone's recording as the caller's
+        words, heard by whisper.cpp on this computer (a real phone line hears
+        its callers itself). Never the words in a log."""
+        if not active.development:
+            return Response(status_code=404)
+        heard = hear(request)
+        if heard.kind != "ok":
+            return JSONResponse(status_code=503, content={"error": heard.error_name})
+        return {"text": heard.text}
 
     return app
 

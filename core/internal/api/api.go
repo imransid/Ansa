@@ -30,6 +30,7 @@ import (
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/outbox"
+	"ansa/core/internal/phone"
 	"ansa/core/internal/publishing"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/safefetch"
@@ -59,6 +60,8 @@ type Server struct {
 	Brain *brainclient.Client
 	// The assistant, for "Try your assistant".
 	Assistant *assistant.Runner
+	// Live calls (step 55): the practice phone in development.
+	Phone *phone.Service
 	// The brain with a time long enough to read a whole menu (120 s a try).
 	MenuBrain *brainclient.Client
 	// ansa's Telegram bot's username ("" = no bot), whether this is
@@ -126,6 +129,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerCofounderQueue(routes)
 	s.registerStudio(routes)
 	s.registerCofounder(routes)
+	s.registerPhone(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

@@ -20,6 +20,7 @@ var ReasonText = map[string]string{
 	"send_failed":       "The assistant's reply couldn't be sent.",
 	"order_change":      "They want to change or cancel an order they placed.",
 	"order_unclear":     "ansa couldn't write up their order (a dish it couldn't find on the menu).",
+	"call_message":      "They called and left a message.",
 }
 
 // ChannelLabels name a conversation's channel for people.

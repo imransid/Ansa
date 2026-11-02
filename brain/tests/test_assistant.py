@@ -80,6 +80,16 @@ def test_failures_become_decisions_core_turns_into_the_holding_reply():
     assert calls[0]["api_key"] == "sk-ant-own"
 
 
+def test_a_call_is_answered_in_spoken_words():
+    # Step 55: on a live call the reply is read aloud: short spoken sentences,
+    # never a silent no_reply. A chat's prompt has no such rule.
+    system, _, _ = build_request(request(channel="call"))
+    assert "LIVE PHONE CALL" in system and "Never use action no_reply on a call" in system
+    assert "LIVE PHONE CALL" not in build_request(request())[0]
+    person, _, _ = build_request(request(kind="personal", channel="call"))
+    assert "Never pretend to be them" in person and "LIVE PHONE CALL" in person
+
+
 def test_the_endpoint_needs_cores_signature_and_answers_a_decision(monkeypatch):
     asker, _ = fake(answer(action="no_reply"))
     monkeypatch.setattr(app_module, "active_asker", asker)
