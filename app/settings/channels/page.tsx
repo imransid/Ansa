@@ -87,9 +87,11 @@ function ConnectionsSections({ page, practicePhone, messenger, posting }: { page
         {practicePhone && (
           <p className="text-sm">
             Development: try a call on this computer with the{" "}
-            <Link href="/settings/channels/practice-call" className="text-link hover:underline">
+            {/* A full page load, not <Link>: the browser applies that page's
+                own microphone rule (next.config.ts) only when it loads it. */}
+            <a href="/settings/channels/practice-call" className="text-link hover:underline">
               practice phone
-            </Link>
+            </a>
             .
           </p>
         )}

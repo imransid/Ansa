@@ -49,6 +49,13 @@ export function microphoneProblem(error: unknown): string {
   }
   const name = error instanceof DOMException || error instanceof Error ? error.name : "";
   const detail = error instanceof Error ? error.message.toLowerCase() : "";
+  // Reached through a link inside the app, this page still runs under the
+  // first page's rule that forbids the microphone (next.config.ts): the
+  // browser applies this page's own rule only when it loads it.
+  const policy = (document as Document & { featurePolicy?: { allowsFeature: (feature: string) => boolean } }).featurePolicy;
+  if (name === "NotAllowedError" && policy && !policy.allowsFeature("microphone")) {
+    return "Reload this page (Cmd+R) and press Talk again: the browser lets this page use the microphone once it has loaded it itself.";
+  }
   if ((name === "NotAllowedError" || name === "SecurityError") && detail.includes("system")) {
     return "macOS is blocking your browser's microphone: open System Settings → Privacy & Security → Microphone, switch your browser on, then quit and reopen the browser.";
   }

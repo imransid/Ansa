@@ -28,6 +28,19 @@ const nextConfig: NextConfig = {
           { key: "Strict-Transport-Security", value: "max-age=63072000" },
         ],
       },
+      // The practice phone (step 55) records the caller's voice: on the
+      // development server only, its one page may use the microphone (this
+      // site's own, no other). The rule above still holds everywhere else,
+      // and on that page in production (the practice phone is off there).
+      // Next applies the later rule for the same header.
+      ...(process.env.NODE_ENV === "production"
+        ? []
+        : [
+            {
+              source: "/settings/channels/practice-call",
+              headers: [{ key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" }],
+            },
+          ]),
     ];
   },
   turbopack: {
