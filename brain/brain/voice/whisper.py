@@ -62,8 +62,11 @@ def is_speech_wav(audio: bytes) -> bool:
 
 
 def arguments(binary: str, model: str, wav_path: str) -> list[str]:
-    """Hear one file in whatever language it is; print only the words."""
-    return [binary, "-m", model, "-f", wav_path, "-l", "auto", "--no-timestamps", "--no-prints"]
+    """Hear one file in whatever language it is; print only the words. On
+    the CPU: Homebrew's whisper.cpp 1.9.5 aborts in its Metal (GPU) mode on
+    some Macs ("pre-allocated tensor ... cannot run the operation"), and a
+    turn of speech is quick enough on the CPU."""
+    return [binary, "-m", model, "-f", wav_path, "-l", "auto", "--no-timestamps", "--no-prints", "--no-gpu"]
 
 
 def environment(parent: Mapping[str, str]) -> dict[str, str]:

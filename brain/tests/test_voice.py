@@ -50,6 +50,7 @@ def test_whisper_hears_the_recording_offline_and_locked_down():
     assert heard.kind == "ok" and heard.text == "Are you open tonight?"
     assert seen["audio"] == audio and seen["args"][:3] == ["whisper-cli", "-m", "/models/ggml-small.bin"]
     assert "-l" in seen["args"] and seen["args"][seen["args"].index("-l") + 1] == "auto" and "--no-prints" in seen["args"]
+    assert "--no-gpu" in seen["args"], "the CPU: some Macs abort in Metal mode"
     assert seen["env"] == {"PATH": "/bin", "HOME": "/h"}, "never ansa's secrets"
 
 
