@@ -3,7 +3,10 @@ import { callCore, type CoreAnswer } from "@/lib/core-api";
 import { toFormErrors } from "@/lib/core-views/auth";
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import type { CompanyKind } from "@/lib/restaurant-setup";
-import type { TelegramMode } from "@/lib/telegram-mode";
+
+// How ansa's Telegram bot stands, as core says: its bot set, the
+// development stand-in, or not set up (production without the bot).
+type TelegramModeKind = "real" | "stand-in" | "not-set-up";
 
 // Settings → Connections through the new backend (core's /api/v1/channels),
 // in the shapes the page and its actions already read. Connecting and
@@ -13,7 +16,7 @@ import type { TelegramMode } from "@/lib/telegram-mode";
 // What the Connections page shows, whichever backend read it.
 export type ConnectionsPage = {
   canManage: boolean;
-  telegramMode: TelegramMode["kind"];
+  telegramMode: TelegramModeKind;
   telegram: {
     displayName: string;
     status: "connected" | "cannot_reply" | "removed_in_telegram";
@@ -43,7 +46,7 @@ type CoreChannels = {
     phoneLines: { id: string; lastCallAt: string | null }[];
   };
   canManage: boolean;
-  telegramMode: TelegramMode["kind"];
+  telegramMode: TelegramModeKind;
   facebookMode: CoreMessenger["mode"];
 };
 

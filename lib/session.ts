@@ -1,19 +1,35 @@
 import "server-only";
 import { cache } from "react";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { callCore } from "@/lib/core-api";
 import { buildLoginUrl } from "@/lib/login-redirect";
-import { getSessionContextFromHeaders, type SessionContext } from "@/lib/session-context";
 
-// Who is making this request. This is the ONLY trusted source of companyId.
-export type { SessionContext };
+// Who is making this request, as core knows it (GET /api/v1/me): core reads
+// the browser's login cookie itself, so the screens hold no session of their
+// own. Never the company's id: the screens never send one, core takes it from
+// the login.
+export type SessionContext = {
+  userId: string;
+  role: "owner" | "member";
+  name: string;
+  email: string;
+};
 
-// Returns the logged-in user and their company, or null if nobody is logged in
-// (or they were removed from their team, see lib/session-context.ts).
-// cache(): the page header and the page itself both ask, and within one
-// request they get the same answer from one database read.
+// The logged-in person, or null when nobody is (no cookie, an ended login,
+// or a person removed from their team: core answers 401 to all of them).
+// cache(): the sidebar and the page both ask, and within one request they get
+// the same answer from one call.
 export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
-  return getSessionContextFromHeaders(await headers());
+  const answer = await callCore<SessionContext>("GET", "/api/v1/me");
+  if (answer.ok) {
+    return answer.data;
+  }
+  if (answer.status === 401) {
+    return null;
+  }
+  // Core down or refusing the screens' signature: an error page (with its
+  // reference), never a page that looks logged out.
+  throw new Error(`Core answered ${answer.status} for the session`);
 });
 
 // Same as getSessionContext, but sends logged-out visitors to /login.

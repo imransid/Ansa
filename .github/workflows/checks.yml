@@ -1,9 +1,13 @@
-# Runs on every push and pull request: the migrations match db/schema, types,
-# lint, every tenant isolation check against a fresh database, and a production
-# build. All secrets below are throwaway values made up for this run; no real
-# service is called (emails go to .dev-emails/, files to .dev-files/, and
-# Claude is replaced by fakes). A second job reports known security advisories
-# in the production dependencies.
+# Runs on every push and pull request, one job per part of ansa:
+# - screens: the migrations match db/schema, types, lint, the screens' own
+#   checks and a production build;
+# - core (Go): formatting, go vet, staticcheck and every test, against a fresh
+#   database migrated from db/migrations;
+# - brain (Python): every test.
+# All secrets below are throwaway values made up for this run; no outside
+# service is called (the AI is replaced by fakes, platforms by recordings).
+# A last job reports known security advisories in the screens' production
+# dependencies.
 name: checks
 
 on:
@@ -20,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  screens:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -50,14 +54,9 @@ jobs:
         run: |
           {
             echo "DATABASE_URL=postgres://ansa:ci-only-password@127.0.0.1:5432/ansa"
-            echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)"
-            echo "BETTER_AUTH_URL=http://localhost:3000"
-            echo "SEND_REAL_EMAIL=false"
-            echo "USE_R2_STORAGE=false"
-            echo "DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)"
-            echo "VAPI_WEBHOOK_SECRET=$(openssl rand -hex 32)"
-            echo "RESEND_WEBHOOK_SECRET=whsec_$(openssl rand -base64 32)"
-            echo "CRON_SECRET=$(openssl rand -hex 32)"
+            echo "CORE_API_URL=http://127.0.0.1:8080"
+            echo "SCREENS_SHARED_SECRET=$(openssl rand -hex 32)"
+            echo "APP_URL=http://localhost:3000"
           } > .env.local
 
       # db/schema and db/migrations must agree. A schema change committed
@@ -79,12 +78,74 @@ jobs:
       - run: pnpm exec next typegen
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm check:tenant-isolation
+      - run: pnpm check:screens
       - run: pnpm build
 
-  # Known high or critical advisories in what production runs (dev tools such
-  # as drizzle-kit and the shadcn CLI are left out). Its own job, so a new
-  # advisory shows as a failed check without hiding how the other checks went.
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ansa
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: ansa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ansa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The tables come from the same migrations as production.
+      - run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgres://ansa:ci-only-password@127.0.0.1:5432/ansa_test
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: core/go.mod
+          cache-dependency-path: core/go.sum
+      - name: Write a throwaway .env.core
+        run: |
+          {
+            echo "DATABASE_URL=postgres://ansa:ci-only-password@127.0.0.1:5432/ansa_test"
+            echo "TEST_DATABASE_URL=postgres://ansa:ci-only-password@127.0.0.1:5432/ansa_test"
+            echo "DATA_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+            echo "BRAIN_SHARED_SECRET=$(openssl rand -hex 32)"
+            echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
+            echo "SCREENS_SHARED_SECRET=$(openssl rand -hex 32)"
+          } > .env.core
+      - run: go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
+      - run: make check
+        working-directory: core
+      - run: ~/go/bin/staticcheck ./...
+        working-directory: core
+
+  brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - run: python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+        working-directory: brain
+      - run: .venv/bin/python -m pytest -q
+        working-directory: brain
+
+  # Known high or critical advisories in what the screens run in production
+  # (dev tools such as drizzle-kit and the shadcn CLI are left out). Its own
+  # job, so a new advisory shows as a failed check without hiding the others.
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10

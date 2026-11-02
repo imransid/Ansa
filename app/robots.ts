@@ -25,6 +25,6 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         "/reset-password",
       ],
     },
-    sitemap: `${env.BETTER_AUTH_URL}/sitemap.xml`,
+    sitemap: `${env.APP_URL}/sitemap.xml`,
   };
 }

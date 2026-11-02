@@ -3,22 +3,21 @@ import { createHmac } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { env } from "@/lib/env";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
-import { KNOWN_DEVICE_COOKIE_NAME } from "@/lib/known-device";
 
-// The screens' one door to the new backend, the Go core's API
+// The screens' one door to the backend, the Go core's API
 // (docs/backend/modules/api.md). Every request is signed with
 // SCREENS_SHARED_SECRET (hex HMAC-SHA256 of "<unix seconds>.<METHOD>
-// <path?query>.<body>"), and carries the browser's Better Auth session cookie
-// as it came: core reads the session itself; the company always comes from
-// it, never from what we send. Off (CORE_API_URL unset): every screen keeps
-// using services/ as before.
+// <path?query>.<body>"), and carries the browser's login cookie as it came:
+// core reads the session itself; the company always comes from it, never
+// from what we send.
 
-// Better Auth's session cookie names ("__Secure-" first on https).
-const SESSION_COOKIES = ["__Secure-better-auth.session_token", "better-auth.session_token"];
+// The login cookie's names ("__Secure-" first on https), as core sets them
+// (Better Auth's format, kept so logins made before the switch-over still work).
+export const SESSION_COOKIES = ["__Secure-better-auth.session_token", "better-auth.session_token"];
 
-export function isCoreOn(): boolean {
-  return Boolean(env.CORE_API_URL && env.SCREENS_SHARED_SECRET);
-}
+// The cookie core sets on a browser that logged in (its own counter of
+// login attempts: strangers filling an address's limit can't lock it out).
+const KNOWN_DEVICE_COOKIE_NAME = "ansa_known_device";
 
 export type CoreAnswer<T> =
   | { ok: true; data: T }
@@ -30,6 +29,9 @@ export type CoreCookie = { name: string; value: string; maxAge: number; httpOnly
 
 // Calls core. GET with no body; POST with a JSON body.
 export async function callCore<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<CoreAnswer<T>> {
+  // The browser's cookie first: reading the request is what tells Next this
+  // render belongs to the request, before the clock is read for the signature.
+  const cookie = await sessionCookieHeader();
   const text = body === undefined ? "" : JSON.stringify(body);
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signature = createHmac("sha256", env.SCREENS_SHARED_SECRET ?? "")
@@ -41,7 +43,7 @@ export async function callCore<T>(method: "GET" | "POST", path: string, body?: u
       "X-Ansa-Timestamp": timestamp,
       "X-Ansa-Signature": signature,
       ...(text ? { "Content-Type": "application/json" } : {}),
-      Cookie: await sessionCookieHeader(),
+      Cookie: cookie,
     },
     body: text || undefined,
     cache: "no-store",

@@ -5,8 +5,6 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { installSafeErrorLogging } = await import("./lib/safe-error-logging");
     installSafeErrorLogging();
-    const { warnAboutDevStandIns } = await import("./lib/production-warnings");
-    warnAboutDevStandIns();
   }
 }
 

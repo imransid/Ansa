@@ -1,22 +1,23 @@
-import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { loginRedirectFor } from "@/lib/login-redirect";
+
+// The login cookie's names (lib/core-api.ts SESSION_COOKIES, repeated here:
+// this file runs before every page and must stay small).
+const SESSION_COOKIES = ["__Secure-better-auth.session_token", "better-auth.session_token"];
 
 // Runs before every app page (Next.js 16 calls this file "proxy"; it used to
 // be "middleware"). A visitor with no session cookie at all is sent to /login
 // with a real 307 redirect, remembering the page in ?next=, so they never see
 // a "Loading..." page that only then moves them on. WHY only the cookie's
 // presence: this runs on every page view and prefetch, so it never touches
-// the database. Every page still checks the session for real (lib/session.ts),
-// and so does every server action: this is a shortcut, not the lock.
+// core. Every page still checks the session for real (lib/session.ts asks
+// core), and so does every server action: this is a shortcut, not the lock.
 export function proxy(request: NextRequest) {
   const destination = loginRedirectFor({
     method: request.method,
     pathname: request.nextUrl.pathname,
     search: request.nextUrl.search,
-    // Better Auth's own reader, so a change in its cookie's name can't make
-    // every logged-in person look logged out (a check covers this too).
-    hasSessionCookie: getSessionCookie(request) !== null,
+    hasSessionCookie: SESSION_COOKIES.some((name) => Boolean(request.cookies.get(name)?.value)),
   });
   if (!destination) {
     return NextResponse.next();
