@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from brain import ai, claude_code
 from brain.analytics.review import ReviewRequest, review_performance
 from brain.assistant.answer import read_answer
+from brain.assistant.call_summary import CallSummaryRequest, summarize_call
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
@@ -145,6 +146,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def cofounder_calendar_plan(request: CalendarPlanRequest) -> dict:
         return plan_calendar(request, active_asker)
 
+    @app.post("/v1/calls/summary")
+    def calls_summary(request: CallSummaryRequest) -> dict:
+        """The note about a finished call (step 55), for the person or the
+        team, with the company's own AI engine. Never the note in a log."""
+        return summarize_call(request, asker_for(request.engine, active.development), ai.CALL_SUMMARY)
+
     @app.post("/v1/voice/transcribe", response_model=None)
     def voice_transcribe(request: TranscribeRequest):
         """DEVELOPMENT ONLY: the practice phone's recording as the caller's
@@ -217,7 +224,8 @@ def decide_reply(request: ReplyRequest, asker) -> dict:
     if asker is None:
         return {"kind": "failed", "reason": "model_unavailable"}
     system_prompt, prompt, schema = build_request(request)
-    result = asker(system_prompt, prompt, schema, ai.ASSISTANT_REPLY, request.api_key)
+    use = ai.CALL_REPLY if request.channel == "call" else ai.ASSISTANT_REPLY
+    result = asker(system_prompt, prompt, schema, use, request.api_key)
     if result.kind == "unavailable":
         return {"kind": "failed", "reason": "model_unavailable"}
     if result.kind != "ok":

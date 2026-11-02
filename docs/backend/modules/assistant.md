@@ -90,18 +90,31 @@ important person is handed over without the brain; "when away" waits, then
 the catch-up's run answers; the brain down = the holding reply; an own key
 that can't be read is never replaced by ansa's.
 
-**Calls (`call.go`, step 55, [phone](phone.md)):** `AnswerCall` runs the
-same run for a live call's turn (the caller's words are the newest message
-of their phone conversation): whatever the away settings say, never a
-draft, the brain told `channel: "call"` (spoken words), ansa's own order
-texts the spoken ones, and the words saved for the call to speak
-(`routeWithin`: the phone target). `SpokenAfter` reads what ansa said after
-the caller's words. When the run stays quiet (paused, a person handling it,
-a request open) ansa takes a message instead (`MessageTakenText`, no AI);
-after a `no_reply` it keeps the line open ("Is there anything else...").
-`CallMessagesLeftWithin` opens the request for messages taken once the call
-ends (reason `call_message`, unless one is open), with the activity line and
-the owners' alert ("ansa took their message on the call").
+**Calls (`call.go`, `call_handover.go`, `call_summary.go`, step 55,
+[phone](phone.md)):** `AnswerCall` answers a live call's turn (the caller's
+words are the newest message of their phone conversation) with the same
+brain, checks, orders and handovers, for the WHOLE call: the gate's
+`OnACall` lets it answer while paused, taken over or with a request open
+(the caller is on the line), whatever the away settings say, never as a
+draft. The brain is told `channel: "call"` (spoken words) and, while ansa
+may only take a message (paused, a person handling the conversation, a
+caller marked important: `CallTakesMessagesOnly`), `call_mode:
+"message_only"`: then no order step runs. ansa's own order texts are the
+spoken ones, and the words are saved for the call to speak (`routeWithin`:
+the phone target). A handover on a call (`callHandOver`, which `handOver`
+sends every call's to) says the AI's own words when they pass `CheckReply`
+(`Handover.CallerHears`), else the holding reply, or "I'll pass that on"
+once a request is open, and opens a request only when none is open.
+`SpokenAfter` reads what ansa said after the caller's words; after a
+`no_reply` it keeps the line open ("Is there anything else..."). Past
+`assistant-call` (60 turns an hour per caller) or the business's hourly
+answers, fixed words take the message. When the call ends,
+`CallMessagesLeftWithin` opens the request for messages taken (reason
+`call_message`, unless one is open), and the `phone.call_summary` job
+(`HandleCallSummaryJob`) asks the brain for the call's note: added to the
+open request (its subject too when ansa opened it during this call:
+`tickets.RetitleAfterCallWithin`), or a request opened for it when someone
+has to act.
 
 **Catch-up (`catchup.go`, the old `services/assistant-due.ts`):** every 15 s
 (core's scheduler, see [schedule](schedule.md)) core claims the

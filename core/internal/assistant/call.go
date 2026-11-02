@@ -2,26 +2,31 @@ package assistant
 
 import (
 	"context"
+	"time"
 
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/tenant"
-	"ansa/core/internal/tickets"
 )
 
 // A live phone call (step 55): the caller's words are the newest message of
 // their phone conversation, and ansa answers at once with the same brain,
-// checks, orders and handovers as in a chat. Its words are saved in the
-// conversation and spoken on the call (core/internal/phone reads them back).
-// When ansa may not answer itself (paused, a person handling the
-// conversation, a request already open), it takes a message instead.
+// checks, orders and handovers as in a chat, for the WHOLE call: a request
+// opened during the call doesn't stop it, since the caller is still on the
+// line (the call's note joins the request when it ends: call_summary.go).
+// When ansa may not answer on anyone's behalf (the assistant paused, a
+// person handling the conversation, a caller marked important), the AI only
+// takes a message: who is calling, what about, how and when to reach them.
+// Its words are saved in the conversation and spoken on the call.
 
 // CallAnswer is what ansa says after the caller's words.
 type CallAnswer struct {
-	// What to say, in order: a reply, ansa's order texts, the holding reply.
+	// What to say, in order: a reply, ansa's order texts, a handover's words.
 	Words []string
-	// ansa only took a message (no AI): the caller's words wait for a person.
+	// ansa only took a message: the caller's words wait for a person (a
+	// request is opened when the call ends, unless one is open).
 	TookMessage bool
 }
 
@@ -29,80 +34,121 @@ type CallAnswer struct {
 // rude, so ansa keeps the line open.
 const anythingElseText = "Is there anything else I can help you with?"
 
+// The AI answers this many of one caller's turns an hour (a call has many
+// more turns than a chat has messages); past it, ansa only takes messages.
+var callTurnLimit = ratelimit.Rule{MaxAttempts: 60, Window: time.Hour}
+
 // AnswerCall answers the caller's words (turn) on a live call: whatever the
 // away settings say (a call reaches ansa only when the person couldn't
 // answer), never as a draft.
 func (r *Runner) AnswerCall(ctx context.Context, turn conversations.Turn) (CallAnswer, error) {
-	outcome, err := r.answer(ctx, turn, answerOptions{coverAfterNoReply: true, onACall: true})
+	gate, info, err := r.readGate(ctx, turn, GateOptions{RequireNewest: true, OnACall: true})
 	if err != nil {
 		return CallAnswer{}, err
 	}
-	words, err := SpokenAfter(ctx, r.Pool, r.Box, turn)
-	if err != nil || len(words) > 0 {
+	if gate != GateMay {
+		// A newer turn is answered on its own; an answered one says it again.
+		words, err := SpokenAfter(ctx, r.Pool, r.Box, turn)
 		return CallAnswer{Words: words}, err
 	}
+	messageOnly, err := CallTakesMessagesOnly(ctx, r.Pool, turn.CompanyID, turn.ConversationID)
+	if err != nil {
+		return CallAnswer{}, err
+	}
+	if over, err := r.overCallLimits(ctx, turn); err != nil || over {
+		if err != nil {
+			return CallAnswer{}, err
+		}
+		return r.takeMessageWithoutAI(ctx, turn)
+	}
+	inputs, err := GatherInputs(ctx, r.Pool, r.Box, turn.CompanyID, turn.ConversationID, r.now())
+	if err != nil {
+		return CallAnswer{}, err
+	}
+	if err := inputs.AddKnowledge(ctx, r.Pool, turn.CompanyID); err != nil {
+		return CallAnswer{}, err
+	}
+	inputs.onACall(messageOnly)
+	if err := r.answerCallTurn(ctx, turn, info, inputs, messageOnly); err != nil {
+		return CallAnswer{}, err
+	}
+	words, err := SpokenAfter(ctx, r.Pool, r.Box, turn)
+	return CallAnswer{Words: words, TookMessage: messageOnly}, err
+}
+
+// answerCallTurn does what the AI's answer asks for on a call: its checked
+// reply spoken, ansa's order steps (never while it only takes messages), or
+// a handover in which the caller hears the AI's own words when they pass
+// core's checks (the holding reply otherwise).
+func (r *Runner) answerCallTurn(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, messageOnly bool) error {
+	decision := r.decide(ctx, inputs)
+	switch {
+	case decision.Kind == "reply":
+		_, err := r.sendOrDraft(ctx, turn, info, inputs, decision.Text, nil)
+		return err
+	case decision.Kind == "no_reply":
+		return r.sayOnTurn(ctx, turn, anythingElseText)
+	case isOrderStep(decision.Kind) && !messageOnly:
+		_, err := r.runOrderStep(ctx, turn, info, inputs, decision)
+		return err
+	case isOrderStep(decision.Kind):
+		// Only a message now: no order is taken (the AI was told so).
+		return r.handOver(ctx, turn, info, inputs, Handover{Reason: "order", SendHoldingReply: true})
+	}
+	handover := handoverFor(decision, inputs)
+	if decision.Kind == "needs_person" && CheckReply(decision.Text, inputs.Checks) == "" {
+		handover.CallerHears = decision.Text
+	}
+	if info.Important {
+		handover.Reason = "important_person"
+	}
+	return r.handOver(ctx, turn, info, inputs, handover)
+}
+
+func isOrderStep(kind string) bool {
+	return kind == "order_summary" || kind == "order_confirmed" || kind == "order_withdrawn"
+}
+
+// overCallLimits counts this turn against the caller's and the business's
+// hourly AI answers; past either, ansa only takes messages (no AI).
+func (r *Runner) overCallLimits(ctx context.Context, turn conversations.Turn) (bool, error) {
+	over, err := r.Limiter.Over(ctx, "assistant-call", turn.ConversationID, callTurnLimit)
+	if err != nil || over {
+		return over, err
+	}
+	return r.Limiter.Over(ctx, "assistant-replies", turn.CompanyID.String(), companyReplyLimit)
+}
+
+// takeMessageWithoutAI: ansa's fixed "I'll pass that on" (past the limits).
+func (r *Runner) takeMessageWithoutAI(ctx context.Context, turn conversations.Turn) (CallAnswer, error) {
 	kind, name, err := ReadCallVoice(ctx, r.Pool, turn.CompanyID)
 	if err != nil {
 		return CallAnswer{}, err
 	}
-	answer := CallAnswer{Words: []string{anythingElseText}}
-	if outcome == OutcomeQuiet {
-		answer = CallAnswer{Words: []string{MessageTakenText(kind, name)}, TookMessage: true}
+	if err := r.sayOnTurn(ctx, turn, MessageTakenText(kind, name)); err != nil {
+		return CallAnswer{}, err
 	}
-	return answer, r.sayAndMarkHandled(ctx, turn, answer.Words[0])
+	words, err := SpokenAfter(ctx, r.Pool, r.Box, turn)
+	return CallAnswer{Words: words, TookMessage: true}, err
 }
 
-// MayAnswerCall: may ansa itself answer a call in this conversation now (not
-// paused, nobody handling it, no request open)? Otherwise it takes messages.
-func MayAnswerCall(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string) (bool, error) {
-	may := false
-	err := database.InTx(ctx, pool, func(tx database.Tx) error {
-		turn := conversations.Turn{CompanyID: company, ConversationID: conversationID}
-		gate, err := GateWithin(ctx, tx, turn, GateOptions{AllowHandled: true})
-		may = gate == GateMay
-		return err
-	})
-	return may, err
-}
-
-// CallMessagesLeftWithin opens a request for what a caller said while ansa
-// only took messages, now that their call has ended (callID), unless a
-// request is open in the conversation already (it needs a person anyway):
-// routed like every new request, ansa's activity line, and the owners'
-// alert. Inside the caller's transaction, which took the company row lock
-// first (as every routing does). The words stay in the conversation: the
-// request names no more than who called.
-func CallMessagesLeftWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID, callID string) error {
+// CallTakesMessagesOnly: may ansa only take a message on a call in this
+// conversation (the assistant paused, a person handling the conversation,
+// or a caller marked important)? Otherwise it helps fully, as in a chat.
+func CallTakesMessagesOnly(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string) (bool, error) {
 	const statement = `
-		SELECT contacts.display_name,
-			EXISTS (SELECT 1 FROM tickets WHERE tickets.company_id = $1 AND tickets.conversation_id = $2 AND tickets.status = 'open')
+		SELECT COALESCE((SELECT status = 'paused' FROM assistant_settings WHERE company_id = $1), false)
+			OR conversations.handled_by = 'person' OR contacts.important
 		FROM conversations
 		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 		WHERE conversations.company_id = $1 AND conversations.id = $2`
-	var name *string
-	var openRequest bool
-	if err := tx.QueryRow(ctx, statement, company.String(), conversationID).Scan(&name, &openRequest); err != nil || openRequest {
-		return err
-	}
-	fields := tickets.NewChatTicket{
-		Channel:        conversations.ChannelPhone,
-		Subject:        "A caller left a message",
-		Description:    ReasonText["call_message"] + " Their words are in the conversation.",
-		CustomerName:   name,
-		ConversationID: conversationID,
-	}
-	if _, err := tickets.CreateChatTicketWithin(ctx, tx, company, fields); err != nil {
-		return err
-	}
-	// The call's id names this alert (one per call).
-	turn := conversations.Turn{CompanyID: company, ConversationID: conversationID, TriggerMessageID: callID}
-	if err := recordActivity(ctx, tx, turn, "handed_over", "call_message"); err != nil {
-		return err
-	}
-	return enqueueAlert(ctx, tx, turn, "call_message", false, "")
+	var only bool
+	err := pool.QueryRow(ctx, statement, company.String(), conversationID).Scan(&only)
+	return only, err
 }
 
-// MessageTakenText is what ansa says when it takes a caller's message.
+// MessageTakenText is what ansa says when it takes a caller's message
+// without the AI.
 func MessageTakenText(kind, name string) string {
 	if kind == "personal" {
 		return "Thank you, I'll pass that on to " + displayName(name, "them") + ". Is there anything else?"
@@ -129,70 +175,11 @@ func ReadCallVoice(ctx context.Context, pool *database.Pool, company tenant.Comp
 // label (the greeting says it).
 func SayOnCall(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID, text string) error {
 	turn := conversations.Turn{CompanyID: company, ConversationID: conversationID}
-	return database.InTx(ctx, pool, func(tx database.Tx) error {
-		return sayWithin(ctx, tx, box, turn, text)
-	})
-}
-
-// SpokenAfter is what ansa said after the caller's words (turn), in order.
-func SpokenAfter(ctx context.Context, pool *database.Pool, box *secure.Box, turn conversations.Turn) ([]string, error) {
-	const statement = `
-		SELECT id, body_encrypted FROM messages
-		WHERE company_id = $1 AND conversation_id = $2 AND direction = 'out' AND author = 'assistant'
-			AND body_encrypted IS NOT NULL AND send_status IN ('sending', 'sent')
-			AND created_at > (SELECT created_at FROM messages WHERE company_id = $1 AND id = $3)
-		ORDER BY created_at`
-	rows, err := pool.Query(ctx, statement, turn.CompanyID.String(), turn.ConversationID, turn.TriggerMessageID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	words := []string{}
-	for rows.Next() {
-		var id, body string
-		if err := rows.Scan(&id, &body); err != nil {
-			return nil, err
-		}
-		text, err := box.Decrypt(body, conversations.MessageContext(turn.CompanyID, id))
-		if err != nil {
-			return nil, err
-		}
-		words = append(words, text)
-	}
-	return words, rows.Err()
-}
-
-// sayAndMarkHandled saves ansa's own words for the caller's turn and records
-// that the turn was answered.
-func (r *Runner) sayAndMarkHandled(ctx context.Context, turn conversations.Turn, text string) error {
-	return database.InTx(ctx, r.Pool, func(tx database.Tx) error {
-		if err := sayWithin(ctx, tx, r.Box, turn, text); err != nil {
-			return err
-		}
-		return MarkHandledWithin(ctx, tx, turn)
-	})
-}
-
-// sayWithin saves one of ansa's own spoken sentences (sent: the call speaks it).
-func sayWithin(ctx context.Context, tx database.Tx, box *secure.Box, turn conversations.Turn, text string) error {
 	id, err := conversations.NewID()
 	if err != nil {
 		return err
 	}
-	body, err := box.Encrypt(text, conversations.MessageContext(turn.CompanyID, id))
-	if err != nil {
-		return err
-	}
-	if err := insertOutgoing(ctx, tx, turn, id, body, "sent"); err != nil {
-		return err
-	}
-	return touchWithin(ctx, tx, turn)
-}
-
-// displayName is the name as written, or `fallback` when there is none.
-func displayName(name, fallback string) string {
-	if clean := firstNonEmpty(name); clean != "" {
-		return clean
-	}
-	return fallback
+	return database.InTx(ctx, pool, func(tx database.Tx) error {
+		return sayWithin(ctx, tx, box, turn, id, text)
+	})
 }

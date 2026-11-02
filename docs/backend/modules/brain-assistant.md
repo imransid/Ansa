@@ -36,8 +36,23 @@ allowed list, a one-line subject, a summary, a category), `no_reply`,
 `order_withdrawn`. Anything else, or no model, or a failure, is
 `{"kind":"failed","reason": model_unavailable | model_failed | unusable_answer}`:
 core then sends the holding reply, never the model's text.
+**Calls (step 55):** `channel: "call"` adds the call rules (a warm, smart
+assistant on the phone: the caller's own language, Bangla included, one
+follow-up question when it needs more, never `no_reply`, a handover with
+words for the caller in `reply`, never their number asked: the call has it)
+and the `CALL_REPLY` settings (effort medium, 3,000 tokens, 40 s, one
+retry); `call_mode: "message_only"` adds that it may only take a message.
+On a `needs_person` the answer also carries `text` (the words for the
+caller; core checks them and uses them on a call only).
+`POST /v1/calls/summary` (`call_summary.py`, `CALL_SUMMARY`: effort medium,
+2,000 tokens, 45 s, one retry): the note about a finished call for the
+person (who called, what they want, how and when to reach them, in the
+call's language, at most four sentences) and whether someone has to act;
+the call's lines escaped and hidden like a reply's, the company's own
+engine; a failure is `{"kind":"failed","reason":...}`.
 **Core's checks (prices, links, refunds) run in core, not here.**
-**Tests:** `tests/test_assistant.py` (a fake model): the prompt's contents,
+**Tests:** `tests/test_call_summary.py` (the note's prompt, escaping and
+strict reading); `tests/test_assistant.py` (a fake model): the prompt's contents,
 escaping and hiding; a person's prompt; strict reading; failures; the
 endpoint needs core's signature; Claude Code is refused outside development,
 gets the conversation on stdin only and none of the brain's secrets (a fake

@@ -73,12 +73,16 @@ def read_answer(output_text: str) -> dict[str, Any] | None:
     if action == "order_summary":
         return None if len(order["items"]) > ORDER_LINES_MAX else {"kind": "order_summary", "order": order}
     if action == "needs_person":
+        # On a live call the AI also says something now (core checks it and
+        # speaks it); a chat never sends it (the holding reply goes instead).
+        said = clean_reply_text(data["reply"])
         return {
             "kind": "needs_person",
             "reason": data["handover_reason"] or "unsure",
             "subject": _one_line(data["request_subject"], SUBJECT_MAX_LENGTH),
             "summary": clean_reply_text(data["request_summary"])[:SUMMARY_MAX_LENGTH],
             "category": _one_line(data["category"], 200),
+            "text": said if len(said) <= REPLY_MAX_LENGTH else "",
         }
     text = clean_reply_text(data["reply"])
     if not text or len(text) > REPLY_MAX_LENGTH:

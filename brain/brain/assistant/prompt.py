@@ -60,11 +60,20 @@ PERSONAL_SYSTEM_PROMPT = "\n".join(
 
 CALL_RULES = "\n".join(
     [
-        "THIS CONVERSATION IS A LIVE PHONE CALL, not a chat: the caller hears your reply read aloud by a voice, right away.",
-        "Answer in one to three short, natural spoken sentences. No lists, no links, no emoji, no symbols or abbreviations a voice would read badly.",
-        "Never use action no_reply on a call: a thank-you or a goodbye gets a short friendly answer.",
-        "Someone who wants to leave a message for a person: action needs_person (asked_for_person), with their message in request_summary.",
+        "THIS CONVERSATION IS A LIVE PHONE CALL, not a chat: the caller hears your reply read aloud, right away.",
+        "Talk like a warm, smart, attentive human assistant on the phone. Understand what the caller really wants, answer what the data answers, and ask ONE short follow-up question whenever you need to understand more or to take down what will be needed: the caller's name, what it is about, how and when to reach them. Confirm important details back in a few words.",
+        "The number they are calling from is already saved with the call: don't ask for their phone number, unless they want to be reached on another one.",
+        "Speak the caller's own language: whatever language they speak (Bangla, English or any other), answer in it, naturally, as a native speaker would.",
+        "Keep every reply to one to three short, natural spoken sentences. No lists, links, emoji, symbols or abbreviations a voice reads badly.",
+        "Greetings, small talk, thanks and goodbyes get a short warm answer: never use action no_reply on a call.",
+        "When something needs the person or the team (a decision or a commitment, a complaint, a refund, something the data doesn't answer, or they ask for them): use action needs_person with its reason AND write in `reply` what you say to the caller now. Say you'll pass it on (never promise a time, money or a decision) and ask for what they'll need, if you don't have it yet. The call goes on: in the next turns keep helping and taking the message, and use needs_person again whenever new details for the person come up.",
     ]
+)
+
+MESSAGE_ONLY_RULES = (
+    "MESSAGE ONLY: right now you may only take a message. Don't answer questions on their behalf and take no order. "
+    "Politely find out who is calling, what it is about and how and when to reach them, confirm it back, and use action "
+    "needs_person (asked_for_person) with the message so far in request_summary, always writing what you say in `reply`."
 )
 
 
@@ -73,6 +82,8 @@ def build_request(request: ReplyRequest) -> tuple[str, str, dict]:
     system = PERSONAL_SYSTEM_PROMPT if request.kind == "personal" else BUSINESS_SYSTEM_PROMPT
     if request.channel == "call":
         system = system + "\n" + CALL_RULES
+        if request.call_mode == "message_only":
+            system = system + "\n" + MESSAGE_ONLY_RULES
     if request.kind == "personal":
         return system, _personal_prompt(request), ANSWER_JSON_SCHEMA
     return system, _business_prompt(request), ANSWER_JSON_SCHEMA

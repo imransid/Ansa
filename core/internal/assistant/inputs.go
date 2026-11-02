@@ -40,10 +40,14 @@ type Inputs struct {
 // onACall makes this answer a live call's (step 55): the brain writes for a
 // voice, ansa's order texts are the spoken ones, and the words go to the
 // call (routeWithin) and never wait as a draft: the caller is on the line.
-func (i *Inputs) onACall() {
+// messageOnly: the AI may only take a message (CallTakesMessagesOnly).
+func (i *Inputs) onACall(messageOnly bool) {
 	i.Spoken = true
 	i.Request.Channel = "call"
 	i.Ordering.Spoken = true
+	if messageOnly {
+		i.Request.CallMode = "message_only"
+	}
 }
 
 type settingsRow struct {
@@ -100,6 +104,7 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		Categories:   categories,
 		Conversation: lines,
 		Channel:      "chat",
+		CallMode:     "answer",
 	}
 	if fee > 0 {
 		formatted := money.Format(fee, settings.Currency)

@@ -55,6 +55,13 @@ class UseSettings:
 # The restaurant assistant's reply to a customer (who is waiting in a chat).
 ASSISTANT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30, max_retries=1)
 
+# The assistant's turn on a live call: a real conversation, so it thinks
+# more (medium) than a chat reply, still within one short answer.
+CALL_REPLY = UseSettings(effort="medium", max_tokens=3_000, timeout_seconds=40, max_retries=1)
+
+# What a finished call was about, for the person (after the caller hung up).
+CALL_SUMMARY = UseSettings(effort="medium", max_tokens=2_000, timeout_seconds=45, max_retries=1)
+
 # Deciding a finished phone call: solved, or a person follows up.
 CALL_DECISION = UseSettings(effort="high", max_tokens=8_000, timeout_seconds=60, max_retries=2)
 

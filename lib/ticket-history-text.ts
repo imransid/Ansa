@@ -59,7 +59,8 @@ export function describeTicketActivity(activity: ActivityToDescribe): string {
     case "escalated":
       return `${actor} escalated the call to a ticket: the AI had marked it solved`;
     case "subject_changed":
-      return `${actor} changed the subject`;
+      // No person: ansa gave a request it opened during a call the subject of the call's note.
+      return activity.actorUserId === null ? "ansa updated the subject after the call" : `${actor} changed the subject`;
     case "customer_name_changed":
       return `${actor} changed the customer's name`;
   }

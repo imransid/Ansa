@@ -222,8 +222,11 @@ Two kinds of calls exist. **Answered live** (step 55): ansa talks with the
 caller turn by turn, with the same assistant as chats. On the laptop that is
 the practice phone; for production a provider must be chosen first (Vapi,
 Twilio, Telnyx or LiveKit), and its line written: one file behind core's
-phone door (docs/backend/modules/phone.md), nothing else. Until then there
-is no live answering in production. **Finished-call reports** (below): Vapi
+phone door (docs/backend/modules/phone.md), nothing else. Pick its speech
+for the languages your customers speak: Bangla needs a provider whose
+speech-to-text and voices handle it (Google's or Azure's speech), and try a
+call in each language before calling it working. Until then there is no
+live answering in production. **Finished-call reports** (below): Vapi
 runs the conversation itself and sends core the transcript afterwards.
 
 1. Server URL: `https://<core address>/webhooks/vapi`.

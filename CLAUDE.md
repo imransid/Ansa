@@ -2150,33 +2150,57 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   take to ansa's number.
   - A call reaches ansa only when the person couldn't answer: ansa answers
     whatever "Only when I'm away" says, never as a draft ("Ask me first"
-    can't hold a caller). The brain gets channel "call": short spoken
-    sentences, no links or lists, never a silent no_reply. ansa's own order
-    texts are the spoken ones (core/internal/orders: SpokenSummaryText, "say
-    yes to confirm", no promise to message the caller later).
+    can't hold a caller). The AI answers EVERY turn of the call (the
+    gate's OnACall: paused, taken over or a request open don't silence a
+    caller on the line). The brain gets channel "call" (CALL_REPLY: effort
+    medium): a warm, smart assistant on the phone, the caller's own
+    language (Bangla included), one follow-up question when it needs more
+    (who, what about, how and when to reach them; never their number: the
+    call has it), short spoken sentences, never a silent no_reply, never a
+    promise of a time, money or a decision. ansa's own order texts are the
+    spoken ones (core/internal/orders: SpokenSummaryText, "say yes to
+    confirm", no promise to message the caller later).
   - The greeting carries the AI label ("Hello! I'm Rafa's AI assistant.
     Rafa can't take your call right now. How can I help?"): it never
     pretends to be the person.
-  - When ansa may not answer itself (paused, a person handling the
-    conversation, a request already open) it takes messages: fixed words,
-    no AI, counted on the call; at the end a request "A caller left a
-    message" (reason call_message, routed, owners alerted: "ansa took their
-    message on the call") unless one is open. The caller's words stay in
-    the encrypted conversation, never on the request. After a handover
-    during the call ansa says the holding reply and takes messages.
+  - When ansa may not answer on anyone's behalf (paused, a person handling
+    the conversation, a caller marked important: CallTakesMessagesOnly)
+    the AI only takes a message (call_mode "message_only": no answers for
+    them, no order), each turn counted on the call; past the call's limits
+    (60 turns an hour per caller, the business's hourly answers) fixed
+    words take it, no AI. A handover doesn't end the call: the caller hears
+    the AI's own words when they pass core's checks (else the holding
+    reply, or "I'll pass that on" once a request is open), and a request is
+    opened only when none is open (one per call at most). At the end, a
+    request "A caller left a message" (reason call_message, routed, owners
+    alerted: "ansa took their message on the call") for messages taken,
+    unless one is open; then the phone.call_summary job has the AI write
+    the call's note (who, what, how and when to reach them, in the call's
+    language): added to the open request's description ("After the call:
+    ...", within its 10,000 characters), giving a request ansa opened
+    during that call the note's subject (never over a subject changed
+    before; history "ansa updated the subject after the call"), or opening
+    a request when someone has to act. The caller's own words stay in the
+    encrypted conversation; a request carries the AI's short summaries
+    only, as a chat's does.
   - Only the assistant answering a live call speaks into a phone
     conversation: chat.RouteWithin refuses it to everyone else (a person's
     reply, an order's status message); requests from a call are channel
     "phone". One live call per conversation (a partial unique index).
   - The practice phone (Settings → Connections → practice phone,
     /settings/channels/practice-call; owners; development only, refused by
-    core in production): pretend to be a caller, talk or type, hear ansa
-    with the computer's own voice (the browser's speech). A recording (16
-    kHz mono WAV made in the browser, lib/practice-phone/recording.ts) is
-    heard by whisper.cpp on this computer through the brain
-    (/v1/voice/transcribe, development only, locked down like Claude Code:
-    WHISPER_MODEL_PATH, WHISPER_CLI_PATH). 30 calls and 300 turns an hour
-    per company.
+    core in production): pretend to be a caller in English or Bangla, talk
+    or type, hear ansa with the browser's voice of the words' language
+    (lib/practice-phone/speech.ts; none for Bangla in Chrome on a Mac: the
+    words are shown, the page names Edge). Hearing: the browser's speech
+    service where it has one (the default; Chrome's is Google's, so the
+    voice goes to Google; development only, the owner's own practice
+    calls), which sends words; or "Whisper on this computer": a recording
+    (16 kHz mono WAV made in the browser, lib/practice-phone/recording.ts)
+    heard by whisper.cpp through the brain (/v1/voice/transcribe with the
+    language en / bn / auto, development only, locked down like Claude
+    Code: WHISPER_MODEL_PATH, WHISPER_CLI_PATH). 30 calls and 300 turns an
+    hour per company.
 - A GET route handler that reads no params is prerendered at BUILD time unless it
   calls `await connection()` first; lib/core-api.ts does that for every call
   to core, so nothing that asks core is built ahead. Check the build output:
@@ -3148,17 +3172,22 @@ this order and is done on the laptop, deploying aside
   exists. No real phone line is connected (no provider chosen: Vapi,
   Twilio, Telnyx or LiveKit at launch), so nobody can call ansa's number
   yet, and the person's "forward calls I can't take" is a setting on their
-  own phone that needs that number. The practice phone hears with
-  whisper.cpp on the CPU (the "small" model: good English, weaker in other
-  languages such as Bangla; about 8-10 s a turn on an M2, as the model
-  loads every time; Homebrew's 1.9.5 aborts in its GPU mode, so the brain
-  passes --no-gpu) and speaks with the browser's own voices; a real line
-  will hear and speak with its provider's. Each turn waits for the whole
-  answer (no streaming): with Claude Code on this computer a few seconds or
-  more, so a caller hears a pause; nothing interrupts ansa while it speaks
-  (no barge-in). Messages taken while ansa can't answer are fixed words;
-  the request only says a caller left a message (their words are in the
-  conversation). Calls aren't listed on the Calls page (that is still Vapi's
+  own phone that needs that number. The practice phone hears with the
+  browser's speech service (Chrome: Google's, online; good in Bangla) or
+  whisper.cpp on the CPU (the "small" model: good English, poor Bangla;
+  about 8-10 s a turn on an M2, as the model loads every time; Homebrew's
+  1.9.5 aborts in its GPU mode, so the brain passes --no-gpu), and speaks
+  with the browser's own voices (no Bangla voice in Chrome on a Mac:
+  Edge has one); a real line will hear and speak with its provider's
+  (Google's or Azure's speech for Bangla, chosen with the provider). Each
+  turn waits for the whole answer (no streaming): with Claude Code on this
+  computer about 3-7 s, so a caller hears a pause; nothing interrupts ansa
+  while it speaks (no barge-in). Call quality is unmeasured (no eval set):
+  the AI may ask for the same detail twice, and its note may miss
+  something said (the caller's words stay in the conversation). The note
+  is written once the call ends (a job), so the request's summary arrives
+  a few seconds later; a note that fails leaves the request as the call
+  left it. Calls aren't listed on the Calls page (that is still Vapi's
   finished-call reports): they are conversations in the Inbox. ansa never
   ends a call by itself: the caller hangs up.
 - The "easy to use" pass (2026-11-01): Home, Settings, Settings →
@@ -4152,4 +4181,19 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   WHISPER_CLI_PATH are development settings of the brain. Also: the
   database's catalog is checked again against core's tenant table list
   (away_summary_reads and user_categories were missing from it).
+- 2026-11-03: Calls made smart, and Bangla (the owner tried the practice
+  phone: "the AI is not smart", "it doesn't understand Bangla"; the owner
+  asked for the best solution, Claude, Google, ChatGPT or our own). Claude
+  stays the brain (with core's checks in the loop: a speech-to-speech AI
+  would talk past them, and a model of our own can't match it); every turn
+  of a call goes to the AI, which asks follow-up questions, takes a full
+  message, keeps talking after a handover (one request per call) and
+  speaks the caller's language; while paused, taken over or for an
+  important caller it only takes a message (no answers for them, no
+  order); after the call it writes a note for the person, added to the
+  request (and its subject, for a request opened during that call), or a
+  request of its own when someone has to act. Hearing Bangla: Google's
+  speech (in Chrome for the practice phone, free; the phone provider's
+  Google or Azure speech in production), Whisper kept as the private
+  choice. No migration, no new package or setting.
 

@@ -19,6 +19,8 @@ type BrainRequest struct {
 	Conversation []Line     `json:"conversation"`
 	// "chat", or "call": a live phone call, where the reply is read aloud.
 	Channel string `json:"channel"`
+	// On a call: "answer" (help fully) or "message_only" (only take a message).
+	CallMode string `json:"call_mode"`
 	// "api_key" (the business's own key below, or ansa's when nil) or
 	// "claude_code" (development only: the brain refuses it in production).
 	Engine string  `json:"engine"`

@@ -80,15 +80,17 @@ func (s *Server) startPracticeCall(w http.ResponseWriter, r *http.Request, body 
 }
 
 // practiceCallTurn: POST {callId, text} or {callId, audio (16 kHz mono WAV,
-// base64)}: {heard, words}. What the caller said is heard by the brain's
-// local Whisper when it is a recording.
+// base64), language ("auto", "bn" or "en")}: {heard, words}. What the
+// caller said is heard by the brain's local Whisper when it is a recording;
+// the page sends text when the browser heard it (Chrome's speech service).
 func (s *Server) practiceCallTurn(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
 	var input struct {
-		CallID string `json:"callId"`
-		Text   string `json:"text"`
-		Audio  string `json:"audio"`
+		CallID   string `json:"callId"`
+		Text     string `json:"text"`
+		Audio    string `json:"audio"`
+		Language string `json:"language"`
 	}
-	if !readJSON(body, &input) {
+	if !readJSON(body, &input) || (input.Language != "" && !phone.HearingLanguages[input.Language]) {
 		problem(w, http.StatusBadRequest, "Something went wrong. Reload the page.")
 		return
 	}
@@ -105,7 +107,7 @@ func (s *Server) practiceCallTurn(w http.ResponseWriter, r *http.Request, body [
 			problem(w, http.StatusBadRequest, "The recording couldn't be read. Try again.")
 			return
 		}
-		if heard, err = s.Phone.Hear(r.Context(), audio); err != nil {
+		if heard, err = s.Phone.Hear(r.Context(), audio, input.Language); err != nil {
 			problem(w, http.StatusUnprocessableEntity, "ansa couldn't hear the recording: is Whisper set up on this computer (docs/backend/try-it.md)? You can type instead.")
 			return
 		}

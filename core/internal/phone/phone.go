@@ -70,7 +70,8 @@ type Started struct {
 // Start picks up a call: the caller's phone conversation (made on their first
 // call), a live call in it (ending one left live before), and ansa's
 // greeting, which says who it is and whether it can help or only take a
-// message.
+// message (the assistant paused, a person handling the conversation, or a
+// caller marked important).
 func (s *Service) Start(ctx context.Context, company tenant.CompanyID, caller Caller) (Started, error) {
 	digits := tickets.CustomerPhoneDigits(caller.Number)
 	if digits == "" {
@@ -88,7 +89,7 @@ func (s *Service) Start(ctx context.Context, company tenant.CompanyID, caller Ca
 	if err != nil {
 		return Started{}, err
 	}
-	may, err := assistant.MayAnswerCall(ctx, s.Pool, company, conversationID)
+	messageOnly, err := assistant.CallTakesMessagesOnly(ctx, s.Pool, company, conversationID)
 	if err != nil {
 		return Started{}, err
 	}
@@ -96,7 +97,7 @@ func (s *Service) Start(ctx context.Context, company tenant.CompanyID, caller Ca
 	if err != nil {
 		return Started{}, err
 	}
-	greeting := Greeting(kind, name, may)
+	greeting := Greeting(kind, name, !messageOnly)
 	if err := assistant.SayOnCall(ctx, s.Pool, s.Box, company, conversationID, greeting); err != nil {
 		return Started{}, err
 	}
@@ -147,20 +148,29 @@ func (s *Service) Turn(ctx context.Context, company tenant.CompanyID, callID, wo
 	return answer.Words, nil
 }
 
-// End hangs up: the call is over, and a request is opened for what the
-// caller said while ansa only took messages (unless one is open already).
-// Ending a call that is already over changes nothing.
+// End hangs up: the call is over, a request is opened for what the caller
+// said while ansa only took messages (unless one is open already), and the
+// AI writes the call's note for the person (a job: the caller isn't kept
+// waiting). Ending a call that is already over changes nothing.
 func (s *Service) End(ctx context.Context, company tenant.CompanyID, callID string) error {
 	return endCall(ctx, s.Pool, company, callID)
 }
 
+// The languages the practice phone's recordings may be heard in: "auto"
+// lets Whisper tell, "bn" Bangla, "en" English (the brain's TranscribeRequest).
+var HearingLanguages = map[string]bool{"auto": true, "bn": true, "en": true}
+
 // Hear turns the practice phone's recording (16 kHz mono WAV) into the
-// caller's words, with the brain's local Whisper (development only).
-func (s *Service) Hear(ctx context.Context, audioWAV []byte) (string, error) {
+// caller's words, with the brain's local Whisper (development only), in
+// the language the caller picked (HearingLanguages).
+func (s *Service) Hear(ctx context.Context, audioWAV []byte, language string) (string, error) {
 	var answer struct {
 		Text string `json:"text"`
 	}
-	request := map[string]any{"audio_wav": audioWAV}
+	if !HearingLanguages[language] {
+		language = "auto"
+	}
+	request := map[string]any{"audio_wav": audioWAV, "language": language}
 	if err := s.Brain.Call(ctx, "/v1/voice/transcribe", request, &answer); err != nil {
 		s.Log.Warn("phone: the brain couldn't hear the recording", logging.ErrorType(err))
 		return "", ErrNotHeard

@@ -69,17 +69,23 @@ change (`pnpm install`), restart `pnpm dev` too.
   email and documents, Account (name, password), Billing (simulate).
 - Log out and log in again; "Forgot password" (the link is in `.dev-emails/`).
 - **A phone call, answered live (free, on this computer):** Settings →
-  Connections → "practice phone". Pretend to be a caller, press Talk, speak,
-  press "Stop and send", and hear ansa answer with your Mac's voice; or type
-  what the caller says. Hang up, then open the call in the Inbox. Hearing
-  your voice needs whisper.cpp once: `brew install whisper-cpp` (if
-  Homebrew stops at an "untrusted tap" that isn't whisper's:
-  `HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install whisper-cpp`), a
-  model (`ggml-small.bin` from https://huggingface.co/ggerganov/whisper.cpp,
-  in `~/.cache/ansa-whisper/`), `WHISPER_MODEL_PATH` in `.env.core`, then
-  restart the brain. Typing works without it. Each spoken turn takes about
-  8-10 seconds to hear on an M2 (the model loads every time), plus ansa's
-  thinking.
+  Connections → "practice phone". Pick the language you'll speak (English
+  or Bangla), pretend to be a caller, press Talk, speak, press "Stop and
+  send", and hear ansa answer; or type what the caller says. Hang up, then
+  open the call in the Inbox: a request with ansa's note about the call
+  appears there when someone has to act (a few seconds after hanging up).
+  - In Chrome, the browser hears you (Google's speech service: your voice
+    goes to Google), which hears Bangla well. Chrome on a Mac has no Bangla
+    voice, so ansa's Bangla answers are only shown; Microsoft Edge (free)
+    speaks Bangla too.
+  - "Whisper on this computer" keeps your voice on the laptop (weaker in
+    Bangla). It needs whisper.cpp once: `brew install whisper-cpp` (if
+    Homebrew stops at an "untrusted tap" that isn't whisper's:
+    `HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install whisper-cpp`), a
+    model (`ggml-small.bin` from https://huggingface.co/ggerganov/whisper.cpp,
+    in `~/.cache/ansa-whisper/`), `WHISPER_MODEL_PATH` in `.env.core`, then
+    restart the brain. Each spoken turn takes about 8-10 seconds to hear on
+    an M2 (the model loads every time), plus ansa's thinking.
 - Finished calls the old way (Vapi's report after the call): link a made-up number (`make link-phone-line
   OWNER=<your login email> NUMBER=pn-local-test YES=1`), set
   VAPI_WEBHOOK_SECRET in `.env.core` and restart core, then `make

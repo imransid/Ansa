@@ -3,8 +3,10 @@ import { callCore } from "@/lib/core-api";
 
 // The practice phone (step 55, development only): an owner calls their own
 // ansa from this computer. Core answers each turn with the same assistant as
-// chats (core/internal/phone); the page speaks ansa's words. A recording is
-// heard by the brain's Whisper on this computer: nothing leaves it.
+// chats (core/internal/phone); the page speaks ansa's words. The caller's
+// voice is heard by the browser (Chrome: Google's speech service), which
+// sends words, or recorded and heard by the brain's Whisper on this computer
+// (nothing leaves it).
 
 export type PracticePhone = { available: boolean; isOwner: boolean };
 export type PracticeCallStarted = { ok: true; callId: string; conversationId: string; words: string[] } | { ok: false; error: string };
@@ -25,8 +27,8 @@ export async function startPracticeCallThroughCore(callerName: string, callerNum
   return { ok: true, callId: answer.data.callId, conversationId: answer.data.conversationId, words: answer.data.words };
 }
 
-// One thing the caller said (typed, or a recording as base64 WAV): what ansa heard and answers.
-export async function practiceCallTurnThroughCore(callId: string, said: { text: string } | { audio: string }): Promise<PracticeCallTurn> {
+// One thing the caller said (words, or a recording as base64 WAV with its language): what ansa heard and answers.
+export async function practiceCallTurnThroughCore(callId: string, said: { text: string } | { audio: string; language: "en" | "bn" }): Promise<PracticeCallTurn> {
   const answer = await callCore<{ heard: string; words: string[] }>("POST", "/api/v1/phone/practice/turn", { callId, ...said });
   if (!answer.ok) {
     return { ok: false, error: answer.message, over: answer.status === 409 };

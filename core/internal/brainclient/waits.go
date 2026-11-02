@@ -9,7 +9,8 @@ import "time"
 // both brain files and checks it, so tuning either side can't leave core
 // giving up on answers the brain is still paying for.
 const (
-	// A customer's reply, "Try your assistant" and the catch-up.
+	// A customer's reply, "Try your assistant", the catch-up, and a live
+	// call's turns and its note.
 	AssistantReplyWait = 120 * time.Second
 	// Triaging a received email.
 	EmailTriageWait = 120 * time.Second

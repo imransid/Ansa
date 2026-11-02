@@ -1,9 +1,10 @@
-// The practice phone's recorder (step 55, development only), in the browser:
-// the microphone's sound kept as numbers while the caller talks, then made
-// into what the brain's Whisper reads (a WAV file: one channel, 16,000
-// samples a second, 16 bits), as base64 for the server action. No outside
-// library; the recording never leaves this computer (core hands it to the
-// brain on the same computer).
+// The practice phone's recorder (step 55, development only), in the browser,
+// for "Whisper on this computer": the microphone's sound kept as numbers
+// while the caller talks, then made into what the brain's Whisper reads (a
+// WAV file: one channel, 16,000 samples a second, 16 bits), as base64 for the
+// server action. No outside library; the recording never leaves this
+// computer (core hands it to the brain on the same computer). The browser's
+// own hearing and voices are speech.ts.
 
 // The brain hears 16 kHz mono speech.
 export const SPEECH_RATE = 16_000;
@@ -133,20 +134,4 @@ export function toBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(...bytes.subarray(at, at + 0x8000));
   }
   return btoa(binary);
-}
-
-// Says ansa's words with this computer's own voice; resolves when it has finished.
-export function speak(words: string[]): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window) || words.length === 0) {
-      resolve();
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(words.join(" "));
-    utterance.lang = navigator.language;
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  });
 }

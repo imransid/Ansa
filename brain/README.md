@@ -30,11 +30,11 @@ state. Read `docs/backend/README.md` first.
 | `brain/settings.py` | Settings, checked at start | [brain-service](../docs/backend/modules/brain-service.md) |
 | `brain/ai.py` | The only door to the AI model | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
 | `brain/claude_code.py` | Development only: Claude Code on this computer | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
-| `brain/assistant/` | The reply's prompt, answer and models | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
+| `brain/assistant/` | The reply's prompt, answer and models, and a finished call's note | [brain-assistant](../docs/backend/modules/brain-assistant.md) |
 | `brain/email/` | Triaging a customer email (the customer's own words only) | [email-in](../docs/backend/modules/email-in.md) |
 | `brain/menu/` | Reading a menu (a photo, a PDF or text) into rows | [menu](../docs/backend/modules/menu.md) |
 | `brain/calls/` | A finished call: the transcript slice, the decision and the strict "solved" check | [calls](../docs/backend/modules/calls.md) |
-| `brain/voice/` | Development only: hears the practice phone's recordings with whisper.cpp on this computer | [phone](../docs/backend/modules/phone.md) |
+| `brain/voice/` | Development only: hears the practice phone's recordings with whisper.cpp on this computer (English, Bangla or any language) | [phone](../docs/backend/modules/phone.md) |
 | `brain/documents/` | A PDF's text for "Add to knowledge" (pypdf) | [knowledge](../docs/backend/modules/knowledge.md) |
 | `brain/posts/` | Writing one "Post for me" post from the business's own details | [autopost](../docs/backend/modules/autopost.md) |
 | `brain/analytics/` | Reviewing one period's post numbers (aggregates only; core checks every number) | [analytics](../docs/backend/modules/analytics.md) |

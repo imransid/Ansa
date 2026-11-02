@@ -20,12 +20,12 @@ type conversationInfo struct {
 
 // readGate checks whether the assistant may answer (before asking the
 // brain; checked again when saving) and reads the conversation's details.
-func (r *Runner) readGate(ctx context.Context, turn conversations.Turn) (string, conversationInfo, error) {
+func (r *Runner) readGate(ctx context.Context, turn conversations.Turn, options GateOptions) (string, conversationInfo, error) {
 	info := conversationInfo{ConversationID: turn.ConversationID}
 	gate := GateNotFound
 	err := database.InTx(ctx, r.Pool, func(tx database.Tx) error {
 		var err error
-		if gate, err = GateWithin(ctx, tx, turn, GateOptions{RequireNewest: true}); err != nil || gate == GateNotFound {
+		if gate, err = GateWithin(ctx, tx, turn, options); err != nil || gate == GateNotFound {
 			return err
 		}
 		const statement = `

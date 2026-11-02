@@ -84,10 +84,29 @@ def test_a_call_is_answered_in_spoken_words():
     # Step 55: on a live call the reply is read aloud: short spoken sentences,
     # never a silent no_reply. A chat's prompt has no such rule.
     system, _, _ = build_request(request(channel="call"))
-    assert "LIVE PHONE CALL" in system and "Never use action no_reply on a call" in system
+    assert "LIVE PHONE CALL" in system and "never use action no_reply on a call" in system
+    assert "Speak the caller's own language" in system and "MESSAGE ONLY" not in system
     assert "LIVE PHONE CALL" not in build_request(request())[0]
-    person, _, _ = build_request(request(kind="personal", channel="call"))
-    assert "Never pretend to be them" in person and "LIVE PHONE CALL" in person
+    person, _, _ = build_request(request(kind="personal", channel="call", call_mode="message_only"))
+    assert "Never pretend to be them" in person and "LIVE PHONE CALL" in person and "MESSAGE ONLY" in person
+
+
+def test_on_a_call_a_handover_keeps_what_the_ai_says():
+    # A chat never sends it (core sends the holding reply); a call speaks it after core's checks.
+    decided = read_answer(answer(action="needs_person", reply="I'll pass it on. Who's calling?", handover_reason="asked_for_person", request_subject="Call back", request_summary="Mark wants a call back."))
+    assert decided["kind"] == "needs_person" and decided["text"] == "I'll pass it on. Who's calling?"
+
+
+def test_a_call_thinks_more_than_a_chat(monkeypatch):
+    uses = []
+
+    def asker(system_prompt, prompt, schema, use, api_key):
+        uses.append(use)
+        return ai.ModelResult(kind="ok", output_text=answer(reply="Hello!"))
+
+    decide_reply(request(channel="call"), asker)
+    decide_reply(request(), asker)
+    assert uses == [ai.CALL_REPLY, ai.ASSISTANT_REPLY] and ai.CALL_REPLY.effort == "medium"
 
 
 def test_the_endpoint_needs_cores_signature_and_answers_a_decision(monkeypatch):

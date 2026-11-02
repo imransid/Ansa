@@ -93,3 +93,15 @@ def test_the_endpoint_is_development_only(monkeypatch):
     monkeypatch.setattr(app_module, "hear", lambda request: whisper.Heard(kind="error", error_name="WhisperNotFound"))
     failed = development.post("/v1/voice/transcribe", content=body, headers=signed(body))
     assert failed.status_code == 503 and failed.json() == {"error": "WhisperNotFound"}
+
+
+def test_a_chosen_language_is_heard_as_that_language():
+    seen = {}
+
+    def fake_run(args, folder, env):
+        seen["language"] = args[args.index("-l") + 1]
+        return 0, "আমি পরে কল করব".encode()
+
+    request = TranscribeRequest(audio_wav=base64.b64encode(speech_wav()).decode(), language="bn")
+    heard = hear(request, run=fake_run, parent_env=PARENT)
+    assert seen["language"] == "bn" and heard.text == "আমি পরে কল করব"

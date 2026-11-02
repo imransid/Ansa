@@ -66,6 +66,9 @@ class ReplyRequest(Strict):
     conversation: list[Line] = Field(max_length=40)
     # "call": a live phone call, where the reply is read aloud (step 55).
     channel: Literal["chat", "call"] = "chat"
+    # On a call: "answer" (help fully), or "message_only" (paused, a person
+    # handling the conversation, an important caller: only take a message).
+    call_mode: Literal["answer", "message_only"] = "answer"
     # Which AI answers: the Claude API (the business's own key, decrypted by
     # core, or None for ansa's), or Claude Code on this computer (development only).
     engine: Literal["api_key", "claude_code"] = "api_key"

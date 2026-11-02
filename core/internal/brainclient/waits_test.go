@@ -17,6 +17,8 @@ const brainOverhead = 5 * time.Second
 // part that asks for it. A new use must be added here.
 var waitForUse = map[string]time.Duration{
 	"ASSISTANT_REPLY":    AssistantReplyWait,
+	"CALL_REPLY":         AssistantReplyWait,
+	"CALL_SUMMARY":       AssistantReplyWait,
 	"EMAIL_TRIAGE":       EmailTriageWait,
 	"CALL_DECISION":      CallDecisionWait,
 	"AUTOPOST":           AutopostWait,

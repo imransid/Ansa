@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,10 +38,12 @@ Runner = Callable[[list[str], str, dict[str, str]], tuple[int, bytes]]
 
 
 class TranscribeRequest(BaseModel):
-    """The recording, base64 (as core sends a byte string)."""
+    """The recording, base64 (as core sends a byte string), and its language
+    when the caller chose one (a named language is heard better)."""
 
     model_config = ConfigDict(extra="forbid")
     audio_wav: str = Field(max_length=4 * 1024 * 1024)
+    language: Literal["auto", "bn", "en"] = "auto"
 
 
 @dataclass(frozen=True)
@@ -61,12 +64,12 @@ def is_speech_wav(audio: bytes) -> bool:
     return audio_format == 1 and channels == 1 and rate == 16_000 and bits == 16
 
 
-def arguments(binary: str, model: str, wav_path: str) -> list[str]:
+def arguments(binary: str, model: str, wav_path: str, language: str = "auto") -> list[str]:
     """Hear one file in whatever language it is; print only the words. On
     the CPU: Homebrew's whisper.cpp 1.9.5 aborts in its Metal (GPU) mode on
     some Macs ("pre-allocated tensor ... cannot run the operation"), and a
     turn of speech is quick enough on the CPU."""
-    return [binary, "-m", model, "-f", wav_path, "-l", "auto", "--no-timestamps", "--no-prints", "--no-gpu"]
+    return [binary, "-m", model, "-f", wav_path, "-l", language, "--no-timestamps", "--no-prints", "--no-gpu"]
 
 
 def environment(parent: Mapping[str, str]) -> dict[str, str]:
@@ -107,7 +110,7 @@ def hear(request: TranscribeRequest, run: Runner = run_program, parent_env: Mapp
         with open(path, "wb") as file:
             file.write(audio)
         try:
-            code, output = run(arguments(binary, model, path), folder, environment(parent_env))
+            code, output = run(arguments(binary, model, path, request.language), folder, environment(parent_env))
         except subprocess.TimeoutExpired:
             return Heard(kind="error", error_name="WhisperTimeout")
         except FileNotFoundError:

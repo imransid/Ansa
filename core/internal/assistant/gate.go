@@ -24,11 +24,15 @@ const (
 
 // GateOptions: RequireNewest (a newer message gets its own run), Lock (a
 // write follows: the conversation row is locked until the transaction ends),
-// AllowHandled (the assistant's own reply just failed to send).
+// AllowHandled (the assistant's own reply just failed to send), OnACall (a
+// live call's turn: a caller on the line is always answered, so being
+// paused, a person handling the conversation or an open request don't stop
+// it; AnswerCall decides what ansa may say then).
 type GateOptions struct {
 	RequireNewest bool
 	Lock          bool
 	AllowHandled  bool
+	OnACall       bool
 }
 
 // GateWithin decides, inside tx, whether the assistant may answer the turn.
@@ -52,18 +56,18 @@ func GateWithin(ctx context.Context, tx database.Tx, turn conversations.Turn, op
 		return "", err
 	}
 	switch {
-	case status == "paused":
+	case status == "paused" && !options.OnACall:
 		return GatePaused, nil
-	case handledBy == "person":
+	case handledBy == "person" && !options.OnACall:
 		return GateTakenOver, nil
 	case handledMessageID == turn.TriggerMessageID && !options.AllowHandled:
 		return GateHandled, nil
 	}
-	var openRequest bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open')`, company, turn.ConversationID).Scan(&openRequest); err != nil {
+	openRequest, err := openRequestWithin(ctx, tx, turn.CompanyID, turn.ConversationID)
+	if err != nil {
 		return "", err
 	}
-	if openRequest {
+	if openRequest && !options.OnACall {
 		return GateNeedsPerson, nil
 	}
 	if options.RequireNewest {

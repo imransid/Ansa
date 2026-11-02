@@ -29,8 +29,11 @@ type callWorld struct {
 	companyID   string
 	company     tenant.CompanyID
 	phone       *Service
+	limiter     *ratelimit.Limiter
 	brainCalls  int
 	channels    []string
+	modes       []string
+	lastBody    string
 	brainAnswer string
 }
 
@@ -43,16 +46,20 @@ func newCallWorld(t *testing.T, brainAnswer string) *callWorld {
 	brain := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		w.brainCalls++
 		var request struct {
-			Channel string `json:"channel"`
+			Channel  string `json:"channel"`
+			CallMode string `json:"call_mode"`
 		}
 		body, _ := io.ReadAll(r.Body)
 		json.Unmarshal(body, &request)
 		w.channels = append(w.channels, request.Channel)
+		w.modes = append(w.modes, request.CallMode)
+		w.lastBody = string(body)
 		rw.Header().Set("Content-Type", "application/json")
 		io.WriteString(rw, w.brainAnswer)
 	}))
 	t.Cleanup(brain.Close)
 	limiter := ratelimit.New(pool, "core-test-secret")
+	w.limiter = limiter
 	runner := &assistant.Runner{Pool: pool, Box: box, Limiter: limiter, Log: logging.New(io.Discard),
 		Brain: brainclient.New(brain.URL, strings.Repeat("s", 40), 5*time.Second), Chat: &chat.Sender{}}
 	w.phone = &Service{Pool: pool, Box: box, Assistant: runner, Log: logging.New(io.Discard)}
@@ -65,7 +72,7 @@ func newCallWorld(t *testing.T, brainAnswer string) *callWorld {
 		for rows.Next() {
 			var id string
 			rows.Scan(&id)
-			pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = $1`, limiter.Key("assistant-customer", id))
+			pool.Exec(ctx, `DELETE FROM rate_limits WHERE key = ANY($1)`, []string{limiter.Key("assistant-customer", id), limiter.Key("assistant-call", id)})
 		}
 		rows.Close()
 	})
@@ -165,59 +172,6 @@ func TestAnOrderIsTakenOnTheCallInSpokenWords(t *testing.T) {
 	}
 	if w.count(`SELECT count(*) FROM orders WHERE company_id = $1 AND status = 'new' AND total_cents = 1900`, w.companyID) != 1 {
 		t.Fatal("the order is on the Orders page with ansa's total")
-	}
-}
-
-func TestAfterAHandoverTheCallTakesMessages(t *testing.T) {
-	w := newCallWorld(t, `{"kind":"needs_person","reason":"complaint","subject":"Cold pizza","summary":"Lena's pizza arrived cold."}`)
-	call := w.start()
-	words := w.say(call.CallID, "My pizza was cold!")
-	if len(words) != 1 || !strings.Contains(words[0], "get back to you") {
-		t.Fatalf("the business's holding reply, spoken: %q", words)
-	}
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND subject = 'Cold pizza' AND status = 'open'`, w.companyID) != 1 {
-		t.Fatal("a request from the call, marked as a phone request")
-	}
-	asked := w.brainCalls
-	words = w.say(call.CallID, "And it was late too.")
-	if len(words) != 1 || words[0] != assistant.MessageTakenText("business", "Luigi's") || w.brainCalls != asked {
-		t.Fatalf("a request is open: ansa takes the message, no AI: %q", words)
-	}
-	if err := w.phone.End(context.Background(), w.company, call.CallID); err != nil {
-		t.Fatal(err)
-	}
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1`, w.companyID) != 1 {
-		t.Fatal("the open request already covers the message: no second one")
-	}
-}
-
-func TestWhilePausedACallOnlyTakesAMessage(t *testing.T) {
-	w := newCallWorld(t, `{"kind":"reply","text":"never asked"}`)
-	w.exec(`INSERT INTO assistant_settings (company_id, status) VALUES ($1, 'paused')`, w.companyID)
-	call := w.start()
-	if !strings.Contains(call.Words[0], "please tell me your message") {
-		t.Fatalf("the greeting says it takes a message: %q", call.Words)
-	}
-	if words := w.say(call.CallID, "Please call me back about a party of twenty"); words[0] != assistant.MessageTakenText("business", "Luigi's") || w.brainCalls != 0 {
-		t.Fatalf("message taken without the AI: %q (%d brain calls)", words, w.brainCalls)
-	}
-	if words := w.say(call.CallID, "   "); words[0] != DidntCatchText {
-		t.Fatalf("nothing heard: %q", words)
-	}
-	ctx := context.Background()
-	if err := w.phone.End(ctx, w.company, call.CallID); err != nil {
-		t.Fatal(err)
-	}
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND subject = 'A caller left a message' AND customer_name = 'Lena'`, w.companyID) != 1 ||
-		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'call_message'`, w.companyID) != 1 ||
-		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert'`, w.companyID) != 1 {
-		t.Fatal("hanging up opens a request for the message, writes the line and alerts the owners")
-	}
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND description LIKE '%party of twenty%'`, w.companyID) != 0 {
-		t.Fatal("the caller's words stay in the (encrypted) conversation, never on the request")
-	}
-	if err := w.phone.End(ctx, w.company, call.CallID); err != nil || w.count(`SELECT count(*) FROM tickets WHERE company_id = $1`, w.companyID) != 1 {
-		t.Fatal("ending twice changes nothing")
 	}
 }
 

@@ -125,7 +125,7 @@ func (r *Runner) saveFixedAndSend(ctx context.Context, turn conversations.Turn, 
 				return err
 			}
 		}
-		gate, err := GateWithin(ctx, tx, turn, GateOptions{RequireNewest: true, Lock: true})
+		gate, err := GateWithin(ctx, tx, turn, GateOptions{RequireNewest: true, Lock: true, OnACall: inputs.Spoken})
 		if err != nil || gate != GateMay {
 			return err
 		}

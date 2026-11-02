@@ -74,26 +74,17 @@ func (r *Runner) HandleJob(ctx context.Context, job *jobs.Job) error {
 	return err
 }
 
-// Answer decides and does what the assistant does with one message. An
-// error means nothing was decided (a database failure): the job tries again,
-// and the gate makes sure a message is never answered twice.
+// Answer decides and does what the assistant does with one message
+// (coverAfterNoReply: the catch-up's run, answering whatever the away
+// settings say; a live call's turns are AnswerCall's, call.go). An error
+// means nothing was decided (a database failure): the job tries again, and
+// the gate makes sure a message is never answered twice.
 func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfterNoReply bool) (string, error) {
-	return r.answer(ctx, turn, answerOptions{coverAfterNoReply: coverAfterNoReply})
-}
-
-// answerOptions: coverAfterNoReply (answer whatever the away settings say),
-// onACall (a live call's turn: core/internal/assistant/call.go).
-type answerOptions struct {
-	coverAfterNoReply bool
-	onACall           bool
-}
-
-func (r *Runner) answer(ctx context.Context, turn conversations.Turn, options answerOptions) (string, error) {
-	gate, info, err := r.readGate(ctx, turn)
+	gate, info, err := r.readGate(ctx, turn, GateOptions{RequireNewest: true})
 	if err != nil || gate != GateMay {
 		return OutcomeQuiet, err
 	}
-	if !options.coverAfterNoReply {
+	if !coverAfterNoReply {
 		availability, err := ReadAvailability(ctx, r.Pool, turn.CompanyID)
 		if err != nil {
 			return "", err
@@ -114,9 +105,6 @@ func (r *Runner) answer(ctx context.Context, turn conversations.Turn, options an
 	}
 	if err := inputs.AddKnowledge(ctx, r.Pool, turn.CompanyID); err != nil {
 		return "", err
-	}
-	if options.onACall {
-		inputs.onACall()
 	}
 	// Someone you marked important always comes to you: no AI answer at all.
 	if info.Important {

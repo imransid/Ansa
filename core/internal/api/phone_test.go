@@ -47,13 +47,15 @@ func TestThePracticePhoneIsAnOwnersDevelopmentTool(t *testing.T) {
 		t.Fatalf("picked up: %d %v", code, started)
 	}
 	callID := started["callId"].(string)
-	w.must(`DELETE FROM rate_limits WHERE key = $1`, w.api.Limiter.Key("assistant-customer", started["conversationId"].(string)))
-	t.Cleanup(func() {
-		w.pool.Exec(context.Background(), `DELETE FROM rate_limits WHERE key = $1`, w.api.Limiter.Key("assistant-customer", started["conversationId"].(string)))
-	})
+	callKey := w.api.Limiter.Key("assistant-call", started["conversationId"].(string))
+	w.must(`DELETE FROM rate_limits WHERE key = $1`, callKey)
+	t.Cleanup(func() { w.pool.Exec(context.Background(), `DELETE FROM rate_limits WHERE key = $1`, callKey) })
 	code, turn := w.call("POST", "/api/v1/phone/practice/turn", `{"callId":"`+callID+`","text":"Are you open tonight?"}`, screensSecret, w.cookie)
 	if code != 200 || turn["heard"] != "Are you open tonight?" || turn["words"].([]any)[0] != "Yes, we're open until 23:00." {
 		t.Fatalf("a turn: %d %v", code, turn)
+	}
+	if code, _ := w.call("POST", "/api/v1/phone/practice/turn", `{"callId":"`+callID+`","audio":"AAAA","language":"xx"}`, screensSecret, w.cookie); code != 400 {
+		t.Fatalf("a language the brain doesn't hear: %d", code)
 	}
 	if code, _ := w.call("POST", "/api/v1/phone/practice/start", `{"callerName":"x","callerNumber":"12"}`, screensSecret, w.cookie); code != 400 {
 		t.Fatalf("a number too short: %d", code)

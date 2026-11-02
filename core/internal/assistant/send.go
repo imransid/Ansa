@@ -31,7 +31,7 @@ func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info 
 	cannotSend := false
 	var target chat.Target
 	err = database.InTx(ctx, r.Pool, func(tx database.Tx) error {
-		gate, err := GateWithin(ctx, tx, turn, GateOptions{RequireNewest: true, Lock: true})
+		gate, err := GateWithin(ctx, tx, turn, GateOptions{RequireNewest: true, Lock: true, OnACall: inputs.Spoken})
 		if err != nil || gate != GateMay {
 			return err
 		}

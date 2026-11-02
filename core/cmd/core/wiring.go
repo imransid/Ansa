@@ -49,6 +49,7 @@ func newWorker(cfg config.Config, pool *database.Pool, box *secure.Box, limiter 
 	worker.Handle(assistant.ReplyJobKind, runner.HandleJob)
 	worker.Handle(assistant.AlertJobKind, alerter.HandleJob)
 	worker.Handle(assistant.OrderAlertJobKind, alerter.HandleOrderJob)
+	worker.Handle(assistant.CallSummaryJobKind, runner.HandleCallSummaryJob)
 	worker.Handle(tickets.AssignedJobKind, notifier.HandleJob)
 	worker.Handle(messenger.NameJobKind, (&messenger.Names{Pool: pool, Box: box, AppSecret: cfg.FacebookAppSecret}).HandleJob)
 	return worker

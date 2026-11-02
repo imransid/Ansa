@@ -16,9 +16,10 @@ import { requireSessionContext } from "@/lib/session";
 
 const callId = z.string().uuid();
 const startInput = z.object({ callerName: z.string().max(200), callerNumber: z.string().min(1).max(40) });
-// A recording of up to about a minute (16 kHz mono WAV, base64), or typed words.
+// A recording of up to about a minute (16 kHz mono WAV, base64) with the
+// language spoken, or words (typed, or heard by the browser).
 const turnInput = z.union([
-  z.object({ callId, audio: z.string().min(1).max(3_000_000) }),
+  z.object({ callId, audio: z.string().min(1).max(3_000_000), language: z.enum(["en", "bn"]) }),
   z.object({ callId, text: z.string().max(2_000) }),
 ]);
 
@@ -33,7 +34,9 @@ export async function startPracticeCallAction(input: { callerName: string; calle
   return startPracticeCallThroughCore(parsed.data.callerName, parsed.data.callerNumber);
 }
 
-export async function practiceCallTurnAction(input: { callId: string; text: string } | { callId: string; audio: string }): Promise<PracticeCallTurn> {
+export async function practiceCallTurnAction(
+  input: { callId: string; text: string } | { callId: string; audio: string; language: "en" | "bn" },
+): Promise<PracticeCallTurn> {
   await requireSessionContext(PAGE);
   const parsed = turnInput.safeParse(input);
   if (!parsed.success) {

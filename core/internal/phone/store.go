@@ -9,6 +9,7 @@ import (
 
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/database"
+	"ansa/core/internal/jobs"
 	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
 )
@@ -52,9 +53,10 @@ func countMessageTaken(ctx context.Context, pool *database.Pool, company tenant.
 	return err
 }
 
-// endCall ends the live call, and opens a request for the messages it took,
-// in ONE transaction that takes the company row lock first (the request is
-// routed, as every routing does). Only the live call is ended, once.
+// endCall ends the live call, opens a request for the messages it took and
+// queues the call's note, in ONE transaction that takes the company row lock
+// first (the request is routed, as every routing does). Only the live call
+// is ended, once.
 func endCall(ctx context.Context, pool *database.Pool, company tenant.CompanyID, callID string) error {
 	if !uuidPattern.MatchString(callID) {
 		return nil
@@ -73,8 +75,16 @@ func endCall(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
-		if err != nil || messagesTaken == 0 {
+		if err != nil {
 			return err
+		}
+		// Queued once: only the live call is ended.
+		note := jobs.NewJob{Kind: assistant.CallSummaryJobKind, Payload: assistant.CallSummaryPayload{CallID: callID}}
+		if _, err := jobs.EnqueueWithin(ctx, tx, company, note); err != nil {
+			return err
+		}
+		if messagesTaken == 0 {
+			return nil
 		}
 		return assistant.CallMessagesLeftWithin(ctx, tx, company, conversationID, callID)
 	})
