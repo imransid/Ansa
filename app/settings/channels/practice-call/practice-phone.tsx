@@ -7,7 +7,7 @@ import { endPracticeCallAction, practiceCallTurnAction, startPracticeCallAction 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LONGEST_TURN_SECONDS, speak, startRecording, type Recorder } from "@/lib/practice-phone/recording";
+import { LONGEST_TURN_SECONDS, microphoneProblem, speak, startRecording, type Recorder } from "@/lib/practice-phone/recording";
 
 type Line = { who: "ansa" | "caller"; text: string };
 type Call = { id: string; conversationId: string };
@@ -86,8 +86,10 @@ export function PracticePhone() {
     try {
       recorder.current = await startRecording();
       setRecording(true);
-    } catch {
-      setError("The microphone couldn't be used. Allow it for this page in your browser, or type instead.");
+    } catch (problem) {
+      // The reason's name only (shown in the developer's terminal), never a recording.
+      console.warn("practice phone: microphone refused:", problem instanceof Error ? problem.name : typeof problem);
+      setError(microphoneProblem(problem));
     }
   }
 

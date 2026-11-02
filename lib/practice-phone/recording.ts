@@ -14,7 +14,7 @@ export type Recorder = { stop: () => string; seconds: () => number };
 
 // Starts listening to the microphone (the browser asks for permission first).
 export async function startRecording(): Promise<Recorder> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
   const context = new AudioContext();
   const source = context.createMediaStreamSource(stream);
   // ScriptProcessorNode is old but works in every browser without a module file.
@@ -38,6 +38,30 @@ export async function startRecording(): Promise<Recorder> {
       return toBase64(encodeWav(downsample(join(chunks), context.sampleRate, SPEECH_RATE), SPEECH_RATE));
     },
   };
+}
+
+// Why the microphone can't be used, and what to do, in plain words: the
+// browser names the reason (a refused permission, macOS blocking the
+// browser, no microphone, one in use) but never says how to fix it.
+export function microphoneProblem(error: unknown): string {
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    return "The browser only lets a page use the microphone on a safe address. Open ansa at http://localhost:3000 (not a 192.168... network address) and try again.";
+  }
+  const name = error instanceof DOMException || error instanceof Error ? error.name : "";
+  const detail = error instanceof Error ? error.message.toLowerCase() : "";
+  if ((name === "NotAllowedError" || name === "SecurityError") && detail.includes("system")) {
+    return "macOS is blocking your browser's microphone: open System Settings → Privacy & Security → Microphone, switch your browser on, then quit and reopen the browser.";
+  }
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return "The browser blocked the microphone for this page: click the icon at the left of the address bar, set Microphone to Allow, then reload the page.";
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return "No microphone was found on this computer. Connect one, or type instead.";
+  }
+  if (name === "NotReadableError") {
+    return "The microphone is busy or blocked: close any other app using it (a video call, a recorder) and try again.";
+  }
+  return "The microphone couldn't be used" + (name ? ` (${name})` : "") + ". You can type instead.";
 }
 
 // The chunks as one run of samples.
