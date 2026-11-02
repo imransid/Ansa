@@ -26,7 +26,8 @@ export function proxy(request: NextRequest) {
 }
 
 // The sections in SIGNED_IN_SECTIONS (lib/login-redirect.ts), written out
-// because Next.js reads this list when building. A check keeps them equal.
+// because Next.js reads this list when building. A check keeps them equal
+// (scripts/screen-checks/login-redirect-checks.ts).
 export const config = {
   matcher: [
     "/dashboard/:path*",

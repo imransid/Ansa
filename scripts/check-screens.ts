@@ -5,6 +5,7 @@
 import { getFailureCount } from "./screen-checks/check";
 import { runCofounderConsistencyChecks } from "./screen-checks/cofounder-consistency-checks";
 import { runContentRulesChecks } from "./screen-checks/content-rules-checks";
+import { runLoginRedirectChecks } from "./screen-checks/login-redirect-checks";
 import { runMediaUiChecks } from "./screen-checks/media-ui-checks";
 import { runNavigationChecks } from "./screen-checks/navigation-checks";
 import { runPageHeadingChecks } from "./screen-checks/page-heading-checks";
@@ -14,6 +15,7 @@ import { runUiPolishChecks } from "./screen-checks/ui-polish-checks";
 async function main() {
   await runPageHeadingChecks();
   await runNavigationChecks();
+  await runLoginRedirectChecks();
   await runUiPolishChecks();
   await runCofounderConsistencyChecks();
   await runMediaUiChecks();

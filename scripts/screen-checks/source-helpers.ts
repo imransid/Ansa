@@ -12,21 +12,6 @@ export async function read(file: string): Promise<string> {
   return readFile(path.join(ROOT, file), "utf8");
 }
 
-// Where the app's own code lives (scripts/ are these checks). Files in the
-// repo root count too: a proxy.ts or middleware.ts would sit there.
-const APP_SOURCE_FOLDERS = ["adapters", "app", "components", "db", "lib", "services"];
-
-// Every .ts and .tsx file of the app's own code, as paths from the repo root.
-export async function appSourceFiles(): Promise<string[]> {
-  const isSourceFile = (fileName: string) => /\.tsx?$/.test(fileName);
-  const files = (await readdir(ROOT)).filter(isSourceFile);
-  for (const folder of APP_SOURCE_FOLDERS) {
-    const entries = await readdir(path.join(ROOT, folder), { recursive: true });
-    files.push(...entries.filter(isSourceFile).map((entry) => path.join(folder, entry)));
-  }
-  return files;
-}
-
 // Every .tsx file under app/ and components/, as paths from the repo root.
 export async function pageSources(): Promise<string[]> {
   const files: string[] = [];

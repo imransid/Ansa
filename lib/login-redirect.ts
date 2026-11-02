@@ -4,7 +4,8 @@
 
 // The app's sections that need a login. proxy.ts matches the same list
 // (its matcher must be written out by hand), and a check keeps the two equal
-// and makes sure every page that reads the session is in one of them.
+// and makes sure every page that reads the session is in one of them
+// (scripts/screen-checks/login-redirect-checks.ts, pnpm check:screens).
 export const SIGNED_IN_SECTIONS = [
   "/dashboard",
   "/inbox",
