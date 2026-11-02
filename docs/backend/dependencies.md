@@ -15,12 +15,12 @@ attacker (the 2025 npm worms are the reminder). Add one only with a line here.
 ## brain (Python), exact versions in `brain/requirements.txt`
 | Package | Why |
 |---|---|
-| fastapi, starlette | The web service and its request checks |
+| fastapi, starlette (and annotated-doc, typing-inspection, annotated-types) | The web service and its request checks |
 | pydantic, pydantic_core | Strict models for every request and answer |
-| uvicorn | Runs the service |
+| uvicorn (and click, h11) | Runs the service |
 | pypdf 6.20.1 (2026-10-12, BSD-3, pure Python, no dependencies on Python 3.11+) | A PDF's text for "Add to knowledge" (`brain/brain/documents/pdf_text.py`); the old backend used PDF.js. Kept in the brain, apart from core: a hostile PDF can only slow the brain's worker thread |
-| anthropic (and its helpers: anyio, httpx, httpcore, h11, certifi, idna, jiter, sniffio, docstring_parser, typing_extensions) | Anthropic's official SDK: the only way the brain asks the AI model |
-| pytest, httpx (tests only) | Tests and the test client |
+| anthropic (and its helpers: httpx2, httpcore2, truststore, opentelemetry-api, anyio, certifi, idna, jiter, sniffio, docstring_parser, typing_extensions) | Anthropic's official SDK: the only way the brain asks the AI model. opentelemetry-api is only its tracing interface: the brain switches tracing off (`brain/brain/ai.py`) |
+| pytest (and iniconfig, packaging, pluggy, pygments), httpx, httpcore (tests only) | Tests and the test client (starlette's speaks httpx) |
 
 ## screens (Next.js), exact versions in `package.json` and `pnpm-lock.yaml`
 The screens keep only what pages and forms need: Next.js and React,

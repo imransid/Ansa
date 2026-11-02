@@ -3,11 +3,38 @@ adapters/claude.ts: one structured JSON answer per request, a time limit and
 retries per use, and nothing logged or traced (never the prompt, the answer
 or the SDK's error text, which can quote the answer)."""
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import Any
 
 import anthropic
+
+# The SDK's own log lines can show a request, so they stay off whatever
+# ANTHROPIC_LOG says (the old backend's logLevel "off", for the same reason).
+SILENT = logging.CRITICAL + 1
+logging.getLogger("anthropic").setLevel(SILENT)
+logging.getLogger("httpx2").setLevel(SILENT)
+
+# No OpenTelemetry span and no trace header on any request (see ask()).
+NO_TRACING: Any = {"propagation": False, "traces": False}
+
+# The longest wait between two tries of one request (the SDK's own longest
+# backoff). Core stops waiting for each use after its own time
+# (core/internal/brainclient/waits.go, whose test reads this file).
+MAX_RETRY_WAIT_SECONDS = 8.0
+
+
+class _Client(anthropic.Anthropic):
+    """Anthropic's client with one change: it waits at most
+    MAX_RETRY_WAIT_SECONDS before trying again. The SDK itself waits as long
+    as a 429's retry-after asks, however long: the brain would sleep long
+    after core gave up, then pay for an answer nobody reads (the old backend
+    cut each request off for the same reason)."""
+
+    def _calculate_retry_timeout(self, remaining_retries: int, options: Any, response_headers: Any = None) -> float:
+        wait = super()._calculate_retry_timeout(remaining_retries, options, response_headers)
+        return min(wait, MAX_RETRY_WAIT_SECONDS)
 
 
 @dataclass(frozen=True)
@@ -18,6 +45,11 @@ class UseSettings:
     max_tokens: int
     timeout_seconds: float
     max_retries: int
+
+    def longest_seconds(self) -> float:
+        """The longest one ask can take: every try timing out, and the
+        longest wait between them."""
+        return self.timeout_seconds * (self.max_retries + 1) + MAX_RETRY_WAIT_SECONDS * self.max_retries
 
 
 # The restaurant assistant's reply to a customer (who is waiting in a chat).
@@ -70,7 +102,9 @@ def ask(system_prompt: str, prompt: str | list[dict[str, Any]], json_schema: dic
     key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         return ModelResult(kind="unavailable")
-    client = anthropic.Anthropic(api_key=key, timeout=use.timeout_seconds, max_retries=use.max_retries)
+    # Never traced: without this the SDK reads its tracing settings from the
+    # environment, and a span can carry the request (no trace headers either).
+    client = _Client(api_key=key, timeout=use.timeout_seconds, max_retries=use.max_retries, open_telemetry=NO_TRACING)
     try:
         response = client.messages.create(
             model=model_name(),

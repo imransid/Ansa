@@ -14,6 +14,7 @@ var good = map[string]string{
 	"DATA_ENCRYPTION_KEY": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
 	"BRAIN_SHARED_SECRET": strings.Repeat("s", 40),
 	"BETTER_AUTH_SECRET":  strings.Repeat("a", 40),
+	"ANSA_ENV":            "development",
 }
 
 func TestGoodSettingsLoadWithDefaults(t *testing.T) {
@@ -23,6 +24,20 @@ func TestGoodSettingsLoadWithDefaults(t *testing.T) {
 	}
 	if cfg.ListenAddr != "127.0.0.1:8080" || cfg.BrainURL != "http://127.0.0.1:8090" || cfg.IsProduction() {
 		t.Fatalf("defaults: %+v", cfg)
+	}
+}
+
+// Without ANSA_ENV core is in production: a forgotten setting asks for the
+// production settings instead of letting the development stand-ins in.
+func TestAMissingEnvironmentIsProduction(t *testing.T) {
+	values := map[string]string{}
+	for name, value := range good {
+		values[name] = value
+	}
+	delete(values, "ANSA_ENV")
+	_, err := Load(settings(values))
+	if err == nil || !strings.Contains(err.Error(), "SEND_REAL_EMAIL") {
+		t.Fatalf("a missing ANSA_ENV must count as production: %v", err)
 	}
 }
 

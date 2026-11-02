@@ -13,7 +13,12 @@ addresses hidden, the owner's with secret numbers hidden.
 **Model (`ai.py`):** Anthropic's SDK, one structured JSON answer
 (`output_config.format: json_schema`), effort low, 3,000 tokens, 30 s, one
 retry; the business's own key when core sends one, else ansa's; on an error
-only the class name is kept (never its text).
+only the class name is kept (never its text). Between two tries it waits at
+most 8 s (`MAX_RETRY_WAIT_SECONDS`; the SDK alone would wait as long as a
+429's retry-after asks, long after core gave up). The SDK never logs or traces,
+whatever ANTHROPIC_LOG or its tracing settings say (its loggers kept above
+every level, `open_telemetry` with no spans and no trace headers; test:
+`test_the_ai_door_never_logs_or_traces`).
 **Claude Code (`claude_code.py`, DEVELOPMENT ONLY):** when core sends
 `engine: "claude_code"` and the brain runs with `ANSA_ENV=development`, the
 answer comes from `claude -p` on this computer's Claude Code login (Anthropic

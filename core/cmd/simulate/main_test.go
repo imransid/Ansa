@@ -48,6 +48,7 @@ func baseSettings(databaseURL string) map[string]string {
 		"DATA_ENCRYPTION_KEY": testKey,
 		"BRAIN_SHARED_SECRET": strings.Repeat("b", 40),
 		"BETTER_AUTH_SECRET":  strings.Repeat("a", 40),
+		"ANSA_ENV":            "development",
 	}
 }
 

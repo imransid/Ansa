@@ -25,7 +25,8 @@ type Config struct {
 	BrainURL string
 	// Signs every request core sends the brain (at least 32 characters).
 	BrainSharedSecret string
-	// "development" or "production".
+	// "development" or "production". Missing = production: a forgotten
+	// setting never lets the development stand-ins in.
 	Environment string
 	// The old backend's BETTER_AUTH_SECRET: rate limit keys are derived from
 	// it the same way (both backends share counters), and logins move here later.
@@ -105,7 +106,7 @@ func Load(getenv Getenv) (Config, error) {
 		DataEncryptionKey:     getenv("DATA_ENCRYPTION_KEY"),
 		BrainURL:              withDefault(getenv("BRAIN_URL"), "http://127.0.0.1:8090"),
 		BrainSharedSecret:     getenv("BRAIN_SHARED_SECRET"),
-		Environment:           withDefault(getenv("ANSA_ENV"), "development"),
+		Environment:           withDefault(getenv("ANSA_ENV"), "production"),
 		AuthSecret:            getenv("BETTER_AUTH_SECRET"),
 		TelegramBotToken:      getenv("TELEGRAM_BOT_TOKEN"),
 		TelegramBotUsername:   getenv("TELEGRAM_BOT_USERNAME"),

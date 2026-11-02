@@ -4,7 +4,9 @@
 **Rules:** every problem is reported at once; a message names the setting and
 the rule, never the value; `Config.String()` never prints a secret.
 **Settings:** CORE_LISTEN_ADDR, DATABASE_URL, DATA_ENCRYPTION_KEY, BRAIN_URL,
-BRAIN_SHARED_SECRET, ANSA_ENV, BETTER_AUTH_SECRET (signs the login cookie in
+BRAIN_SHARED_SECRET, ANSA_ENV ("development" or "production"; missing =
+production, so a forgotten setting never lets the stand-ins in; `core
+started` logs it as its code), BETTER_AUTH_SECRET (signs the login cookie in
 Better Auth's format and makes the rate limit keys: the old backend's value,
 so logins and counters carried over), TELEGRAM_BOT_TOKEN / _USERNAME / TELEGRAM_WEBHOOK_SECRET
 (all or none), APP_URL (the screens' address for links: https, http only in

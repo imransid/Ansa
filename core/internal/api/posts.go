@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"ansa/core/internal/autopost"
+	"ansa/core/internal/brainclient"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 	"ansa/core/internal/settings"
@@ -89,7 +90,8 @@ func (s *Server) postNow(w http.ResponseWriter, r *http.Request, _ []byte, who *
 		problem(w, http.StatusTooManyRequests, "That's a lot of posts this hour. Try again later.")
 		return
 	}
-	allowLongAnswer(w, 270*time.Second)
+	// Two AI answers at most (a second try on another kind of post).
+	allowLongAnswer(w, 2*brainclient.AutopostWait+10*time.Second)
 	outcome, err := s.Posts.PostNow(r.Context(), who.CompanyID, time.Now())
 	switch {
 	case err != nil:

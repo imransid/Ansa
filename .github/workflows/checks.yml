@@ -123,6 +123,7 @@ jobs:
             echo "BRAIN_SHARED_SECRET=$(openssl rand -hex 32)"
             echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
             echo "SCREENS_SHARED_SECRET=$(openssl rand -hex 32)"
+            echo "ANSA_ENV=development"
           } > .env.core
       - run: go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
       - run: make check

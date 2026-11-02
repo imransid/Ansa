@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"ansa/core/internal/accounts"
 	"ansa/core/internal/analytics"
@@ -50,9 +49,6 @@ import (
 // connections; this leaves room for the webhooks.
 const workerCount = 4
 
-// The brain's longest answer: Claude Code (development) takes up to 90 s.
-const brainTimeout = 120 * time.Second
-
 func main() {
 	log := logging.New(os.Stdout)
 	cfg, err := config.Load(os.Getenv)
@@ -76,17 +72,18 @@ func main() {
 	limiter := ratelimit.New(pool, cfg.AuthSecret)
 	sender := chatSender(cfg, pool, box)
 	runner := &assistant.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, Chat: sender,
-		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout)}
+		Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.AssistantReplyWait)}
 	mail := &email.Sender{Real: cfg.SendRealEmail, ResendKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder, FromAddress: cfg.EmailFrom}
 	deliverer := &outbox.Deliverer{Pool: pool, Limiter: limiter, Email: mail, ForwardingDomain: cfg.ForwardingDomain()}
 	worker := newWorker(cfg, pool, box, limiter, runner, mail, log)
 	worker.Handle(tickets.DeliverJobKind, deliverer.HandleJob)
 	processor := &inbound.Processor{Pool: pool, Box: box, Limiter: limiter, Log: log,
 		Fetcher: &resend.Fetcher{Real: cfg.SendRealEmail, APIKey: cfg.ResendAPIKey, DevFolder: cfg.DevFolder},
-		Brain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainTimeout), EmailFrom: cfg.EmailFrom, ForwardingDomain: cfg.ForwardingDomain()}
+		Brain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.EmailTriageWait), EmailFrom: cfg.EmailFrom, ForwardingDomain: cfg.ForwardingDomain()}
 	worker.Handle(resend.ProcessJobKind, processor.HandleJob)
-	// A call's decision: up to 60 s a try with 2 retries, and the SDK's waits.
-	callAnalyzer := &calls.Analyzer{Pool: pool, Box: box, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
+	// Each brain client waits as long as its use may take at the brain
+	// (brainclient/waits.go, checked against the brain's own limits).
+	callAnalyzer := &calls.Analyzer{Pool: pool, Box: box, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.CallDecisionWait)}
 	worker.Handle(calls.AnalyzeJobKind, callAnalyzer.HandleJob)
 	storage := fileStore(cfg)
 	// LinkedIn, X and YouTube; the renewer gets any account ready for a
@@ -103,29 +100,28 @@ func main() {
 		RecordingHosts: cfg.VapiRecordingHosts, Files: storage, Tools: &calls.Tools{Pool: pool, Limiter: limiter, Log: log}})
 	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
 	// Two AI answers at most per post, each up to 60 s a try with one retry.
-	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 130*time.Second), Log: log}
+	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.AutopostWait), Log: log}
 	stripe := &billing.Stripe{SecretKey: cfg.StripeSecretKey, PriceID: cfg.StripePriceID}
 	routes.Handle("POST /webhooks/stripe", &billing.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.StripeWebhookSecret, Stripe: stripe})
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions:    &session.Reader{Pool: pool, Secret: cfg.AuthSecret},
 		Orders:      &orders.StatusChange{Pool: pool, Box: box, Sender: sender},
 		Replies:     &inbox.Replies{Pool: pool, Box: box, Sender: sender},
-		Brain:       brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 5*time.Second),
+		Brain:       brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.StatusWait),
 		Assistant:   runner,
-		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second),
+		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.MenuReadingWait),
 		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
 		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: storage, EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,
 		Social: &socialconnect.Connector{Pool: pool, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, AppURL: cfg.AppURL, Development: !cfg.IsProduction(),
 			Platforms: connectors}}
-	// "Review performance": two tries of up to 120 s, and the SDK's waits.
-	screensAPI.Reviews = &analytics.Reviewer{Pool: pool, Limiter: limiter, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second)}
-	// The content studio's AI drafts (two tries of up to 120 s at the brain) and the media library's image service.
+	screensAPI.Reviews = &analytics.Reviewer{Pool: pool, Limiter: limiter, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.PerformanceReviewWait)}
+	// The content studio's AI drafts and the media library's image service.
 	generations := &mediagen.Service{Pool: pool, Files: storage, Limiter: limiter, Log: log, Mode: mediagen.ModeFor(cfg.MediaProvider, cfg.IsProduction())}
-	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 260*time.Second), Limiter: limiter, Log: log},
+	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.ContentDraftWait), Limiter: limiter, Log: log},
 		Generation: generations}
-	screensAPI.CofounderBrain = brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, 285*time.Second)
+	screensAPI.CofounderBrain = brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.CofounderWait)
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 
@@ -149,7 +145,9 @@ func main() {
 		go schedule.Run(workCtx, log, scheduledTasks(pool, log, publisher, postWriter, numbers, generations))
 	}
 	go func() {
-		log.Info("core started")
+		// Says which mode it runs in, so a production core missing its
+		// ANSA_ENV (or a laptop's set to production) shows at once.
+		log.Info("core started", logging.Code(cfg.Environment))
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("core stopped", logging.ErrorType(err))
 			os.Exit(1)
