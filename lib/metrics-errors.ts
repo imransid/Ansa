@@ -5,7 +5,7 @@
 export const metricsErrorCodes = [
   // The platform gives these numbers only with a permission ansa doesn't ask for.
   "needs_permission",
-  // A development stand-in account: its numbers come from pnpm simulate:post-metrics only.
+  // A development stand-in account: its numbers come from make simulate-post-metrics (core/) only.
   "stand_in",
   "not_set_up",
   // Getting the account ready (services/social-tokens.ts): nothing was asked.
@@ -36,7 +36,7 @@ export function describeMetricsError(code: string, platformLabel: string): strin
     case "needs_permission":
       return `${platformLabel} gives these numbers only with a permission ansa doesn't have yet.`;
     case "stand_in":
-      return "A development stand-in account: its numbers come only from pnpm simulate:post-metrics.";
+      return "A development stand-in account: its numbers come only from make simulate-post-metrics (in core/).";
     case "not_set_up":
       return `${platformLabel} isn't set up by ansa on this server, so its numbers can't be read.`;
     case "reauthorization_needed":

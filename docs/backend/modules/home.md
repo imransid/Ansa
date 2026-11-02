@@ -72,5 +72,6 @@ with its words; saved; an own key stored encrypted and shown by its last
 four; Claude Code refused without the brain's say-so; away hours' problems
 by field, then saved; a try answers with the AI label and saves nothing.
 `hours/typed_test.go`: the old form's day rules, word for word.
-**Still on the old backend:** "Your business in numbers" (tickets, calls,
-emails, posts: with those modules).
+**"Your business in numbers"** (tickets, calls, emails, posts):
+`overview.go` (`ReadOverview`): each count the company's own, read with the
+condition of the list it links to, at most 10,001 rows ("10,000+").

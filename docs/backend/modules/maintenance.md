@@ -3,9 +3,7 @@
 **What:** core's housekeeping (the old `db/maintenance.ts`,
 `services/maintenance.ts`): deleting rows nobody can use any more, by age
 alone. Nothing is read. Core's scheduler runs it every hour
-([schedule](schedule.md)); the old backend's daily job does the same work
-on the same tables until the switch-over, which is harmless (each delete
-only removes what is past its age).
+([schedule](schedule.md)); it replaced the old backend's daily job.
 
 **What goes:**
 - rate limit counters whose window started over 48 hours ago (the longest

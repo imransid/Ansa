@@ -4,8 +4,9 @@
 **Rules:** every problem is reported at once; a message names the setting and
 the rule, never the value; `Config.String()` never prints a secret.
 **Settings:** CORE_LISTEN_ADDR, DATABASE_URL, DATA_ENCRYPTION_KEY, BRAIN_URL,
-BRAIN_SHARED_SECRET, ANSA_ENV, BETTER_AUTH_SECRET (rate limit keys, shared
-with the old backend), TELEGRAM_BOT_TOKEN / _USERNAME / TELEGRAM_WEBHOOK_SECRET
+BRAIN_SHARED_SECRET, ANSA_ENV, BETTER_AUTH_SECRET (signs the login cookie in
+Better Auth's format and makes the rate limit keys: the old backend's value,
+so logins and counters carried over), TELEGRAM_BOT_TOKEN / _USERNAME / TELEGRAM_WEBHOOK_SECRET
 (all or none), APP_URL (the screens' address for links: https, http only in
 development), SEND_REAL_EMAIL (exactly "true" sends through Resend and then
 needs EMAIL_FROM and RESEND_API_KEY; production requires it), ANSA_DEV_FOLDER

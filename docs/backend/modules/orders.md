@@ -48,5 +48,4 @@ second press finds it changed); the customer's short fixed message
 (`StatusText`) saved in the same transaction as a person's message that
 doesn't take the conversation over, only when the chat may take one now;
 otherwise the status still changes and the page says why. Served by core's
-API ([api](api.md)); the page itself still calls the old backend until the
-screens switch (phase 7). `CountNew` is Home's "N new orders".
+API ([api](api.md)), which the Orders page calls. `CountNew` is Home's "N new orders".

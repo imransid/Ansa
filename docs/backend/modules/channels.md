@@ -25,5 +25,5 @@ it once companies forward to it).
 **Tests:** `api/channels_test.go` (live database): the page and the
 forwarding address; no link without a bot; one stand-in account; disconnect;
 a link with a 43-character code whose hash is kept for 10 minutes.
-**Still on the old backend:** connecting Facebook Pages and other social
-accounts (OAuth: with publishing, phase 4).
+**Connecting Facebook Pages and other social accounts** (OAuth):
+[socialconnect](socialconnect.md).

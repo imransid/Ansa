@@ -27,7 +27,8 @@ and change it safely.
   never `panic` in request handling.
 - Database code lives in each module's `store.go` and takes a
   `tenant.CompanyID` first (see security.md, rule 1).
-- Format with `gofmt`; check with `go vet` and `govulncheck`.
+- Format with `gofmt`; check with `go vet` and `staticcheck` (`make check`
+  runs the format check, `go vet` and every test; CI adds `staticcheck`).
 - Tests use the standard `testing` package; database tests run against the
   local PostgreSQL and clean up their own company.
 

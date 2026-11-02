@@ -7,13 +7,15 @@ database. Read `docs/backend/README.md` first.
 ## Run it on your laptop
 1. Copy the settings: `cp core/.env.core.example .env.core` (in the repository
    root; git ignores it), and fill in:
-   - `DATABASE_URL`: the same database as the old backend (`.env.local`).
-   - `DATA_ENCRYPTION_KEY`: the same key as the old backend's.
+   - `DATABASE_URL`: the local database (the same address as in `.env.local`).
+   - `DATA_ENCRYPTION_KEY` and `BETTER_AUTH_SECRET`: made once (the example
+     file says how), then never changed: they open stored text and logins.
    - `BRAIN_SHARED_SECRET`: `openssl rand -hex 32`, the same value for the brain.
+   - `SCREENS_SHARED_SECRET`: `openssl rand -hex 32`, the same value in `.env.local`.
 2. Start the brain first (see `brain/README.md`), then from `core/`:
    `make run`. Check it: `curl -i http://127.0.0.1:8080/health`.
 3. In development, emails and stand-in chat replies are files in the
-   repository's `.dev-emails/` and `.dev-messages/` (as the old backend's).
+   repository's `.dev-emails/` and `.dev-messages/`.
 4. Try the assistant without Telegram: with core running, from `core/`:
    `make simulate-message OWNER=you@example.com NAME="Lena" TEXT="Are you open tonight?"`
    (development and a local database only). The answer appears in
@@ -78,7 +80,7 @@ catch-up every 15 seconds).
 | `internal/httpserver/` | Server, headers, size caps, /health | [httpserver](../docs/backend/modules/httpserver.md) |
 | `internal/brainclient/` | Signed requests to the brain | [brainclient](../docs/backend/modules/brainclient.md) |
 | `internal/database/` | PostgreSQL pool, transactions, tenant check | [database](../docs/backend/modules/database.md) |
-| `internal/ratelimit/` | Attempt counters shared with the old backend | [ratelimit](../docs/backend/modules/ratelimit.md) |
+| `internal/ratelimit/` | Attempt counters (kept in PostgreSQL) | [ratelimit](../docs/backend/modules/ratelimit.md) |
 | `internal/jobs/` | The job queue and its worker | [jobs](../docs/backend/modules/jobs.md) |
 | `internal/conversations/` | Contacts, conversations, messages | [conversations](../docs/backend/modules/conversations.md) |
 | `internal/telegram/` | The Telegram Business channel | [telegram](../docs/backend/modules/telegram.md) |

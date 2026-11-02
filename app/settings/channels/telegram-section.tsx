@@ -43,9 +43,9 @@ export function TelegramSection({ page }: { page: ConnectionsPage }) {
     return (
       <div className="grid gap-3">
         <p className="text-sm text-muted-foreground">
-          Development: ansa&apos;s bot isn&apos;t set (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET), so this connects
+          Development: ansa&apos;s bot isn&apos;t set (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET in .env.core), so this connects
           a stand-in account. Bring a customer&apos;s message in with{" "}
-          <code className="rounded bg-muted px-1">pnpm simulate:telegram &lt;your email&gt; &quot;Customer name&quot; &quot;Message&quot;</code>.
+          <code className="rounded bg-muted px-1">cd core &amp;&amp; make simulate-telegram OWNER=&lt;your email&gt; NAME=&quot;Customer name&quot; TEXT=&quot;Message&quot;</code>.
         </p>
         <TelegramConnectButton action={connectStandInTelegramAction} label="Connect a stand-in Telegram account" />
       </div>
@@ -87,7 +87,7 @@ function ConnectionAdvice({ status, isStandIn }: { status: "connected" | "cannot
     return (
       <p className="text-sm text-muted-foreground">
         Bring a customer&apos;s message in with{" "}
-        <code className="rounded bg-muted px-1">pnpm simulate:telegram &lt;your email&gt; &quot;Customer name&quot; &quot;Message&quot;</code>.
+        <code className="rounded bg-muted px-1">cd core &amp;&amp; make simulate-telegram OWNER=&lt;your email&gt; NAME=&quot;Customer name&quot; TEXT=&quot;Message&quot;</code>.
         Replies are written to .dev-messages/.
       </p>
     );

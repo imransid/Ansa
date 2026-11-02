@@ -30,13 +30,21 @@ The research behind this choice is in the owner's local reports
   doesn't need, never another company's data).
 - Builds the AI prompt, calls the model, reads the answer strictly, and
   returns a proposal.
-- Has no database access and keeps no state: memory is stored by core and
-  sent with each request (see "Memory" below).
+- Has no database access and keeps no state: everything it needs comes
+  from core with each request (see "Memory" below).
 - Is reachable only from core, on a private address, and refuses any request
   core didn't sign.
 
 ### screens (Next.js): everything people see
-- Pages and forms. Every change goes through core's API; no database access.
+- Pages and forms. Every read and change goes through core's API; no
+  database access (lint refuses database code in the screens).
+- One door: `lib/core-api.ts` signs each request with SCREENS_SHARED_SECRET
+  (the time, the method, the address and the body) and passes the person's
+  login cookie on. Core checks the signature first, then reads the login
+  itself and takes the company from it, never from the request
+  ([api](modules/api.md), [session](modules/session.md)).
+- Their settings are only core's address, that shared secret and their own
+  public address (`.env.example`).
 
 ## How a customer's message travels
 
@@ -54,20 +62,26 @@ The research behind this choice is in the owner's local reports
      and records it; otherwise it sends the holding reply and alerts the owner.
 4. The screens show the conversation from core's API.
 
-## Memory (the brain's "long-term memory")
+## Memory (the brain's "long-term memory"): planned, not built yet
 
-Memory belongs to one company and, inside it, to one customer. Core stores it
-(PostgreSQL with `pgvector`) and enforces the company on every read; the brain
-receives the memories relevant to the request and may return new ones to
-keep. Core decides what is stored. The brain never fetches memory itself.
+Today the brain reads only what core sends with each request: the
+business's details and the newest messages of the one conversation it
+answers. When long-term memory is built, it works like this: memory
+belongs to one company and, inside it, to one customer. Core stores it
+(PostgreSQL with `pgvector`) and enforces the company on every read; the
+brain receives the memories relevant to the request and may return new ones
+to keep. Core decides what is stored. The brain never fetches memory itself.
 
 ## Data
 
-- One PostgreSQL database, the same tables as today (`db/migrations/`, plain
-  SQL). Until the switch-over, both backends use them; afterwards core owns
-  the migrations.
+- One PostgreSQL database. Its tables are described by the Drizzle schema
+  (`db/schema/`) and created by the SQL migrations made from it
+  (`db/migrations/`: `pnpm db:generate`, then `pnpm db:migrate`). Only core
+  reads and writes them; its tests check that every query names the company
+  ([database](modules/database.md)).
 - Sensitive text is encrypted with AES-256-GCM in the `v1:` format of
-  `core/internal/secure` (identical to the old `lib/encryption.ts`).
+  `core/internal/secure`: the format the old backend wrote, so everything
+  stored before the rewrite still opens.
 
 ## Scaling path
 

@@ -2,7 +2,9 @@
 
 **What:** core's only door to PostgreSQL: the pool, transactions, health ping.
 **Rules:**
-- At most 10 connections per process; a query waits at most 10 seconds for one.
+- At most 10 connections per process; opening one gives up after 10 seconds.
+  While all 10 are busy, a query waits for a free one as long as its caller's
+  context allows (a request's, a job's lease).
 - Every query takes a `tenant.CompanyID`
   first, and names `company_id` in every WHERE and INSERT.
 - A read across companies carries `-- cross-company: <reason>` and is listed

@@ -1,11 +1,25 @@
-# Try the new backend on your laptop
+# Run ansa on your laptop
 
-The screens can run on the new backend (core + brain) or on the old one.
-One switch decides: `CORE_API_URL` together with `SCREENS_SHARED_SECRET`.
-Both backends use the same database, so your companies, logins, messages
-and orders are the same on either side, and you can switch back at any time.
+ansa runs as three parts: the brain (Python), core (Go) and the screens
+(Next.js). Start them in this order, each in its own terminal. The screens
+ask core for everything; there is no other backend any more.
 
-## 1. Start the brain (terminal 1)
+## Once: settings
+- `.env.core` in the repository root (copy `core/.env.core.example`): core's
+  settings. The brain reads its shared secret from there too.
+- `.env.local` in the repository root (copy `.env.example`): the screens'
+  three settings, `CORE_API_URL`, `SCREENS_SHARED_SECRET` (the SAME value as
+  in `.env.core`) and `APP_URL`, plus the local database's for
+  `pnpm db:up` and `pnpm db:migrate`.
+- The brain's Python packages: `cd brain && python3 -m venv .venv &&
+  .venv/bin/pip install -r requirements-dev.txt`.
+
+## 1. Start the database
+Docker must be running (on a Mac: open Docker Desktop first). From the
+repository root: `pnpm db:up`, then `pnpm db:migrate` (only needed after a
+new migration; it changes nothing otherwise).
+
+## 2. Start the brain (terminal 1)
 From the repository root:
 
 ```
@@ -19,7 +33,7 @@ ANSA_ENV=development .venv/bin/uvicorn brain.app:create_app --factory --host 127
   (Settings → Assistant) still gets answers (development only).
 - Check: `curl -i http://127.0.0.1:8090/health` answers 200.
 
-## 2. Start core (terminal 2)
+## 3. Start core (terminal 2)
 From the repository root: `cd core && make run`. It listens on
 `127.0.0.1:8080` (CORE_LISTEN_ADDR in `.env.core`). Check:
 `curl -i http://127.0.0.1:8080/health` answers 200.
@@ -28,20 +42,15 @@ Core does the background work too (the assistant's catch-up, posts, post
 numbers, cleanup, emails, call analysis). Run only one core with its
 scheduler on.
 
-## 3. Start the screens on core (terminal 3)
-Stop your usual `pnpm dev` first (two dev servers can't share the `.next`
-folder). Then, from the repository root:
+## 4. Start the screens (terminal 3)
+From the repository root: `pnpm dev`, then open http://localhost:3000 and
+log in.
 
-```
-CORE_API_URL=http://127.0.0.1:8080 \
-SCREENS_SHARED_SECRET="$(grep '^SCREENS_SHARED_SECRET=' .env.core | cut -d= -f2-)" \
-pnpm dev
-```
+If a page keeps reloading itself (the terminal repeats "Compiled in ..."),
+stop `pnpm dev`, delete `.next/dev` and start it again. After packages
+change (`pnpm install`), restart `pnpm dev` too.
 
-Open http://localhost:3000 and log in as usual. To go back to the old
-backend, stop it and run plain `pnpm dev`.
-
-## What to try together
+## What to try
 - Home: the status card and its button, "Needs you", "What ansa did", the
   numbers.
 - A customer message without Telegram: in a 4th terminal,

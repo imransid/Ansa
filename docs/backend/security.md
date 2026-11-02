@@ -72,10 +72,15 @@ Nothing is parsed before the signature is checked.
 
 ## 8. Supply chain
 - core: the Go standard library first. Every outside module is listed in
-  `docs/backend/dependencies.md` with why it is needed. Checked with
-  `govulncheck` on every change.
-- brain: exact versions in `brain/requirements.lock`, checked with
-  `pip-audit`.
+  `docs/backend/dependencies.md` with why it is needed, at an exact version
+  (`core/go.mod`, `core/go.sum`).
+- brain: exact versions in `brain/requirements.txt`, each with why in
+  `dependencies.md`.
+- Known advisories: CI's audit job checks the screens' production packages
+  (`pnpm audit`). Core's and the brain's are not checked automatically yet:
+  before a release, run `govulncheck ./...` in `core/` and `pip-audit -r
+  requirements.txt` in `brain/` (both read public advisory lists from the
+  internet).
 - No package is added without a line in `dependencies.md`.
 
 ## 9. Rate limits
@@ -83,4 +88,6 @@ Counters in PostgreSQL (the `rate_limits` table), keyed by an HMAC of the IP or
 account, never the plain value.
 
 ## 10. Before every change
-Re-read this file. Run the tests (`make test` in `core/`, `pytest` in `brain/`).
+Re-read this file. Run the checks (`make check` in `core/`, `pytest` in
+`brain/`, and for the screens `pnpm typecheck`, `pnpm lint` and
+`pnpm check:screens`).

@@ -22,8 +22,10 @@ type Pool = pgxpool.Pool
 // Tx is one transaction.
 type Tx = pgx.Tx
 
-// Open connects with safe limits: at most 10 connections per process, and a
-// query waits at most 10 seconds for one (then fails instead of hanging).
+// Open connects with safe limits: at most 10 connections per process, and
+// opening one gives up after 10 seconds (then fails instead of hanging).
+// While all 10 are busy, a query waits for a free one as long as its
+// caller's context allows (a request's, a job's lease).
 func Open(ctx context.Context, url string) (*Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {

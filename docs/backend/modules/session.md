@@ -15,8 +15,8 @@ the screens make today: Better Auth's session cookie and its row in the
   logged out.
 - The token names one person; their own company is then the only one used
   (a cross-company read by token, listed in `CROSS_COMPANY.md`).
-**When core takes over logins (phase 6):** the same cookie and table, so
-nobody is logged out by the switch.
+**Core took over logins (phase 6)** with the same cookie and table, so
+nobody was logged out by the move.
 **Tests:** `session_test.go`: Better Auth's own signature; another secret and
 an unsigned value refused; (live database) a live session reads its person
 and company, under both cookie names; a changed signature, a removed person

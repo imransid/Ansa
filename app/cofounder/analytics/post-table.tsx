@@ -86,7 +86,7 @@ function PostNumbers({ post, platformLabel }: { post: ShownPost; platformLabel: 
       )}
       {post.accountIsStandIn && (
         <p className="text-xs text-muted-foreground wrap-anywhere">
-          Development: <code>pnpm simulate:post-metrics {post.jobId} views=120 reactions=8</code>
+          Development: <code>cd core &amp;&amp; make simulate-post-metrics JOB={post.jobId} NUMBERS=&quot;views=120 reactions=8&quot;</code>
         </p>
       )}
     </div>

@@ -59,5 +59,5 @@ a made-up code connects nothing; an owner made a member meanwhile connects
 nothing; `botapi_test.go` (a fake Bot API; refused while TELEGRAM_BOT_TOKEN
 is set): the webhook's address, secret and updates, refusals by status, the
 updates read and a webhook that stops polling.
-**Still on the old backend:** making the code (the "Connect Telegram"
-button: with the screens' API).
+**Making the code** (the "Connect Telegram" button) is
+[channels](channels.md)'s; this package claims and uses it (`linkstore.go`).

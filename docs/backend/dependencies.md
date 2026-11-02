@@ -21,3 +21,12 @@ attacker (the 2025 npm worms are the reminder). Add one only with a line here.
 | pypdf 6.20.1 (2026-10-12, BSD-3, pure Python, no dependencies on Python 3.11+) | A PDF's text for "Add to knowledge" (`brain/brain/documents/pdf_text.py`); the old backend used PDF.js. Kept in the brain, apart from core: a hostile PDF can only slow the brain's worker thread |
 | anthropic (and its helpers: anyio, httpx, httpcore, h11, certifi, idna, jiter, sniffio, docstring_parser, typing_extensions) | Anthropic's official SDK: the only way the brain asks the AI model |
 | pytest, httpx (tests only) | Tests and the test client |
+
+## screens (Next.js), exact versions in `package.json` and `pnpm-lock.yaml`
+The screens keep only what pages and forms need: Next.js and React,
+Tailwind, Base UI and lucide's icons (shadcn/ui's parts), Zod for forms,
+and drizzle-orm for the schema's types (`lib/types/` describes core's
+answers with them; lint lets nothing else of it in). Phase 8 removed every package only the
+old backend used: the Anthropic SDK, the AWS SDK (R2), Better Auth, mammoth,
+unpdf, Resend, standardwebhooks and Stripe. `pg` stays as a development
+tool only (drizzle-kit's migrations); lint refuses it in the screens' code.

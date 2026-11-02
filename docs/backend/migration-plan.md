@@ -1,13 +1,20 @@
 # Migration plan: old TypeScript backend → core (Go) + brain (Python)
 
-## How we move (no big bang)
+**Status (2026-11-02): moved.** Every module below is in core or the brain,
+the screens ask core for everything, and the old backend is deleted (Phase
+8). What is left is choosing hosting and deploying (the end of Phase 8).
+
+## How we moved (no big bang)
 - The database and its tables stay the same; core reads and writes them
   exactly as the old code does (same columns, same encryption format).
 - One module at a time: core takes over its webhooks, jobs and API; the
   screens switch to core's API for that module; the old TypeScript for it is
   deleted only after core's tests prove the same behaviour.
-- The old automated checks (`scripts/tenant-isolation/`) are the
-  specification: every rule they prove is proved again by a core or brain test.
+- The old automated checks (`scripts/tenant-isolation/`) were the
+  specification while modules moved: each module's tests in core or the
+  brain prove its rules again. They were deleted in Phase 8 with the code
+  they checked; the screens keep their own source checks
+  (`pnpm check:screens`).
 - This page is updated at every step. Status: ⬜ not started · 🔨 in progress · ✅ done.
 
 ## Phase 0: foundation
@@ -22,7 +29,7 @@
 | brain service | brain/ | FastAPI app, signature check, /health | ✅ |
 | tenant | core/internal/tenant | The CompanyID type every query takes | ✅ |
 | database | core/internal/database | Connection pool, transactions, the company-in-every-query test | ✅ |
-| ratelimit | core/internal/ratelimit | Counters in PostgreSQL, HMAC keys shared with the old backend | ✅ |
+| ratelimit | core/internal/ratelimit | Counters in PostgreSQL, HMAC keys equal to the old backend's (the counters carried over) | ✅ |
 | jobs | core/internal/jobs | Job queue in PostgreSQL (`SKIP LOCKED`), retries, hand-back (table `core_jobs`, migration 0048) | ✅ |
 | command-line tools | core/cmd/operator, core/cmd/simulate, core/internal/commands | Every `scripts/*.ts` the operator and developers ran (link and unlink a phone line, the forwarding address, the Telegram webhook; every simulator, telegram:poll, seed:tickets, try:brain), as `make` targets of the same names ([commands](modules/commands.md)); `assistant:catch-up` isn't needed (core's scheduler) | ✅ |
 
@@ -68,11 +75,11 @@
 | publishing queue: the checks of every platform and format, Facebook text and image posts, the queue page, a draft's Publish section, scheduling, Cancel / Publish now / Retry / Mark, auto-publish rules (in core's API) | services/publish-*.ts, publishing-pages.ts, draft-publishing.ts, autopublish-rules.ts, db/publish-*.ts, db/autopublish-rules.ts, adapters/facebook-posts.ts | ✅ core/internal/publishing (LinkedIn, X, YouTube plug in at senderFor) |
 | post numbers: Facebook (reactions, comments, shares) | services/post-metrics-collection.ts, adapters/facebook-metrics.ts | ✅ core/internal/postmetrics |
 | the Analytics page, what each number means, Review performance, simulated numbers | services/analytics-page.ts, performance-review.ts, post-metrics-simulation.ts, lib/analytics/, lib/performance-review/, lib/metric-definitions.ts | ✅ core/internal/analytics (in core's API), brain/brain/analytics, `cmd/simulate post-metrics` (the planner's reading of the newest review moves with the plans) |
-| publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ⬜ |
+| publishing images, videos, LinkedIn, X, YouTube; their numbers; analytics and reviews | services/publish-*.ts, post-metrics*.ts, performance-*.ts | ✅ see the rows above (platforms, publishing queue, post numbers, Analytics) |
 | knowledge search and the AI's article slice (the assistant reads them) | db/knowledge-search.ts, lib/knowledge/search-query.ts, prompt-slice.ts | ✅ core/internal/knowledge |
 | knowledge base: writing, approving, imports (documents incl. PDF via the brain, web pages via safefetch), the Knowledge page | db/knowledge*.ts, lib/knowledge/, lib/safe-fetch.ts | ✅ core/internal/knowledge, safefetch; brain/brain/documents |
-| business profile, interview, fact suggestions, marketing plans and the Strategy page, the calendar and "Plan the next 2 weeks", the Overview | services/business-profile.ts, onboarding-*.ts, fact-suggestions.ts, marketing-*.ts, calendar-planning.ts, cofounder-overview.ts | ✅ core/internal/profile, strategy, calendar, cofounder; brain/brain/cofounder (in core's API; the screens still call the old services) |
-| performance reviews | services/performance-*.ts | ⬜ |
+| business profile, interview, fact suggestions, marketing plans and the Strategy page, the calendar and "Plan the next 2 weeks", the Overview | services/business-profile.ts, onboarding-*.ts, fact-suggestions.ts, marketing-*.ts, calendar-planning.ts, cofounder-overview.ts | ✅ core/internal/profile, strategy, calendar, cofounder; brain/brain/cofounder (in core's API) |
+| performance reviews | services/performance-*.ts | ✅ core/internal/analytics (Review performance), brain/brain/analytics |
 
 ## Phase 5: support (tickets, calls, email)
 | Module | Old code | Status |
@@ -95,8 +102,9 @@
 | monitoring and alerts (a log service, an uptime monitor) | docs/going-live.md | ⬜ a choice for the owner |
 
 ## Phase 7: screens on core's API
-Every page and action in `app/` calls core instead of `services/`. Then
-`services/`, `db/` (TypeScript) and `adapters/` are deleted.
+Every page and action in `app/` calls core instead of `services/` (done;
+`services/`, `db/`'s query files and `adapters/` were then deleted in
+Phase 8).
 | Module | Status |
 |---|---|
 | core reads Better Auth's session itself (`core/internal/session`) | ✅ |
@@ -110,11 +118,19 @@ Every page and action in `app/` calls core instead of `services/`. Then
 | Connections: Telegram link, stand-in, disconnect; Pages, forwarding address, phone lines | ✅ in core's API |
 | All requests, a request's page, every action, solving with the email, New request | ✅ in core's API |
 | Emails page: the list, Process again, Make a ticket anyway | ✅ in core's API |
-| the screens' side: one helper that signs and calls core (`lib/core-api.ts`), one view file per area (`lib/core-views/`) | ✅ behind the switch: CORE_API_URL and SCREENS_SHARED_SECRET set = every switched page and action calls core; unset = the old services, unchanged |
+| the screens' side: one helper that signs and calls core (`lib/core-api.ts`), one view file per area (`lib/core-views/`) | ✅ (until Phase 8 behind a switch between the two backends; now the screens always call core) |
 | Calls page: list, a call, Analyze now, Escalate, the recording | ✅ in core's API |
 | Screens switched (869cd05, 2f7e6f1): logins, account, billing; Home, Settings, setup, Post for me; Inbox, requests, Emails; menu, Connections, Team, knowledge, the old Setup page; the Calls page | ✅ |
 | The marketing pages (Overview, Interview, Profile, Strategy and its versions, Calendar, Content studio, a draft's page and Publish section, Media library, Queue, Accounts, Analytics) and LinkedIn, X, YouTube (5a6bf72, b92e055, a7ce1a9) | ✅ moved to core (the owner chose to keep them, 2026-11-01) and their screens switched |
 
 ## Phase 8: switch-over
-Deploy core and brain, point the webhooks at core, watch, then remove the old
-backend for good.
+The owner chose (2026-11-01) to make core the only backend on the laptop
+first, then deploy.
+| Step | Status |
+|---|---|
+| The screens' own types (`lib/types/`), and lint keeping the screens apart from any backend code (18728fa, d162d9f, 9429413, f268c40) | ✅ |
+| Remove the switch: every page and action calls core only (339823e, 0df9ff1) | ✅ |
+| Delete the old backend: `services/`, `adapters/`, `db/`'s query files, Better Auth, the old webhook, cron and health routes, the old scripts and checks; the screens ask core who is logged in (`GET /api/v1/me`), and the proxy only checks that a login cookie exists (89bfdcc) | ✅ |
+| The screens' settings cut to CORE_API_URL, SCREENS_SHARED_SECRET and APP_URL; CI with one job per part (screens, core, brain, audit); the docs | ✅ |
+| Choose hosting for core and the brain (the screens can stay on Vercel) | ⬜ the owner's decision |
+| Deploy core and the brain; point the webhooks (Telegram, Messenger, Resend, Vapi, Stripe) at core's public address; watch the first real messages | ⬜ after hosting (`docs/going-live.md`) |

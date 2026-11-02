@@ -25,97 +25,102 @@ number, and others with an official API.
 6. Email channel works the same way, same brain
 
 ## Stack
-- Next.js (App Router, TypeScript) - frontend + backend API routes
+Three parts in one repository (the backend rewrite: approved 2026-11-01,
+done on the laptop 2026-11-02; docs/backend/ documents it):
+- Screens: Next.js (App Router, TypeScript), Tailwind + shadcn/ui. Pages and
+  forms only: no database access; every read and write goes to core.
+- core: Go 1.24 (core/, module ansa/core; pgx for Postgres). All the work
+  and every security rule; the ONLY code that touches the database.
+- brain: Python 3.14 (brain/, FastAPI). The AI thinking only (prompts and
+  model calls); no database, no state.
 - Postgres - local in Docker for development, Neon in production later
-- Drizzle ORM - schema + migrations (migrations live in the repo)
-- Better Auth - email/password auth and sessions
-- Cloudflare R2 - file storage (call recordings, uploaded docs), added later
+- Drizzle - only the schema (db/schema/) and its SQL migrations
+  (db/migrations/), run with drizzle-kit (pnpm db:generate, pnpm db:migrate)
+- Logins: core, in Better Auth's formats and tables (so every login made
+  before the rewrite still works); the Better Auth library is gone
+- Cloudflare R2 - file storage (call recordings, uploaded docs, media)
 - Vapi - telephony, speech-to-text, text-to-speech
-- Claude API - the agent brain
-- Resend - outgoing email
-- Tailwind + shadcn/ui - dashboard UI
+- Claude API - the AI model, called only by the brain
+- Resend - email out and in, called only by core
 - No Supabase.
 
 ## Architecture rules
-- Monolith. One Next.js app. No microservices.
+- Three parts, nothing more: the screens (Next.js), core (Go) and the brain
+  (Python); one core service and one brain service, no other services.
+  docs/backend/README.md is the map; read docs/backend/security.md before
+  changing core or the brain.
+- Since the rewrite the rules below live in core and the brain. A file they
+  name (services/..., db/<file>.ts, adapters/..., most lib/..., scripts/...,
+  lib/auth.ts) is where the rule USED to live in the old TypeScript backend,
+  deleted in Phase 8 (2026-11-02). The behaviour is the same unless a rule
+  says otherwise: docs/backend/migration-plan.md maps each old file to its
+  core or brain module, and docs/backend/modules/<module>.md describes it as
+  it is now. The old `pnpm` operator and simulate scripts are core's `make`
+  targets (core/README.md); "the daily job" and "/api/cron/publish" are
+  core's own scheduler (docs/backend/modules/schedule.md); a webhook's
+  "after()" is a job in core's queue (docs/backend/modules/jobs.md).
 - Multi-tenant. EVERY tenant table has company_id. EVERY query filters by it.
-  - Exceptions: Better Auth's own tables (sessions, accounts, verifications)
-    are keyed by user, not company. rate_limits is keyed by an HMAC of the
-    IP/email (server secret derived from BETTER_AUTH_SECRET, services/rate-limit.ts),
-    because limits apply before we know who you are. The daily job deletes
-    expired oauth_states (step 40) by age across companies, reading none
-    (db/maintenance.ts): nobody can use one past its 10 minutes. Before a
-    Disconnect has Google or X revoke, db/social-account-connected.ts asks
-    whether that platform account is still connected in any company (yes or
-    no, nothing of its rows; read only after the answer): their grant is
-    the account's with ansa's one app, so a revoke would end every
-    company's connection of it. The scheduled job finds stuck emails, calls
-    and image requests of every company (db/stuck-work.ts), the publishing
-    queue's runners claim the next due post and find posts cut off while
-    sending across companies (db/publish-runs.ts), the post numbers'
-    collector (step 42) claims due posts of every company
-    (db/post-metrics.ts), and `pnpm simulate:post-metrics` (development
-    only, refused outside a local database) finds the post it names by its
-    id (db/post-metrics-simulation.ts); each then works through
-    company-scoped paths with the row's own company. Step 43 read every
-    /db file of steps 34-42 for WHEREs: these are the Co-Founder's only
-    reads across companies. (The webhooks find their company from what
-    only ansa issues: a phone line, a forwarding address, a Stripe
-    customer; Telegram's (step 48, db/telegram-links.ts) from a link
-    code's hash an owner made, or a business connection such a code
-    tied to a company; Messenger's (step 53, db/messenger-links.ts) from
-    the Page id Meta signed, among connected Facebook Page connections,
-    only when exactly ONE company has that Page: yes or no and the
-    connection's id.) The assistant's catch-up (step 51,
-    db/assistant-due.ts) claims the due conversations of every company,
-    one at a time, and then works with the claimed row's own company.
-    "Post for me" (step 54, db/autopost.ts listCompaniesPostingForThem)
-    lists the companies that have it on (ids and its settings only), then
-    writes each one's post through company-scoped paths. telegram_pending_connections belongs to no
-    company: a Telegram account that added ansa's bot before its owner
-    pressed Start with a code, kept an hour (Telegram's ids and the
-    account's name, never a message) until the code names the company,
-    then deleted by the daily job.
-- Tenant isolation lives in ONE shared data access layer: /db.
-  - There is no Row Level Security. /db is the only thing keeping one
+  - Exceptions: Better Auth's tables (sessions, accounts, verifications) are
+    keyed by user, not company. rate_limits is keyed by an HMAC of the IP or
+    address (a secret derived from BETTER_AUTH_SECRET), because limits apply
+    before we know who you are. Every read across companies is listed, with
+    why, in core/internal/database/CROSS_COMPANY.md and carries a
+    `-- cross-company: <reason>` comment: due work claimed by core's workers
+    and periodic tasks (jobs, the assistant's catch-up, the publishing
+    queue, post numbers, "Post for me", stuck image requests, cleanup by
+    age), the webhooks finding their company from what only ansa issues (a
+    phone line, a forwarding address, a Stripe customer, a Telegram link
+    code or the business connection it tied, a Facebook Page connected in
+    exactly ONE company), a session cookie's person, an address at login,
+    an invite's hash, and "is this platform account still connected
+    anywhere" before X or Google revoke. Each returns ids only, and the work
+    then continues through company-scoped paths with the row's own company.
+    telegram_pending_connections belongs to no company: a Telegram account
+    that added ansa's bot before its owner pressed Start with a code, kept
+    an hour (Telegram's ids and the account's name, never a message) until
+    the code names the company, then deleted by the cleanup.
+- Tenant isolation lives in core (core/internal/database, core/internal/tenant).
+  - There is no Row Level Security. Core is the only thing keeping one
     company's data away from another. Treat every change there that way.
-  - Only /db talks to the database. No queries in pages, route handlers,
-    server actions, or services.
-  - Every /db function that touches tenant data takes companyId as a
-    required argument, filters by it in every WHERE, and sets it on every INSERT.
-  - companyId always comes from the server-side session, never from the request.
-    Get it with requireSessionContext() (lib/session.ts) and pass the session down.
-  - Exception: Better Auth reads and writes its own tables through its Drizzle
-    adapter, configured in lib/auth.ts.
-  - ESLint enforces this (eslint.config.mjs, .js/.mjs/.cjs files too): outside /db,
-    importing drizzle-orm, pg or @/db/client is an error; /db is only imported
-    statically and spelled exactly "@/db/<file>" (no relative or absolute path,
-    no ".", ".." or "//", no extension, no import() or require()); /app and
-    /components may not import /db at all; /lib only @/db/schema (lib/auth.ts
-    only @/db/client and @/db/schema, for Better Auth's adapter); no run-time
-    loading lint can't read (node:module/createRequire, module.require, a
-    require kept in a variable); Better Auth's $context (internalAdapter,
-    adapter: users with no company filter) only in lib/auth.ts and
-    lib/password-reset-links.ts, and elsewhere not even its name as a string
-    ({ "$context": c } = auth, Reflect.get). scripts/ is exempt.
-    scripts/tenant-isolation/lint-guard-checks.ts proves each way around it fails.
-- Request flow: page / route handler / server action -> /services -> /db
-- Auth: Better Auth's HTTP handler (/api/auth/*) is NOT mounted, and a check fails
-  if anything mounts it. Signup and invite joins (services/signup.ts), login, email
-  confirmation and logout (services/auth.ts), password reset
-  (services/password-reset.ts), and name/password change and "log out on all other
-  devices" (services/account.ts) go through server actions (validated + rate
-  limited). Its /verify-email, /send-verification-email, /request-password-reset
-  and /reset-password routes are switched off as well (disabledPaths in
-  lib/auth.ts), so even a mounted handler could not confirm an address from the
-  link alone, send links, or set a password from a reset link.
-  Which company a new user joins is decided in ONE place: the user-create hook in
-  lib/auth.ts -> services/company-membership.ts (new company as owner, or the
-  inviting company with the invited role). Signup asks only for a name, an
-  email and a password (step 45): a new owner's company is named "New
-  business" (NEW_COMPANY_NAME) until the setup's first step, and nothing in
-  the signup request names a company. Never enable `transaction: true` on
-  the Better Auth adapter: signups would deadlock on DB connections (see lib/auth.ts).
+  - Only core talks to the database. The screens never do (no pg, no
+    drizzle-orm, nothing of @/db but @/db/schema's types); the brain never
+    does.
+  - Every core function that touches tenant data takes a tenant.CompanyID
+    (never a plain string) as a required argument, filters by it in every
+    WHERE, and sets it on every INSERT. core/internal/database/tenant_test.go
+    reads every SQL statement in core and fails on one that names a tenant
+    table without company_id, unless CROSS_COMPANY.md lists it.
+  - The company always comes from the server side, never from the request:
+    the login session core reads itself (core/internal/session), or for a
+    webhook what only ansa issues (above). The screens never send a company,
+    and core's API refuses unknown fields.
+  - ESLint enforces the screens' side (eslint.config.mjs, .js/.mjs/.cjs files
+    too): importing drizzle-orm, pg or anything under @/db except
+    @/db/schema (types) is an error, and so are relative paths into db/,
+    import() or require() of them, and run-time loading lint can't read
+    (node:module/createRequire, module.require, a require kept in a
+    variable); an import used only as a type says so. db/ (the schema and
+    its migrations) and scripts/ (the screens' own checks) are exempt.
+- Request flow: page / route handler / server action -> lib/core-views/<area>.ts
+  -> lib/core-api.ts (signed with SCREENS_SHARED_SECRET, the person's login
+  cookie passed on) -> core's API (/api/v1/..., core/internal/api) -> core's
+  module -> Postgres. Webhooks go straight to core (/webhooks/<name>). Core
+  asks the brain (signed with BRAIN_SHARED_SECRET) and checks every proposal
+  before it reaches a customer.
+- Auth (core/internal/accounts, docs/backend/modules/accounts.md): signup,
+  invite joins, login, email confirmation, logout, password reset, name and
+  password change and "log out on all other devices" are server actions that
+  call core, which validates and rate limits them. Core reads and writes
+  Better Auth's tables in Better Auth's formats (scrypt passwords, the signed
+  session cookie, its links), so logins made before the rewrite still work;
+  nothing else of Better Auth runs. The screens ask core who is logged in
+  (GET /api/v1/me, lib/session.ts). Which company a new user joins is
+  decided in ONE place, core's signup (a new company as owner, or the
+  inviting company with the invited role, the invite claimed in the
+  account's own transaction). Signup asks only for a name, an email and a
+  password (step 45): a new owner's company is named "New business" until
+  the setup's first step, and nothing in the signup request names a
+  company.
 - Invite links put the token after "#" so it never reaches the server or its logs.
   Only a SHA-256 hash of the token is stored.
 - Email verification (step 12): no session until the address is confirmed
@@ -2126,49 +2131,62 @@ number, and others with an official API.
     counts new orders ("N new orders to accept"), and a conversation's page
     lists that customer's orders.
 - A GET route handler that reads no params is prerendered at BUILD time unless it
-  calls `await connection()` first (see app/api/cron/cleanup/route.ts). Check the
-  build output: every /api route must show ƒ (dynamic). app/robots.ts and
-  app/sitemap.ts call it too, so they use the running server's BETTER_AUTH_URL,
-  not the build's. GET /api/health (services/health.ts, for an uptime monitor)
-  answers 200 after one `select 1` (db/health.ts), 503 when the database fails,
-  429 past 60 a minute per address, never a body.
-- The database pool (db/client.ts): at most 10 connections per server instance,
-  a query waits at most 10 s for one (connectionTimeoutMillis) and then fails,
-  and an "error" listener logs a connection Postgres closed by class only.
-  Never put statement_timeout or other settings in the connection: Neon's pooled
-  address (PgBouncer) refuses or drops them; they go on the database role
+  calls `await connection()` first; lib/core-api.ts does that for every call
+  to core, so nothing that asks core is built ahead. Check the build output:
+  every /api route must show ƒ (dynamic). app/robots.ts and app/sitemap.ts
+  call it too, so they use the running server's APP_URL, not the build's.
+  Health, for an uptime monitor, is core's GET /health: 200 after one
+  `SELECT 1` within 3 seconds, 503 when the database fails, never a body
+  (the brain answers its own GET /health).
+- The database pool (core/internal/database): at most 10 connections per core
+  process, opening one gives up after 10 s, and an error's text is never
+  logged (it can hold the database address). Never put statement_timeout or
+  other settings in the connection string: they go on the database role
   (docs/going-live.md, section 1).
-- Adapter pattern for third-party software:
-  - Core code only calls generic actions: getOrder, getCustomer, createTicket
-  - One adapter file per vendor: /adapters/shopify.ts, /adapters/zendesk.ts
-  - Adding a new vendor = adding one file. Nothing else changes.
+- Adapter pattern for third-party software: core calls generic actions
+  through one door per kind of work (core/internal/chat for messages to
+  customers, email, files, mediagen, platforms for social posts), and each
+  vendor's translation lives in its own package or file behind that door. A
+  first shop or helpdesk vendor (step 20: getOrder, getCustomer,
+  createTicket) gets the same: one door, one file per vendor.
 - No CQRS, no event sourcing, no DDD layers. Keep it boring.
 - Folder shape:
-  /app/api      -> thin route handlers, max ~15 lines each
-  /services     -> all business logic
-  /adapters     -> third-party translators
-  /db           -> schema, migrations, and the data access layer (the only code that queries)
-  /lib          -> shared helpers
+  /app, /components -> the screens: pages, forms, thin route handlers (max ~15 lines each)
+  /lib              -> the screens' helpers: lib/core-api.ts (the one door to
+                       core) and lib/core-views/ (one file per area)
+  /core             -> Go: cmd/ (the service, the operator's and the development
+                       commands) and internal/<module>/ (all business logic,
+                       and the only code that queries)
+  /brain            -> Python: the AI thinking, one folder per use
+  /db               -> the Drizzle schema and its SQL migrations (nothing queries through it)
+  /docs/backend     -> the backend's docs: architecture, security, one page per module
 
 ## RULE 1: SECURITY IS NON-NEGOTIABLE
-- Tenant isolation enforced in /db on every query (see Architecture rules), no exceptions
-- Never trust company_id from the client. Always read it from the Better Auth session on the server.
-- Validate every input with Zod before it touches the database
+- Tenant isolation enforced in core on every query (see Architecture rules), no exceptions
+- Never trust company_id from the client. Always take it from the login session core
+  reads itself (or, for a webhook, from what only ansa issues).
+- Validate every input before it touches the database: core checks every field
+  (Go structs with checks; unknown fields from the screens refused), the brain
+  with Pydantic; the screens' Zod schemas only check their forms first
 - Never log API keys, tokens, phone numbers, call transcripts, or recording URLs,
   anywhere, including error logs. Database errors contain query values, so log
   only an error's class name in code that handles call data.
-- All secrets in .env.local only. Never hardcode. Never commit .env
+- All secrets in .env.local (the screens) and .env.core (core and the brain) only,
+  both git-ignored; in production, the host's settings. Never hardcode. Never
+  commit .env*
 - Encrypt stored third-party OAuth tokens at rest
 - Claude API: send the smallest slice of customer data that does the job, never a
   whole transcript when less will do. Never log the prompt, Claude's raw response,
   or SDK error messages (they can quote the response).
-- Verify webhook signatures on every incoming webhook (Vapi, Resend) before parsing
+- Verify webhook signatures on every incoming webhook (core's: Vapi, Resend, Stripe, Telegram, Meta) before parsing
   anything: read raw bytes for the HMAC only. Unsigned or badly signed requests get
   401 and the only log line is the rejection.
 - Rate limit all public endpoints (counters stored in a Postgres table, no Redis)
-- Parameterized queries only. Use Drizzle's query builder or its sql`` template.
-  Never sql.raw() with user input. Never string-concatenate SQL.
+- Parameterized queries only: values go apart from the SQL ($1, $2, ... in core).
+  Never build SQL from user input. Never string-concatenate SQL.
 - Files (call recordings, uploaded docs): private R2 bucket, short-lived presigned URLs only, never public
+- Core and the brain: docs/backend/security.md has their rules; re-read it before
+  every change there
 - Before finishing any task, re-check it against this list
 
 ## RULE 2: CODE MUST BE EASY TO UNDERSTAND
@@ -2264,6 +2282,10 @@ Every outside service gets a local stand-in (like .dev-emails/), so each step ca
 be built and tested before the real account exists.
 
 Do not jump ahead. Finish step N before starting step N+1.
+
+The backend rewrite (Go core + Python brain, approved 2026-11-01) ran beside
+this order and is done on the laptop, deploying aside
+(docs/backend/migration-plan.md).
 
 ## Known gaps (revisit later)
 - Email verification (step 12) and password reset (step 22) work, but their links
@@ -3966,3 +3988,31 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   LinkedIn, X and YouTube for posts, each with its one button (the same
   connect actions as before). The Co-Founder's Accounts page stays for the
   details. No new dependency, setting or migration.
+- 2026-11-01: The backend rewrite (the owner's approval, with all
+  permission: a system for 5 to 10 years). ansa's backend becomes a Go
+  "core" (webhooks, channels, orders, posting, logins, billing, jobs, every
+  security rule, and the only database access) and a Python "brain" (the AI
+  thinking only: prompts and model calls, no database, no state); Next.js
+  keeps only the screens. Kept on purpose, so every company, login and
+  message carries over: the same Postgres tables (the Drizzle schema and its
+  migrations stay the source), the same `v1:` encryption, Better Auth's
+  formats (passwords, cookie, links) and the same rate limit keys. Built
+  module by module on the branch rewrite/go-python (never pushed), each
+  module's rules proved again by core's or the brain's tests on a test
+  database of their own (ansa_test), and documented in docs/backend/ (one
+  page per module; migration-plan.md has the status). Core runs its
+  periodic work itself (the assistant's catch-up and the publishing queue
+  every 15 seconds, cleanup every hour), so no outside cron is needed, and
+  work after a webhook is a job in a Postgres queue with leases and retries
+  (migration 0048_core_jobs). The owner chose to move the hidden Co-Founder
+  pages and LinkedIn, X and YouTube to core too, not to remove them.
+- 2026-11-02: Phase 8 on the laptop: core is the only backend. The screens'
+  switch between the two backends is gone; services/, adapters/, db's query
+  files, Better Auth, the old webhook, cron and health routes, the old
+  scripts and the old checks are deleted; the screens ask core who is logged
+  in (GET /api/v1/me), and their settings are CORE_API_URL,
+  SCREENS_SHARED_SECRET and APP_URL; the operator's scripts are core's make
+  targets; lint refuses database code in the screens; CI has one job per
+  part (screens, core, brain, audit). The rules above keep the old file
+  names as where each rule was first written (Architecture rules says how to
+  read them). Deploying (hosting for core and the brain) is open.

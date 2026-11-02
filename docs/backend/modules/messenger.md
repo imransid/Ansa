@@ -42,5 +42,5 @@ Graph API.
 **Development:** `make simulate-messenger` (from `core/`) brings a
 customer's message to the development stand-in Page, saved with the same
 functions this webhook saves with ([commands](commands.md)).
-**Still on the old backend:** switching a Page's messages on for ansa's app
-after it connects (`subscribed_apps`: with the social connect flow).
+**Switching a Page's messages on** for ansa's app after it connects
+(`subscribed_apps`) is part of the connect flow: [socialconnect](socialconnect.md).

@@ -21,5 +21,5 @@ assistant opens when it hands a conversation to a person.
 gets it; no category = unassigned; numbers follow; the history row.
 `assignments_test.go` covers the email the routing queues.
 **People's work on requests:** see [requests](requests.md).
-**Still on the old backend:** typed-in tickets, call and email tickets,
-same-customer routing, solving with the customer's email (phase 5).
+**Typed-in tickets, solving with the customer's email:** [requests](requests.md);
+**call and email tickets:** [calls](calls.md), [email-in](email-in.md).

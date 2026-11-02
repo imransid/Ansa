@@ -44,5 +44,5 @@ you" with ansa's preview; the page decrypted and replyable; Send then
 Discard (already sent = 409); an empty reply refused with its words; a
 reply goes out and takes the conversation over; hand back; important;
 another company's conversation = 404; what ansa did.
-**Still on the old backend:** the request's actions on the page (assign,
-Done, notes): they move with tickets (phase 5).
+**The request on the page:** its actions (assign, Done, notes) are
+[requests](requests.md)'s.
