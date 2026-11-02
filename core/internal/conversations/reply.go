@@ -2,11 +2,11 @@ package conversations
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/jobs"
+	"ansa/core/internal/tenant"
 )
 
 // ReplyJobKind is the assistant's job for a customer's message (handled by
@@ -18,13 +18,13 @@ const ReplyJobKind = "assistant.reply"
 // run then stays quiet).
 const ReplySettle = 1500 * time.Millisecond
 
-// QueueReply asks the assistant to answer this customer message, once.
-func QueueReply(ctx context.Context, pool *database.Pool, turn *Turn) error {
-	payload := map[string]string{"conversationId": turn.ConversationID, "triggerMessageId": turn.TriggerMessageID}
-	job := jobs.NewJob{Kind: ReplyJobKind, Payload: payload, RunAfter: time.Now().Add(ReplySettle), DedupeKey: "reply:" + turn.TriggerMessageID}
-	_, err := jobs.Enqueue(ctx, pool, turn.CompanyID, job)
-	if errors.Is(err, jobs.ErrDuplicate) {
-		return nil
-	}
+// queueReplyWithin asks the assistant to answer this customer message, in
+// the transaction that saves it: a failure can never leave a saved message
+// with no answer coming (the platform's retry would find it saved and
+// stop). One job per new message, so it needs no dedupe key.
+func queueReplyWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID, triggerMessageID string) error {
+	payload := map[string]string{"conversationId": conversationID, "triggerMessageId": triggerMessageID}
+	job := jobs.NewJob{Kind: ReplyJobKind, Payload: payload, RunAfter: time.Now().Add(ReplySettle)}
+	_, err := jobs.EnqueueWithin(ctx, tx, company, job)
 	return err
 }

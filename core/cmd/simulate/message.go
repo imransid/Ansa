@@ -59,11 +59,9 @@ func saveStandInMessage(ctx context.Context, pool *database.Pool, box *secure.Bo
 		return false, err
 	}
 	contact := conversations.ContactKey{Channel: conversations.ChannelStandIn, ExternalID: strings.ToLower(name), DisplayName: &name}
+	// Saved with its reply job, as a real chat message is.
 	turn, err := conversations.InsertCustomerMessage(ctx, pool, company, contact, conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: "stand-in-" + id})
-	if err != nil || turn == nil {
-		return false, err
-	}
-	return true, conversations.QueueReply(ctx, pool, turn)
+	return turn != nil, err
 }
 
 // cutRunes keeps at most max characters (never half of one).

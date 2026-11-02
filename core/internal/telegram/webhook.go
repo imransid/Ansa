@@ -114,11 +114,9 @@ func (h *Webhook) handleBusinessMessage(ctx context.Context, message *Message) e
 		_, err := conversations.InsertBusinessAccountMessage(ctx, h.Pool, found.CompanyID, contact, saved)
 		return err
 	}
-	turn, err := conversations.InsertCustomerMessage(ctx, h.Pool, found.CompanyID, contact, saved)
-	if err != nil || turn == nil {
-		return err
-	}
-	return conversations.QueueReply(ctx, h.Pool, turn)
+	// Saved with its reply job (the assistant answers it in a moment).
+	_, err = conversations.InsertCustomerMessage(ctx, h.Pool, found.CompanyID, contact, saved)
+	return err
 }
 
 func (h *Webhook) handleDeleted(ctx context.Context, deleted *DeletedMessages) error {

@@ -41,6 +41,15 @@ func TestACustomerMessageIsSavedOnceInItsConversation(t *testing.T) {
 	if count != 2 {
 		t.Fatalf("got %d messages", count)
 	}
+	// Each new message was saved with its reply job, in one transaction (a
+	// failure in between would leave it unanswered: the platform's retry
+	// finds it saved); the one that came twice got no second job.
+	var jobs int
+	pool.QueryRow(ctx, `SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = $2 AND payload->>'triggerMessageId' IN ($3, $4)`,
+		company.String(), ReplyJobKind, first.TriggerMessageID, second.TriggerMessageID).Scan(&jobs)
+	if jobs != 2 {
+		t.Fatalf("got %d reply jobs, want one per new message", jobs)
+	}
 }
 
 func TestTheBusinessAnsweringItselfStopsTheWait(t *testing.T) {

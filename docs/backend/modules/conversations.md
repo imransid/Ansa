@@ -8,8 +8,10 @@ conversations (one per contact) and messages.
   `conversation-message:<company>:<message id>` (`MessageContext`), the same
   as the old backend.
 - A customer's message is saved once per channel message id (a platform
-  sending it twice changes nothing) and returns a `Turn` the assistant may
-  answer; it restarts the 24-hour reply window.
+  sending it twice changes nothing), with the assistant's reply job in the
+  same transaction (so a failure can't leave it saved and unanswered: the
+  platform's retry would find it saved), and returns a `Turn`; it restarts
+  the 24-hour reply window.
 - A message the business wrote in its own app is saved as `business_account`
   and stops the assistant's wait to step in.
 - Two saves at once for a new contact end on one conversation.

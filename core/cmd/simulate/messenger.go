@@ -55,14 +55,9 @@ func runMessenger(ctx context.Context, w *world, args []string) error {
 	if name != "" {
 		contact.DisplayName = &name
 	}
-	turn, err := conversations.InsertCustomerMessage(ctx, w.pool, company.ID, contact, conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: "stand-in-" + id})
-	if err != nil {
+	// Saved with its reply job, as a real Messenger message is.
+	if _, err := conversations.InsertCustomerMessage(ctx, w.pool, company.ID, contact, conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: "stand-in-" + id}); err != nil {
 		return err
-	}
-	if turn != nil {
-		if err := conversations.QueueReply(ctx, w.pool, turn); err != nil {
-			return err
-		}
 	}
 	fmt.Fprintf(w.out, "Saved a Messenger message for %q. A running core answers it in a moment (see .dev-messages/ and %s/inbox?view=all).\n", company.Name, w.cfg.AppURL)
 	return nil

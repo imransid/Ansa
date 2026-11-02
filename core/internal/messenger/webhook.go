@@ -143,9 +143,6 @@ func (h *Webhook) handle(ctx context.Context, event Event) error {
 	if err != nil || turn == nil {
 		return err
 	}
-	if err := conversations.QueueReply(ctx, h.Pool, turn); err != nil {
-		return err
-	}
 	payload := NamePayload{ConversationID: turn.ConversationID, ConnectionID: page.ConnectionID, PSID: event.SenderID}
 	_, err = jobs.Enqueue(ctx, h.Pool, page.CompanyID, jobs.NewJob{Kind: NameJobKind, Payload: payload, MaxAttempts: 2, DedupeKey: "name:" + turn.ConversationID})
 	if err == jobs.ErrDuplicate {

@@ -12,7 +12,8 @@ import (
 
 // InsertCustomerMessage saves a customer's chat message in their
 // conversation (made with its contact on first use), once per channel
-// message id. It returns nil when the same message arrived before.
+// message id, and queues the assistant's answer to it in the same
+// transaction. It returns nil when the same message arrived before.
 func InsertCustomerMessage(ctx context.Context, pool *database.Pool, company tenant.CompanyID, contact ContactKey, message IncomingMessage) (*Turn, error) {
 	var turn *Turn
 	err := database.InTx(ctx, pool, func(tx database.Tx) error {
@@ -34,6 +35,9 @@ func InsertCustomerMessage(ctx context.Context, pool *database.Pool, company ten
 			return err
 		}
 		if err := touchConversation(ctx, tx, company, conversationID, true); err != nil {
+			return err
+		}
+		if err := queueReplyWithin(ctx, tx, company, conversationID, id); err != nil {
 			return err
 		}
 		turn = &Turn{CompanyID: company, ConversationID: conversationID, TriggerMessageID: id}

@@ -28,7 +28,8 @@ func TestTheCatchUpAnswersOnlyWhatNobodyAnswered(t *testing.T) {
 		t.Fatal("both are claimed (their due time cleared)")
 	}
 	var payload []byte
-	w.pool.QueryRow(ctx, `SELECT payload FROM core_jobs WHERE company_id = $1 AND kind = $2`, w.companyID, ReplyJobKind).Scan(&payload)
+	// The catch-up's own job (saving each message queued its first answer too).
+	w.pool.QueryRow(ctx, `SELECT payload FROM core_jobs WHERE company_id = $1 AND kind = $2 AND dedupe_key LIKE 'catchup:%'`, w.companyID, ReplyJobKind).Scan(&payload)
 	var job replyPayload
 	json.Unmarshal(payload, &job)
 	if job.TriggerMessageID != waiting.TriggerMessageID || !job.CoverAfterNoReply {
