@@ -1,7 +1,8 @@
 // The texts of a content draft as they are saved (step 38), in ONE place:
-// the editor's forms (lib/validation/content-drafts.ts), the AI's answer
-// (draft-answer.ts) and the editor's "anything to save?" (editor-values.ts)
-// clean them here, so the editor knows what a save would store. Pure.
+// the editor's forms (lib/validation/content-drafts.ts) and the editor's
+// "anything to save?" (editor-values.ts) clean them here, so the editor
+// knows what a save would store. Core cleans every saved text, the AI's
+// too, the same way (core/internal/studio): the two must agree. Pure.
 
 // Unicode's own bound for text that is safe to work with (UAX #15,
 // "Stream-Safe Text Format"): at most 30 combining marks (accents and the

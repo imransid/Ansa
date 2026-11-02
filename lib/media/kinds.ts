@@ -58,10 +58,10 @@ export const JOB_STATUS_LABELS: Record<MediaGenerationJobStatus, string> = {
   canceled: "Canceled",
 };
 
-// The values MEDIA_PROVIDER may have (lib/env.ts), one per adapter
-// (lib/media-generation.ts). Only the development stand-in exists: a real
-// image or video service is not chosen yet (IMPLEMENTATION_PLAN.md,
-// decision 9).
+// The values core's MEDIA_PROVIDER setting may have (core/internal/config),
+// one per image service (core/internal/mediagen). Only the development
+// stand-in exists: a real image or video service is not chosen yet
+// (IMPLEMENTATION_PLAN.md, decision 9).
 export const mediaProviderNames = ["dev-stand-in"] as const;
 export type MediaProviderName = (typeof mediaProviderNames)[number];
 

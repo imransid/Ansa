@@ -20,7 +20,7 @@ type DraftWorkspaceProps = {
   wordsToAvoid: string[];
   businessName: string | null;
   planChoices: PlanChoices;
-  // From the server's review of the saved version (lib/content-studio/review.ts).
+  // From core's review of the saved version (core/internal/drafts).
   acknowledgmentNeeded: boolean;
   blockingCount: number;
   // The claims of the saved version, rendered on the server (draft-claims.tsx).

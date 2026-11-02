@@ -63,7 +63,7 @@ function describeStatus(article: KnowledgeArticlePage): string {
 }
 
 // Where the article came from, if anywhere. A deleted document is no longer
-// named (deleting it clears the link, db/documents.ts).
+// named (deleting it clears the link, core/internal/documents).
 function SourceLine({ article }: { article: KnowledgeArticlePage }) {
   if (article.sourceTicketNumber !== null) {
     return (

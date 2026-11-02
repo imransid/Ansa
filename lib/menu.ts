@@ -1,6 +1,7 @@
 // The restaurant's menu (step 46): limits, and prices as whole numbers of the
 // currency's smallest unit (cents for EUR, yen for JPY). Pure: the menu page,
-// its forms, the reading of a menu photo, /db and the checks share it.
+// its forms and the reading of a menu photo share it; core keeps its own
+// copy (core/internal/menu, core/internal/money).
 
 export const MENU_CATEGORY_MAX_LENGTH = 60;
 export const MENU_NAME_MAX_LENGTH = 120;

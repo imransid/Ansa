@@ -1,7 +1,7 @@
 // What a content draft is (step 38): its format and its status, with the
 // words the pages use. A file of its own with no imports, so the forms in
 // the browser and the database schema (db/schema/content-drafts.ts, whose
-// CHECKs list the same keys; a check proves they agree) read one list.
+// CHECKs list the same keys: they must agree) read one list.
 
 // A text post, a post with an image, or a video (with its script). Which
 // platform takes which: PLATFORM_RULES in lib/content-rules.ts.
@@ -25,7 +25,7 @@ export const CONTENT_FORMAT_PLURALS: Record<ContentFormat, string> = {
 // approved, rejected and archived (step 38); and while the publishing queue
 // (step 41) has it, scheduled (a post on its way), published (every post
 // out) and failed (a post didn't go out, or may not have: a person looks;
-// lib/publishing/draft-status.ts).
+// core/internal/publishing).
 export const contentDraftStatuses = ["idea", "draft", "approved", "rejected", "scheduled", "published", "failed", "archived"] as const;
 export type ContentDraftStatus = (typeof contentDraftStatuses)[number];
 

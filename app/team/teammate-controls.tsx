@@ -9,7 +9,8 @@ import type { CompanyUser } from "@/lib/types/users";
 
 // Owner-only controls on a teammate's row of the Team page. Each asks first
 // and does nothing until the owner confirms. Hiding them from members is only
-// for a tidy page: services/team.ts checks the role, company and person again.
+// for a tidy page: core (core/internal/teammates) checks the role, company and
+// person again.
 
 type RemoveTeammateButtonProps = {
   userId: string;

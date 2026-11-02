@@ -1,9 +1,9 @@
 // The dashboard's "Business overview" (step 43): how far its counts read and
-// look, and how a count is written. Pure, so the page, /db and the checks
-// share one set of numbers.
+// look, and how a count is written. Pure. Core counts with the same numbers
+// (core/internal/home): the two must agree.
 
 // Each count of the overview reads at most one row more than this
-// (db/business-overview.ts), so the page costs a company with years of
+// (core/internal/home), so the page costs a company with years of
 // tickets no more than a new one. A count past it shows as "10,000+": the
 // list the number links to has the exact one.
 export const OVERVIEW_COUNT_LIMIT = 10_000;

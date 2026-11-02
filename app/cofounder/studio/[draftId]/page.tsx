@@ -96,7 +96,7 @@ async function DraftContent({ params }: Pick<PageProps<"/cofounder/studio/[draft
           fields: draft.fields,
           editedByHand: draft.editedByHand,
         }}
-        // Hiding Approve and Reject is only for a tidy page: the services and /db (or core) refuse members.
+        // Hiding Approve and Reject is only for a tidy page: core refuses members (core/internal/studio).
         isOwner={canReview}
         wordsToAvoid={draft.review.wordsToAvoid}
         businessName={draft.businessName}

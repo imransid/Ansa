@@ -13,7 +13,7 @@ import { NumberLink } from "./number-link";
 
 type NeedsYouProps = {
   // The newest conversations that need a person, how many there are, and
-  // whether more than one person takes requests (services/home.ts).
+  // whether more than one person takes requests (core/internal/home).
   conversations: { rows: InboxRow[]; total: number; hasTeam: boolean };
   overview: BusinessOverview;
   personal: boolean;

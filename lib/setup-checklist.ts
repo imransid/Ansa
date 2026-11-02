@@ -1,7 +1,7 @@
 import type { SetupOverview } from "@/lib/types/setup";
 
 // The Setup page's checklist (step 16), worked out from what the page shows.
-// Pure, so the page, the dashboard's count and the checks agree.
+// Pure.
 
 // One line of the Setup checklist. href: where the step is done, when that
 // is another page.

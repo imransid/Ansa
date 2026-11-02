@@ -3,9 +3,10 @@ import { socialPlatforms, type SocialPlatform } from "@/lib/social-platforms";
 // The numbers ansa keeps about a published post (step 42), one column each
 // in post_metrics, and what each platform means by them: which column it
 // fills, from which of its fields, and one line the Analytics page shows.
-// Pure, so the pages, the services, the simulate command and the checks
-// read one table. Every field here is one docs/research/social-publishing-
-// apis.md names (section 5, checked 2026-10-28).
+// Pure, so every page reads one table. Core keeps the same table
+// (core/internal/analytics): the two must agree. Every field here is one
+// docs/research/social-publishing-apis.md names (section 5, checked
+// 2026-10-28).
 //
 // A number a platform doesn't give is NULL, never 0 ("not available"): 0
 // only ever means the platform said 0.
@@ -31,10 +32,10 @@ export const METRIC_LABELS: Record<MetricColumn, string> = {
 export const METRIC_VALUE_MAX = 2_147_483_647;
 
 // How many days after it went out a post's numbers are read (about once a
-// day, db/post-metrics.ts). No platform's are read for longer.
+// day, core/internal/postmetrics). No platform's are read for longer.
 export const METRICS_READ_DAYS = 30;
 // X's posts for fewer: X gives link clicks only for a post's first 30 days,
-// and ansa asks for them under 29 (adapters/x-metrics.ts). A read after
+// and ansa asks for them under 29 (core/internal/platforms). A read after
 // that would have none and hide the ones read before, since the page and
 // the review show each post's newest snapshot; the day between leaves room
 // for the minutes between claiming a post and asking X.

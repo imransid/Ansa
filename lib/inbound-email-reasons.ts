@@ -1,7 +1,6 @@
 // Why a received email did not become a ticket: the fixed codes stored in
-// inbound_emails.ignored_reason (services/inbound-email-filters.ts and
-// services/inbound-email-processing.ts write them), what the Emails and Setup
-// pages say for each, and which ones an expert can undo.
+// inbound_emails.ignored_reason (core/internal/inbound writes them), what the
+// Emails and Setup pages say for each, and which ones an expert can undo.
 
 const IGNORED_REASON_LABELS: Record<string, string> = {
   auto_reply: "it looked like an automatic reply",

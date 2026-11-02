@@ -2,9 +2,10 @@ import { EXTENSION_OF_CONTENT_TYPE, KIND_OF_CONTENT_TYPE, type MediaContentType,
 import { MAX_MEDIA_UPLOAD_BYTES } from "./limits";
 import { detectMediaType } from "./signatures";
 
-// Which files the media library accepts (step 39). Shared by the upload form
-// in the browser and by services/media-library.ts, so both refuse the same
-// files with the same words. No server-only code here.
+// Which files the media library accepts (step 39), checked by the upload form
+// in the browser. Core checks again with its own copy (core/internal/media),
+// so the two must refuse the same files with the same words. No server-only
+// code here.
 
 // The type each accepted name ending promises. The file's first bytes must
 // then be that type (lib/media/signatures.ts): a PNG named .jpg, or a script

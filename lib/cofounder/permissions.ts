@@ -1,9 +1,9 @@
 // Who may do what with the business profile and the interview (step 36),
 // the marketing strategy (step 37), the content studio (step 38), the
 // social accounts (step 40), the publishing queue and calendar (step 41)
-// and the performance reviews (step 42). One place, read by the services
-// and by /db (with the role read again, locked, inside the transaction that
-// writes), and by the pages only to hide what would be refused anyway.
+// and the performance reviews (step 42). The pages read it only to hide
+// what would be refused anyway: core decides, with the role read again,
+// locked, inside the transaction that writes (core/internal/team).
 
 type Role = "owner" | "member";
 

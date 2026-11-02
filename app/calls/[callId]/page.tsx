@@ -79,8 +79,9 @@ async function CallContent({ params }: Pick<PageProps<"/calls/[callId]">, "param
 
 function Transcript({ call }: { call: CallDetail }) {
   if (call.transcriptUnreadable) {
-    // What went wrong is in the server log (lib/encryption.ts); the team
-    // using the page can't fix it, so it isn't named here.
+    // Core couldn't decrypt it (a wrong key or damaged text,
+    // core/internal/secure); the team using the page can't fix that, so it
+    // isn't named here.
     return (
       <p role="alert" className="text-sm text-destructive">
         This transcript can&apos;t be shown right now. If this keeps happening, contact ansa support.

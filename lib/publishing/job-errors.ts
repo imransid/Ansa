@@ -6,7 +6,7 @@ import type { PublishErrorCode } from "@/lib/social-errors";
 // (lib/social-errors.ts, publishErrorCodes), the queue's: what the check
 // right before sending found, getting the account ready, and the runner.
 export const publishJobErrorCodes = [
-  // The check right before sending (lib/publishing/run-check.ts): nothing was sent.
+  // The check right before sending (core/internal/publishing): nothing was sent.
   "draft_changed",
   "draft_rejected",
   "draft_archived",
@@ -21,7 +21,7 @@ export const publishJobErrorCodes = [
   "wrong_account",
   "format_not_published",
   "media_missing",
-  // Getting the account's permission ready (services/social-tokens.ts).
+  // Getting the account's permission ready (core/internal/social).
   "reauthorization_needed",
   "token_refresh_unavailable",
   "account_unreadable",

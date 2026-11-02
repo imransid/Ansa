@@ -5,7 +5,7 @@ import type { InvitePreviewResult } from "@/lib/types/invites";
 import type { ResetPasswordResult } from "@/lib/types/password-reset";
 
 // The login pages through the new backend (core's /api/v1/auth/*), answering
-// in the shapes the old services answer, so the actions and pages stay the
+// in the shapes the old services answered, so the actions and pages stay the
 // same. Nobody is logged in yet: every body also carries what the screens
 // saw of the browser (describeBrowser), which core's limits need.
 

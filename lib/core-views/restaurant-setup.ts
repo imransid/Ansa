@@ -73,7 +73,7 @@ function toProfile({ profile, canManage }: CoreSetup): RestaurantProfile {
       alertByEmail: settings.alertByEmail,
       answerWhen: settings.answerWhen,
       // Core's settings don't carry it, and no page reading this profile
-      // shows it (Home's status card reads services/away.ts's Presence).
+      // shows it (Home's status card reads core's Presence, core/internal/home).
       awaySince: null,
       awayHours: settings.awayHours,
       replyGraceMinutes: settings.replyGraceMinutes,

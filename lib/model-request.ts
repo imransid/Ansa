@@ -1,11 +1,8 @@
-// What asking Claude takes and gives back, shared by the call brain
-// (lib/call-brain), email triage (lib/email-triage), the Co-Founder's
-// interview and suggestions from knowledge (lib/cofounder), its marketing
-// plans (lib/marketing-plan) and its content drafts (lib/content-studio).
-// Each has its own asker in
-// adapters/claude.ts, with its own effort and time limits, so tuning one
-// never changes another. The checks pass fakes instead, so they never call
-// the real, paid API.
+// What asking Claude takes and gives back. The screens never ask Claude
+// themselves: the brain does, each use with its own effort and time limits
+// (brain/brain/ai.py), so tuning one never changes another. Only the answer
+// readers in lib/menu-reading and lib/performance-review still take a
+// ModelResult.
 
 // One request: fixed instructions, the user message, and the JSON schema the
 // answer must follow. image: a photo sent before the message, only ever a
@@ -27,6 +24,6 @@ export type ModelResult =
   | { kind: "error"; errorName: string }
   | { kind: "unavailable" };
 
-// The shape of any function that asks a model: the real ones in
-// adapters/claude.ts, or a check's fake.
+// The shape of any function that asks a model. The screens have none: the
+// brain asks (ask() in brain/brain/ai.py).
 export type ModelAsker = (request: ModelRequest) => Promise<ModelResult>;

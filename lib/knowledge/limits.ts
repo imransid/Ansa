@@ -6,9 +6,9 @@ export const KNOWLEDGE_TITLE_MAX_LENGTH = 200;
 // A line break counts once, as in the box.
 export const KNOWLEDGE_BODY_MAX_LENGTH = 20_000;
 // What the AI and the search read: pieces of at most this many characters,
-// whole paragraphs where they fit (lib/knowledge/chunking.ts).
+// whole paragraphs where they fit (core/internal/knowledge makes them).
 export const KNOWLEDGE_CHUNK_MAX_LENGTH = 1_500;
-// A web page's address (lib/safe-fetch.ts fetches it).
+// A web page's address (core/internal/safefetch fetches it).
 export const KNOWLEDGE_SOURCE_URL_MAX_LENGTH = 2_000;
 // The customer question typed into "Test what the AI finds", and what the
 // voice assistant may search for during a call (step 35).

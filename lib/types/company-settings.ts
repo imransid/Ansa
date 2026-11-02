@@ -6,7 +6,7 @@ import type { PhoneLineOverview } from "@/lib/types/phone-lines";
 
 export type SetupStatus = {
   replyToEmail: string | null;
-  // The secret part of the company's forwarding address (lib/forwarding-address.ts).
+  // The secret part of the company's forwarding address (core/internal/channels).
   inboundToken: string;
   lastInboundEmail: LastInboundEmail | null;
   // Addresses the company's customers write to (display and loop detection only).

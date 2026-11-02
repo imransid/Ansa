@@ -4,7 +4,7 @@ import type { GettingStartedStep } from "@/lib/types/home";
 
 // Home's "Getting started" (the "easy to use" pass of 2026-11-01): the few
 // things that make ansa answer at all, each a link to the one page that does
-// it, ticked once done. Gone once every one is (services/home.ts).
+// it, ticked once done. Gone once every one is (core/internal/home).
 export function GettingStarted({ steps }: { steps: GettingStartedStep[] }) {
   if (steps.length === 0) {
     return null;

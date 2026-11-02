@@ -1,10 +1,11 @@
 // Which AI the restaurant's assistant uses (step 49, Settings → Assistant).
-// Pure: the schema's CHECK, the form, the services and the checks share it.
+// Pure: the schema's CHECK and the form share it; core takes the same two
+// (core/internal/api).
 //
 // "api_key": the Claude API, with the restaurant's own key when an owner
 //   saved one (stored encrypted), else ansa's (ANTHROPIC_API_KEY).
-// "claude_code": the Claude Code login of the computer ansa runs on,
-//   through its command line (adapters/claude-code.ts). DEVELOPMENT ONLY:
+// "claude_code": the Claude Code login of the computer the brain runs on,
+//   through its command line (brain/brain/claude_code.py). DEVELOPMENT ONLY:
 //   Anthropic doesn't allow a product to run on a claude.ai login, so
 //   production never uses it, whatever is saved.
 

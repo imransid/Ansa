@@ -23,7 +23,7 @@ export const generationErrorCodes = [
   // Runs were cut off (a crash, a deploy, a time limit) as often as allowed.
   "interrupted",
   // Stuck, and replaced by a newer request for the same draft, so it can
-  // never attach an older image later (db/media-generation-jobs.ts).
+  // never attach an older image later (core/internal/mediagen).
   "superseded",
 ] as const;
 export type GenerationErrorCode = (typeof generationErrorCodes)[number];

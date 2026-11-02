@@ -2,11 +2,11 @@ import type { MediaKind } from "@/lib/media/kinds";
 import type { SocialPlatform } from "@/lib/social-platforms";
 import type { ContentDraftStatus, ContentFormat } from "./formats";
 
-// The content of a draft (step 38), and the rules about it that /db, the
-// services and the pages share. Pure.
+// The content of a draft (step 38), and the rules about it the pages use.
+// Pure. Core keeps the same rules (core/internal/drafts): the two must agree.
 
 // What a person or the AI writes. Saving any change to these makes a new
-// version (db/content-draft-writes.ts).
+// version (core/internal/studio).
 export type ContentFields = {
   title: string;
   body: string;
@@ -18,7 +18,7 @@ export type ContentFields = {
 
 // What each change of status may start from. A scheduled draft (step 41)
 // can still be changed, rejected or archived: its waiting posts are
-// canceled in the same transaction (db/publish-draft-sync.ts). A failed one
+// canceled in the same transaction (core/internal/publishing). A failed one
 // (a post didn't go out) can be changed, approved (when it has no approval
 // of this version), rejected or archived. A published one stays as it went
 // out: a new post is a new draft.
@@ -74,7 +74,7 @@ export function mediaKindOfFormat(format: ContentFormat): MediaKind | null {
 // True when the content is not exactly what the AI last wrote: someone
 // typed it, or changed what the AI wrote. Regenerating then asks first. A
 // change of the image or video alone carries generated_version along with
-// the version (db/content-draft-media.ts): the text is still the AI's.
+// the version (core/internal/media): the text is still the AI's.
 export function wasEditedByHand(draft: { version: number; generatedVersion: number | null } & ContentFields): boolean {
   return draft.generatedVersion !== draft.version && hasContent(draft);
 }

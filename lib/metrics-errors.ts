@@ -8,7 +8,7 @@ export const metricsErrorCodes = [
   // A development stand-in account: its numbers come from make simulate-post-metrics (core/) only.
   "stand_in",
   "not_set_up",
-  // Getting the account ready (services/social-tokens.ts): nothing was asked.
+  // Getting the account ready (core/internal/social): nothing was asked.
   "reauthorization_needed",
   "account_disconnected",
   "token_refresh_unavailable",

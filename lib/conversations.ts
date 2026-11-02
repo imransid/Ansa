@@ -1,10 +1,12 @@
 // The Inbox's conversations (step 47): channels, who wrote a message, how an
 // outgoing one was sent, and what the assistant's activity log records.
-// Pure: the schema's CHECKs (db/schema/conversations.ts, messages.ts), the
-// pages and the checks share these lists.
+// Pure: the schema's CHECKs (db/schema/conversations.ts, messages.ts) and
+// the pages share these lists; core uses the same values
+// (core/internal/conversations, core/internal/chat).
 
 // Where a customer writes from. "stand_in": the development stand-in chat
-// (pnpm simulate:message), until Telegram (step 48) and Messenger (step 53).
+// (make simulate-message in core/), until Telegram (step 48) and Messenger
+// (step 53).
 export const CONVERSATION_CHANNELS = ["telegram", "messenger", "phone", "email", "stand_in"] as const;
 export type ConversationChannel = (typeof CONVERSATION_CHANNELS)[number];
 

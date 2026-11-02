@@ -6,9 +6,9 @@ import { STATEMENT_BASIS_LABELS, STATEMENT_BASIS_MEANINGS, statementBases, type 
 
 // The plan's main points (step 37), each with its basis as a badge, and the
 // legend that says what Fact, Assumption and Suggestion mean. A "Fact" here
-// always names confirmed facts the plan was made from: the code checked it
-// (lib/marketing-plan/fact-basis.ts), not the AI. Whether its text says what
-// they say is not checked, and the legend says so.
+// always names confirmed facts the plan was made from: core checked it
+// (ApplyFactBasisRule in core/internal/strategy), not the AI. Whether its
+// text says what they say is not checked, and the legend says so.
 export function PlanStatements({ statements }: { statements: PlanStatement[] }) {
   return (
     <section className="grid gap-3" aria-labelledby="plan-statements">

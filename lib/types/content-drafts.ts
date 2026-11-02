@@ -38,7 +38,7 @@ export type ContentDraftDetail = Omit<ContentDraftListItem, "updatedByName"> & {
   // The image or video attached from the media library (step 39), or null.
   mediaAssetId: string | null;
   generatedVersion: number | null;
-  // As stored: the services read them with lib/content-studio/claims.ts.
+  // As stored: core reads them (core/internal/drafts).
   claims: unknown;
   factsUsed: unknown;
   knowledgeUsed: string[];

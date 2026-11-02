@@ -1,7 +1,7 @@
-// How long the links we email work. Better Auth enforces both (lib/auth.ts),
-// and every email and page that tells people how long reads it from here, so
-// the words can never drift from the real lifetime. No "server-only": the
-// forgot-password form shows it in the browser.
+// How long the links we email work. Core enforces both and says so in its
+// emails (linkLifetime in core/internal/accounts: one hour each); every page
+// that tells people how long reads it from here, so the two must agree. No
+// "server-only": the forgot-password form shows it in the browser.
 export const VERIFICATION_LINK_SECONDS = 60 * 60;
 export const PASSWORD_RESET_LINK_SECONDS = 60 * 60;
 

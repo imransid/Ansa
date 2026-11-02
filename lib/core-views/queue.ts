@@ -8,7 +8,7 @@ import type { QueuePage } from "@/lib/types/publishing-pages";
 // The Co-Founder's publishing queue through the new backend (core's GET
 // /api/v1/cofounder/queue), in the shapes the page already reads. Its
 // buttons, a draft's "Schedule" and "Plan the next 2 weeks" are
-// lib/core-views/publishing.ts.
+// lib/core-views/publishing-actions.ts.
 
 // A post as core lists it (the queue, a draft's page, the Analytics page's
 // problems): its times as ISO strings.

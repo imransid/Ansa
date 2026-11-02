@@ -4,8 +4,8 @@ import type { DraftReview } from "@/lib/content-studio/review";
 
 // The claims of the saved version (step 38): what its text says about the
 // business that someone could check, each marked backed or not. The AI
-// listed them; this app decided which a confirmed fact backs
-// (lib/content-studio/claims.ts), and checks again whether those facts
+// listed them; core decided which a confirmed fact backs
+// (core/internal/studio, drafts), and checks again whether those facts
 // changed since. Text from the AI is shown as text, never as HTML.
 export function DraftClaims({ review, generatedVersion }: { review: DraftReview; generatedVersion: number | null }) {
   return (

@@ -8,7 +8,7 @@ import { SIGNED_IN_SECTIONS } from "@/lib/login-redirect";
 // left out (/emails was).
 export default async function robots(): Promise<MetadataRoute.Robots> {
   // Without this, Next.js would write this file once at build time, with the
-  // BETTER_AUTH_URL the build had, and serve it forever. The running
+  // APP_URL the build had, and serve it forever. The running
   // server's own setting must be the one search engines get.
   await connection();
   return {

@@ -7,8 +7,7 @@ import type { PerformanceReviewResult } from "@/lib/types/performance-review";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
 // ask core (which checks company, role, input and rate limits),
-// refresh the Co-Founder's pages. With the new backend switched on
-// (lib/core-api.ts) core does the service's part.
+// refresh the Co-Founder's pages.
 
 // "Review performance": the period the page showed, and the browser's own
 // timezone (its onSubmit adds it).

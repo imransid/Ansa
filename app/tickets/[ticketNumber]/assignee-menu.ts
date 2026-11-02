@@ -7,7 +7,7 @@ import type { AssignableUser } from "@/lib/types/users";
 // be assigned to someone who can't any more (removed from the team); they are
 // added, marked, so the menu doesn't pretend the ticket is unassigned. Saving
 // the menu unchanged changes nothing; giving them any other ticket is refused
-// (db/ticket-updates.ts).
+// (core/internal/tickets).
 export function listAssigneeMenu(choices: AssignableUser[], ticket: Pick<TicketView, "assignedToUserId" | "assigneeName">): AssigneeOption[] {
   const currentAssigneeId = ticket.assignedToUserId;
   if (!currentAssigneeId || choices.some((person) => person.id === currentAssigneeId)) {

@@ -60,7 +60,7 @@ export type ManualTicketInput = z.infer<typeof manualTicketSchema>;
 // with the same rules as a new ticket. Anyone in the company may do this.
 // originalSubject and originalCustomerName are what the editor showed when it
 // opened, read with the same rules so the two compare like for like: only a
-// field the person changed is saved (db/ticket-details.ts).
+// field the person changed is saved (core/internal/tickets).
 export const editTicketDetailsSchema = z.object({
   ticketId: z.uuid(),
   subject: ticketSubjectSchema,
@@ -80,7 +80,7 @@ export const ticketIdSchema = z.object({
 // "Mark as solved". confirmedCustomerEmail is the customer email the ticket
 // page showed when the person solved ("" = it showed none); with an address,
 // they confirmed "This emails x@y.com ...". It is only a claim: the solve's
-// UPDATE requires the ticket to have exactly this address (db/ticket-solving.ts),
+// UPDATE requires the ticket to have exactly this address (core/internal/tickets),
 // so the "solved" email never goes to an address they didn't see, such as one
 // a teammate added or changed a moment before.
 export const solveTicketSchema = z.object({
@@ -95,8 +95,8 @@ export const solveTicketSchema = z.object({
 export const assignTicketSchema = z.object({
   ticketId: z.uuid(),
   // "" is the "Unassigned" choice in the form and becomes null.
-  // Any other value is only a claim: db/ticket-updates.ts checks the person
-  // really is in the ticket's company before saving.
+  // Any other value is only a claim: core (core/internal/tickets) checks the
+  // person really is in the ticket's company before saving.
   assigneeUserId: z
     .string()
     .trim()
@@ -126,7 +126,7 @@ export const setCustomerEmailSchema = z.object({
 
 // An internal note on a ticket (step 30). There is deliberately no author or
 // company here: both come from the session. The ticket id is only a claim,
-// checked inside the INSERT (db/ticket-activity.ts).
+// checked inside the INSERT (core/internal/tickets).
 export const ticketNoteSchema = z.object({
   // Lowercase, the way Postgres stores it: the id names the note's encryption
   // context, and the page decrypts with the id the database gives back.

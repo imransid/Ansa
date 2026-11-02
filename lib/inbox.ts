@@ -1,7 +1,8 @@
 import type { ConversationChannel } from "@/lib/conversations";
 
 // The Inbox's views (step 47): "needs-you" (a conversation with an open
-// request) and "all". Pure: the page, its links and the checks share them.
+// request) and "all". Pure: the page and its links share them; core reads
+// the same two (core/internal/inbox).
 
 export const INBOX_VIEWS = ["needs-you", "all"] as const;
 export type InboxView = (typeof INBOX_VIEWS)[number];

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { CATEGORY_NAME_MAX_LENGTH } from "@/lib/form-limits";
 import type { Category } from "@/lib/types/categories";
 
-// Owners only (the page hides this for members; the services refuse them anyway).
+// Owners only (the page hides this for members; core's API refuses them anyway).
 export function CategoriesSection({ categories }: { categories: Category[] }) {
   return (
     <div className="grid max-w-xl gap-3">

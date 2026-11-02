@@ -1,7 +1,7 @@
 // Opening hours (step 45): a week of times, at most two per day (lunch and
-// dinner), each within one day from 00:00 to 24:00. Pure: the form, its Zod
-// schema (lib/validation/restaurant-setup.ts), the sidebar and the checks
-// share these rules.
+// dinner), each within one day from 00:00 to 24:00. Pure: the forms and
+// their actions share these rules; core reads the same shape with its own
+// (core/internal/hours, also behind the sidebar's hours): they must agree.
 
 export const WEEKDAYS = [
   { key: "mon", label: "Monday" },

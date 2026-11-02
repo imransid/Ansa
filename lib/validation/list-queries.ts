@@ -20,7 +20,7 @@ export type TicketListQuery = {
 };
 
 // The call list's filters by what the AI decided (/calls?outcome=...).
-// "stuck": the analysis never finished (see isCallAnalysisStuck in db/call-analysis.ts).
+// "stuck": the analysis never finished (see stuckCondition in core/internal/calls).
 export const callOutcomeFilters = ["all", "solved", "needs_human", "stuck"] as const;
 export type CallOutcomeFilter = (typeof callOutcomeFilters)[number];
 

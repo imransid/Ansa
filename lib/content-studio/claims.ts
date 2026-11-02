@@ -3,12 +3,13 @@ import { isBusinessFactTopic, labelOfTopic } from "@/lib/business-facts";
 
 // The factual claims of a draft (step 38): what its text says about the
 // business that someone could check (prices, features, numbers, results,
-// dates, offers). The AI lists them; THIS CODE decides which a confirmed
-// fact backs, never the AI: its answer has no "supported" field at all
-// (draft-answer.ts). A claim is backed only when it names confirmed facts
-// and every one of them was sent with the request. Shown or approved later,
-// it is checked again: once one of its facts changed on the Profile page,
-// it no longer counts as backed. Pure.
+// dates, offers). The AI lists them; core decides which a confirmed fact
+// backs (core/internal/studio, drafts: the same rules as here), never the
+// AI: its answer has no "supported" field at all
+// (brain/brain/content/answer.py). A claim is backed only when it names
+// confirmed facts and every one of them was sent with the request. Shown or
+// approved later, it is checked again: once one of its facts changed on the
+// Profile page, it no longer counts as backed. Pure.
 
 // A claim as content_drafts.claims stores it: `supported` as this code
 // decided when the draft was written.

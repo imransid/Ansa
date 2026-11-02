@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BillingView, SubscriptionSnapshot } from "@/lib/types/billing";
 
-// What the Billing page shows in each mode (services/billing.ts, BillingMode).
+// What the Billing page shows in each mode (Mode in core/internal/billing).
 export function BillingPanel({ billing }: { billing: BillingView }) {
   // Production with Stripe off: owners can't change that, so no developer
   // wording and no buttons that would always fail.

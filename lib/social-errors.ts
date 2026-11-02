@@ -43,7 +43,8 @@ export const connectionErrorCodes = [
 export type ConnectionErrorCode = (typeof connectionErrorCodes)[number];
 
 // Why a post wasn't published (not_created: nothing went out), or why it is
-// unclear whether it was (lib/social-publishing.ts, PublishResult).
+// unclear whether it was (PostResult in core/internal/platforms and
+// core/internal/publishing).
 export const publishErrorCodes = [
   "duplicate",
   "rate_limited",

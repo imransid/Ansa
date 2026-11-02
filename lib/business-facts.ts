@@ -2,7 +2,8 @@
 // Co-Founder needs to know about the business before it can help with
 // marketing. A file of its own with no imports, so the forms in the browser
 // and the database schema (db/schema/business-facts.ts, whose CHECK lists
-// the same keys; a check proves they agree) read one list.
+// the same keys: they must agree) read one list. Core keeps its own copy
+// (core/internal/profile).
 //
 // The list's order is the interview's order: the fixed question asked when
 // the AI can't read an answer is the one of the first key topic still

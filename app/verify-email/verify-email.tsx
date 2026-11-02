@@ -12,7 +12,7 @@ const somethingWentWrongMessage = "Something went wrong. Reload the page to try 
 
 // Asks for the account's password and sends it with the token from the link.
 // Nothing is sent when the page opens: a link alone must never confirm an
-// address or log anyone in (see services/auth.ts, confirmEmailWithPassword).
+// address or log anyone in (see ConfirmEmail in core/internal/accounts).
 export function VerifyEmail() {
   const router = useRouter();
 

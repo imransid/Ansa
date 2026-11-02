@@ -3,7 +3,8 @@ import type { ProfileCompletion } from "./profile-status";
 // The Co-Founder Overview's checklist (step 43): the seven steps from a first
 // interview answer to a post's numbers, each done or not as the company's
 // data says now, with what was found in words and the page where it is done.
-// Pure: services/cofounder-overview.ts reads the state, the page shows it.
+// Pure: core reads the state and builds the steps (core/internal/cofounder),
+// the page shows them.
 
 export type GettingStartedStep = {
   key: "interview" | "key_facts" | "plan" | "first_draft" | "account" | "first_post" | "metrics";

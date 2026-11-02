@@ -75,8 +75,8 @@ async function StudioContent({ searchParams }: Pick<PageProps<"/cofounder/studio
   );
 }
 
-// The same three from the new backend: the page's drafts, the counts on the
-// platform picked, and (a platform picked) the counts of every platform.
+// Three things from core: the page's drafts, the counts on the platform
+// picked, and (a platform picked) the counts of every platform.
 async function readListFromCore(page: number, query: ContentDraftListQuery) {
   const [list, everyPlatform] = await Promise.all([getDraftListFromCore(page, query), query.platform === "all" ? null : countDraftsFromCore("all")]);
   return [list.drafts, list.counts, everyPlatform] as const;

@@ -17,7 +17,7 @@ export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH };
 // (a fake first line, a fake header), so they are refused.
 
 // Also part of the sender name of every customer and assignment email
-// ("<name> via ansa", buildFromHeader in lib/send-email.ts).
+// ("<name> via ansa", FromHeader in core/internal/email).
 export const companyNameSchema = z
   .string()
   .trim()
@@ -69,7 +69,7 @@ export const loginSchema = z.object({
 });
 
 // The token from an email verification link: a signed JWT (three base64url
-// parts). Checking the shape rejects junk before Better Auth looks at it.
+// parts). Checking the shape rejects junk before core looks at it.
 export const verificationTokenSchema = z
   .string()
   .max(2000)
@@ -84,18 +84,19 @@ export const confirmEmailSchema = z.object({
   password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
 });
 
-// What Better Auth puts in a signup verification token (plus iat and exp).
-// Tokens for changing an address carry updateTo / requestType, and Better Auth
-// logs the clicker in on those, so they are refused here.
+// What core puts in a signup verification token, in Better Auth's format
+// (plus iat and exp). Tokens for changing an address carry updateTo /
+// requestType, and Better Auth logged the clicker in on those, so they are
+// refused here, as core refuses them (core/internal/accounts).
 export const verificationTokenPayloadSchema = z.object({
   email: z.email(),
   updateTo: z.never().optional(),
   requestType: z.never().optional(),
 });
 
-// The token from a password reset link. Better Auth makes it with
-// generateId(24): 24 letters and digits. Checking the shape rejects junk
-// before Better Auth looks it up.
+// The token from a password reset link. Core makes it as Better Auth does
+// (generateId(24)): 24 letters and digits. Checking the shape rejects junk
+// before core looks it up (core/internal/accounts).
 export const passwordResetTokenSchema = z.string().regex(/^[A-Za-z0-9]{24}$/);
 
 // The /forgot-password form.

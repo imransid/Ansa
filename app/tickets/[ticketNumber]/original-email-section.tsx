@@ -23,8 +23,8 @@ export function OriginalEmailSection({ email }: { email: OriginalEmail }) {
       )}
       {email.unreadable ? (
         // Never shown as "(no subject)": an expert could close a real email as empty.
-        // What went wrong is in the server log (lib/encryption.ts), not here:
-        // the team using the page can't fix it.
+        // Core couldn't decrypt it (core/internal/secure); that isn't named
+        // here: the team using the page can't fix it.
         <p role="alert" className="text-sm text-destructive">
           This email can&apos;t be shown right now. If this keeps happening, contact ansa support.
         </p>

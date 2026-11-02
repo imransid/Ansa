@@ -9,7 +9,7 @@ export type CompanyUser = {
   role: UserRole;
   // false until they open the link in their confirmation email (step 12).
   emailConfirmed: boolean;
-  // When an owner removed them from the team, or null (db/team-members.ts).
+  // When an owner removed them from the team, or null (core/internal/teammates).
   removedAt: Date | null;
 };
 

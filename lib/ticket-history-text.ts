@@ -1,7 +1,8 @@
 import type { TicketActivityKind } from "@/db/schema";
 
 // How the ticket page puts a ticket's assignment and history into words
-// (steps 10 and 30). Plain functions, so the checks can read the same text.
+// (steps 10 and 30). Plain functions, shared by the ticket's summary and
+// its history.
 
 export type AssignmentToDescribe = {
   assigneeName: string | null;

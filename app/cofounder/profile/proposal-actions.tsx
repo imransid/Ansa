@@ -11,9 +11,9 @@ import type { FormErrors } from "@/lib/form-result";
 type ProposalActionsProps = {
   topic: string;
   label: string;
-  // The proposal as the page shows it. Each button sends it back, and /db
-  // acts only while it is still the proposal, so nobody confirms or
-  // dismisses words they didn't see.
+  // The proposal as the page shows it. Each button sends it back, and core
+  // (core/internal/profile) acts only while it is still the proposal, so
+  // nobody confirms or dismisses words they didn't see.
   proposal: string;
   // The confirmed value the page shows beside it (null: none). Confirming
   // sends it back too, so a value another owner saved meanwhile is never
@@ -102,7 +102,7 @@ type EditAndConfirmFormProps = { topic: string; label: string; proposal: string;
 
 function EditAndConfirmForm({ topic, label, proposal, shownConfirmedValue, onCancel }: EditAndConfirmFormProps) {
   // The proposal and the confirmed value the editor opened with: what this
-  // confirms over. If the page shows newer ones meanwhile, /db refuses it.
+  // confirms over. If the page shows newer ones meanwhile, core refuses it.
   const [openedWith] = useState(proposal);
   const [confirmedWhenOpened] = useState(shownConfirmedValue);
   const [errors, confirmAction, isSaving] = useActionState(confirmFactAction, undefined);

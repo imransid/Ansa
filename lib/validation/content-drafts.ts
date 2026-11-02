@@ -19,9 +19,9 @@ import { socialPlatforms } from "@/lib/social-platforms";
 
 // What the content studio's forms send (step 38). There is deliberately no
 // company, person, status, approval or claim here: the company and the
-// person come from the session, /db sets the status and the version, only
-// an owner's own Approve approves, and only the AI's answer (checked by this
-// code) lists claims. A draft's id and version are only claims, compared in
+// person come from the session, core sets the status and the version, only
+// an owner's own Approve approves, and only the AI's answer (checked by
+// core) lists claims. A draft's id and version are only claims, compared in
 // the transaction that writes.
 
 // Tabs and line breaks stay; other control characters can't be typed, and

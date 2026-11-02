@@ -27,8 +27,8 @@ import type { TicketListQuery } from "@/lib/validation/list-queries";
 // request's page and "New ticket". Their actions: ticket-actions.ts.
 
 // What the ticket page and a conversation's request box read of a request.
-// Both backends give it: core leaves out the user ids behind the names, who
-// routing picked first and when the row last changed, which no page shows.
+// Core gives it, and leaves out the user ids behind the names, who routing
+// picked first and when the row last changed, which no page shows.
 export type TicketView = Omit<TicketDetail, "companyId" | "customerEmailSetByUserId" | "routedToUserId" | "solvedByUserId" | "updatedAt">;
 
 // One request as core's JSON has it (dates as text).

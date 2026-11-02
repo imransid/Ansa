@@ -7,14 +7,15 @@ import { numbersInInput, type ReviewInput } from "./review-input";
 import { writesOnlyAllowedNumbers } from "./text-numbers";
 
 // Reading Claude's performance review (step 42), written twice like every
-// other use: the JSON schema the API enforces (review-json-schema.ts) and
-// this Zod schema, strict (a field we didn't ask for makes it unusable).
-// Then THIS CODE checks every number: a finding is kept only when each
-// number it cites is exactly one the request held (that post's or group's,
-// under that name), and its text writes no other; a wrong or invented
-// number drops the whole finding. Recommendations keep only the findings
-// they follow from, and none without. No finding left = no review: nothing
-// is saved. Pure.
+// other use: the JSON schema the API enforces
+// (brain/brain/analytics/review.py) and this Zod schema, strict (a field we
+// didn't ask for makes it unusable). Then core checks every number
+// (core/internal/analytics, by the same rules as here): a finding is kept
+// only when each number it cites is exactly one the request held (that
+// post's or group's, under that name), and its text writes no other; a
+// wrong or invented number drops the whole finding. Recommendations keep
+// only the findings they follow from, and none without. No finding left =
+// no review: nothing is saved. Pure.
 
 const evidenceSchema = z.object({ post_label: z.string(), group: z.string(), metric: z.string(), value: z.number() }).strict();
 const findingSchema = z.object({ text: z.string(), evidence: z.array(evidenceSchema).max(50) }).strict();

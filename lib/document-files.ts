@@ -1,6 +1,7 @@
-// Which files the Setup page accepts as company documents (step 16). Shared
-// by the upload form in the browser and by services/documents.ts, so both
-// refuse the same files with the same words. No server-only code here.
+// Which files the Setup page accepts as company documents (step 16), checked
+// by the upload form in the browser. Core checks again with its own copy
+// (core/internal/documents), so the two must refuse the same files with the
+// same words. No server-only code here.
 
 // Under Vercel's 4.5 MB request limit (next.config.ts allows 5 MB actions).
 // A bigger file is refused in the browser before it is sent: the platform

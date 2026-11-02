@@ -12,9 +12,9 @@ import type { InboxRow } from "@/lib/types/conversations";
 // /api/v1/inbox and /api/v1/conversations), in the shapes the pages and
 // their actions already read.
 
-// What a conversation's page reads. Both backends give it: core works out
-// whether a reply may go itself (replyBlocked), so the page never needs the
-// reply window, and the open request is the request's own view.
+// What a conversation's page reads. Core gives it, and works out whether a
+// reply may go itself (replyBlocked), so the page never needs the reply
+// window, and the open request is the request's own view.
 export type ConversationView = Omit<ConversationPage, "replyWindowOpen" | "openTicket"> & { openTicket: TicketView | null };
 
 type CoreRequestLine = { id: string; number: number; subject: string };

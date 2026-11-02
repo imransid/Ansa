@@ -80,8 +80,8 @@ export const knowledgeQuestionSchema = z.object({
     ),
 });
 
-// "Import a web page": an https address. lib/safe-fetch.ts checks the rest
-// (host, port, every address it resolves to, every redirect).
+// "Import a web page": an https address. Core (core/internal/safefetch)
+// checks the rest (host, port, every address it resolves to, every redirect).
 export const webPageImportSchema = z.object({
   url: z
     .string()

@@ -4,8 +4,8 @@ import type { BusinessFactTopic } from "@/lib/business-facts";
 // does, what it sells (products or services: either is enough, as many
 // businesses only have one) and who it sells to. Only confirmed facts count:
 // a proposal is the AI's reading of an answer, not yet the owner's word.
-// Without them Claude is never asked. Pure, so the page, the service and
-// the checks agree.
+// Without them Claude is never asked. Pure: the pages use it; core decides
+// the same way (core/internal/strategy).
 
 export type MissingPlanFact = {
   label: string;

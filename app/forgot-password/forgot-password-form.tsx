@@ -12,7 +12,7 @@ export function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(requestPasswordResetAction, undefined);
 
   // The same words whether or not the address has an account: this page must
-  // never tell anyone who has one (services/password-reset.ts).
+  // never tell anyone who has one (core/internal/accounts).
   if (state?.sent) {
     return (
       <div className="grid gap-3 text-sm">

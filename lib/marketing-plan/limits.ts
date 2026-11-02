@@ -1,7 +1,8 @@
 // The limits of the Co-Founder's marketing plans (step 37). Its own small
-// file so the form in the browser, the plan's schema (plan-schema.ts), the
-// prompt (plan-prompt.ts) and the database's CHECKs
-// (db/schema/marketing-plans.ts) use the same numbers.
+// file so the form in the browser, the plan's schema (plan-schema.ts) and
+// the database's CHECKs (db/schema/marketing-plans.ts) use the same numbers.
+// Core and the brain keep their own copies (core/internal/strategy,
+// brain/brain/cofounder/plan.py).
 
 // What the owner asks one plan to focus on. A line break counts once, as in the box.
 export const GOAL_NOTE_MAX_LENGTH = 1_000;

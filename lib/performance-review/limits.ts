@@ -1,6 +1,7 @@
 // The numbers of the Co-Founder's performance reviews (step 42), in one
-// small file the page in the browser, the services, the prompt and the
-// answer's check share.
+// small file the page in the browser and the answer's check share. Core and
+// the brain keep their own copies (core/internal/analytics,
+// brain/brain/analytics/review.py).
 
 // A review needs at least this many posts with numbers in its period:
 // fewer say nothing a person couldn't see at a glance, and Claude isn't asked.

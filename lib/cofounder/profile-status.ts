@@ -1,8 +1,8 @@
 import { businessFactTopics, KEY_FACT_TOPICS, type BusinessFactTopic } from "@/lib/business-facts";
 
 // Where a company's business profile stands (step 36): each topic's status,
-// what is still missing, and how complete it is. Pure, so the interview, the
-// pages and the checks all count the same way.
+// what is still missing, and how complete it is. Pure. Core counts this way
+// (core/internal/profile); the pages read its types.
 
 // What the profile holds for one topic: the confirmed value and the
 // proposal waiting beside it (either can be null).

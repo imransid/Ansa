@@ -1,7 +1,7 @@
 // The limits of the business profile and the interview (step 36). Its own
-// small file so the forms in the browser use the same numbers as the
-// server's Zod schemas (lib/validation/cofounder.ts) and the database's
-// CHECKs (db/schema/business-facts.ts).
+// small file so the forms in the browser use the same numbers as core
+// (core/internal/profile) and the database's CHECKs
+// (db/schema/business-facts.ts).
 
 // One fact, confirmed or proposed. A line break counts once, as in the box.
 export const BUSINESS_FACT_MAX_LENGTH = 2_000;

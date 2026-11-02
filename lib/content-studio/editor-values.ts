@@ -7,7 +7,7 @@ import { formatHashtags, readTypedHashtags } from "./hashtags";
 
 // What the draft editor holds while someone types (step 38): every box as
 // text, the hashtags as typed ("#bread #lisbon"). Pure: the editor uses it,
-// and the checks compare it with what the server saves.
+// and core reads the saved boxes the same way (core/internal/studio).
 export type EditorValues = {
   topic: string;
   pillar: string;
@@ -67,7 +67,7 @@ export function contentOfEditor(platform: SocialPlatform, format: ContentFormat,
 }
 
 // The same hashtags in the same order and spelling, as the server reads
-// them (db/content-draft-writes.ts compares them so).
+// them (core/internal/studio compares them so).
 function sameHashtags(typed: string, opened: string): boolean {
   const read = readTypedHashtags(typed);
   return read.invalid.length === 0 && read.hashtags.join("\n") === readTypedHashtags(opened).hashtags.join("\n");

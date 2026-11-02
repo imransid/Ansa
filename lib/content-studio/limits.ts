@@ -1,7 +1,8 @@
 // The limits of the Co-Founder's content drafts (step 38). Its own small
 // file so the forms in the browser, the server's Zod schemas
-// (lib/validation/content-drafts.ts), the AI's answer (draft-answer.ts) and
-// the database's CHECKs (db/schema/content-drafts.ts) use the same numbers.
+// (lib/validation/content-drafts.ts) and the database's CHECKs
+// (db/schema/content-drafts.ts) use the same numbers; core keeps its own
+// copy (core/internal/drafts).
 // What each PLATFORM allows is a different thing: lib/content-rules.ts.
 
 // What a draft is about, and the plan's pillar and campaign it belongs to.

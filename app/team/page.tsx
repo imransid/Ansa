@@ -32,7 +32,7 @@ async function TeamContent() {
       <section className="grid gap-3">
         <h1 className="text-xl font-semibold">Team</h1>
         {/* Hiding the owner buttons from members is only for a tidy page.
-            services/team.ts refuses non-owners. */}
+            Core refuses non-owners (core/internal/teammates). */}
         <MembersTable
           members={team.members}
           currentUserId={currentUserId}
@@ -49,7 +49,7 @@ async function TeamContent() {
           <RemovedMembersTable members={team.removedMembers} />
         </section>
       )}
-      {/* Hiding this is only for a tidy page. services/categories.ts refuses non-owners. */}
+      {/* Hiding this is only for a tidy page. Core's API refuses non-owners (core/internal/api). */}
       {isOwner && (
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Categories</h2>
@@ -61,8 +61,8 @@ async function TeamContent() {
           <CategoriesSection categories={teamCategories.categories} />
         </section>
       )}
-      {/* Hiding this is only for a tidy page. The real check is in
-          services/invites.ts, which refuses non-owners. */}
+      {/* Hiding this is only for a tidy page. The real check is in core
+          (core/internal/teammates), which refuses non-owners. */}
       {team.canManageTeam && (
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Invite a teammate</h2>

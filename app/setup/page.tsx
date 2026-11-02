@@ -85,7 +85,7 @@ async function SetupContent() {
   );
 }
 
-// The same through the new backend.
+// What the page shows, from core: the support setup and the company's name.
 async function getSetupFromCore() {
   const [support, companyName] = await Promise.all([getSupportSetupFromCore(), getCompanyNameFromCore()]);
   return { companyName, setup: support.setup, documents: support.documents, isOwner: support.isOwner };

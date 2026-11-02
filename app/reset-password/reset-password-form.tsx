@@ -14,7 +14,7 @@ const somethingWentWrong: FormErrors = { message: "Something went wrong. Reload 
 type ResetFormState = {
   errors?: FormErrors;
   // The link removed an unconfirmed invitee's account instead of setting a
-  // password (services/unconfirmed-invitees.ts).
+  // password (core/internal/accounts).
   accountRemoved?: boolean;
 };
 

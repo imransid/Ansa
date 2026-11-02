@@ -29,8 +29,9 @@ export default function CoFounderPage() {
 async function OverviewContent() {
   const session = await requireSessionContext("/cofounder");
   const overview = await getCoFounderOverviewFromCore();
-  // Hiding the next steps is only for a tidy page: both backends refuse
-  // members. Core's Overview names no role, so the session's is read here.
+  // Hiding the next steps is only for a tidy page: core refuses members
+  // (core/internal/profile). Core's Overview names no role, so the session's
+  // is read here.
   const isOwner = canManageBusinessProfile(session.role);
 
   return (

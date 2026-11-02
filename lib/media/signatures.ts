@@ -3,8 +3,8 @@ import type { MediaContentType } from "./kinds";
 // Which of the accepted file types some bytes are, read from the signature
 // each such file starts with (step 39). WHY not the file's name or the
 // browser's type: both say whatever the sender wants. The upload form in the
-// browser, services/media-library.ts and the generated files
-// (services/media-generation-runs.ts) all decide here. Pure.
+// browser decides here; core decides the same way for uploads and generated
+// files (DetectType in core/internal/media). Pure.
 
 // How many first bytes the signatures need: an MP4's brand ends at byte 12.
 export const SIGNATURE_BYTES = 16;

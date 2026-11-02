@@ -10,7 +10,7 @@ import { JobStatusBadge } from "./job-status-badge";
 
 type JobListProps = {
   jobs: PublishJobListItem[];
-  // Owners get the buttons (the services and /db refuse members anyway).
+  // Owners get the buttons (core/internal/publishing refuses members anyway).
   canManage: boolean;
   // On a draft's own page the draft isn't named again.
   showDraft: boolean;

@@ -6,9 +6,10 @@ import { PLAN_LIST_LIMITS, POSTS_PER_WEEK_MAX } from "./limits";
 import { statementBases } from "./statement-bases";
 
 // What a marketing plan holds (step 37), as Claude writes it and as
-// marketing_plans.plan stores it: the same keys, so a stored plan is read
-// back with this same schema. The JSON schema sent to the API
-// (plan-json-schema.ts) lists the same keys; a check keeps the two in sync.
+// marketing_plans.plan stores it: the same keys, so core reads a stored plan
+// back with the same reader (ReadPlan in core/internal/strategy). The JSON
+// schema the brain sends to the API (brain/brain/cofounder/plan_answer.py)
+// lists the same keys: they must agree.
 //
 // There is deliberately no company, person or version field: Claude can't
 // choose what its plan belongs to. A field not listed here makes the whole
@@ -19,7 +20,7 @@ import { statementBases } from "./statement-bases";
 // Lists keep their first entries up to their most (PLAN_LIST_LIMITS). A plan
 // without what it can't do without (a summary, a positioning, the fewest
 // entries of a list) is unusable, like anything of another shape: nothing
-// is saved (plan-answer.ts).
+// is saved (core/internal/strategy).
 
 const CUT_MARKER = "...";
 
@@ -106,8 +107,8 @@ const cadenceSchema = z
   .refine((entries) => entries.length >= PLAN_LIST_LIMITS.cadence.min);
 
 // fact_topics is kept as Claude named them (each once): the fact rule
-// (fact-basis.ts) needs every name to check a "fact", then keeps only the
-// confirmed topics that were sent.
+// (core/internal/strategy) needs every name to check a "fact", then keeps
+// only the confirmed topics that were sent.
 const statementSchema = z
   .object({
     text: planText(500),

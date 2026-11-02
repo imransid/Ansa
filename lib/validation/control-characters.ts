@@ -10,7 +10,7 @@ export const NO_CONTROL_CHARACTERS = /^[^\p{Cc}]*$/u;
 // Lines also break at Unicode's own line and paragraph separators.
 export const NO_LINE_BREAKS_OR_CONTROL_CHARACTERS = /^[^\p{Cc}\p{Zl}\p{Zp}]*$/u;
 
-// A person's id sent by a form. Better Auth makes these ids, so they are not
-// always uuids. Only a claim: the database checks the person is in the
-// session's company.
+// A person's id sent by a form. Core makes these ids in Better Auth's format
+// (core/internal/accounts), so they are not always uuids. Only a claim: the
+// database checks the person is in the session's company.
 export const formUserIdSchema = z.string().min(1).max(100).regex(NO_CONTROL_CHARACTERS);

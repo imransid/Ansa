@@ -40,10 +40,10 @@ export async function changePasswordAction(
   if (!result.ok) {
     return { errors: result.errors };
   }
-  // A redirect, not a refresh: Better Auth (or core) replaced this browser's
-  // login and its cookie. A refresh in this same request would still read
-  // the old cookie, whose login is gone, and send you to /login. The
-  // redirect's page is rendered with the new cookie.
+  // A redirect, not a refresh: core replaced this browser's login and its
+  // cookie. A refresh in this same request would still read the old cookie,
+  // whose login is gone, and send you to /login. The redirect's page is
+  // rendered with the new cookie.
   redirect("/account?changed=password");
 }
 

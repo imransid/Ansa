@@ -5,10 +5,11 @@ import { findWordsToAvoid } from "@/lib/content-studio/words-to-avoid";
 import { SOCIAL_PLATFORM_LABELS, type SocialPlatform } from "@/lib/social-platforms";
 
 // What each social platform takes, and the rules a content draft must meet
-// before an owner can approve it (step 38). ONE place: the editor's live
-// counts and issues in the browser, the approval in /db, and the AI's
-// prompt all read this file, so they agree. Written against the platforms'
-// own documentation (docs/research/social-publishing-apis.md). Pure.
+// before an owner can approve it (step 38). The editor's live counts and
+// issues in the browser read this file; the approval and the AI's prompt
+// use core's own copy (core/internal/contentrules), so the two must agree.
+// Written against the platforms' own documentation
+// (docs/research/social-publishing-apis.md). Pure.
 
 export type IssueSeverity = "blocking" | "warning";
 

@@ -8,8 +8,8 @@ import { requireSessionContext } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Read my menu - ansa" };
 
-// Reading a menu waits for Claude (two tries of up to 2 minutes,
-// adapters/claude-settings.ts, MENU_READING_SETTINGS).
+// Reading a menu waits for Claude (two tries of up to 2 minutes, the
+// brain's MENU_READING in brain/brain/ai.py).
 export const maxDuration = 300;
 
 // "Read my menu" (step 46): a photo, a file or pasted text becomes a list of

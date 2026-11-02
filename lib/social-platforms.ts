@@ -3,11 +3,11 @@
 // (video only: its API has no text posts), IMPLEMENTATION_PLAN decision 7.
 // What each one is, can take and needs, as docs/research/social-publishing-
 // apis.md found it (checked 2026-10-26). A file of its own with no imports,
-// so the pages in the browser, the settings (lib/social-settings.ts), the
-// database schema (db/schema/social.ts, whose CHECKs list the same values;
-// a check proves they agree) and the marketing plan's schema read one
-// list. The text limits of each platform live in lib/content-rules.ts
-// (PLATFORM_RULES).
+// so the pages in the browser, the database schema (db/schema/social.ts,
+// whose CHECKs list the same values: they must agree) and the marketing
+// plan's schema read one list; core keeps its own copy
+// (core/internal/contentrules). The text limits of each platform live in
+// lib/content-rules.ts (PLATFORM_RULES).
 
 export const socialPlatforms = ["linkedin", "facebook", "x", "youtube"] as const;
 export type SocialPlatform = (typeof socialPlatforms)[number];
@@ -44,7 +44,8 @@ export const SOCIAL_CONNECTION_STATUS_LABELS: Record<SocialConnectionStatus, str
 };
 
 // The server settings holding ansa's own developer app for each platform
-// (lib/env.ts). A platform without both is "not set up".
+// (core's settings, core/internal/config). A platform without both is "not
+// set up".
 export const SOCIAL_CREDENTIAL_SETTINGS = {
   linkedin: { id: "LINKEDIN_CLIENT_ID", secret: "LINKEDIN_CLIENT_SECRET" },
   facebook: { id: "FACEBOOK_APP_ID", secret: "FACEBOOK_APP_SECRET" },
@@ -52,15 +53,16 @@ export const SOCIAL_CREDENTIAL_SETTINGS = {
   youtube: { id: "GOOGLE_CLIENT_ID", secret: "GOOGLE_CLIENT_SECRET" },
 } as const;
 
-// The external account id the development stand-in uses (adapters/dev-social.ts).
+// The external account id the development stand-in uses (core/internal/platforms).
 // No real platform's ids hold a ":", so a real account can never be taken
 // for the stand-in (a CHECK ties is_stand_in to it).
 export const STAND_IN_ACCOUNT_ID = "dev:stand-in";
 
 // The platforms that take ansa's access back when a Disconnect asks (X and
-// Google: their adapters revoke). For the others the owner removes ansa in
-// the platform's own settings. The Disconnect question and
-// services/social-disconnect.ts read it; a check ties it to the adapters.
+// Google: core asks them, core/internal/social). For the others the owner
+// removes ansa in the platform's own settings. The Disconnect question reads
+// it; core keeps its own copy (contentrules.RevokesOnRequest): the two must
+// agree.
 export const REVOKES_ON_REQUEST: readonly SocialPlatform[] = ["x", "youtube"];
 
 // The formats ansa publishes to each platform now (lib/content-studio/

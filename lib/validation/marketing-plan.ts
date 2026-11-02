@@ -3,7 +3,7 @@ import { GOAL_NOTE_MAX_LENGTH } from "@/lib/marketing-plan/limits";
 
 // What the Strategy page's forms and links send (step 37). There is
 // deliberately no company, person, version or fact here: the company and
-// the person come from the session, /db numbers each new version, and the
+// the person come from the session, core numbers each new version, and the
 // facts are read from the profile.
 
 // Tabs and line breaks stay; other control characters can't be typed, and

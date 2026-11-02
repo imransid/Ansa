@@ -60,7 +60,7 @@ export type EndOfCallReport = z.infer<typeof endOfCallReportSchema>;
 export const callIdSchema = z.uuid();
 
 // Vapi's id for a phone number, as ansa's operator pastes it from the Vapi
-// dashboard into pnpm link:phone-line (owners can't link numbers).
+// dashboard into make link-phone-line in core/ (owners can't link numbers).
 export const vapiPhoneNumberIdSchema = z.string().trim().regex(/^[A-Za-z0-9_-]{3,100}$/, "Paste the phone number id from Vapi");
 
 export const analyzeCallSchema = z.object({
@@ -72,7 +72,7 @@ export const analyzeCallSchema = z.object({
 
 // "Escalate to a ticket" on a call the AI marked solved (step 31). The call
 // id is only a claim: the escalation's UPDATE checks it is this company's
-// call, decided "solved" and not escalated yet (db/call-escalation.ts).
+// call, decided "solved" and not escalated yet (core/internal/calls).
 export const escalateCallSchema = z.object({
   callId: z.uuid(),
   categoryId: categoryChoiceSchema,

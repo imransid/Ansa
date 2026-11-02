@@ -1,12 +1,12 @@
 // What the Co-Founder's analytics (step 42) works with: where a post's
 // numbers came from, and the periods the Analytics page shows. A file of
-// its own with no imports, so the pages, the database schema
-// (db/schema/post-metrics.ts, whose CHECK lists the same sources; a check
-// proves they agree) and the simulate command read one list.
+// its own with no imports, so the pages and the database schema
+// (db/schema/post-metrics.ts, whose CHECK lists the same sources) read one
+// list. Core writes the same names (core/internal/postmetrics, analytics).
 
 // platform: read from the platform by the collector. dev_simulated: written
-// by `pnpm simulate:post-metrics` for a development stand-in's post, and
-// labeled "Simulated (development)" wherever it shows.
+// by `make simulate-post-metrics` (in core/) for a development stand-in's
+// post, and labeled "Simulated (development)" wherever it shows.
 export const postMetricSources = ["platform", "dev_simulated"] as const;
 export type PostMetricSource = (typeof postMetricSources)[number];
 

@@ -24,7 +24,7 @@ export default function ImportWebPagePage() {
 }
 
 // "Import a web page" (step 34): one public page's text becomes drafts.
-// Owners only (services/knowledge-web-import.ts refuses anyone else).
+// Owners only (core/internal/knowledge refuses anyone else).
 async function ImportWebPageContent() {
   const session = await requireSessionContext("/knowledge/import");
   const isOwner = canManageKnowledge(session.role);

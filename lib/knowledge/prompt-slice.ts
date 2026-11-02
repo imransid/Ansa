@@ -16,8 +16,8 @@ import { escapeHtml } from "@/lib/escape-html";
 // three of the largest pieces (lib/knowledge/limits.ts) with their titles.
 export const KNOWLEDGE_SLICE_MAX_CHARACTERS = 6_000;
 
-// How many hits the AI asks the search for (db/knowledge-search.ts takes 10
-// at most). The slice then keeps what fits.
+// How many hits the AI asks the search for (core's search,
+// core/internal/knowledge, takes 10 at most). The slice then keeps what fits.
 export const KNOWLEDGE_HITS_FOR_AI = 5;
 
 // For the system prompt of every use that sends knowledge.

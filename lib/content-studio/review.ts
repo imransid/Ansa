@@ -4,8 +4,9 @@ import { readWordsToAvoid } from "./words-to-avoid";
 
 // What an owner must know before approving one draft (step 38): the
 // platform's rules, the claims, and whether "I checked these claims" must
-// be ticked. ONE function, so the draft's page and the approval in /db
-// (inside the transaction that writes) decide the same way. Pure.
+// be ticked. Core decides it with ONE function (core/internal/drafts), so
+// the draft's page and the approval (inside the transaction that writes)
+// decide the same way; this file follows the same rules. Pure.
 
 // current: the AI listed the claims for the text as it is now (an image or
 // video attached since changes no text). edited: the AI listed them, but

@@ -1,7 +1,7 @@
 // Telegram (step 48): a restaurant adds ansa's one bot to its own Telegram
 // account as a Telegram Business chatbot, and its customers' messages reach
-// the Inbox. Pure: the schema's CHECKs (db/schema/channels.ts), the services,
-// the pages and the checks share these rules.
+// the Inbox. Pure: the schema's CHECKs (db/schema/channels.ts) and the pages
+// share these rules; core keeps its own (core/internal/telegram).
 
 // How a restaurant's Telegram account stands with ansa:
 // "connected": messages come in and replies go out.

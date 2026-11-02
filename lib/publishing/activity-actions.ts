@@ -2,8 +2,9 @@
 // who did what to the accounts, drafts, publish jobs, auto-publish rules and
 // marketing plans. A file of its own with no imports, so the pages and the
 // database schema (db/schema/cofounder-activity.ts, whose CHECK lists the
-// same values; a check proves they agree) read one list. Each row is written
-// by the /db function that makes the change, in the same transaction.
+// same values: they must agree) read one list. Each row is written by core's
+// code that makes the change, in the same transaction
+// (core/internal/publishing).
 export const cofounderActivityActions = [
   // Social accounts (step 40): an owner connected or disconnected one, or a
   // platform refused its permission (the app noted it: no actor).

@@ -16,7 +16,7 @@ type DraftPublishingSectionProps = {
 // A draft's "Publish" section (step 41): scheduling it to the company's
 // accounts of its platform (owners), what became of each post, and the
 // draft's own activity. Scheduling decides again with the draft's row
-// locked (db/publish-scheduling.ts), and each post is checked once more
+// locked (core/internal/publishing), and each post is checked once more
 // right before it goes out.
 export function DraftPublishingSection({ draft, publishing }: DraftPublishingSectionProps) {
   return (

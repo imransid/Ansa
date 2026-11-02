@@ -1,10 +1,12 @@
 // The numbers of the publishing queue and the calendar (step 41), in one
-// small file the pages in the browser, the services, /db and the database's
-// CHECKs (db/schema/publishing.ts) share.
+// small file the pages in the browser and the database's CHECKs
+// (db/schema/publishing.ts) share. Core keeps its own copy
+// (core/internal/publishing, core/internal/calendar).
 
 // A job still "publishing" this long after a run claimed it was cut off
-// while sending (one run takes at most about 4.5 minutes,
-// services/publish-runs.ts): it may have gone out, so a person checks.
+// while sending (core asks the platform only early enough for its slowest
+// answer to come before then, core/internal/publishing): it may have gone
+// out, so a person checks.
 export const STALE_PUBLISHING_MINUTES = 10;
 
 // Runs of one job before a platform's "slow down" (a 429) fails it. Each run

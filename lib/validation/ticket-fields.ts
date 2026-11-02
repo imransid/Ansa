@@ -75,7 +75,7 @@ export const customerEmailFromFormSchema = z
 // A category picked from a form's menu, by id. "" is the "No category" choice
 // and becomes null. The id is only a claim: the ticket's own transaction reads
 // it as one of the company's active categories, or saves no category
-// (db/ticket-creation.ts).
+// (core/internal/tickets).
 export const categoryChoiceSchema = z
   .union([z.literal(""), z.uuid()])
   .nullish()

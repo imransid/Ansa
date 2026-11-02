@@ -11,11 +11,13 @@ import type { ModelResult } from "@/lib/model-request";
 import { toPlainSingleLine } from "@/lib/plain-text";
 
 // Reading Claude's answer for "Read my menu" (step 46), written twice like
-// every other use: the JSON schema the API enforces (prompt.ts) and this Zod
-// schema. A field we didn't ask for around the list makes the answer
-// unusable; then each dish is kept or dropped on its own: a name, a price
-// this code can read in the restaurant's currency, texts as one plain line
-// cut to the menu's limits, at most MENU_ITEMS_PER_READING_MAX dishes.
+// every other use: the JSON schema the API enforces
+// (brain/brain/menu/reading.py) and this Zod schema. A field we didn't ask
+// for around the list makes the answer unusable; then each dish is kept or
+// dropped on its own: a name, a price this code can read in the
+// restaurant's currency, texts as one plain line cut to the menu's limits,
+// at most MENU_ITEMS_PER_READING_MAX dishes. Core keeps or drops each dish
+// the same way (core/internal/menureading).
 
 const rowSchema = z.object({ category: z.string(), name: z.string(), description: z.string(), price: z.string() }).strict();
 const answerSchema = z.object({ items: z.array(z.unknown()) }).strict();

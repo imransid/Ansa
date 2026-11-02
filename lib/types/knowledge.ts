@@ -4,7 +4,7 @@ import type { KnowledgeArticleDetail } from "@/lib/types/knowledge-articles";
 // starts a new article from.
 
 export type KnowledgeArticlePage = KnowledgeArticleDetail & {
-  // How many pieces the search reads (lib/knowledge/chunking.ts).
+  // How many pieces the search reads (core/internal/knowledge makes them).
   chunkCount: number;
 };
 

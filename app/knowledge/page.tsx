@@ -71,7 +71,7 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
   );
 }
 
-// The same through the new backend.
+// The page's list from core.
 async function getListFromCore(page: number, query: KnowledgeListQuery) {
   const [list, everyArticle] = await Promise.all([
     getKnowledgeListFromCore(page, query),

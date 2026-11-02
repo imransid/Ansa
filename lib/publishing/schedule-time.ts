@@ -4,8 +4,9 @@ import { SCHEDULE_MAX_AHEAD_DAYS, SCHEDULE_PAST_GRACE_MS } from "./limits";
 // typed and shown in the viewer's own timezone. The browser turns the date
 // and time a person typed into one UTC instant before sending it
 // (wallClockToUtc, in the form's onSubmit), so the server never guesses
-// anyone's timezone. Pure: the browser, the services and the checks use the
-// same functions.
+// anyone's timezone. Pure: the pages in the browser use these functions;
+// core checks the instant it gets again (CheckScheduleTime in
+// core/internal/publishing).
 
 // A date and a time as <input type="date"> and <input type="time"> give
 // them: "2026-11-03" and "09:30".

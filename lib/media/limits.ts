@@ -1,7 +1,7 @@
 // The limits of the Co-Founder's media library (step 39). Its own small file
 // so the forms in the browser, the server's Zod schemas
-// (lib/validation/media.ts), the services and the database's CHECKs
-// (db/schema/media.ts) use the same numbers.
+// (lib/validation/media.ts) and the database's CHECKs (db/schema/media.ts)
+// use the same numbers. Core keeps its own copy (core/internal/media).
 
 // Under Vercel's 4.5 MB request limit (next.config.ts allows 5 MB actions),
 // as documents are (lib/document-files.ts). A bigger file is refused in the
@@ -13,7 +13,7 @@ export const MAX_MEDIA_UPLOAD_BYTES = 4 * 1024 * 1024;
 // What one company may keep in its library in all, uploads and generated
 // files together. Signup is open and payments enforce nothing yet, so
 // without a cap one account could fill the platform's bucket, at ansa's
-// expense (as for documents, services/documents.ts).
+// expense (as for documents, core/internal/documents).
 export const MAX_MEDIA_ASSETS_PER_COMPANY = 300;
 export const MAX_MEDIA_STORAGE_BYTES_PER_COMPANY = 500 * 1024 * 1024;
 

@@ -1,9 +1,9 @@
 import type { KnowledgeStatus } from "./kinds";
 
-// Who may do what with a knowledge article (step 34). One place, read by the
-// services and by /db (with the role read again, locked, inside the
-// transaction that writes), and by the pages only to hide what would be
-// refused anyway.
+// Who may do what with a knowledge article (step 34). The pages read it
+// only to hide what would be refused anyway: core decides, with the role
+// read again, locked, inside the transaction that writes
+// (core/internal/knowledge).
 
 type Role = "owner" | "member";
 

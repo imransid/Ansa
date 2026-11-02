@@ -1,6 +1,6 @@
 // The restaurant setup (step 45): the kinds of food business, the steps a new
 // owner goes through at /welcome, and the limits of what they type. Pure, so
-// the pages, the services, /db and the checks share one list.
+// the pages share one list; core keeps its own copy (core/internal/setup).
 
 // Who ansa represents (step 50, the owner's direction of 2026-11-01): a
 // business and its customers, or one person ("personal": ansa is their

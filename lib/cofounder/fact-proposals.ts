@@ -4,7 +4,7 @@ import { BUSINESS_FACT_MAX_LENGTH } from "./limits";
 
 // The facts Claude proposes (step 36: the interview, and "Suggest facts from
 // knowledge"). Proposals only: saving one never touches a confirmed value
-// (db/business-fact-proposals.ts), and only an owner's Confirm makes it a fact.
+// (core/internal/profile), and only an owner's Confirm makes it a fact.
 
 export type FactProposal = { topic: BusinessFactTopic; value: string };
 

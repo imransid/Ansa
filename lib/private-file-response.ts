@@ -35,7 +35,7 @@ export function privateFileResponse(access: PrivateFileAccess, downloadName?: st
 // file's own bytes, never the browser's), "nosniff" so no browser reads it
 // as anything else, and, opened on its own, a sandbox in which nothing in
 // it could run. A signed R2 link carries the stored type too
-// (adapters/r2.ts).
+// (core/internal/files).
 export function inlineMediaResponse(access: PrivateFileAccess, contentType: string): Response {
   const always = { "cache-control": "private, no-store", "x-content-type-options": "nosniff" };
   if (access.kind === "signed-url") {

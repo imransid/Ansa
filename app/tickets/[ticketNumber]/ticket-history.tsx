@@ -56,7 +56,7 @@ function NoteEntry({ entry }: { entry: TicketHistoryEntry }) {
         </span>
       </p>
       {entry.noteUnreadable ? (
-        // What went wrong is in the server log (lib/encryption.ts), not here.
+        // Core couldn't decrypt it (core/internal/secure); that isn't named here.
         <p role="alert" className="text-sm text-destructive">
           This note can&apos;t be shown right now. If this keeps happening, contact ansa support.
         </p>
