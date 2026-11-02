@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import {
   addRequestNoteThroughCore,
   assignRequestThroughCore,
@@ -16,18 +15,9 @@ import {
 } from "@/lib/core-views/ticket-actions";
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import { retryCustomerEmailForSession } from "@/services/customer-emails";
-import { createManualTicketForSession } from "@/services/manual-tickets";
-import { addTicketNoteForSession } from "@/services/ticket-history";
-import {
-  closeTicketWithoutEmailForSession,
-  markTicketSolvedForSession,
-  reopenTicketForSession,
-} from "@/services/ticket-status";
-import { assignTicketForSession, editTicketDetailsForSession, setCustomerEmailForSession } from "@/services/tickets";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
-// call a service (which checks company, role and rate limits), refresh pages.
+// ask core (which checks company, role and rate limits), refresh pages.
 // Each uses the new backend when it is switched on (lib/core-api.ts), else
 // services/; both answer in the same shapes.
 
@@ -35,13 +25,8 @@ export async function assignTicketAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await assignRequestThroughCore(formText(formData, "ticketId"), formText(formData, "assigneeUserId"))
-    : await assignTicketForSession(session, {
-        ticketId: formData.get("ticketId"),
-        assigneeUserId: formData.get("assigneeUserId"),
-      });
+  await requireSessionContext();
+  const result = await assignRequestThroughCore(formText(formData, "ticketId"), formText(formData, "assigneeUserId"));
   return refreshTicketPagesOrReturnErrors(result);
 }
 
@@ -49,13 +34,8 @@ export async function markTicketSolvedAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await solveRequestThroughCore(formText(formData, "ticketId"), formText(formData, "confirmedCustomerEmail"))
-    : await markTicketSolvedForSession(session, {
-        ticketId: formData.get("ticketId"),
-        confirmedCustomerEmail: formData.get("confirmedCustomerEmail"),
-      });
+  await requireSessionContext();
+  const result = await solveRequestThroughCore(formText(formData, "ticketId"), formText(formData, "confirmedCustomerEmail"));
   // Refreshed even when the solve was refused: the ticket was solved by
   // someone else meanwhile, or its customer email just changed, and the page
   // must show that.
@@ -67,12 +47,8 @@ export async function closeTicketWithoutEmailAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await closeRequestThroughCore(formText(formData, "ticketId"))
-    : await closeTicketWithoutEmailForSession(session, {
-        ticketId: formData.get("ticketId"),
-      });
+  await requireSessionContext();
+  const result = await closeRequestThroughCore(formText(formData, "ticketId"));
   return refreshTicketPagesOrReturnErrors(result);
 }
 
@@ -80,12 +56,8 @@ export async function reopenTicketAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await reopenRequestThroughCore(formText(formData, "ticketId"))
-    : await reopenTicketForSession(session, {
-        ticketId: formData.get("ticketId"),
-      });
+  await requireSessionContext();
+  const result = await reopenRequestThroughCore(formText(formData, "ticketId"));
   return refreshTicketPagesOrReturnErrors(result);
 }
 
@@ -93,14 +65,9 @@ export async function retryCustomerEmailAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   // Core names the request in the address too (the form's ticketId).
-  const result = isCoreOn()
-    ? await retryEmailThroughCore(formText(formData, "ticketId"), formText(formData, "emailId"), formData.get("confirmPossibleDuplicate") === "yes")
-    : await retryCustomerEmailForSession(session, {
-        emailId: formData.get("emailId"),
-        confirmPossibleDuplicate: formData.get("confirmPossibleDuplicate"),
-      });
+  const result = await retryEmailThroughCore(formText(formData, "ticketId"), formText(formData, "emailId"), formData.get("confirmPossibleDuplicate") === "yes");
   return refreshTicketPagesOrReturnErrors(result);
 }
 
@@ -108,14 +75,8 @@ export async function setCustomerEmailAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await setCustomerEmailThroughCore(formText(formData, "ticketId"), formText(formData, "customerEmail"), formData.get("confirmed") === "yes")
-    : await setCustomerEmailForSession(session, {
-        ticketId: formData.get("ticketId"),
-        customerEmail: formData.get("customerEmail"),
-        confirmed: formData.get("confirmed"),
-      });
+  await requireSessionContext();
+  const result = await setCustomerEmailThroughCore(formText(formData, "ticketId"), formText(formData, "customerEmail"), formData.get("confirmed") === "yes");
   return refreshTicketPagesOrReturnErrors(result);
 }
 
@@ -124,9 +85,8 @@ export async function createManualTicketAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await createRequestThroughCore({
+  await requireSessionContext();
+  const result = await createRequestThroughCore({
         subject: formText(formData, "subject"),
         description: formText(formData, "description"),
         customerName: formText(formData, "customerName"),
@@ -134,15 +94,6 @@ export async function createManualTicketAction(
         customerPhone: formText(formData, "customerPhone"),
         categoryId: formText(formData, "categoryId"),
         customerEmailConfirmed: formData.get("customerEmailConfirmed") === "yes",
-      })
-    : await createManualTicketForSession(session, {
-        subject: formData.get("subject"),
-        description: formData.get("description"),
-        customerName: formData.get("customerName"),
-        customerEmail: formData.get("customerEmail"),
-        customerPhone: formData.get("customerPhone"),
-        categoryId: formData.get("categoryId"),
-        customerEmailConfirmed: formData.get("customerEmailConfirmed"),
       });
   if (!result.ok) {
     return result.errors;
@@ -157,20 +108,12 @@ export async function editTicketDetailsAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await editRequestThroughCore(formText(formData, "ticketId"), {
+  await requireSessionContext();
+  const result = await editRequestThroughCore(formText(formData, "ticketId"), {
         subject: formText(formData, "subject"),
         customerName: formText(formData, "customerName"),
         originalSubject: formText(formData, "originalSubject"),
         originalCustomerName: formText(formData, "originalCustomerName"),
-      })
-    : await editTicketDetailsForSession(session, {
-        ticketId: formData.get("ticketId"),
-        subject: formData.get("subject"),
-        customerName: formData.get("customerName"),
-        originalSubject: formData.get("originalSubject"),
-        originalCustomerName: formData.get("originalCustomerName"),
       });
   return refreshTicketPagesOrReturnErrors(result);
 }
@@ -179,13 +122,8 @@ export async function addTicketNoteAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await addRequestNoteThroughCore(formText(formData, "ticketId"), formText(formData, "body"))
-    : await addTicketNoteForSession(session, {
-        ticketId: formData.get("ticketId"),
-        body: formData.get("body"),
-      });
+  await requireSessionContext();
+  const result = await addRequestNoteThroughCore(formText(formData, "ticketId"), formText(formData, "body"));
   return refreshTicketPagesOrReturnErrors(result);
 }
 

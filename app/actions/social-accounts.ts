@@ -2,16 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
-import { after } from "next/server";
-import { isCoreOn } from "@/lib/core-api";
 import { connectStandInThroughCore, disconnectAccountThroughCore, startSocialConnectThroughCore } from "@/lib/core-views/accounts";
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import { connectStandInAccountForSession, startSocialConnectionForSession } from "@/services/social-connect";
-import { disconnectSocialAccountForSession } from "@/services/social-disconnect";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
-// call a service (which checks the role, the input and the rate limit),
+// ask core (which checks the role, the input and the rate limit),
 // then send the owner on to the platform or back to the Accounts page. The
 // platform is asked to take a disconnected account's access back after the
 // answer, through Next's after() (which runs after a redirect too). With
@@ -19,10 +15,8 @@ import { disconnectSocialAccountForSession } from "@/services/social-disconnect"
 // core instead, which asks for that itself after its answer.
 
 export async function connectSocialAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await startSocialConnectThroughCore(formData.get("platform"))
-    : await startSocialConnectionForSession(session, { platform: formData.get("platform") });
+  await requireSessionContext();
+  const result = await startSocialConnectThroughCore(formData.get("platform"));
   if (!result.ok) {
     return result.errors;
   }
@@ -32,20 +26,13 @@ export async function connectSocialAccountAction(_previous: FormErrors | undefin
 }
 
 export async function connectStandInAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  if (isCoreOn()) {
-    return backToAccountsPageOrErrors(await connectStandInThroughCore(formData.get("platform")));
-  }
-  return backToAccountsPageOrErrors(await connectStandInAccountForSession(session, { platform: formData.get("platform") }));
+  await requireSessionContext();
+  return backToAccountsPageOrErrors(await connectStandInThroughCore(formData.get("platform")));
 }
 
 export async function disconnectSocialAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  if (isCoreOn()) {
-    return backToAccountsPageOrErrors(await disconnectAccountThroughCore(formData.get("connectionId")));
-  }
-  const result = await disconnectSocialAccountForSession(session, { connectionId: formData.get("connectionId") }, (task) => after(task));
-  return backToAccountsPageOrErrors(result);
+  await requireSessionContext();
+  return backToAccountsPageOrErrors(await disconnectAccountThroughCore(formData.get("connectionId")));
 }
 
 function backToAccountsPageOrErrors(result: FormResult): FormErrors | undefined {

@@ -2,18 +2,14 @@ import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import { getKnowledgeArticleFromCore } from "@/lib/core-views/knowledge";
-import { canEditKnowledgeArticle, canManageKnowledge } from "@/lib/knowledge/permissions";
 import { getSessionContext, requireSessionContext, type SessionContext } from "@/lib/session";
 import type { KnowledgeArticlePage } from "@/lib/types/knowledge";
-import { getKnowledgeArticleForSession } from "@/services/knowledge";
 import { ArticleForm } from "../article-form";
 import { ArticleStatusActions } from "./article-status-actions";
 import { ArticleSummary } from "./article-summary";
 
 // One read per request: the tab title and the page both need the article.
-const readArticle = cache(getKnowledgeArticleForSession);
 const readArticleFromCore = cache(getKnowledgeArticleFromCore);
 
 // The article and what this person may do with it: the new backend when it
@@ -21,11 +17,7 @@ const readArticleFromCore = cache(getKnowledgeArticleFromCore);
 // refused is only for a tidy page: both check the same rules again
 // (lib/knowledge/permissions.ts).
 async function readArticleAndRights(session: SessionContext, articleId: string) {
-  if (isCoreOn()) {
-    return readArticleFromCore(articleId);
-  }
-  const article = await readArticle(session, articleId);
-  return article ? { article, canEdit: canEditKnowledgeArticle(session.role, article.status), isOwner: canManageKnowledge(session.role) } : null;
+  return readArticleFromCore(articleId);
 }
 
 // "Returns policy - Knowledge - ansa". A long title is cut here.

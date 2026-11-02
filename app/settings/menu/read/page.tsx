@@ -3,10 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MenuReader } from "@/components/menu/menu-reader";
 import { PageLoading } from "@/components/page-loading";
-import { isCoreOn } from "@/lib/core-api";
 import { getMenuFromCore } from "@/lib/core-views/menu";
 import { requireSessionContext } from "@/lib/session";
-import { getMenuForSession } from "@/services/menu";
 
 export const metadata: Metadata = { title: "Read my menu - ansa" };
 
@@ -37,9 +35,8 @@ export default function ReadMenuPage() {
 }
 
 async function Reader() {
-  const session = await requireSessionContext("/settings/menu/read");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const menu = isCoreOn() ? await getMenuFromCore() : await getMenuForSession(session);
+  await requireSessionContext("/settings/menu/read");
+  const menu = await getMenuFromCore();
   if (!menu.canEdit) {
     return <p className="text-sm text-muted-foreground">Only owners change the menu.</p>;
   }

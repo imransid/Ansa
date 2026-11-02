@@ -1,12 +1,9 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { PaginationLinks } from "@/components/pagination-links";
-import { isCoreOn } from "@/lib/core-api";
 import { getEmailsPageFromCore, type EmailsPage } from "@/lib/core-views/emails";
 import { parsePageNumber } from "@/lib/pagination";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { countInboundEmailsForSession, listInboundEmailsForSession } from "@/services/inbound-emails";
-import { countUndeliveredCustomerEmailsForSession, listUndeliveredCustomerEmailsForSession } from "@/services/undelivered-emails";
+import { requireSessionContext } from "@/lib/session";
 import { InboundEmailTable } from "./inbound-email-table";
 import { UndeliveredCustomerEmails } from "./undelivered-emails";
 
@@ -31,11 +28,8 @@ export default function EmailsPage({ searchParams }: PageProps<"/emails">) {
 
 async function EmailsContent({ searchParams }: Pick<PageProps<"/emails">, "searchParams">) {
   const page = parsePageNumber((await searchParams).page);
-  const session = await requireSessionContext("/emails");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const { emails, totalEmails, undelivered, totalUndelivered } = isCoreOn()
-    ? await getEmailsPageFromCore(page)
-    : await readEmailsFromServices(session, page);
+  await requireSessionContext("/emails");
+  const { emails, totalEmails, undelivered, totalUndelivered } = await getEmailsPageFromCore(page);
 
   return (
     <>
@@ -53,15 +47,4 @@ async function EmailsContent({ searchParams }: Pick<PageProps<"/emails">, "searc
       </section>
     </>
   );
-}
-
-// The page's four reads from services/ (the old backend).
-async function readEmailsFromServices(session: SessionContext, page: number): Promise<EmailsPage> {
-  const [emails, totalEmails, undelivered, totalUndelivered] = await Promise.all([
-    listInboundEmailsForSession(session, page),
-    countInboundEmailsForSession(session),
-    listUndeliveredCustomerEmailsForSession(session),
-    countUndeliveredCustomerEmailsForSession(session),
-  ]);
-  return { emails, totalEmails, undelivered, totalUndelivered };
 }

@@ -1,10 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isCoreOn } from "@/lib/core-api";
 import { listActiveCategoriesFromCore } from "@/lib/core-views/tickets";
 import { requireSessionContext } from "@/lib/session";
-import { listActiveCategoriesForSession } from "@/services/categories";
 import { NewTicketForm } from "./new-ticket-form";
 
 export const metadata: Metadata = { title: "New ticket - ansa" };
@@ -24,9 +22,8 @@ export default function NewTicketPage() {
 // A ticket typed in by a person (step 31), for a request that reached the
 // team some other way. Anyone in the company may create one.
 async function NewTicketContent() {
-  const session = await requireSessionContext("/tickets/new");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const categories = isCoreOn() ? await listActiveCategoriesFromCore() : await listActiveCategoriesForSession(session);
+  await requireSessionContext("/tickets/new");
+  const categories = await listActiveCategoriesFromCore();
 
   return (
     <>

@@ -1,25 +1,18 @@
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatCallDuration } from "@/lib/format-duration";
 import { LocalDateTime } from "@/components/local-date-time";
-import { isCoreOn } from "@/lib/core-api";
 import { getCallCategoriesFromCore, getCallFromCore } from "@/lib/core-views/calls";
 import { getSessionContext, requireSessionContext } from "@/lib/session";
 import type { CallDetail } from "@/lib/types/calls";
-import { getCallForSession } from "@/services/calls";
-import { listActiveCategoriesForSession } from "@/services/categories";
 import { CallDecision } from "./call-decision";
 import { KnowledgeLookups } from "./knowledge-lookups";
 
 // "Analyze now" asks Claude inside this page's server action (up to 3 tries
 // of 60 s): the host's default time limit can be as short as 10 seconds.
 export const maxDuration = 300;
-
-// One read per request: the tab title and the page both need the call.
-// Core's read is cached the same way (lib/core-views/calls.ts).
-const readCall = cache(getCallForSession);
 
 // "Call from a number ending 0100 - ansa", so several call tabs can be told
 // apart. WHY not the whole number: tab titles end up in browser history (and
@@ -32,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/calls/[callId]">)
   if (!session) {
     return { title: "Call - ansa" };
   }
-  const call = isCoreOn() ? await getCallFromCore(callId) : await readCall(session, callId);
+  const call = await getCallFromCore(callId);
   if (!call) {
     return { title: "Call not found - ansa" };
   }
@@ -55,13 +48,12 @@ export default function CallPage({ params }: PageProps<"/calls/[callId]">) {
 async function CallContent({ params }: Pick<PageProps<"/calls/[callId]">, "params">) {
   const { callId } = await params;
   const session = await requireSessionContext(`/calls/${encodeURIComponent(callId)}`);
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const call = isCoreOn() ? await getCallFromCore(callId) : await readCall(session, callId);
+  const call = await getCallFromCore(callId);
   // Unknown id, bad id, or another company's call: all look the same (./not-found.tsx).
   if (!call) {
     notFound();
   }
-  const categories = isCoreOn() ? await getCallCategoriesFromCore(callId) : await listActiveCategoriesForSession(session);
+  const categories = await getCallCategoriesFromCore(callId);
 
   return (
     <>

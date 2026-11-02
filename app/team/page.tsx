@@ -1,10 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { isCoreOn } from "@/lib/core-api";
 import { getTeamPageFromCore } from "@/lib/core-views/team";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { getTeamCategoriesForSession } from "@/services/categories";
-import { getTeamForSession } from "@/services/team";
+import { requireSessionContext } from "@/lib/session";
 import { CategoriesSection } from "./categories-section";
 import { InviteForm } from "./invite-form";
 import { MembersTable } from "./members-table";
@@ -27,9 +24,8 @@ export default function TeamPage() {
 
 // Reads the session once and hands it to everything on the page.
 async function TeamContent() {
-  const session = await requireSessionContext("/team");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const { team, teamCategories, currentUserId, isOwner } = isCoreOn() ? await getTeamPageFromCore() : await getTeamFromServices(session);
+  await requireSessionContext("/team");
+  const { team, teamCategories, currentUserId, isOwner } = await getTeamPageFromCore();
 
   return (
     <>
@@ -77,13 +73,4 @@ async function TeamContent() {
       )}
     </>
   );
-}
-
-// The page as services/ read it before the new backend.
-async function getTeamFromServices(session: SessionContext) {
-  const [team, teamCategories] = await Promise.all([
-    getTeamForSession(session),
-    getTeamCategoriesForSession(session),
-  ]);
-  return { team, teamCategories, currentUserId: session.userId, isOwner: session.role === "owner" };
 }

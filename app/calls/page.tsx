@@ -1,12 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { PaginationLinks } from "@/components/pagination-links";
-import { isCoreOn } from "@/lib/core-api";
 import { getCallsAndCountsFromCore } from "@/lib/core-views/calls";
 import { parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
 import { parseCallListQuery } from "@/lib/validation/list-queries";
-import { countCallsPerOutcomeForSession, listCallsForSession } from "@/services/calls";
 import { CallFilters } from "./call-filters";
 import { CallsTable } from "./calls-table";
 
@@ -29,14 +27,8 @@ async function CallsContent({ searchParams }: Pick<PageProps<"/calls">, "searchP
   const urlQuery = await searchParams;
   const page = parsePageNumber(urlQuery.page);
   const query = parseCallListQuery(urlQuery);
-  const session = await requireSessionContext("/calls");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const [calls, counts] = isCoreOn()
-    ? await getCallsAndCountsFromCore(page, query)
-    : await Promise.all([
-        listCallsForSession(session, page, query),
-        countCallsPerOutcomeForSession(session, query.search),
-      ]);
+  await requireSessionContext("/calls");
+  const [calls, counts] = await getCallsAndCountsFromCore(page, query);
 
   return (
     <>

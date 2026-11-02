@@ -8,13 +8,11 @@ import { ContactForm } from "@/components/restaurant-setup/contact-form";
 import { HoursForm } from "@/components/restaurant-setup/hours-form";
 import { OrdersForm } from "@/components/restaurant-setup/orders-form";
 import { buttonVariants } from "@/components/ui/button";
-import { isCoreOn } from "@/lib/core-api";
 import { getRestaurantProfileFromCore } from "@/lib/core-views/restaurant-setup";
 import { currencyOptions, timeZoneOptions } from "@/lib/locale-options";
 import { NEW_COMPANY_NAME, setupStepNumber, setupStepsFor, stepToShow, type CompanyKind, type SetupStepKey } from "@/lib/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
 import type { RestaurantProfile } from "@/lib/types/restaurant-setup";
-import { getRestaurantProfileForSession } from "@/services/restaurant-setup";
 import { ChannelsStep } from "./channels-step";
 import { ReadyStep } from "./ready-step";
 
@@ -59,10 +57,9 @@ export default function WelcomePage({ searchParams }: PageProps<"/welcome">) {
 }
 
 async function WelcomeStep({ searchParams }: Pick<PageProps<"/welcome">, "searchParams">) {
-  const session = await requireSessionContext("/welcome");
+  await requireSessionContext("/welcome");
   const { step: asked } = await searchParams;
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const profile = isCoreOn() ? await getRestaurantProfileFromCore() : await getRestaurantProfileForSession(session);
+  const profile = await getRestaurantProfileFromCore();
   if (!profile.canManage) {
     return (
       <div className="grid gap-4">

@@ -1,9 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { isCoreOn } from "@/lib/core-api";
 import { getAccountFromCore } from "@/lib/core-views/account";
 import { requireSessionContext } from "@/lib/session";
-import { getAccountForSession } from "@/services/account";
 import { NameForm, OtherDevicesForm, PasswordForm } from "./account-forms";
 
 export const metadata: Metadata = { title: "Account - ansa" };
@@ -23,9 +21,8 @@ export default function AccountPage({ searchParams }: PageProps<"/account">) {
 // Reads the session once and hands it to everything on the page.
 async function AccountContent({ searchParams }: Pick<PageProps<"/account">, "searchParams">) {
   const passwordWasChanged = (await searchParams).changed === "password";
-  const session = await requireSessionContext("/account");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const account = isCoreOn() ? await getAccountFromCore() : await getAccountForSession(session);
+  await requireSessionContext("/account");
+  const account = await getAccountFromCore();
 
   return (
     <>

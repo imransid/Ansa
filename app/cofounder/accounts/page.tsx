@@ -1,11 +1,9 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isCoreOn } from "@/lib/core-api";
 import { getAccountsPageFromCore } from "@/lib/core-views/accounts";
 import { requireSessionContext } from "@/lib/session";
 import { accountsPageResultSchema } from "@/lib/validation/social";
-import { getSocialAccountsPageForSession } from "@/services/social-accounts";
 import { ConnectResultMessage } from "./connect-result-message";
 import { PlatformSection } from "./platform-section";
 
@@ -26,13 +24,12 @@ export default function AccountsPage({ searchParams }: PageProps<"/cofounder/acc
 // The company's social accounts (step 40): per platform what it takes,
 // whether ansa has set it up, and the connected accounts. Owners connect
 // and disconnect; members see it all. ?result= is what the last return
-// from a platform came to (services/social-oauth-callback.ts).
+// from a platform came to (core: GET /api/v1/social/{platform}/callback).
 async function AccountsContent({ searchParams }: Pick<PageProps<"/cofounder/accounts">, "searchParams">) {
-  const session = await requireSessionContext("/cofounder/accounts");
+  await requireSessionContext("/cofounder/accounts");
   const query = await searchParams;
   const result = accountsPageResultSchema.safeParse({ result: query.result, platform: query.platform, count: query.count });
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const page = isCoreOn() ? await getAccountsPageFromCore() : await getSocialAccountsPageForSession(session);
+  const page = await getAccountsPageFromCore();
 
   return (
     <>

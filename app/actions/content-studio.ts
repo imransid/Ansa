@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import {
   approveDraftThroughCore,
   archiveDraftThroughCore,
@@ -14,21 +13,16 @@ import {
 } from "@/lib/core-views/studio";
 import type { FormErrors, FormResult, SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import type { CreatedDraftResult } from "@/lib/types/content-draft-messages";
-import { editDraftForSession } from "@/services/content-draft-edits";
-import { createBlankDraftForSession } from "@/services/content-drafts";
-import { generateDraftForSession, regenerateDraftForSession } from "@/services/content-generation";
-import { approveDraftForSession, archiveDraftForSession, rejectDraftForSession, restoreDraftForSession } from "@/services/content-review";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
-// call a service (which checks company, role, input and rate limits),
+// ask core (which checks company, role, input and rate limits),
 // refresh the Co-Founder's pages. Each uses the new backend when it is
 // switched on (lib/core-api.ts), else services/.
 
 // "New draft": "Write it with the AI" or "Start blank" (the button sends
 // mode). On success it opens the new draft (a redirect), so it never returns.
 export async function createDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = {
     platform: formData.get("platform"),
     format: formData.get("format"),
@@ -37,12 +31,7 @@ export async function createDraftAction(_previous: FormErrors | undefined, formD
     campaign: formData.get("campaign"),
   };
   const isBlank = formData.get("mode") === "blank";
-  let result: CreatedDraftResult;
-  if (isCoreOn()) {
-    result = await createDraftThroughCore(input, !isBlank);
-  } else {
-    result = isBlank ? await createBlankDraftForSession(session, input) : await generateDraftForSession(session, input);
-  }
+  const result = await createDraftThroughCore(input, !isBlank);
   if (!result.ok) {
     return result.errors;
   }
@@ -52,7 +41,7 @@ export async function createDraftAction(_previous: FormErrors | undefined, formD
 }
 
 export async function editDraftAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = {
     draftId: formData.get("draftId"),
     version: formData.get("version"),
@@ -66,7 +55,7 @@ export async function editDraftAction(_previous: SaveState | undefined, formData
     imagePrompt: formData.get("imagePrompt"),
     videoScript: formData.get("videoScript"),
   };
-  const result = isCoreOn() ? await editDraftThroughCore(input) : await editDraftForSession(session, input);
+  const result = await editDraftThroughCore(input);
   if (!result.ok) {
     return { errors: result.errors };
   }
@@ -75,20 +64,15 @@ export async function editDraftAction(_previous: SaveState | undefined, formData
 }
 
 export async function regenerateDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { draftId: formData.get("draftId"), version: formData.get("version") };
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await regenerateDraftThroughCore(input.draftId, input.version));
-  }
-  return refreshOrReturnErrors(await regenerateDraftForSession(session, input));
+  return refreshOrReturnErrors(await regenerateDraftThroughCore(input.draftId, input.version));
 }
 
 export async function approveDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { draftId: formData.get("draftId"), version: formData.get("version"), claimsChecked: formData.get("claimsChecked") };
-  const result = isCoreOn()
-    ? await approveDraftThroughCore(input.draftId, input.version, input.claimsChecked)
-    : await approveDraftForSession(session, input);
+  const result = await approveDraftThroughCore(input.draftId, input.version, input.claimsChecked);
   // Refreshed after a refusal too: the approval reviews the draft against
   // the facts as they are now, so it can refuse for a change made after the
   // page loaded (a fact behind a claim, a new word to avoid). The page must
@@ -98,28 +82,19 @@ export async function approveDraftAction(_previous: FormErrors | undefined, form
 }
 
 export async function rejectDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { draftId: formData.get("draftId"), version: formData.get("version"), note: formData.get("note") };
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await rejectDraftThroughCore(input.draftId, input.version, input.note));
-  }
-  return refreshOrReturnErrors(await rejectDraftForSession(session, input));
+  return refreshOrReturnErrors(await rejectDraftThroughCore(input.draftId, input.version, input.note));
 }
 
 export async function archiveDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await archiveDraftThroughCore(formData.get("draftId")));
-  }
-  return refreshOrReturnErrors(await archiveDraftForSession(session, { draftId: formData.get("draftId") }));
+  await requireSessionContext();
+  return refreshOrReturnErrors(await archiveDraftThroughCore(formData.get("draftId")));
 }
 
 export async function restoreDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await restoreDraftThroughCore(formData.get("draftId")));
-  }
-  return refreshOrReturnErrors(await restoreDraftForSession(session, { draftId: formData.get("draftId") }));
+  await requireSessionContext();
+  return refreshOrReturnErrors(await restoreDraftThroughCore(formData.get("draftId")));
 }
 
 function refreshOrReturnErrors(result: FormResult): FormErrors | undefined {

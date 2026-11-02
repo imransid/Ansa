@@ -4,12 +4,10 @@ import Link from "next/link";
 import { PageLoading } from "@/components/page-loading";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
-import { isCoreOn } from "@/lib/core-api";
 import { listRequestsFromCore } from "@/lib/core-views/tickets";
 import { parsePageNumber } from "@/lib/pagination";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { defaultTicketViewFor, parseTicketListQuery, type TicketListQuery } from "@/lib/validation/list-queries";
-import { countTicketsPerViewForSession, listTicketsForSession } from "@/services/tickets";
+import { requireSessionContext } from "@/lib/session";
+import { defaultTicketViewFor, parseTicketListQuery } from "@/lib/validation/list-queries";
 import { TicketListEmpty } from "./ticket-list-empty";
 import { TicketTable } from "./ticket-table";
 import { TicketViews } from "./ticket-views";
@@ -38,8 +36,7 @@ async function RequestsContent({ searchParams }: Pick<PageProps<"/inbox/requests
   const page = parsePageNumber(urlQuery.page);
   const session = await requireSessionContext("/inbox/requests");
   const query = parseTicketListQuery(urlQuery, defaultTicketViewFor(session.role));
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const { tickets, counts } = isCoreOn() ? await listRequestsFromCore(page, query) : await listRequestsFromServices(session, page, query);
+  const { tickets, counts } = await listRequestsFromCore(page, query);
 
   return (
     <>
@@ -75,13 +72,4 @@ async function RequestsContent({ searchParams }: Pick<PageProps<"/inbox/requests
       <PaginationLinks basePath="/inbox/requests" page={page} totalRows={counts[query.view]} query={{ view: query.view, q: query.search }} />
     </>
   );
-}
-
-// The list and its counts from services/ (the old backend).
-async function listRequestsFromServices(session: SessionContext, page: number, query: TicketListQuery) {
-  const [tickets, counts] = await Promise.all([
-    listTicketsForSession(session, page, query),
-    countTicketsPerViewForSession(session, query.search),
-  ]);
-  return { tickets, counts };
 }

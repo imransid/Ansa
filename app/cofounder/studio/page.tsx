@@ -4,12 +4,10 @@ import Link from "next/link";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
 import { canReviewContentDrafts } from "@/lib/cofounder/permissions";
-import { isCoreOn } from "@/lib/core-api";
 import { countDraftsFromCore, getDraftListFromCore } from "@/lib/core-views/studio";
 import { parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
 import { parseContentDraftListQuery, type ContentDraftListQuery } from "@/lib/validation/list-queries";
-import { countContentDraftsForSession, listContentDraftsForSession } from "@/services/content-drafts";
 import { DraftTable } from "./draft-table";
 import { StudioFilters } from "./studio-filters";
 import { StudioListEmpty } from "./studio-list-empty";
@@ -36,15 +34,7 @@ async function StudioContent({ searchParams }: Pick<PageProps<"/cofounder/studio
   const page = parsePageNumber(urlQuery.page);
   const query = parseContentDraftListQuery(urlQuery);
   const session = await requireSessionContext("/cofounder/studio");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const [drafts, counts, everyPlatform] = isCoreOn()
-    ? await readListFromCore(page, query)
-    : await Promise.all([
-        listContentDraftsForSession(session, page, query),
-        countContentDraftsForSession(session, query.platform),
-        // Without the platform filter: whether the company has any draft at all.
-        query.platform === "all" ? null : countContentDraftsForSession(session, "all"),
-      ]);
+  const [drafts, counts, everyPlatform] = await readListFromCore(page, query);
   const totals = everyPlatform ?? counts;
   const totalDrafts = totals.current + totals.archived;
 

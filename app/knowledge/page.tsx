@@ -3,13 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
-import { isCoreOn } from "@/lib/core-api";
 import { getKnowledgeListFromCore } from "@/lib/core-views/knowledge";
-import { canManageKnowledge } from "@/lib/knowledge/permissions";
 import { parsePageNumber } from "@/lib/pagination";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
+import { requireSessionContext } from "@/lib/session";
 import { parseKnowledgeListQuery, type KnowledgeListQuery } from "@/lib/validation/list-queries";
-import { countKnowledgeArticlesForSession, listKnowledgeArticlesForSession } from "@/services/knowledge";
 import { ArticleTable } from "./article-table";
 import { KnowledgeFilters } from "./knowledge-filters";
 import { KnowledgeListEmpty } from "./knowledge-list-empty";
@@ -35,10 +32,9 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
   const urlQuery = await searchParams;
   const page = parsePageNumber(urlQuery.page);
   const query = parseKnowledgeListQuery(urlQuery);
-  const session = await requireSessionContext("/knowledge");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  await requireSessionContext("/knowledge");
   // Hiding the buttons is only for a tidy page: both refuse members.
-  const { articles, counts, totalArticles, isOwner } = isCoreOn() ? await getListFromCore(page, query) : await getListFromServices(session, page, query);
+  const { articles, counts, totalArticles, isOwner } = await getListFromCore(page, query);
 
   return (
     <>
@@ -73,17 +69,6 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
       {totalArticles > 0 && <TestSearchBox />}
     </>
   );
-}
-
-// The page as services/ read it before the new backend.
-async function getListFromServices(session: SessionContext, page: number, query: KnowledgeListQuery) {
-  const [articles, counts, everyArticle] = await Promise.all([
-    listKnowledgeArticlesForSession(session, page, query),
-    countKnowledgeArticlesForSession(session, query.search),
-    // Without the search: whether the company has any article at all.
-    query.search ? countKnowledgeArticlesForSession(session) : null,
-  ]);
-  return { articles, counts, totalArticles: (everyArticle ?? counts).all, isOwner: canManageKnowledge(session.role) };
 }
 
 // The same through the new backend.

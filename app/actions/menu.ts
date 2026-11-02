@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import {
   addDishThroughCore,
   confirmMenuReadingThroughCore,
@@ -15,17 +14,8 @@ import {
 import { withTypedValues, type FormErrors, type SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import type { MenuReadingOutcome } from "@/lib/types/menu-reading";
-import {
-  addCheckedMenuReadingForSession,
-  addMenuItemForSession,
-  deleteMenuItemForSession,
-  moveMenuItemForSession,
-  setMenuItemAvailabilityForSession,
-  updateMenuItemForSession,
-} from "@/services/menu";
-import { readMenuForSession } from "@/services/menu-reading";
 
-// Thin, like every action: the services check the person, the input and the
+// Thin, like every action: core checks the person, the input and the
 // rate limits. A refused form gets back what was typed. Each uses the new
 // backend when it is switched on (lib/core-api.ts), else services/.
 
@@ -36,8 +26,8 @@ function dishFrom(formData: FormData) {
 }
 
 export async function addMenuItemAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
-  const session = await requireSessionContext();
-  const result = isCoreOn() ? await addDishThroughCore(dishFrom(formData)) : await addMenuItemForSession(session, dishFrom(formData));
+  await requireSessionContext();
+  const result = await addDishThroughCore(dishFrom(formData));
   if (!result.ok) {
     return { errors: withTypedValues(result.errors, formData, DISH_FIELDS) };
   }
@@ -46,10 +36,8 @@ export async function addMenuItemAction(_previous: SaveState | undefined, formDa
 }
 
 export async function updateMenuItemAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await updateDishThroughCore(formData.get("itemId"), dishFrom(formData))
-    : await updateMenuItemForSession(session, { ...dishFrom(formData), itemId: formData.get("itemId") });
+  await requireSessionContext();
+  const result = await updateDishThroughCore(formData.get("itemId"), dishFrom(formData));
   if (!result.ok) {
     return { errors: withTypedValues(result.errors, formData, DISH_FIELDS) };
   }
@@ -58,8 +46,8 @@ export async function updateMenuItemAction(_previous: SaveState | undefined, for
 }
 
 export async function deleteMenuItemAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn() ? await deleteDishThroughCore(formData.get("itemId")) : await deleteMenuItemForSession(session, { itemId: formData.get("itemId") });
+  await requireSessionContext();
+  const result = await deleteDishThroughCore(formData.get("itemId"));
   if (!result.ok) {
     return result.errors;
   }
@@ -68,10 +56,8 @@ export async function deleteMenuItemAction(_previous: FormErrors | undefined, fo
 }
 
 export async function moveMenuItemAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await moveDishThroughCore(formData.get("itemId"), formData.get("direction"))
-    : await moveMenuItemForSession(session, { itemId: formData.get("itemId"), direction: formData.get("direction") });
+  await requireSessionContext();
+  const result = await moveDishThroughCore(formData.get("itemId"), formData.get("direction"));
   if (!result.ok) {
     return result.errors;
   }
@@ -80,10 +66,8 @@ export async function moveMenuItemAction(_previous: FormErrors | undefined, form
 }
 
 export async function setMenuItemAvailabilityAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await setDishAvailabilityThroughCore(formData.get("itemId"), formData.get("available"))
-    : await setMenuItemAvailabilityForSession(session, { itemId: formData.get("itemId"), available: formData.get("available") });
+  await requireSessionContext();
+  const result = await setDishAvailabilityThroughCore(formData.get("itemId"), formData.get("available"));
   if (!result.ok) {
     return result.errors;
   }
@@ -93,17 +77,17 @@ export async function setMenuItemAvailabilityAction(_previous: FormErrors | unde
 
 // "Read my menu": the list for the owner to check. Saves nothing.
 export async function readMenuAction(formData: FormData): Promise<MenuReadingOutcome> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const file = formData.get("file");
   const text = formData.get("text");
   const source = { file: file instanceof File ? file : null, text: typeof text === "string" ? text : null };
-  return isCoreOn() ? readMenuThroughCore(source) : readMenuForSession(session, source);
+  return readMenuThroughCore(source);
 }
 
 // "Looks right": adds the checked dishes, then back to the menu.
 export async function addCheckedMenuReadingAction(items: unknown): Promise<FormErrors> {
-  const session = await requireSessionContext();
-  const result = isCoreOn() ? await confirmMenuReadingThroughCore(items) : await addCheckedMenuReadingForSession(session, { items });
+  await requireSessionContext();
+  const result = await confirmMenuReadingThroughCore(items);
   if (!result.ok) {
     return result.errors;
   }

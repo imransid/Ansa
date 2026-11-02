@@ -4,11 +4,9 @@ import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { buttonVariants } from "@/components/ui/button";
 import { canManageBusinessProfile, canManageMarketingStrategy } from "@/lib/cofounder/permissions";
-import { isCoreOn } from "@/lib/core-api";
 import { getCoFounderOverviewFromCore } from "@/lib/core-views/cofounder-overview";
 import { requireSessionContext } from "@/lib/session";
 import type { CoFounderNextStep, CoFounderOverview } from "@/lib/types/cofounder-overview";
-import { getCoFounderOverviewForSession } from "@/services/cofounder-overview";
 import { GettingStartedChecklist } from "./getting-started";
 import { ProfileCompletionSummary } from "./profile-completion";
 
@@ -30,8 +28,7 @@ export default function CoFounderPage() {
 // to do next (step 36). Real counts only.
 async function OverviewContent() {
   const session = await requireSessionContext("/cofounder");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const overview = isCoreOn() ? await getCoFounderOverviewFromCore() : await getCoFounderOverviewForSession(session);
+  const overview = await getCoFounderOverviewFromCore();
   // Hiding the next steps is only for a tidy page: both backends refuse
   // members. Core's Overview names no role, so the session's is read here.
   const isOwner = canManageBusinessProfile(session.role);

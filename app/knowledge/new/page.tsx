@@ -1,10 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isCoreOn } from "@/lib/core-api";
 import { getSolvedTicketForArticleFromCore } from "@/lib/core-views/knowledge";
 import { requireSessionContext } from "@/lib/session";
-import { getSolvedTicketForArticleForSession } from "@/services/knowledge";
 import { ArticleForm, type ArticleFormValues } from "../article-form";
 
 export const metadata: Metadata = { title: "New article - ansa" };
@@ -29,9 +27,8 @@ const EMPTY_ARTICLE: ArticleFormValues = { title: "", kind: "faq", body: "", use
 // claim: another company's ticket, or one that isn't solved, gives the plain form.
 async function NewArticleContent({ searchParams }: Pick<PageProps<"/knowledge/new">, "searchParams">) {
   const { fromTicket } = await searchParams;
-  const session = await requireSessionContext("/knowledge/new");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const ticket = isCoreOn() ? await getSolvedTicketForArticleFromCore(fromTicket) : await getSolvedTicketForArticleForSession(session, fromTicket);
+  await requireSessionContext("/knowledge/new");
+  const ticket = await getSolvedTicketForArticleFromCore(fromTicket);
   const initial: ArticleFormValues = ticket ? { ...EMPTY_ARTICLE, title: ticket.subject, kind: "solution" } : EMPTY_ARTICLE;
 
   return (

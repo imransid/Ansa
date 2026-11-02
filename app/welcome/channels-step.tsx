@@ -3,19 +3,16 @@ import { completeChannelsStepAction } from "@/app/actions/restaurant-setup";
 import { CopyButton } from "@/app/setup/copy-button";
 import { ActionButtonForm } from "@/components/restaurant-setup/action-button-form";
 import { buttonVariants } from "@/components/ui/button";
-import { isCoreOn } from "@/lib/core-api";
 import { getChannelsStepFromCore } from "@/lib/core-views/restaurant-setup";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { getSetupForSession } from "@/services/setup";
+import { requireSessionContext } from "@/lib/session";
 
 // Setup step 6: where messages reach ansa. Email works today through the
 // company's forwarding address; ansa links phone numbers itself; Telegram
 // connects on Settings → Connections (step 48); Messenger comes with step 53,
 // so the step says so instead of offering a button that does nothing.
 export async function ChannelsStep({ backHref }: { backHref: string }) {
-  const session = await requireSessionContext("/welcome");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const { forwardingAddress, phoneLineCount } = isCoreOn() ? await getChannelsStepFromCore() : await readChannelsStep(session);
+  await requireSessionContext("/welcome");
+  const { forwardingAddress, phoneLineCount } = await getChannelsStepFromCore();
   return (
     <div className="grid gap-6">
       <ul className="divide-y border-y">
@@ -64,10 +61,4 @@ export async function ChannelsStep({ backHref }: { backHref: string }) {
       </div>
     </div>
   );
-}
-
-// The old path: the forwarding address and the phone lines, from Setup's own read.
-async function readChannelsStep(session: SessionContext): Promise<{ forwardingAddress: string; phoneLineCount: number }> {
-  const setup = await getSetupForSession(session);
-  return { forwardingAddress: setup.forwardingAddress, phoneLineCount: setup.phoneLines.length };
 }

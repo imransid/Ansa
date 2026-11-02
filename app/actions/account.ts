@@ -1,13 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import { changeNameThroughCore, changePasswordThroughCore, logOutOtherDevicesThroughCore } from "@/lib/core-views/account";
 import { withTypedValues, type FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
-import { changeNameForSession, changePasswordForSession, signOutOtherDevicesForSession } from "@/services/account";
 
 // Thin, like every action: the services validate and rate limit. Each uses
 // the new backend when it is switched on (lib/core-api.ts), else services/;
@@ -22,9 +19,9 @@ export async function changeNameAction(
   _previousState: AccountFormState | undefined,
   formData: FormData,
 ): Promise<AccountFormState> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { name: formData.get("name") };
-  const result = isCoreOn() ? await changeNameThroughCore(input) : await changeNameForSession(session, input);
+  const result = await changeNameThroughCore(input);
   if (!result.ok) {
     return { errors: withTypedValues(result.errors, formData, ["name"]) };
   }
@@ -36,14 +33,12 @@ export async function changePasswordAction(
   _previousState: AccountFormState | undefined,
   formData: FormData,
 ): Promise<AccountFormState> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = {
     currentPassword: formData.get("currentPassword"),
     newPassword: formData.get("newPassword"),
   };
-  const result = isCoreOn()
-    ? await changePasswordThroughCore(input)
-    : await changePasswordForSession(session, input, await headers());
+  const result = await changePasswordThroughCore(input);
   if (!result.ok) {
     return { errors: result.errors };
   }
@@ -55,8 +50,8 @@ export async function changePasswordAction(
 }
 
 export async function signOutOtherDevicesAction(): Promise<AccountFormState> {
-  const session = await requireSessionContext();
-  const result = isCoreOn() ? await logOutOtherDevicesThroughCore() : await signOutOtherDevicesForSession(session, await headers());
+  await requireSessionContext();
+  const result = await logOutOtherDevicesThroughCore();
   if (!result.ok) {
     return { errors: result.errors };
   }

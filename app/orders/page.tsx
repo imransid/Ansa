@@ -4,11 +4,8 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageLoading } from "@/components/page-loading";
 import { RefreshEvery } from "@/components/refresh-every";
-import { isCoreOn } from "@/lib/core-api";
 import { getOrdersPageFromCore, takesOrdersFromCore } from "@/lib/core-views/orders";
 import { requireSessionContext } from "@/lib/session";
-import { getRestaurantProfileForSession } from "@/services/restaurant-setup";
-import { getOrdersPageForSession } from "@/services/orders";
 import { OrderCard } from "./order-card";
 
 export const metadata: Metadata = { title: "Orders - ansa" };
@@ -32,11 +29,8 @@ export default function OrdersPage() {
 }
 
 async function OrdersContent() {
-  const session = await requireSessionContext("/orders");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const [{ open, finished }, takesOrders] = isCoreOn()
-    ? await Promise.all([getOrdersPageFromCore(), takesOrdersFromCore()])
-    : await Promise.all([getOrdersPageForSession(session), getRestaurantProfileForSession(session).then((profile) => profile.settings.takesOrders)]);
+  await requireSessionContext("/orders");
+  const [{ open, finished }, takesOrders] = await Promise.all([getOrdersPageFromCore(), takesOrdersFromCore()]);
   return (
     <>
       <RefreshEvery />

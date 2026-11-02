@@ -5,12 +5,9 @@ import { logoutAction } from "@/app/actions/auth";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isCoreOn } from "@/lib/core-api";
 import { getSidebarFootFromCore } from "@/lib/core-views/sidebar";
-import { getSessionContext, type SessionContext } from "@/lib/session";
+import { getSessionContext } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { getAssistantGlanceForSession } from "@/services/assistant-settings";
-import { getDashboardSummary } from "@/services/dashboard";
 
 // The sidebar of every signed-in page on a laptop or tablet (from 768 pixels
 // wide): the forest-green frame (step 44) with ansa's mark, the section
@@ -61,8 +58,7 @@ async function SignedInUser() {
   if (!session) {
     return <SignedInUserPlaceholder />;
   }
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const foot = isCoreOn() ? await getSidebarFootFromCore() : await readFootFromServices(session);
+  const foot = await getSidebarFootFromCore();
   if (!foot) {
     return <SignedInUserPlaceholder />;
   }
@@ -103,12 +99,6 @@ async function SignedInUser() {
       </div>
     </div>
   );
-}
-
-// Who you are and your company, what ansa does now and today's hours, from services/.
-async function readFootFromServices(session: SessionContext) {
-  const [summary, glance] = await Promise.all([getDashboardSummary(session), getAssistantGlanceForSession(session)]);
-  return { summary, glance };
 }
 
 function SignedInUserPlaceholder() {

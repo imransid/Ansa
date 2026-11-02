@@ -1,12 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isCoreOn } from "@/lib/core-api";
 import { getCompanyNameFromCore, getSupportSetupFromCore } from "@/lib/core-views/support-setup";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { getDashboardSummary } from "@/services/dashboard";
-import { listDocumentsForSession } from "@/services/documents";
-import { getSetupForSession } from "@/services/setup";
+import { requireSessionContext } from "@/lib/session";
 import { Checklist } from "./checklist";
 import { CompanyNameForm } from "./company-name-form";
 import { DocumentsSection } from "./documents-section";
@@ -33,10 +29,9 @@ export default function SetupPage() {
 }
 
 async function SetupContent() {
-  const session = await requireSessionContext("/setup");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  await requireSessionContext("/setup");
   // Hiding the forms is only for a tidy page: both refuse non-owners.
-  const { companyName, setup, documents, isOwner } = isCoreOn() ? await getSetupFromCore() : await getSetupFromServices(session);
+  const { companyName, setup, documents, isOwner } = await getSetupFromCore();
 
   return (
     <>
@@ -88,16 +83,6 @@ async function SetupContent() {
       </section>
     </>
   );
-}
-
-// The page as services/ read it before the new backend.
-async function getSetupFromServices(session: SessionContext) {
-  const [summary, setup, documents] = await Promise.all([
-    getDashboardSummary(session),
-    getSetupForSession(session),
-    listDocumentsForSession(session),
-  ]);
-  return { companyName: summary.companyName, setup, documents, isOwner: session.role === "owner" };
 }
 
 // The same through the new backend.

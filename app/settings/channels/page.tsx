@@ -2,17 +2,11 @@ import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EmailConnection, PhoneConnection, PostingPlatforms } from "@/components/channels/more-connections";
-import { MessengerSection } from "@/components/channels/messenger-section";
 import { PageLoading } from "@/components/page-loading";
-import { isCoreOn } from "@/lib/core-api";
 import { getAccountsPageFromCore } from "@/lib/core-views/accounts";
 import { getConnectionsFromCore, type ConnectionsPage } from "@/lib/core-views/channels";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
+import { requireSessionContext } from "@/lib/session";
 import type { PlatformView, SocialAccountsPage } from "@/lib/types/social-accounts";
-import { getSetupStateForSession } from "@/services/assistant-settings";
-import { getSetupForSession } from "@/services/setup";
-import { getSocialAccountsPageForSession } from "@/services/social-accounts";
-import { getChannelsPageForSession } from "@/services/telegram-connect";
 import { MessengerFromCore } from "./messenger-from-core";
 import { TelegramSection } from "./telegram-section";
 
@@ -39,28 +33,16 @@ export default function ChannelsSettingsPage() {
 }
 
 async function Channels() {
-  const session = await requireSessionContext("/settings/channels");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  if (isCoreOn()) {
-    const page = await getConnectionsFromCore();
-    // LinkedIn, X and YouTube (core's Accounts page), read only for a
-    // business, the one that shows them.
-    const social = page.kind === "business" ? await getAccountsPageFromCore() : null;
-    return (
-      <ConnectionsSections
-        page={page}
-        messenger={<MessengerFromCore messenger={page.messenger} canManage={page.canManage} personal={page.kind === "personal"} />}
-        posting={social && <PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
-      />
-    );
-  }
-  const [page, social] = await Promise.all([getConnectionsFromServices(session), getSocialAccountsPageForSession(session)]);
-  const facebook = social.platforms.find((platform) => platform.platform === "facebook");
+  await requireSessionContext("/settings/channels");
+  const page = await getConnectionsFromCore();
+  // LinkedIn, X and YouTube (core's Accounts page), read only for a
+  // business, the one that shows them.
+  const social = page.kind === "business" ? await getAccountsPageFromCore() : null;
   return (
     <ConnectionsSections
       page={page}
-      messenger={facebook && <MessengerSection facebook={facebook} canManage={social.canManage} personal={page.kind === "personal"} />}
-      posting={<PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
+      messenger={<MessengerFromCore messenger={page.messenger} canManage={page.canManage} personal={page.kind === "personal"} />}
+      posting={social && <PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
     />
   );
 }
@@ -111,18 +93,4 @@ function ConnectionsSections({ page, messenger, posting }: { page: ConnectionsPa
       )}
     </div>
   );
-}
-
-// The page as services/ read it before the new backend.
-async function getConnectionsFromServices(session: SessionContext): Promise<ConnectionsPage> {
-  const [page, setup, mail] = await Promise.all([getChannelsPageForSession(session), getSetupStateForSession(session), getSetupForSession(session)]);
-  return {
-    canManage: page.canManage,
-    telegramMode: page.telegramMode,
-    telegram: page.telegram,
-    kind: setup.kind,
-    forwardingAddress: mail.forwardingAddress,
-    lastEmailAt: mail.lastInboundEmail?.receivedAt ?? null,
-    phoneLines: mail.phoneLines.map((line) => ({ id: line.vapiPhoneNumberId, lastCallAt: line.lastCallAt })),
-  };
 }

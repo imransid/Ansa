@@ -2,14 +2,10 @@ import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { canReviewContentDrafts } from "@/lib/cofounder/permissions";
-import { isCoreOn } from "@/lib/core-api";
 import { getDraftPublishingFromCore } from "@/lib/core-views/draft-publishing";
 import { getContentDraftPageFromCore } from "@/lib/core-views/studio-draft";
 import { getSessionContext, requireSessionContext, type SessionContext } from "@/lib/session";
 import type { ContentDraftPage } from "@/lib/types/content-drafts";
-import { getContentDraftPageForSession } from "@/services/content-drafts";
-import { getDraftPublishingForSession } from "@/services/draft-publishing";
 import { DraftClaims } from "./draft-claims";
 import { DraftMadeFrom } from "./draft-made-from";
 import { DraftPublishingSection } from "./draft-publishing";
@@ -17,17 +13,12 @@ import { DraftSummary } from "./draft-summary";
 import { DraftWorkspace } from "./draft-workspace";
 
 // One read per request: the tab title and the page both need the draft.
-const readDraft = cache(getContentDraftPageForSession);
 const readDraftFromCore = cache(getContentDraftPageFromCore);
 
 // The draft, and whether this person approves and rejects it (an owner):
-// from the new backend when it is switched on (lib/core-api.ts), else services/.
+// from core.
 async function readDraftForPage(session: SessionContext, draftId: string): Promise<{ draft: ContentDraftPage; canReview: boolean } | null> {
-  if (isCoreOn()) {
-    return readDraftFromCore(draftId);
-  }
-  const draft = await readDraft(session, draftId);
-  return draft ? { draft, canReview: canReviewContentDrafts(session.role) } : null;
+  return readDraftFromCore(draftId);
 }
 
 // "Regenerate" asks Claude inside this page's server action (up to about 4
@@ -79,7 +70,7 @@ async function DraftContent({ params }: Pick<PageProps<"/cofounder/studio/[draft
     notFound();
   }
   const { draft, canReview } = found;
-  const publishing = isCoreOn() ? await getDraftPublishingFromCore(draft.id) : await getDraftPublishingForSession(session, draft);
+  const publishing = await getDraftPublishingFromCore(draft.id);
   if (!publishing) {
     notFound();
   }

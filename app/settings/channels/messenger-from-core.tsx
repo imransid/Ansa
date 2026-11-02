@@ -4,10 +4,8 @@ import { ActionButton } from "@/components/action-button";
 import { StatusDot } from "@/components/status-dot";
 import type { CoreMessenger } from "@/lib/core-views/channels";
 
-// Settings → Connections → Facebook Messenger as the new backend reads it
-// (lib/core-views/channels.ts). The same section, words and buttons as
-// components/channels/messenger-section.tsx, which reads services/' accounts
-// page: keep the two alike until services/ goes. Owners connect; members read.
+// Settings → Connections → Facebook Messenger, as core reads it
+// (lib/core-views/channels.ts). Owners connect; members read.
 export function MessengerFromCore({ messenger, canManage, personal }: { messenger: CoreMessenger; canManage: boolean; personal: boolean }) {
   return (
     <div className="grid gap-3">

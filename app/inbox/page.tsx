@@ -6,13 +6,10 @@ import { FilterLinks } from "@/components/filter-links";
 import { PageLoading } from "@/components/page-loading";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
-import { isCoreOn } from "@/lib/core-api";
 import { getAccountKindFromCore, getInboxFromCore } from "@/lib/core-views/inbox";
 import { parseInboxView } from "@/lib/inbox";
 import { buildListUrl, parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
-import { getSetupStateForSession } from "@/services/assistant-settings";
-import { getInboxForSession } from "@/services/conversations";
 import { ConversationList } from "./conversation-list";
 
 export const metadata: Metadata = { title: "Inbox - ansa" };
@@ -36,11 +33,8 @@ async function InboxContent({ searchParams }: Pick<PageProps<"/inbox">, "searchP
   const urlQuery = await searchParams;
   const view = parseInboxView(urlQuery.view);
   const page = parsePageNumber(urlQuery.page);
-  const session = await requireSessionContext("/inbox");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const [{ rows, counts }, kind] = isCoreOn()
-    ? await Promise.all([getInboxFromCore(view, page), getAccountKindFromCore()])
-    : await Promise.all([getInboxForSession(session, view, page), getSetupStateForSession(session).then((state) => state.kind)]);
+  await requireSessionContext("/inbox");
+  const [{ rows, counts }, kind] = await Promise.all([getInboxFromCore(view, page), getAccountKindFromCore()]);
   const personal = kind === "personal";
   return (
     <>

@@ -67,7 +67,7 @@ function ConnectionSummary({ connection, platformLabel }: { connection: Connecti
 }
 
 // When the access runs out, and whether ansa renews it on its own, as
-// services/social-accounts.ts worked it out (it knows what time it is).
+// core worked it out (it knows what time it is).
 function AccessLifetimeText({ lifetime, platformLabel }: { lifetime: AccessLifetime; platformLabel: string }) {
   switch (lifetime.kind) {
     case "stand-in":

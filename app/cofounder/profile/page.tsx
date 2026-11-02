@@ -1,12 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { canManageBusinessProfile } from "@/lib/cofounder/permissions";
-import { isCoreOn } from "@/lib/core-api";
 import { getProfilePageFromCore } from "@/lib/core-views/cofounder-profile";
-import { requireSessionContext, type SessionContext } from "@/lib/session";
-import { getBusinessProfileForSession } from "@/services/business-profile";
-import { listArticlesForSuggestionsForSession } from "@/services/fact-suggestions";
+import { requireSessionContext } from "@/lib/session";
 import { ProfileCompletionSummary } from "../profile-completion";
 import { SuggestFromKnowledge } from "./suggest-from-knowledge";
 import { TopicCard } from "./topic-card";
@@ -34,10 +30,9 @@ export default function ProfilePage() {
 // is confirmed, what the AI proposed, and what is still missing. Owners
 // confirm, edit and dismiss; members read.
 async function ProfileContent() {
-  const session = await requireSessionContext("/cofounder/profile");
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
+  await requireSessionContext("/cofounder/profile");
   // Hiding the buttons is only for a tidy page: both refuse members.
-  const { profile, articles, isOwner } = isCoreOn() ? await getProfilePageFromCore() : await getProfileFromServices(session);
+  const { profile, articles, isOwner } = await getProfilePageFromCore();
 
   return (
     <>
@@ -72,14 +67,4 @@ async function ProfileContent() {
       ))}
     </>
   );
-}
-
-// The page as services/ read it before the new backend.
-async function getProfileFromServices(session: SessionContext) {
-  const isOwner = canManageBusinessProfile(session.role);
-  const [profile, articles] = await Promise.all([
-    getBusinessProfileForSession(session),
-    isOwner ? listArticlesForSuggestionsForSession(session) : [],
-  ]);
-  return { profile, articles, isOwner };
 }

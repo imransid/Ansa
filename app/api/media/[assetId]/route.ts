@@ -1,8 +1,6 @@
-import { isCoreOn } from "@/lib/core-api";
 import { getMediaFileFromCore } from "@/lib/core-views/media";
 import { fileUnavailableResponse, inlineMediaResponse } from "@/lib/private-file-response";
 import { getSessionContext } from "@/lib/session";
-import { getMediaFileForSession } from "@/services/media-files";
 
 // The media library's images and videos (step 39) are shown from here.
 // Logged-in users of the asset's company only; everyone else gets 404, and
@@ -13,8 +11,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/medi
     return new Response(null, { status: 401 });
   }
   const { assetId } = await params;
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const file = isCoreOn() ? await getMediaFileFromCore(assetId) : await getMediaFileForSession(session, assetId);
+  const file = await getMediaFileFromCore(assetId);
   if (file === "rate-limited" || file === null) {
     return fileUnavailableResponse(file);
   }

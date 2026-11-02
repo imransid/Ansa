@@ -1,9 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { isCoreOn } from "@/lib/core-api";
 import { getBillingFromCore } from "@/lib/core-views/billing";
 import { requireSessionContext } from "@/lib/session";
-import { getBillingForSession } from "@/services/billing";
 import { BillingPanel } from "./billing-panel";
 
 export const metadata: Metadata = { title: "Billing - ansa" };
@@ -19,12 +17,9 @@ export default function BillingPage({ searchParams }: PageProps<"/billing">) {
 }
 
 async function BillingContent({ searchParams }: Pick<PageProps<"/billing">, "searchParams">) {
-  const session = await requireSessionContext("/billing");
+  await requireSessionContext("/billing");
   const query = await searchParams;
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const billing = isCoreOn()
-    ? await getBillingFromCore(query.checkout === "done")
-    : await getBillingForSession(session, query.checkout === "done");
+  const billing = await getBillingFromCore(query.checkout === "done");
 
   return (
     <>

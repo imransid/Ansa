@@ -6,7 +6,6 @@ import { listAssigneeMenu } from "@/app/tickets/[ticketNumber]/assignee-menu";
 import { PageLoading } from "@/components/page-loading";
 import { StatusDot } from "@/components/status-dot";
 import { CHANNEL_LABELS } from "@/lib/conversations";
-import { isCoreOn } from "@/lib/core-api";
 import { getAccountKindFromCore, getConversationFromCore } from "@/lib/core-views/inbox";
 import { getRequestPageFromCore } from "@/lib/core-views/tickets";
 import { contactLabel, isUnverifiedSender } from "@/lib/inbox";
@@ -14,9 +13,6 @@ import { formatPrice } from "@/lib/menu";
 import { ORDER_STATUS_LABELS } from "@/lib/orders";
 import { getSessionContext, requireSessionContext } from "@/lib/session";
 import type { ConversationPage } from "@/lib/types/conversation-page";
-import { getSetupStateForSession } from "@/services/assistant-settings";
-import { getConversationPageForSession } from "@/services/conversation-page";
-import { listAssigneeChoicesForSession } from "@/services/team";
 import { Handler, History, Importance, WaitingReply } from "./conversation-parts";
 import { ConversationTimeline } from "./conversation-timeline";
 import { ReplyForm } from "./reply-form";
@@ -38,14 +34,13 @@ const REPLY_BLOCKED_TEXT: Record<"telegram" | "messenger", Record<NonNullable<Co
 };
 
 // One read per request: the tab title and the page both need it.
-const readConversation = cache(getConversationPageForSession);
 const readConversationFromCore = cache(getConversationFromCore);
 
 // "Lena Moretti - ansa", so several conversation tabs can be told apart.
 export async function generateMetadata({ params }: PageProps<"/inbox/[conversationId]">): Promise<Metadata> {
   const { conversationId } = await params;
   const session = await getSessionContext();
-  const conversation = !session ? null : isCoreOn() ? await readConversationFromCore(conversationId) : await readConversation(session, conversationId);
+  const conversation = !session ? null : await readConversationFromCore(conversationId);
   return { title: conversation ? `${contactLabel(conversation)} - ansa` : "Conversation - ansa" };
 }
 
@@ -68,21 +63,15 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
   // ?edit=<id>: the assistant's waiting reply opened in the reply box (step 49).
   const { edit } = await searchParams;
   const session = await requireSessionContext(`/inbox/${encodeURIComponent(conversationId)}`);
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const conversation = isCoreOn() ? await readConversationFromCore(conversationId) : await readConversation(session, conversationId);
+  const conversation = await readConversationFromCore(conversationId);
   if (!conversation) {
     notFound();
   }
   const openTicketNumber = conversation.openTicket?.ticketNumber;
-  const [assigneeChoices, kind] = isCoreOn()
-    ? await Promise.all([
+  const [assigneeChoices, kind] = await Promise.all([
         // The open request's own page read, already made for the conversation (React cache).
         openTicketNumber ? getRequestPageFromCore(String(openTicketNumber)).then((request) => request?.assigneeChoices ?? []) : Promise.resolve([]),
         getAccountKindFromCore(),
-      ])
-    : await Promise.all([
-        conversation.openTicket ? listAssigneeChoicesForSession(session) : Promise.resolve([]),
-        getSetupStateForSession(session).then((state) => state.kind),
       ]);
   const waiting = conversation.entries.findLast((entry) => entry.sendStatus === "draft" && entry.text !== null);
   const editing = waiting && edit === waiting.id ? { id: waiting.id, text: waiting.text ?? "" } : undefined;

@@ -1,18 +1,11 @@
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
-import { getRequestPageFromCore, type RequestPage, type TicketView } from "@/lib/core-views/tickets";
-import { getSessionContext, requireSessionContext, type SessionContext } from "@/lib/session";
+import { getRequestPageFromCore, type TicketView } from "@/lib/core-views/tickets";
+import { getSessionContext, requireSessionContext } from "@/lib/session";
 import type { OriginalEmail } from "@/lib/types/inbound-emails";
 import { readCustomerEmail } from "@/lib/validation/customer-email";
-import { listActiveCategoryNamesForSession } from "@/services/categories";
-import { getLatestCustomerEmailForSession } from "@/services/customer-emails";
-import { getOriginalEmailForSession } from "@/services/inbound-emails";
-import { listAssigneeChoicesForSession } from "@/services/team";
-import { getTicketHistoryForSession } from "@/services/ticket-history";
-import { getTicketForSession, listOtherOpenTicketsFromCustomerForSession } from "@/services/tickets";
 import { listAssigneeMenu } from "./assignee-menu";
 import { CustomerEmailSection, type EmailOrigin, type SuggestedEmail } from "./customer-email-section";
 import { CustomerEmailStatus } from "./customer-email-status";
@@ -24,9 +17,6 @@ import { TicketCategoryForm } from "./ticket-category-form";
 import { TicketHistorySection } from "./ticket-history";
 import { TicketSummary } from "./ticket-summary";
 
-// One read per request: the tab title and the page both need the ticket.
-const readTicket = cache(getTicketForSession);
-
 // "#412 Refund not received - ansa", so several open ticket tabs can be told
 // apart. The subject is one plain line already; a long one is cut here.
 export async function generateMetadata({ params }: PageProps<"/tickets/[ticketNumber]">): Promise<Metadata> {
@@ -36,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/tickets/[ticketNu
   if (!session) {
     return { title: "Ticket - ansa" };
   }
-  const ticket = isCoreOn() ? (await getRequestPageFromCore(ticketNumber))?.ticket : await readTicket(session, ticketNumber);
+  const ticket = (await getRequestPageFromCore(ticketNumber))?.ticket;
   if (!ticket) {
     return { title: "Ticket not found - ansa" };
   }
@@ -64,19 +54,15 @@ async function TicketContent({
   const { ticketNumber } = await params;
   // Logging in brings them back to this ticket (an assignment email's link).
   const session = await requireSessionContext(`/tickets/${encodeURIComponent(ticketNumber)}`);
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const fromCore = isCoreOn() ? await getRequestPageFromCore(ticketNumber) : null;
-  const ticket = isCoreOn() ? fromCore?.ticket : await readTicket(session, ticketNumber);
+  // The request and everything the page shows around it, in one answer.
+  const page = await getRequestPageFromCore(ticketNumber);
   // Unknown number, bad number, or a number that only exists in another
   // company: all look the same (./not-found.tsx), so nothing leaks about
   // other companies.
-  if (!ticket) {
+  if (!page) {
     notFound();
   }
-
-  // What the page shows around the ticket: core sends it with the request.
-  const { assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history } =
-    fromCore ?? (await readSectionsFromServices(session, ticket.id));
+  const { ticket, assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history, relatedArticles } = page;
 
   return (
     <>
@@ -86,14 +72,7 @@ async function TicketContent({
       <TicketSummary ticket={ticket} />
       <SameCustomerTickets tickets={sameCustomerTickets} />
       {originalEmail && <OriginalEmailSection email={originalEmail} />}
-      <KnowledgeSection
-        session={session}
-        ticketNumber={ticket.ticketNumber}
-        subject={ticket.subject}
-        category={ticket.category}
-        isSolved={ticket.status === "solved"}
-        articles={fromCore?.relatedArticles}
-      />
+      <KnowledgeSection ticketNumber={ticket.ticketNumber} isSolved={ticket.status === "solved"} articles={relatedArticles} />
       <CustomerEmailSection
         // A new key after every save puts the section back into "view" mode.
         key={`${ticket.customerEmail ?? "none"}-${ticket.customerEmailSetAt?.toISOString() ?? "never"}`}
@@ -116,20 +95,6 @@ async function TicketContent({
       <TicketHistorySection ticketId={ticket.id} ticketCreatedAt={ticket.createdAt} history={history} />
     </>
   );
-}
-
-// Everything the page shows around the ticket, from services/ (the old
-// backend). Related knowledge is searched in its own section instead.
-async function readSectionsFromServices(session: SessionContext, ticketId: string): Promise<Omit<RequestPage, "ticket" | "relatedArticles">> {
-  const [assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history] = await Promise.all([
-    listAssigneeChoicesForSession(session),
-    getLatestCustomerEmailForSession(session, ticketId),
-    listActiveCategoryNamesForSession(session),
-    getOriginalEmailForSession(session, ticketId),
-    listOtherOpenTicketsFromCustomerForSession(session, ticketId),
-    getTicketHistoryForSession(session, ticketId),
-  ]);
-  return { assigneeChoices, latestEmail, categoryNames, originalEmail, sameCustomerTickets, history };
 }
 
 // Where the customer's email came from, shown next to the address.

@@ -30,7 +30,7 @@ export function RequestBox({ conversation, ticket, teamMembers, canAssign, canRe
         // A chat (the "easy to use" pass of 2026-11-01): answer in the
         // box, then Done, which closes the request without an email (a
         // chat has none to send) and hands the conversation back to
-        // ansa (services/conversation-done.ts).
+        // ansa (core: POST /api/v1/conversations/{id}/done).
         <>
           <p className="text-sm text-muted-foreground">
             ansa told them you&apos;ll get back to them. Answer them here, then press Done: ansa takes care of them again after that.

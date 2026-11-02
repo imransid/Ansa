@@ -2,10 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import { getPlanVersionFromCore } from "@/lib/core-views/cofounder-strategy";
 import { requireSessionContext } from "@/lib/session";
-import { getPlanVersionForSession } from "@/services/marketing-strategy";
 import { PlanView } from "../plan-view";
 
 export const metadata: Metadata = { title: "Plan version - Co-Founder - ansa" };
@@ -26,9 +24,8 @@ export default function PlanVersionPage({ params }: PageProps<"/cofounder/strate
 // links to the versions before and after it. Everyone in the company reads it.
 async function PlanVersionContent({ params }: Pick<PageProps<"/cofounder/strategy/[version]">, "params">) {
   const { version } = await params;
-  const session = await requireSessionContext(`/cofounder/strategy/${encodeURIComponent(version)}`);
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const page = isCoreOn() ? await getPlanVersionFromCore(version) : await getPlanVersionForSession(session, version);
+  await requireSessionContext(`/cofounder/strategy/${encodeURIComponent(version)}`);
+  const page = await getPlanVersionFromCore(version);
   // A bad number, or one the company has no version of: both look the same (../not-found.tsx).
   if (!page) {
     notFound();

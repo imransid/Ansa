@@ -6,10 +6,8 @@ import { logoutAction } from "@/app/actions/auth";
 import { PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { COFOUNDER_PAGES } from "@/lib/cofounder/pages";
-import { isCoreOn } from "@/lib/core-api";
 import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
-import { getSetupStateForSession } from "@/services/assistant-settings";
 
 export const metadata: Metadata = { title: "Settings - ansa" };
 
@@ -44,7 +42,7 @@ const MORE_LINKS: SettingsLink[] = [
 const TEAM_LINK: SettingsLink = { href: "/team", label: "Team", description: "The people who work with you, and who handles which requests." };
 const ACCOUNT_LINK: SettingsLink = { href: "/account", label: "Your account", description: "Your name, password and logins on other devices." };
 
-// Only owners see billing: services/billing.ts refuses members anyway.
+// Only owners see billing: core refuses members anyway.
 const BILLING_LINK: SettingsLink = { href: "/billing", label: "Billing", description: "Your subscription and payments." };
 
 // The Co-Founder's pages the sidebar no longer links (step 44): everything
@@ -71,8 +69,7 @@ export default function SettingsPage() {
 async function SettingsLists() {
   const session = await requireSessionContext("/settings");
   const billing = session.role === "owner" ? [BILLING_LINK] : [];
-  // The new backend when it is switched on (lib/core-api.ts), else services/.
-  const { kind } = isCoreOn() ? await getSetupStateFromCore() : await getSetupStateForSession(session);
+  const { kind } = await getSetupStateFromCore();
   if (kind === "personal") {
     return (
       <>

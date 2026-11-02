@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import {
   changeArticleStatusThroughCore,
   createArticleThroughCore,
@@ -16,19 +15,9 @@ import { withTypedValues, type FormErrors, type FormResult, type SaveState } fro
 import type { KnowledgeSlice } from "@/lib/knowledge/prompt-slice";
 import { requireSessionContext } from "@/lib/session";
 import type { ImportResult } from "@/lib/types/knowledge-import";
-import { createKnowledgeArticleForSession, editKnowledgeArticleForSession } from "@/services/knowledge";
-import { importDocumentToKnowledgeForSession } from "@/services/knowledge-import";
-import { testKnowledgeSearchForSession } from "@/services/knowledge-search";
-import {
-  approveKnowledgeArticleForSession,
-  archiveKnowledgeArticleForSession,
-  deleteKnowledgeArticleForSession,
-  restoreKnowledgeArticleForSession,
-} from "@/services/knowledge-status";
-import { importWebPageToKnowledgeForSession } from "@/services/knowledge-web-import";
 
 // Server actions are public POST endpoints. Keep them thin: read the form,
-// call a service (which checks company, role, input and rate limits),
+// ask core (which checks company, role, input and rate limits),
 // refresh the pages that show knowledge. Each uses the new backend when it
 // is switched on (lib/core-api.ts), else services/.
 
@@ -43,9 +32,9 @@ export type ImportState = { result?: ImportResult; values?: Record<string, strin
 
 // "New article": on success, opens the new article.
 export async function createKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { ...articleFields(formData), fromTicket: formData.get("fromTicket") };
-  const result = isCoreOn() ? await createArticleThroughCore(input) : await createKnowledgeArticleForSession(session, input);
+  const result = await createArticleThroughCore(input);
   if (!result.ok) {
     return result.errors;
   }
@@ -55,9 +44,9 @@ export async function createKnowledgeArticleAction(_previous: FormErrors | undef
 }
 
 export async function editKnowledgeArticleAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { ...articleFields(formData), articleId: formData.get("articleId"), revision: formData.get("revision") };
-  const result = isCoreOn() ? await editArticleThroughCore(input) : await editKnowledgeArticleForSession(session, input);
+  const result = await editArticleThroughCore(input);
   if (!result.ok) {
     return { errors: result.errors };
   }
@@ -66,36 +55,25 @@ export async function editKnowledgeArticleAction(_previous: SaveState | undefine
 }
 
 export async function approveKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData) {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { articleId: formData.get("articleId"), revision: formData.get("revision") };
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await changeArticleStatusThroughCore(input.articleId, "approve", input.revision));
-  }
-  return refreshOrReturnErrors(await approveKnowledgeArticleForSession(session, input));
+  return refreshOrReturnErrors(await changeArticleStatusThroughCore(input.articleId, "approve", input.revision));
 }
 
 export async function archiveKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData) {
-  const session = await requireSessionContext();
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await changeArticleStatusThroughCore(formData.get("articleId"), "archive"));
-  }
-  return refreshOrReturnErrors(await archiveKnowledgeArticleForSession(session, { articleId: formData.get("articleId") }));
+  await requireSessionContext();
+  return refreshOrReturnErrors(await changeArticleStatusThroughCore(formData.get("articleId"), "archive"));
 }
 
 export async function restoreKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData) {
-  const session = await requireSessionContext();
-  if (isCoreOn()) {
-    return refreshOrReturnErrors(await changeArticleStatusThroughCore(formData.get("articleId"), "restore"));
-  }
-  return refreshOrReturnErrors(await restoreKnowledgeArticleForSession(session, { articleId: formData.get("articleId") }));
+  await requireSessionContext();
+  return refreshOrReturnErrors(await changeArticleStatusThroughCore(formData.get("articleId"), "restore"));
 }
 
 // On success the article is gone, so its page leads back to the list.
 export async function deleteKnowledgeArticleAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await deleteArticleThroughCore(formData.get("articleId"))
-    : await deleteKnowledgeArticleForSession(session, { articleId: formData.get("articleId") });
+  await requireSessionContext();
+  const result = await deleteArticleThroughCore(formData.get("articleId"));
   if (!result.ok) {
     return result.errors;
   }
@@ -106,21 +84,15 @@ export async function deleteKnowledgeArticleAction(_previous: FormErrors | undef
 // Nothing is saved: the question is only searched for, and sent back so the
 // box shows it again.
 export async function testKnowledgeSearchAction(_previous: KnowledgeTestState | undefined, formData: FormData): Promise<KnowledgeTestState> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const question = String(formData.get("question") ?? "").slice(0, 1000);
-  if (isCoreOn()) {
-    const result = await testKnowledgeThroughCore(formData.get("question"));
-    return result.ok ? { slice: result.slice, callAnswer: result.callAnswer, question, readByChatAssistant: true } : { errors: result.errors, question };
-  }
-  const result = await testKnowledgeSearchForSession(session, { question: formData.get("question") });
-  return result.ok ? { slice: result.slice, callAnswer: result.callAnswer, question } : { errors: result.errors, question };
+  const result = await testKnowledgeThroughCore(formData.get("question"));
+  return result.ok ? { slice: result.slice, callAnswer: result.callAnswer, question, readByChatAssistant: true } : { errors: result.errors, question };
 }
 
 export async function importDocumentToKnowledgeAction(_previous: ImportState | undefined, formData: FormData): Promise<ImportState> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await importDocumentThroughCore(formData.get("documentId"))
-    : await importDocumentToKnowledgeForSession(session, { documentId: formData.get("documentId") });
+  await requireSessionContext();
+  const result = await importDocumentThroughCore(formData.get("documentId"));
   if (result.ok) {
     refreshKnowledgePages();
   }
@@ -128,8 +100,8 @@ export async function importDocumentToKnowledgeAction(_previous: ImportState | u
 }
 
 export async function importWebPageAction(_previous: ImportState | undefined, formData: FormData): Promise<ImportState> {
-  const session = await requireSessionContext();
-  const result = isCoreOn() ? await importWebPageThroughCore(formData.get("url")) : await importWebPageToKnowledgeForSession(session, { url: formData.get("url") });
+  await requireSessionContext();
+  const result = await importWebPageThroughCore(formData.get("url"));
   if (result.ok) {
     refreshKnowledgePages();
     return { result };

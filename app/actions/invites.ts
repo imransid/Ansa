@@ -1,19 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { isCoreOn } from "@/lib/core-api";
 import { getInvitePreviewFromCore, joinThroughCore } from "@/lib/core-views/auth";
 import { createInviteThroughCore, revokeInviteThroughCore } from "@/lib/core-views/team";
 import { withTypedValues, type FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import type { InvitePreviewResult } from "@/lib/types/invites";
-import { createInviteForSession, getInvitePreview, revokeInviteForSession } from "@/services/invites";
-import { joinCompanyWithInvite } from "@/services/signup";
 
 // Server actions are public POST endpoints. Keep them thin: read the input,
-// call a service (which checks the role, validates and rate limits), respond.
+// ask core (which checks the role, validates and rate limits), respond.
 // A refused form gets back what was typed, never the password (withTypedValues).
 // Each uses the new backend when it is switched on (lib/core-api.ts), else services/.
 
@@ -26,9 +22,9 @@ export async function createInviteAction(
   _previousState: CreateInviteState | undefined,
   formData: FormData,
 ): Promise<CreateInviteState> {
-  const session = await requireSessionContext();
+  await requireSessionContext();
   const input = { email: formData.get("email"), role: formData.get("role") };
-  const result = isCoreOn() ? await createInviteThroughCore(input) : await createInviteForSession(session, input);
+  const result = await createInviteThroughCore(input);
   if (!result.ok) {
     return { errors: withTypedValues(result.errors, formData, ["email", "role"]) };
   }
@@ -42,10 +38,8 @@ export async function revokeInviteAction(
   _previousErrors: FormErrors | undefined,
   formData: FormData,
 ): Promise<FormErrors | undefined> {
-  const session = await requireSessionContext();
-  const result = isCoreOn()
-    ? await revokeInviteThroughCore(formData.get("inviteId"))
-    : await revokeInviteForSession(session, { inviteId: formData.get("inviteId") });
+  await requireSessionContext();
+  const result = await revokeInviteThroughCore(formData.get("inviteId"));
   // Refreshed either way: "no longer pending" means it was used or revoked
   // meanwhile, and the list must show that.
   revalidatePath("/team");
@@ -55,7 +49,7 @@ export async function revokeInviteAction(
 export async function getInvitePreviewAction(
   inviteToken: string,
 ): Promise<InvitePreviewResult> {
-  return isCoreOn() ? getInvitePreviewFromCore(inviteToken) : getInvitePreview(inviteToken, await headers());
+  return getInvitePreviewFromCore(inviteToken);
 }
 
 export async function joinWithInviteAction(
@@ -68,7 +62,7 @@ export async function joinWithInviteAction(
     email: formData.get("email"),
     password: formData.get("password"),
   };
-  const result = isCoreOn() ? await joinThroughCore(input) : await joinCompanyWithInvite(input, await headers());
+  const result = await joinThroughCore(input);
   if (!result.ok) {
     return withTypedValues(result.errors, formData, ["name"]);
   }
