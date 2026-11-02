@@ -3149,8 +3149,10 @@ this order and is done on the laptop, deploying aside
   Twilio, Telnyx or LiveKit at launch), so nobody can call ansa's number
   yet, and the person's "forward calls I can't take" is a setting on their
   own phone that needs that number. The practice phone hears with
-  whisper.cpp (the "small" model: good English, weaker in other languages
-  such as Bangla) and speaks with the browser's own voices; a real line
+  whisper.cpp on the CPU (the "small" model: good English, weaker in other
+  languages such as Bangla; about 8-10 s a turn on an M2, as the model
+  loads every time; Homebrew's 1.9.5 aborts in its GPU mode, so the brain
+  passes --no-gpu) and speaks with the browser's own voices; a real line
   will hear and speak with its provider's. Each turn waits for the whole
   answer (no streaming): with Claude Code on this computer a few seconds or
   more, so a caller hears a pause; nothing interrupts ansa while it speaks
