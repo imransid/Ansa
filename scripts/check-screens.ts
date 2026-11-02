@@ -5,6 +5,7 @@
 import { getFailureCount } from "./screen-checks/check";
 import { runCofounderConsistencyChecks } from "./screen-checks/cofounder-consistency-checks";
 import { runContentRulesChecks } from "./screen-checks/content-rules-checks";
+import { runContentRulesVectorChecks } from "./screen-checks/content-rules-vector-checks";
 import { runLoginRedirectChecks } from "./screen-checks/login-redirect-checks";
 import { runMediaUiChecks } from "./screen-checks/media-ui-checks";
 import { runNavigationChecks } from "./screen-checks/navigation-checks";
@@ -21,6 +22,7 @@ async function main() {
   await runMediaUiChecks();
   await runSocialPageChecks();
   await runContentRulesChecks();
+  await runContentRulesVectorChecks();
   const failures = getFailureCount();
   console.log(failures === 0 ? "\nAll screen checks passed." : `\n${failures} screen check(s) failed.`);
   process.exit(failures === 0 ? 0 : 1);

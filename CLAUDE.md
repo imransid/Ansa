@@ -2456,7 +2456,18 @@ this order and is done on the laptop, deploying aside
   retention rule yet.
 - DATA_ENCRYPTION_KEY must be backed up; losing it loses every transcript, what
   Claude wrote about calls, every received email's content and every ticket note.
-  There is no key rotation yet (the "v1:" prefix leaves room for it).
+  There is no key rotation yet (the "v1:" prefix leaves room for it). Only the
+  interview logs a text it can't decrypt ("could not decrypt stored text:
+  check DATA_ENCRYPTION_KEY"); a call's transcript, a note or an email that
+  can't be decrypted shows as such on its page, with no log line.
+- Since the rewrite some pure rules live twice: in the screens (the browser's
+  live checks and words) and in core (what is decided and sent). The content
+  rules are tied: both sides replay one set of vectors
+  (core/internal/contentrules/testdata/old_rules.json: core's
+  oldrules_test.go and pnpm check:screens). The others are kept equal by hand
+  only, for example the menu's price reading, the setup lists, Telegram's
+  fixed texts, the publishing limits, the metric definitions and the link
+  lifetimes (the screens' comments name core's copy).
 - Setup page (step 16): owners list their support addresses there (shown, and
   used to skip mail from the company itself). Phone numbers are linked by ansa
   (make link-phone-line in core/; make unlink-phone-line works only before
