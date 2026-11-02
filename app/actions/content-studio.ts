@@ -14,10 +14,9 @@ import {
 import type { FormErrors, FormResult, SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks company, role, input and rate limits),
-// refresh the Co-Founder's pages. Each uses the new backend when it is
-// switched on (lib/core-api.ts), else services/.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks company, role, input and rate limits), refresh the
+// Co-Founder's pages.
 
 // "New draft": "Write it with the AI" or "Start blank" (the button sends
 // mode). On success it opens the new draft (a redirect), so it never returns.

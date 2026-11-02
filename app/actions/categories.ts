@@ -11,10 +11,9 @@ import {
 import { withTypedValues, type FormErrors, type FormResult, type SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks role, company and rate limits), refresh pages.
-// A refused form gets back what was typed, so it can show it again. Each
-// uses the new backend when it is switched on (lib/core-api.ts), else services/.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks role, company and rate limits), refresh pages. A refused
+// form gets back what was typed, so it can show it again.
 
 export async function createCategoryAction(_previous: FormErrors | undefined, formData: FormData) {
   await requireSessionContext();

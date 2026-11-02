@@ -6,10 +6,9 @@ import type { SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import type { MarketingPlanResult } from "@/lib/types/marketing-plan";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks company, role, input and rate limits),
-// refresh the Co-Founder's pages. Each uses the new backend when it is
-// switched on (lib/core-api.ts), else services/.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks company, role, input and rate limits), refresh the
+// Co-Founder's pages.
 
 // What "Make a new plan" shows after it ran: the new version, or why not.
 export type MarketingPlanState = { result?: MarketingPlanResult };

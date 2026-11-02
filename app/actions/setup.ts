@@ -13,9 +13,9 @@ import { withTypedValues, type FormErrors, type FormResult, type SaveState } fro
 import { requireSessionContext } from "@/lib/session";
 
 // Thin, like every action: core checks owner role, input and rate limits.
-// There are no phone number actions: ansa links numbers (pnpm link:phone-line).
-// A refused form gets back what was typed, so it can show it again. Each
-// uses the new backend when it is switched on (lib/core-api.ts), else services/.
+// There are no phone number actions: ansa links numbers (pnpm
+// link:phone-line). A refused form gets back what was typed, so it can show it
+// again.
 
 export async function setCompanyNameAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
   await requireSessionContext();

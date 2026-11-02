@@ -7,9 +7,8 @@ import type { FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import type { RedirectResult } from "@/lib/types/billing";
 
-// Thin, like every action: services/billing.ts checks owner role and rate limits.
-// Each uses the new backend when it is switched on (lib/core-api.ts), else
-// services/; both answer in the same shapes.
+// Thin, like every action: services/billing.ts checks owner role and rate
+// limits.
 
 export async function startCheckoutAction(): Promise<FormErrors | undefined> {
   await requireSessionContext();

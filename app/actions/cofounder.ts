@@ -14,10 +14,9 @@ import { requireSessionContext } from "@/lib/session";
 import type { FactSuggestionResult } from "@/lib/types/fact-suggestions";
 import type { InterviewAnswerResult } from "@/lib/types/onboarding-interview";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks company, role, input and rate limits),
-// refresh the Co-Founder's pages. Each uses the new backend when it is
-// switched on (lib/core-api.ts), else services/.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks company, role, input and rate limits), refresh the
+// Co-Founder's pages.
 
 // What the answer box shows after an answer: what became of it, or why not.
 export type InterviewAnswerState = { result?: InterviewAnswerResult };

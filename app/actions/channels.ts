@@ -5,9 +5,8 @@ import { connectStandInTelegramThroughCore, disconnectTelegramThroughCore, start
 import type { FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Thin, like every action: core checks the person, the mode and the
-// rate limit (step 48, Settings → Connections). Each uses the new backend
-// when it is switched on (lib/core-api.ts), else services/.
+// Thin, like every action: core checks the person, the mode and the rate limit
+// (step 48, Settings → Connections).
 
 export type ConnectTelegramState = { link?: string; errors?: FormErrors };
 

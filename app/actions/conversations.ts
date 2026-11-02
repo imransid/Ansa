@@ -12,9 +12,8 @@ import {
 import { withTypedValues, type FormErrors, type SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Thin, like every action: core checks the person, the input and the
-// rate limit. A refused reply gets back what was typed. Each uses the new
-// backend when it is switched on (lib/core-api.ts), else services/.
+// Thin, like every action: core checks the person, the input and the rate
+// limit. A refused reply gets back what was typed.
 
 export async function takeOverAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   await requireSessionContext();

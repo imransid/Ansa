@@ -15,9 +15,8 @@ import { withTypedValues, type FormErrors, type SaveState } from "@/lib/form-res
 import { requireSessionContext } from "@/lib/session";
 import type { MenuReadingOutcome } from "@/lib/types/menu-reading";
 
-// Thin, like every action: core checks the person, the input and the
-// rate limits. A refused form gets back what was typed. Each uses the new
-// backend when it is switched on (lib/core-api.ts), else services/.
+// Thin, like every action: core checks the person, the input and the rate
+// limits. A refused form gets back what was typed.
 
 const DISH_FIELDS = ["category", "name", "description", "price"];
 

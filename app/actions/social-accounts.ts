@@ -6,13 +6,10 @@ import { connectStandInThroughCore, disconnectAccountThroughCore, startSocialCon
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks the role, the input and the rate limit),
-// then send the owner on to the platform or back to the Accounts page. The
-// platform is asked to take a disconnected account's access back after the
-// answer, through Next's after() (which runs after a redirect too). With
-// the new backend switched on (lib/core-api.ts) every platform goes to
-// core instead, which asks for that itself after its answer.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks the role, the input and the rate limit), then send the
+// owner on to the platform or back to the Accounts page. Core asks the
+// platform to take a disconnected account's access back, after its answer.
 
 export async function connectSocialAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   await requireSessionContext();

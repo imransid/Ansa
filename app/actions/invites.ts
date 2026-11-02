@@ -9,9 +9,8 @@ import { requireSessionContext } from "@/lib/session";
 import type { InvitePreviewResult } from "@/lib/types/invites";
 
 // Server actions are public POST endpoints. Keep them thin: read the input,
-// ask core (which checks the role, validates and rate limits), respond.
-// A refused form gets back what was typed, never the password (withTypedValues).
-// Each uses the new backend when it is switched on (lib/core-api.ts), else services/.
+// ask core (which checks the role, validates and rate limits), respond. A
+// refused form gets back what was typed, never the password (withTypedValues).
 
 export type CreateInviteState = {
   inviteLink?: string;

@@ -5,9 +5,8 @@ import { changeTeammateRoleThroughCore, removeTeammateThroughCore } from "@/lib/
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks role, company and rate limits), refresh pages.
-// Each uses the new backend when it is switched on (lib/core-api.ts), else services/.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks role, company and rate limits), refresh pages.
 
 export async function removeTeammateAction(_previous: FormErrors | undefined, formData: FormData) {
   await requireSessionContext();

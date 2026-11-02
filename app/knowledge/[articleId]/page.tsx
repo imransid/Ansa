@@ -12,10 +12,8 @@ import { ArticleSummary } from "./article-summary";
 // One read per request: the tab title and the page both need the article.
 const readArticleFromCore = cache(getKnowledgeArticleFromCore);
 
-// The article and what this person may do with it: the new backend when it
-// is switched on (lib/core-api.ts), else services/. Hiding what would be
-// refused is only for a tidy page: both check the same rules again
-// (lib/knowledge/permissions.ts).
+// The article and what this person may do with it, from core. Hiding what
+// would be refused is only for a tidy page: core checks the same rules again.
 async function readArticleAndRights(session: SessionContext, articleId: string) {
   return readArticleFromCore(articleId);
 }

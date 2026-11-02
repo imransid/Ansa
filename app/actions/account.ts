@@ -6,9 +6,7 @@ import { changeNameThroughCore, changePasswordThroughCore, logOutOtherDevicesThr
 import { withTypedValues, type FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Thin, like every action: the services validate and rate limit. Each uses
-// the new backend when it is switched on (lib/core-api.ts), else services/;
-// both answer in the same shapes.
+// Thin, like every action: core validates and rate limits.
 
 export type AccountFormState = {
   done?: boolean;

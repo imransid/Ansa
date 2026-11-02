@@ -16,10 +16,8 @@ import {
 import type { FormErrors, FormResult } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks company, role and rate limits), refresh pages.
-// Each uses the new backend when it is switched on (lib/core-api.ts), else
-// services/; both answer in the same shapes.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks company, role and rate limits), refresh pages.
 
 export async function assignTicketAction(
   _previousErrors: FormErrors | undefined,

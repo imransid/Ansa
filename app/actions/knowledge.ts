@@ -16,10 +16,9 @@ import type { KnowledgeSlice } from "@/lib/knowledge/prompt-slice";
 import { requireSessionContext } from "@/lib/session";
 import type { ImportResult } from "@/lib/types/knowledge-import";
 
-// Server actions are public POST endpoints. Keep them thin: read the form,
-// ask core (which checks company, role, input and rate limits),
-// refresh the pages that show knowledge. Each uses the new backend when it
-// is switched on (lib/core-api.ts), else services/.
+// Server actions are public POST endpoints. Keep them thin: read the form, ask
+// core (which checks company, role, input and rate limits), refresh the pages
+// that show knowledge.
 
 // What "Test what the AI finds" shows: the hits and the phone assistant's
 // one line for them, or why there are none. readByChatAssistant: the new
