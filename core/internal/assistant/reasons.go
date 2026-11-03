@@ -40,6 +40,31 @@ func ReasonTextFor(reason, kind string) string {
 	return ReasonText[reason]
 }
 
+// stoppedSubjects: the subject of a request about a reply ansa's own
+// checks stopped, saying why, instead of "<Channel> conversation needs you"
+// (the AI wrote none: its reply never went).
+var stoppedSubjects = map[string]string{
+	ReasonPriceNotOnMenu: "Reply stopped: a price not on your menu",
+	ReasonRefundPromise:  "Reply stopped: it promised a refund",
+	ReasonUnknownLink:    "Reply stopped: an unknown link",
+}
+
+// personalStoppedSubjects: the same for one person (no menu; only their
+// replies are checked for commitments).
+var personalStoppedSubjects = map[string]string{
+	ReasonPriceNotOnMenu: "Reply stopped: an amount not in your notes",
+	ReasonNeedsDecision:  "Reply stopped: it would commit you",
+}
+
+// stoppedSubject is that subject for this kind of account ("" for a reason
+// none of the checks gives).
+func stoppedSubject(reason, kind string) string {
+	if subject, ok := personalStoppedSubjects[reason]; ok && kind == "personal" {
+		return subject
+	}
+	return stoppedSubjects[reason]
+}
+
 // reasonWords is a request's reason in plain words for this kind of
 // account, naming the amount ansa's price check stopped when there is one
 // (the customer's own price the AI repeated, or one it made up).

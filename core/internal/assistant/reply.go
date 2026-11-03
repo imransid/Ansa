@@ -176,9 +176,14 @@ func (r *Runner) decide(ctx context.Context, inputs *Inputs) Decision {
 }
 
 // handoverFor is the handover a decision asks for: the AI's subject,
-// summary and category only when it asked for a person itself.
+// summary and category only when it asked for a person itself; a reply
+// core's checks stopped gets a subject saying why.
 func handoverFor(decision Decision, inputs *Inputs) Handover {
 	handover := Handover{Reason: decision.Reason, SendHoldingReply: true, StoppedAmount: decision.StoppedAmount}
+	if decision.Kind == "failed" {
+		handover.Subject = stoppedSubject(decision.Reason, inputs.Kind)
+		return handover
+	}
 	if decision.Kind != "needs_person" {
 		return handover
 	}

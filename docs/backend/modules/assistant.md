@@ -49,7 +49,10 @@ conversation now, and nothing may go after the holding reply), the
 business's holding reply (never the AI's text; with the AI label when
 first) saved "sending" when the channel can take it, a request
 (`tickets.CreateChatTicketWithin`: the AI's subject
-cleaned to one plain line, else "<Channel> conversation needs you"; the
+cleaned to one plain line; for a reply core's checks stopped, a subject
+saying why ("Reply stopped: a price not on your menu", "...: it promised a
+refund", "...: an unknown link"; a person's "...: an amount not in your
+notes", "...: it would commit you"); else "<Channel> conversation needs you"; the
 reason's words, then the AI's summary; its category only when it names an
 active one exactly; routed, and whoever routing picks is emailed by the
 `ticket.assigned` job), the "handed_over" line with the reason, the message
