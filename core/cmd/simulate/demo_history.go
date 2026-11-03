@@ -35,7 +35,11 @@ type demoChat struct {
 	channel, name string
 	// Marked important first: ansa then passes them straight on, no AI.
 	important bool
-	turns     []demoTurn
+	// Answered in "Ask me first": ansa's reply waits for the owner.
+	askFirst bool
+	// The owner's own reply at the end (it takes the conversation over).
+	ownerReply string
+	turns      []demoTurn
 }
 
 // demoTurn is one message of the customer's, and the brain's answer to it
@@ -54,6 +58,11 @@ func playDemoChats(ctx context.Context, w *world, a demoAccount, chats []demoCha
 		Brain: brainclient.New(brain.server.URL, w.cfg.BrainSharedSecret, 30*time.Second), Now: lunchtimeInDhaka}
 	conversationOf := map[string]string{}
 	for _, c := range chats {
+		if c.askFirst {
+			if err := setReplyMode(ctx, w, a, "ask_first"); err != nil {
+				return nil, err
+			}
+		}
 		for i, t := range c.turns {
 			turn, err := practicechat.Send(ctx, w.pool, w.box, a.company, c.channel, c.name, t.customer)
 			if err != nil {
@@ -73,6 +82,17 @@ func playDemoChats(ctx context.Context, w *world, a demoAccount, chats []demoCha
 			brain.next(t.brain)
 			if _, err := runner.Answer(ctx, *turn, false); err != nil {
 				return nil, err
+			}
+		}
+		if c.askFirst {
+			if err := setReplyMode(ctx, w, a, "automatic"); err != nil {
+				return nil, err
+			}
+		}
+		if c.ownerReply != "" {
+			replies := &inbox.Replies{Pool: w.pool, Box: w.box, Sender: runner.Chat}
+			if outcome, err := replies.Reply(ctx, a.company, a.userID, conversationOf[c.name], c.ownerReply, ""); err != nil || outcome != inbox.Saved {
+				return nil, refusedStep(err, "answered by the owner", outcome)
 			}
 		}
 	}
@@ -134,12 +154,12 @@ func needsPerson(reason, subject, summary, category string) string {
 }
 
 // orderSummary names each dish by its menu label (M1...) with how many.
-func orderSummary(fulfilment, address, when string, items ...any) string {
+func orderSummary(fulfilment, address, when, notes string, items ...any) string {
 	var lines []map[string]any
 	for i := 0; i+1 < len(items); i += 2 {
 		lines = append(lines, map[string]any{"label": items[i], "quantity": items[i+1]})
 	}
-	order := map[string]any{"items": lines, "fulfilment": fulfilment, "address": address, "time": when, "notes": ""}
+	order := map[string]any{"items": lines, "fulfilment": fulfilment, "address": address, "time": when, "notes": notes}
 	return marshal(map[string]any{"kind": "order_summary", "order": order})
 }
 
@@ -150,16 +170,16 @@ func marshal(value any) string {
 	return string(text)
 }
 
-// finishDemoOrder takes the customer's placed order through every step to
-// done, as the Orders page's buttons do (the customer told each time).
-func finishDemoOrder(ctx context.Context, w *world, a demoAccount, conversationID string) error {
+// moveDemoOrder takes the customer's placed order through the steps, as the
+// Orders page's buttons do (the customer told each time).
+func moveDemoOrder(ctx context.Context, w *world, a demoAccount, conversationID string, steps []string) error {
 	var orderID string
 	err := w.pool.QueryRow(ctx, `SELECT id::text FROM orders WHERE company_id = $1 AND conversation_id = $2 AND status = 'new'`, a.company.String(), conversationID).Scan(&orderID)
 	if err != nil {
 		return err
 	}
 	changer := &orders.StatusChange{Pool: w.pool, Box: w.box, Sender: &chat.Sender{StandInsAllowed: true, StandInDir: filepath.Join(w.cfg.DevFolder, ".dev-messages")}}
-	for _, change := range []string{"accept", "ready", "done"} {
+	for _, change := range steps {
 		result, err := changer.Change(ctx, a.company, a.userID, orderID, change)
 		if err != nil {
 			return err

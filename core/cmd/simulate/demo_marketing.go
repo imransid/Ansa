@@ -97,6 +97,10 @@ func writeDemoPosts(ctx context.Context, w *world, a demoAccount) error {
 	if _, err := publisher.RunDue(ctx, a.company.String()); err != nil {
 		return err
 	}
+	// The running core's own publishing round may have taken some first.
+	if err := waitUntilPublished(ctx, w, a, published); err != nil {
+		return err
+	}
 	for i, jobID := range published {
 		numbers := demoNumbers[i%len(demoNumbers)]
 		if _, refusal, err := analytics.SimulatePostMetrics(ctx, w.pool, jobID, numbers, true); err != nil || refusal != "" {
@@ -108,6 +112,21 @@ func writeDemoPosts(ctx context.Context, w *world, a demoAccount) error {
 	}
 	fmt.Fprintf(w.out, "Added a marketing plan and %d posts (%d published, with numbers).\n", len(demoPosts), len(published))
 	return nil
+}
+
+// waitUntilPublished waits (up to 20 seconds) until every one of the jobs
+// went out, whoever sent it.
+func waitUntilPublished(ctx context.Context, w *world, a demoAccount, jobIDs []string) error {
+	for try := 0; try < 200; try++ {
+		var waiting int
+		err := w.pool.QueryRow(ctx, `SELECT count(*) FROM publish_jobs WHERE company_id = $1 AND id::text = ANY($2) AND status <> 'published'`,
+			a.company.String(), jobIDs).Scan(&waiting)
+		if err != nil || waiting == 0 {
+			return err
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return commands.Refusal("The demo's posts didn't go out in time.")
 }
 
 // writeDemoPost writes one post and takes it to its step; the posting jobs

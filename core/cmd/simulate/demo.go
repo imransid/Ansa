@@ -102,6 +102,11 @@ func demoAccountsThere(ctx context.Context, w *world) (bool, error) {
 // rehearsal signs up live (nadia+1@demo.ansa.test).
 const demoDomain = "@demo.ansa.test"
 
+// Whether a reset forgets every rate limit counter (a rehearsal's signups,
+// logins and emails then don't count against the next one). The demo's own
+// test keeps them: other packages' tests count on theirs in that database.
+var demoForgetsRateLimits = true
+
 // deleteDemoAccounts deletes every account on the demo's address domain with
 // its company, everything in it and its stored files, and every rate limit
 // counter, so each rehearsal starts the same (development only: the tool's
@@ -130,6 +135,9 @@ func deleteDemoAccounts(ctx context.Context, w *world) error {
 				return err
 			}
 		}
+	}
+	if !demoForgetsRateLimits {
+		return nil
 	}
 	_, err = w.pool.Exec(ctx, `DELETE FROM rate_limits`)
 	return err

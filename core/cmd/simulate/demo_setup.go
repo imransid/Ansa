@@ -7,6 +7,7 @@ import (
 
 	"ansa/core/internal/autopost"
 	"ansa/core/internal/channels"
+	"ansa/core/internal/commands"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/hours"
 	"ansa/core/internal/logging"
@@ -28,6 +29,10 @@ var demoMenu = []menu.Typed{
 	{Category: "Drinks and desserts", Name: "Borhani", Description: "Spiced yoghurt drink.", Price: "80"},
 	{Category: "Drinks and desserts", Name: "Mango Lassi", Description: "", Price: "120"},
 	{Category: "Drinks and desserts", Name: "Firni", Description: "Rice pudding.", Price: "90"},
+	// Added later (labels follow the order dishes were added: M10 on).
+	{Category: "Biryani", Name: "Family Kacchi", Description: "Serves four.", Price: "1650"},
+	{Category: "Curries", Name: "Shorshe Ilish", Description: "Hilsa in mustard sauce.", Price: "650"},
+	{Category: "Drinks and desserts", Name: "Mishti Doi", Description: "Sweet yoghurt.", Price: "70"},
 }
 
 // setUpRestaurant goes through a restaurant's setup as the welcome pages do,
@@ -44,7 +49,9 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 			"For a party of 20 or more, take their name and number: the manager calls them back.",
 		HoldingReply: "Thanks for your message! Someone from Shapla Kitchen will get back to you very soon.",
 	}
-	if err := saveSetup(ctx, w, a, &business, &contact, everyDay("10:00", "00:00"), &orders, &answering); err != nil {
+	// Open all day, so a demo at any hour can take orders (What it knows
+	// shows the hours; change them there to show a closed restaurant).
+	if err := saveSetup(ctx, w, a, &business, &contact, everyDay("00:00", "00:00"), &orders, &answering); err != nil {
 		return err
 	}
 	if err := addDemoMenu(ctx, w, a); err != nil {
@@ -68,10 +75,28 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 	if err != nil {
 		return err
 	}
-	if err := finishDemoOrder(ctx, w, a, chats[doneOrderCustomer]); err != nil {
+	for customer, steps := range demoOrderSteps {
+		if err := moveDemoOrder(ctx, w, a, chats[customer], steps); err != nil {
+			return err
+		}
+	}
+	if err := spreadOverTheDay(ctx, w, a, chats, restaurantDay); err != nil {
+		return err
+	}
+	if err := addTypedInRequests(ctx, w, a); err != nil {
 		return err
 	}
 	if err := addDemoCallsAndEmails(ctx, w, a); err != nil {
+		return err
+	}
+	if err := addDemoRecording(ctx, w, a); err != nil {
+		return err
+	}
+	forwarding, err := commands.ForwardingAddress(ctx, w.pool, a.company, w.cfg.ForwardingDomain())
+	if err != nil {
+		return err
+	}
+	if err := addUnfetchedEmail(ctx, w, a, forwarding); err != nil {
 		return err
 	}
 	return setUpMarketing(ctx, w, a)
@@ -103,8 +128,11 @@ func setUpPerson(ctx context.Context, w *world, a demoAccount) error {
 	if err := addSavedAnswers(ctx, w, a, personAnswers); err != nil {
 		return err
 	}
-	_, err = playDemoChats(ctx, w, a, personHistory)
-	return err
+	chats, err := playDemoChats(ctx, w, a, personHistory)
+	if err != nil {
+		return err
+	}
+	return spreadOverTheDay(ctx, w, a, chats, personNight)
 }
 
 // addDemoMenu adds the restaurant's dishes, priced in its currency.

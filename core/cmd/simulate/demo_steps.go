@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"ansa/core/internal/commands"
 	"ansa/core/internal/hours"
@@ -96,4 +97,50 @@ func everyDay(opens, closes string) *setup.Week {
 		week[day] = []hours.Range{{Opens: opens, Closes: closes}}
 	}
 	return &setup.Week{TimeZone: "Asia/Dhaka", Hours: week}
+}
+
+// setReplyMode switches between Automatic and "Ask me first", keeping the
+// rest of Settings → Assistant as it is.
+func setReplyMode(ctx context.Context, w *world, a demoAccount, mode string) error {
+	now, err := settings.Read(ctx, w.pool, a.company)
+	if err != nil {
+		return err
+	}
+	outcome, err := settings.SaveAssistant(ctx, w.pool, a.company, a.userID,
+		settings.Assistant{Status: now.Status, ReplyMode: mode, Instructions: now.Instructions, HoldingReply: now.HoldingReply, AlertByEmail: now.AlertByEmail})
+	return saved("reply mode", outcome, err)
+}
+
+// moveBack moves a conversation's history (its messages, ansa's activity,
+// its requests and their history, its orders) back in time by one offset,
+// as if it had happened then (development only): one offset keeps their
+// order. More than a day back, its 24-hour reply window has closed.
+func moveBack(ctx context.Context, w *world, a demoAccount, conversationID string, ago time.Duration) error {
+	shift := fmt.Sprintf("%d seconds", int(ago.Seconds()))
+	for _, statement := range []string{
+		`UPDATE messages SET created_at = created_at - $3::interval WHERE company_id = $1 AND conversation_id = $2`,
+		`UPDATE assistant_activity SET created_at = created_at - $3::interval WHERE company_id = $1 AND conversation_id = $2`,
+		`UPDATE ticket_activity SET created_at = created_at - $3::interval
+			WHERE company_id = $1 AND ticket_id IN (SELECT id FROM tickets WHERE company_id = $1 AND conversation_id = $2)`,
+		`UPDATE tickets SET created_at = created_at - $3::interval, updated_at = updated_at - $3::interval WHERE company_id = $1 AND conversation_id = $2`,
+		`UPDATE orders SET created_at = created_at - $3::interval, placed_at = placed_at - $3::interval, updated_at = updated_at - $3::interval
+			WHERE company_id = $1 AND conversation_id = $2`,
+		`UPDATE conversations SET created_at = created_at - $3::interval, last_activity_at = last_activity_at - $3::interval,
+			last_customer_message_at = last_customer_message_at - $3::interval WHERE company_id = $1 AND id = $2`,
+	} {
+		if _, err := w.pool.Exec(ctx, statement, a.company.String(), conversationID, shift); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// spreadOverTheDay moves each customer's conversation back by its own time.
+func spreadOverTheDay(ctx context.Context, w *world, a demoAccount, conversationOf map[string]string, ago map[string]time.Duration) error {
+	for name, offset := range ago {
+		if err := moveBack(ctx, w, a, conversationOf[name], offset); err != nil {
+			return err
+		}
+	}
+	return nil
 }
