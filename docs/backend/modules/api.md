@@ -21,6 +21,9 @@ read strictly, and an unknown field (a "companyId") is refused.
   the customer was messaged, else why not (the chat's refusal code or
   "send-failed"), which the page words for the order's channel.
 - The Inbox: see [inbox](inbox.md).
+- Comments on the business's Facebook posts (`/api/v1/comments`, Send and
+  Discard of a waiting reply, the switch) and the practice comment box
+  (`/api/v1/practice/comment...`): see [comments](comments.md).
 - Settings → Posts for me: see [autopost](autopost.md).
 - Social accounts (Facebook Pages, LinkedIn, X, YouTube) and the Accounts
   page (`GET /api/v1/cofounder/accounts`): see [socialconnect](socialconnect.md).

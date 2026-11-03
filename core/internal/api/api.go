@@ -137,6 +137,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerCofounder(routes)
 	s.registerPhone(routes)
 	s.registerPracticeChat(routes)
+	s.registerComments(routes)
 	s.registerDevMailbox(routes)
 }
 

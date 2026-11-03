@@ -60,6 +60,15 @@ side, in the browser, beside the owner's own pages.
   never answers an email. Refused (409) while real email is on
   (SEND_REAL_EMAIL): core would ask Resend for it.
 
+- **A comment** on the stand-in Facebook Page's posts (the practice
+  comment box, [comments](comments.md) `practice.go`): the owner writes as a
+  made-up person under one of the Page's newest published posts (or ansa's
+  fixed stand-in post when it has none); saved through the same path as a
+  comment from Meta's webhook (`comments.Save`), the commenter named by
+  `standins.PSID(name)`, so a private message ansa sends them shows in the
+  practice chat's Messenger chat for the same name, and their answer there
+  continues it.
+
 **API** (`internal/api/practice_chat.go`, `practice_email.go`, owners only,
 refused on a production server): `GET /api/v1/practice/chat` (available,
 which channels have a stand-in, whether the practice email works here),
@@ -72,7 +81,11 @@ own conversations only),
 `POST /api/v1/practice/email` {name, address, subject, text, verified}:
 {to} (body up to 1 MB; checked: a name of 0-100 and a subject of 1-1,000,
 each one plain line, the address by the customer address rule, the text a
-box of 1-100,000; 100 an hour per company).
+box of 1-100,000; 100 an hour per company);
+`GET /api/v1/practice/comment/posts`, `POST /api/v1/practice/comment`
+{postId, name, text}: {commentId}, `GET /api/v1/practice/comment/{commentId}`
+(the comment and `next`: "answering" | "done"), described in
+[comments](comments.md) (`internal/api/practice_comments.go`).
 
 **Screens:** `app/settings/channels/practice-chat/` (while a chat is open
 the page looks at it again 2 seconds after each look ended, so an order
@@ -90,7 +103,9 @@ as yourself, from your own app"); "Email" shows `practice-email.tsx`
 instead, which says where the email went and links the Inbox and the
 Emails page). Settings → Connections links it in each stand-in's advice.
 
-**Tests:** `internal/api/practice_chat_test.go` (a stand-in needed, the
+**Tests:** `internal/api/comments_test.go` (the practice comment: the
+fixed post, a stand-in Page needed, saved and answered as Meta's, read back,
+fields checked, production refused); `internal/api/practice_chat_test.go` (a stand-in needed, the
 reply queued as for any customer, ansa said to answer it, the same name the same customer, found
 again, never a draft shown, fields checked, another company's chat not
 there, members and production refused; answering as the business on each
