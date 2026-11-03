@@ -17,6 +17,9 @@ from brain.assistant.call_summary import CallSummaryRequest, summarize_call
 from brain.assistant.models import ReplyRequest
 from brain.assistant.prompt import build_request
 from brain.calls.decision import CallRequest
+from brain.comments.answer import read_answer as read_comment_answer
+from brain.comments.models import CommentRequest
+from brain.comments.prompt import build_request as build_comment_request
 from brain.content.draft import DraftRequest, write_draft
 from brain.calls.decision import decide as decide_call
 from brain.cofounder.calendar import CalendarPlanRequest, plan_calendar
@@ -92,6 +95,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """One answer to a customer's newest message, as a decision for core.
         Never the prompt or the model's raw text in a log."""
         return decide_reply(request, asker_for(request.engine, active.development))
+
+    @app.post("/v1/comments/reply")
+    def comments_reply(request: CommentRequest) -> dict:
+        """One comment on a business's Facebook post, read into a proposal
+        for core (which decides and checks what goes out). Never the
+        comment, the prompt or the model's text in a log."""
+        return propose_comment_answer(request, asker_for(request.engine, active.development))
 
     @app.post("/v1/menu/read")
     def menu_read(request: MenuReadRequest) -> dict:
@@ -182,6 +192,21 @@ def write_post(request: PostRequest, asker) -> dict:
         return {"kind": "failed", "reason": "model_failed", "error_name": result.error_name or result.kind}
     post = read_post_answer(result.output_text)
     return {"kind": "ok", **post} if post is not None else {"kind": "failed", "reason": "unusable_answer"}
+
+
+def propose_comment_answer(request: CommentRequest, asker) -> dict:
+    """Asks the model about one comment; any failure is a proposal core
+    hands to a person, never one it sends."""
+    if asker is None:
+        return {"kind": "failed", "reason": "model_unavailable"}
+    system_prompt, prompt, schema = build_comment_request(request)
+    result = asker(system_prompt, prompt, schema, ai.COMMENT_REPLY, request.api_key)
+    if result.kind == "unavailable":
+        return {"kind": "failed", "reason": "model_unavailable"}
+    if result.kind != "ok":
+        return {"kind": "failed", "reason": "model_failed", "error_name": result.error_name or result.kind}
+    proposal = read_comment_answer(result.output_text)
+    return proposal if proposal is not None else {"kind": "failed", "reason": "unusable_answer"}
 
 
 def triage_email(request: TriageRequest, asker) -> dict:

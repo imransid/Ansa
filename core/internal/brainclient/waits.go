@@ -12,6 +12,8 @@ const (
 	// A customer's reply, "Try your assistant", the catch-up, and a live
 	// call's turns and its note.
 	AssistantReplyWait = 120 * time.Second
+	// Answering a comment on a Facebook post.
+	CommentReplyWait = 120 * time.Second
 	// Triaging a received email.
 	EmailTriageWait = 120 * time.Second
 	// Deciding a finished phone call.

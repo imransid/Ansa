@@ -19,6 +19,7 @@ var waitForUse = map[string]time.Duration{
 	"ASSISTANT_REPLY":    AssistantReplyWait,
 	"CALL_REPLY":         AssistantReplyWait,
 	"CALL_SUMMARY":       AssistantReplyWait,
+	"COMMENT_REPLY":      CommentReplyWait,
 	"EMAIL_TRIAGE":       EmailTriageWait,
 	"CALL_DECISION":      CallDecisionWait,
 	"AUTOPOST":           AutopostWait,
@@ -71,8 +72,8 @@ func TestTheBrainAnswersBeforeCoreStopsWaiting(t *testing.T) {
 		}
 	}
 
-	// Claude Code (development) answers the assistant and "Post for me".
-	for _, wait := range []time.Duration{AssistantReplyWait, AutopostWait} {
+	// Claude Code (development) answers the assistant, comments and "Post for me".
+	for _, wait := range []time.Duration{AssistantReplyWait, CommentReplyWait, AutopostWait} {
 		if limit+brainOverhead > wait {
 			t.Errorf("Claude Code may take %v, but core waits %v", limit, wait)
 		}

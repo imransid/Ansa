@@ -55,6 +55,9 @@ class UseSettings:
 # The restaurant assistant's reply to a customer (who is waiting in a chat).
 ASSISTANT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30, max_retries=1)
 
+# A comment on a business's Facebook post (the answer goes out within seconds).
+COMMENT_REPLY = UseSettings(effort="low", max_tokens=3_000, timeout_seconds=30, max_retries=1)
+
 # The assistant's turn on a live call: a real conversation, so it thinks
 # more (medium) than a chat reply, still within one short answer.
 CALL_REPLY = UseSettings(effort="medium", max_tokens=3_000, timeout_seconds=40, max_retries=1)
