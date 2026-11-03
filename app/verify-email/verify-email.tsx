@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { confirmEmailAction } from "@/app/actions/auth";
@@ -35,6 +35,10 @@ export function VerifyEmail() {
   }
 
   const [errorMessage, formAction, isPending] = useActionState(confirmEmail, null);
+  // False until the page runs in the browser. WHY: the form's action is the
+  // function above (it reads the link's #token), which only exists once the
+  // page woke up; a press before then was lost without a word.
+  const inBrowser = useSyncExternalStore(subscribeToNothing, () => true, () => false);
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -45,8 +49,8 @@ export function VerifyEmail() {
         </p>
       )}
       <FormField name="password" label="Password" type="password" autoComplete="current-password" maxLength={PASSWORD_MAX_LENGTH} />
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Confirming..." : "Confirm email address"}
+      <Button type="submit" disabled={isPending || !inBrowser}>
+        {submitLabel(inBrowser, isPending)}
       </Button>
       <p className="text-sm text-muted-foreground">
         Link expired?{" "}
@@ -64,4 +68,16 @@ export function VerifyEmail() {
       </p>
     </form>
   );
+}
+
+function submitLabel(inBrowser: boolean, isPending: boolean): string {
+  if (!inBrowser) {
+    return "Loading...";
+  }
+  return isPending ? "Confirming..." : "Confirm email address";
+}
+
+// Being in the browser never changes while the page is open.
+function subscribeToNothing(): () => void {
+  return () => {};
 }

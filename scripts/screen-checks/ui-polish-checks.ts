@@ -101,6 +101,18 @@ export async function runUiPolishChecks() {
     assert.ok(menuComponents.includes("PlanChoiceSelect") && forms >= 2, `found ${forms} forms with a controlled menu`);
   });
 
+  await check("forms: a form whose action is a function of its own page (it reads the link's #token) can't be sent before the page runs in the browser, where a press was lost without a word; the join form shows only once its invite was read there", async () => {
+    for (const file of ["app/verify-email/verify-email.tsx", "app/reset-password/reset-password-form.tsx"]) {
+      const source = withoutComments(await read(file));
+      assert.match(source, /window\.location\.hash/, `${file} no longer reads the link's token: check whether it still needs this`);
+      assert.match(source, /const inBrowser = useSyncExternalStore\(subscribeToNothing, \(\) => true, \(\) => false\);/, `${file} doesn't know when it runs in the browser`);
+      assert.match(source, /<Button type="submit" disabled=\{isPending \|\| !inBrowser\}>/, `${file} can be sent before the page runs`);
+    }
+    const join = withoutComments(await read("app/invite/join-form.tsx"));
+    assert.match(join, /useState<InviteLookup>\(\{ status: "checking" \}\)/);
+    assert.match(join, /if \(lookup\.status === "checking"\) \{\n\s*return <p/);
+  });
+
   await check("forms: no server action sends a password back to the browser", async () => {
     for (const file of await readdir(path.join(ROOT, "app", "actions"))) {
       const source = await read(path.join("app", "actions", file));
