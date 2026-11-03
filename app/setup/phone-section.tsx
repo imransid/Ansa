@@ -17,7 +17,7 @@ export function PhoneSection({ phoneLines }: { phoneLines: SetupOverview["phoneL
         <ul className="grid max-w-xl gap-1 text-sm">
           {phoneLines.map((line) => (
             <li key={line.vapiPhoneNumberId} className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-foreground">Vapi number id</span>
+              <span className="text-muted-foreground">Phone line</span>
               <span className="font-mono">{line.vapiPhoneNumberId}</span>
               <span>
                 {line.lastCallAt ? (

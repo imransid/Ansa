@@ -10,7 +10,7 @@ import { EmailSection } from "./email-section";
 import { PhoneSection } from "./phone-section";
 import { ReplyToForm } from "./reply-to-form";
 
-export const metadata: Metadata = { title: "Setup - ansa" };
+export const metadata: Metadata = { title: "Phone, email and documents - ansa" };
 
 // "Add to knowledge" reads a whole document (a PDF of up to 4 MB) inside this
 // page's server action: the host's default time limit can be as short as 10
@@ -36,7 +36,7 @@ async function SetupContent() {
   return (
     <>
       <section className="grid gap-3">
-        <h1 className="text-xl font-semibold">Setup</h1>
+        <h1 className="text-xl font-semibold">Phone, email and documents</h1>
         {!isOwner && <p className="text-sm text-muted-foreground">Only owners can change these settings.</p>}
         <Checklist setup={setup} />
       </section>

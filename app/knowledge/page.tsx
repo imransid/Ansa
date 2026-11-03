@@ -13,7 +13,7 @@ import { KnowledgeFilters } from "./knowledge-filters";
 import { KnowledgeListEmpty } from "./knowledge-list-empty";
 import { TestSearchBox } from "./test-search-box";
 
-export const metadata: Metadata = { title: "Knowledge - ansa" };
+export const metadata: Metadata = { title: "Saved answers - ansa" };
 
 export default function KnowledgePage({ searchParams }: PageProps<"/knowledge">) {
   return (
@@ -43,7 +43,7 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
     <>
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">{personal ? "Saved answers" : "Knowledge"}</h1>
+          <h1 className="text-xl font-semibold">Saved answers</h1>
           <div className="flex flex-wrap gap-2">
             {isOwner && (
               <Link href="/knowledge/import" className={buttonVariants({ size: "sm", variant: "outline" })}>
@@ -51,7 +51,7 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
               </Link>
             )}
             <Link href="/knowledge/new" className={buttonVariants({ size: "sm" })}>
-              New article
+              New saved answer
             </Link>
           </div>
         </div>

@@ -83,7 +83,7 @@ export async function runConnectionsChecks() {
     assert.match(withoutComments(await read(`${FOLDER}/stand-in.tsx`)), /personal \? "someone writing to you" : "a customer"/);
     assert.match(withoutComments(await read(`${FOLDER}/own-answers.tsx`)), /\{personal \? "someone" : "a customer"\}/);
     assert.match(withoutComments(await read(MESSENGER)), /\{!personal && \(\n\s*<Link href="\/cofounder\/accounts"/);
-    assert.match(withoutComments(await read("app/knowledge/page.tsx")), /\{personal \? "Saved answers" : "Knowledge"\}/);
+    assert.match(withoutComments(await read("app/knowledge/page.tsx")), /<h1[^>]*>Saved answers<\/h1>/);
     assert.match(withoutComments(await read("app/knowledge/test-search-box.tsx")), /personal \? "A question someone might ask you" : "A question a customer might ask"/);
     assert.match(withoutComments(await read("app/settings/business/page.tsx")), /\{profile\.kind === "personal" \? "About you" : "What it knows"\}/);
     assert.match(withoutComments(await read("app/account/page.tsx")), /kind === "personal" \?/);
