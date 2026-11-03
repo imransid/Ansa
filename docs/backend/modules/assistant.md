@@ -151,7 +151,7 @@ label, and the next one after a reply reached the customer has none; a
 handover while a draft waits discards it and labels the holding reply; an
 order text sent while the summary waits discards it and has the label.
 
-**Calls (`call.go`, `call_handover.go`, `call_summary.go`, step 55,
+**Calls (`call.go`, `call_handover.go`, `call_summary*.go`, step 55,
 [phone](phone.md)):** `AnswerCall` answers a live call's turn (the caller's
 words are the newest message of their phone conversation) with the same
 brain, checks, orders and handovers, for the WHOLE call: the gate's
