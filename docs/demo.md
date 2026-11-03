@@ -100,12 +100,18 @@ already in the Inbox continues that customer's chat.
    saved answer. (Saved answers → "Test what the AI finds" shows what it
    reads.)
 6. **Bangla.** As **রুমি** on Telegram: "আজকে কি খোলা আছে? কাচ্চিতে কি বাদাম
-   আছে?" ansa answers in Bangla.
+   আছে?" ansa answers in Bangla. Then an order in Bangla ("২টা কাচ্চি
+   বিরিয়ানি পিকআপ করব, সন্ধ্যা ৭টায়", then "হ্যাঁ"): ansa's summary,
+   total and confirmation come in Bangla too.
 7. **A complaint.** As **Tania** on Messenger: "My food was cold!" ansa
    doesn't argue or promise money: it sends your polite holding reply and
    puts it under **Needs you**, and emails you (see 13).
 8. **Needs you**: open Rupa (Send the waiting reply), Jamal and Sumi (what
    ansa stopped), then Tania: answer her yourself or press Done.
+   In the practice chat, tick "Answer as the business, from its own app"
+   and write as Shapla Kitchen to a customer: the Inbox shows "Written in
+   the WhatsApp Business app", and ansa stays quiet in that chat (as if
+   you answered from your phone) until you press Hand back.
 9. **A phone call.** Settings → Connections → **Practice phone** (Chrome):
    call, ask a question or order out loud (or type), hang up. The call is a
    conversation in your Inbox, with ansa's note when someone has to act
@@ -127,7 +133,12 @@ already in the Inbox continues that customer's chat.
 14. **Post for me.** Settings → Posts for me → **Post one now**: ansa
     writes a post from the restaurant's own details and it goes out on the
     (stand-in) Facebook Page.
-15. **Billing**: the free trial, this month's use, the three packages.
+15. **Billing**: the free trial (its days and end date), this month's use,
+    the three packages. "Demo payments: nothing is charged": the demo
+    steps show what happens when the trial ends or the AI replies are used
+    up (ansa still answers every customer, with the holding reply), and
+    "Simulate: back to normal" undoes them. Use them at the end of the demo, or
+    reset afterwards.
 
 **One person** (log out, log in as `rafa@demo.ansa.test`):
 
@@ -138,8 +149,11 @@ already in the Inbox continues that customer's chat.
     tomorrow at 3 pm?" ansa never agrees to a meeting, money or a decision
     for Rafa: it takes a note (Needs you).
 18. **I'm back** on Home: now ansa leaves messages to Rafa (or waits the
-    minutes set in Settings → Assistant before stepping in). Between 22:00
-    and 08:00 (Dhaka) Rafa's away hours keep ansa answering anyway.
+    minutes set in Settings → Assistant before stepping in: the
+    conversation says when ansa answers, and "Answer now" skips the wait
+    in development). Between 22:00 and 08:00 (Dhaka) Rafa's away hours
+    keep ansa answering anyway. **I'm away** again: ansa takes back every
+    chat Rafa had taken over and answers what waits.
 
 **The website**: http://localhost:3000 and http://localhost:3000/pricing.
 
@@ -156,9 +170,11 @@ already in the Inbox continues that customer's chat.
 - **Emails page** (Inbox → Emails): "Process again" on Imtiaz's email, and
   the bounced email under "Customer emails not delivered".
 - **Menu**: Settings → Menu and prices → "Not available today" on a dish
-  (ansa stops offering it), and **Read my menu** with pasted text, for
-  example: `Desserts / Roshogolla (2 pcs) 40 / Mishti Doi 70 / Drinks /
-  Lemon Mint 90 / Cha 20`.
+  (ansa stops offering it), and **Read my menu**: a photo of a menu, a
+  PDF, a Word file or pasted text, for example: `Desserts / Roshogolla (2
+  pcs) 40 / Mishti Doi 70 / Drinks / Lemon Mint 90 / Cha 20` (the AI
+  reads it; nothing is added until "Looks right"). Prices typed the way
+  people write them work: "1,250", "৪৫০", "1,50,000".
 - **Sign up live**: log out, Get started, an address like
   `nadia+1@demo.ansa.test`. The "check your email" page shows the email
   (development only): open the link, enter the password, and the welcome
