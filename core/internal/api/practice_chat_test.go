@@ -48,9 +48,13 @@ func TestThePracticeChatWritesAsACustomerThroughAStandIn(t *testing.T) {
 	if _, found := w.call("GET", "/api/v1/practice/chat/find?channel=telegram&name=Marco", "", screensSecret, w.cookie); found["conversationId"] != "" {
 		t.Fatalf("a customer who never wrote: %v", found)
 	}
+	_, chat := w.call("GET", "/api/v1/practice/chat/"+conversation, "", screensSecret, w.cookie)
+	if next, _ := chat["next"].(map[string]any); next["what"] != "answers" {
+		t.Fatalf("ansa will answer the customer's newest message: %v", chat["next"])
+	}
 	w.addReply(conversation, "draft", "A reply waiting for the owner")
 	w.addReply(conversation, "sent", "Yes, until 23:00.")
-	_, chat := w.call("GET", "/api/v1/practice/chat/"+conversation, "", screensSecret, w.cookie)
+	_, chat = w.call("GET", "/api/v1/practice/chat/"+conversation, "", screensSecret, w.cookie)
 	lines, _ := chat["lines"].([]any)
 	if len(lines) != 3 || lines[0].(map[string]any)["text"] != "Are you open tonight?" || lines[0].(map[string]any)["fromCustomer"] != true ||
 		lines[2].(map[string]any)["text"] != "Yes, until 23:00." || lines[2].(map[string]any)["fromCustomer"] != false {

@@ -18,6 +18,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"ansa/core/internal/assistant"
 	"ansa/core/internal/commands"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
@@ -124,23 +125,33 @@ type Line struct {
 	At           time.Time `json:"at"`
 }
 
+// Chat is the chat as the customer sees it, and what ansa does next with
+// their newest message (for the presenter: "ansa is writing..." only when
+// ansa will write).
+type Chat struct {
+	Lines []Line         `json:"lines"`
+	Next  assistant.Next `json:"next"`
+}
+
 // Read is the conversation as the customer sees it: their own messages and
 // what reached them (ansa's and the business's replies), never a reply
-// waiting for the owner's approval or one discarded. inbox.ErrNotFound: not
-// this company's conversation.
-func Read(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) ([]Line, error) {
+// waiting for the owner's approval or one discarded; and what ansa does
+// next, read with the assistant's own gate and away settings.
+// inbox.ErrNotFound: not this company's conversation.
+func Read(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) (*Chat, error) {
 	page, err := inbox.ReadPage(ctx, pool, box, company, conversationID)
 	if err != nil {
 		return nil, err
 	}
-	lines := []Line{}
+	chat := &Chat{Lines: []Line{}}
 	for _, entry := range page.Entries {
 		if entry.Text == nil || (entry.SendStatus != nil && !reachedCustomer[*entry.SendStatus]) {
 			continue
 		}
-		lines = append(lines, Line{FromCustomer: entry.Author == "customer", Text: *entry.Text, At: entry.CreatedAt})
+		chat.Lines = append(chat.Lines, Line{FromCustomer: entry.Author == "customer", Text: *entry.Text, At: entry.CreatedAt})
 	}
-	return lines, nil
+	chat.Next, err = assistant.WhatNext(ctx, pool, company, page.ID, time.Now())
+	return chat, err
 }
 
 // The send statuses of a reply the customer has (or may have) got.

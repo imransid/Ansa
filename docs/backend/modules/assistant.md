@@ -103,6 +103,10 @@ the customer's language, chosen as ansa's order texts choose theirs
 mostly in Bengali script, "আমি <business>-এর এআই সহকারী।" / "আমি
 <name>-এর এআই সহকারী।" (`AILabelIn`; the name as written). A call's
 greeting keeps the English label.
+**What next (`next.go`, `WhatNext`):** for the practice chat, what ansa
+does next with a conversation's newest customer message, read with the
+same gate and away settings as an answer, nothing written (see
+[practicechat](practicechat.md)).
 **Gate (`gate.go`, the old `gateWithin`'s order):** not found → paused →
 taken over by a person → the message handled already → a request open in the
 conversation → a newer customer message (it gets its own run) → may. Read

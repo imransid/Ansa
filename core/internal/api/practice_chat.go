@@ -84,7 +84,7 @@ func (s *Server) sendPracticeChat(w http.ResponseWriter, r *http.Request, body [
 		fields["channel"] = "Pick WhatsApp, Telegram or Messenger."
 	}
 	if name == "" || utf8.RuneCountInString(name) > 100 {
-		fields["name"] = "Write the customer's name (up to 100 characters)."
+		fields["name"] = "Write the name of who writes (up to 100 characters)."
 	}
 	if text == "" || utf8.RuneCountInString(text) > 4000 {
 		fields["text"] = "Write a message (up to 4,000 characters)."
@@ -102,7 +102,7 @@ func (s *Server) sendPracticeChat(w http.ResponseWriter, r *http.Request, body [
 	case errors.Is(err, practicechat.ErrNoStandIn):
 		problem(w, http.StatusConflict, "Connect a stand-in account for this channel on Settings → Connections first.")
 	case errors.Is(err, practicechat.ErrNoConversation):
-		problem(w, http.StatusConflict, "Write as the customer first: the business answers them.")
+		problem(w, http.StatusConflict, "They write first: then you can answer them from your app.")
 	case err != nil:
 		s.failed(w, "practice chat", err)
 	default:
@@ -140,20 +140,21 @@ func (s *Server) findPracticeChat(w http.ResponseWriter, r *http.Request, _ []by
 	writeJSON(w, http.StatusOK, map[string]string{"conversationId": id})
 }
 
-// readPracticeChat: GET: {lines}, the chat as the customer sees it.
+// readPracticeChat: GET: {lines, next}, the chat as the customer sees it
+// and what ansa does next with their newest message ({what, at}).
 func (s *Server) readPracticeChat(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	id := r.PathValue("id")
 	if !uuidPattern.MatchString(id) {
 		problem(w, http.StatusNotFound, "This chat isn't here.")
 		return
 	}
-	lines, err := practicechat.Read(r.Context(), s.Pool, s.Box, who.CompanyID, strings.ToLower(id))
+	chat, err := practicechat.Read(r.Context(), s.Pool, s.Box, who.CompanyID, strings.ToLower(id))
 	switch {
 	case errors.Is(err, inbox.ErrNotFound):
 		problem(w, http.StatusNotFound, "This chat isn't here.")
 	case err != nil:
 		s.failed(w, "practice chat", err)
 	default:
-		writeJSON(w, http.StatusOK, map[string]any{"lines": lines})
+		writeJSON(w, http.StatusOK, chat)
 	}
 }
