@@ -45,14 +45,19 @@ is sent. While the request is open the assistant stays quiet. Reasons and
 their words: `reasons.go`.
 **Checks (`checks.go`, the same rules as the old `lib/assistant/reply-checks.ts`):**
 - every amount written with a currency mark (symbols, ISO codes, the words
-  for the common ones; before or after the number) must be a menu price or
-  an amount in the business's own texts; one that can't be read as a price
-  of the currency stops the reply (`price_not_on_menu`). Thousands in groups
+  for the common ones, and taka as Bangladesh writes it: "Tk 450", "Tk.
+  450", "450 Tk", "৪৫০ টাকা"; before or after the number) must be a menu
+  price or an amount in the business's own texts; one that can't be read
+  as a price of the currency stops the reply (`price_not_on_menu`). Every
+  script's digits are read as 0-9 first, in the reply and in the
+  business's texts (`WithASCIIDigits`: "৳৩০০" is "৳300"; RE2's `\d` is 0-9
+  only, so a price in Bengali digits passed unread). Thousands in groups
   of three are one amount, whatever the separator ("15,000", "1 200",
   "1.040,50": step 58; "15,000" was read as no price and stopped every
   reply naming one);
 - no refund, compensation or voucher words in English, Italian, Spanish,
-  French or German (`refund_promise`);
+  French, German or Bangla (রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার; never a
+  bare ফেরত, "back": ফেরত কল is a call back) (`refund_promise`);
 - every link must appear in the business's own texts (`unknown_link`).
 **Prices (`ParsePrice`, `MinorUnitDigits`):** "9.50", "9,50", "€ 12",
 "1 200" read in the currency's smallest units (ISO 4217 digits: 0 for yen or
@@ -74,16 +79,23 @@ owner's instructions; active category names; the newest 20 messages of this
 one conversation, decrypted (drafts, discarded and failed ones never reached
 the customer). Never an id. Also what core checks the reply against (menu
 prices plus the delivery fee, the owner's own texts). The best 3 approved
-support articles matching the customer's newest message, within 3,000
-characters, in escaped `<article>` tags (`AddKnowledge`, see
-[knowledge](knowledge.md)); their texts count as the owner's own words. The
+support articles matching the customer's newest 3 messages, their words
+in turns, newest first (`knowledge.CombineSearchTexts`: a follow-up like
+"And for 50?" keeps the article of the question before it), within 3,000
+characters, in escaped `<article>` tags (`AddKnowledge`,
+`inputs_knowledge.go`, see [knowledge](knowledge.md)); their titles and
+texts count as the owner's own words. The
 engine goes too: "api_key" with the business's own key decrypted
 (`KeyContext`: `assistant-anthropic-key:<company>`) or nil for ansa's own
 (the brain holds it), or "claude_code" (development only, refused by the
 brain in production).
-**Tests:** `checks_test.go`; `gate_test.go`; `inputs_test.go` (live database:
+**Tests:** `checks_test.go` (also Bengali digits, Tk and টাকা, and the
+Bangla refund words); `gate_test.go`; `inputs_test.go` (live database:
 only available dishes, labelled; the fee; "Tuesday 19:30, open until
 midnight"; the decrypted conversation; no id in the request);
+`inputs_knowledge_test.go` (live database, a fake brain: a price written
+only in an article's title may be quoted; a follow-up finds the article of
+the question before it; the customer's newest messages, newest first);
 `reply_test.go` (live database, a fake brain, never the real model): a reply
 goes out once with the AI label; a made-up price is never sent and a person
 is asked (holding reply, request, line, alert queued) and the assistant then

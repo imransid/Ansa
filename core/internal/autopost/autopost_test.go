@@ -83,3 +83,20 @@ func TestAPostWithAMadeUpOfferNeverGoesOut(t *testing.T) {
 		t.Error("more than Facebook's 10 hashtags")
 	}
 }
+
+// A Bangla post's prices and percentages are read in Bengali digits too
+// (RE2's \d is 0-9 only): a made-up "৫০%" or "৳৩০০" never goes out.
+func TestABanglaPostWithAMadeUpOfferNeverGoesOut(t *testing.T) {
+	data := CheckData{CheckData: assistant.CheckData{Currency: "BDT", MenuPrices: []int64{45000}, OwnerTexts: []string{"সোমবারে ১০% ছাড়।"}}, WordsToAvoid: []string{}}
+	cases := map[string]bool{
+		"আমাদের কাচ্চি বিরিয়ানি মাত্র ৪৫০ টাকা!": true,
+		"আমাদের কাচ্চি বিরিয়ানি মাত্র ৳৩০০!":     false,
+		"সোমবারে ১০% ছাড়!":                       true,
+		"সব খাবারে ৫০% ছাড়!":                     false,
+	}
+	for body, want := range cases {
+		if got := CheckText(Post{Body: body}, data); got != want {
+			t.Errorf("%q: got %v", body, got)
+		}
+	}
+}

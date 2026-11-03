@@ -51,6 +51,57 @@ func TestThousandsWrittenWithACommaOrADotAreOneAmount(t *testing.T) {
 	}
 }
 
+// Prices in Bengali digits, or written with Tk or টাকা, are amounts too:
+// they passed unread, as RE2's \d is 0-9 only.
+func TestBengaliDigitsTkAndTakaAreReadAsPrices(t *testing.T) {
+	kacchi := CheckData{Currency: "BDT", MenuPrices: []int64{45000, 8000}}
+	cases := map[string]string{
+		"কাচ্চি বিরিয়ানি ৳300":          ReasonPriceNotOnMenu,
+		"কাচ্চি বিরিয়ানি ৳৩০০":          ReasonPriceNotOnMenu,
+		"কাচ্চি বিরিয়ানির দাম ৩০০ টাকা": ReasonPriceNotOnMenu,
+		"কাচ্চি বিরিয়ানি ৩০০টাকায়":     ReasonPriceNotOnMenu,
+		"Kacchi is 300 Tk":  ReasonPriceNotOnMenu,
+		"Kacchi is Tk 300":  ReasonPriceNotOnMenu,
+		"Kacchi is Tk. 300": ReasonPriceNotOnMenu,
+		"কাচ্চি বিরিয়ানি ৪৫০ টাকা":         "",
+		"কাচ্চি বিরিয়ানি ৳৪৫০":             "",
+		"Kacchi is Tk 450, a lassi ৮০ টাকা": "",
+		"রাত ১০টা পর্যন্ত খোলা":             "",
+	}
+	for text, want := range cases {
+		if got := CheckReply(text, kacchi); got != want {
+			t.Errorf("%q: got %q, want %q", text, got, want)
+		}
+	}
+	// Every script's digits, thousands included (step 58's rule).
+	if amounts := MoneyAmounts("লোগো ১৫,০০০ টাকা থেকে; ₹३००, €٣ or $４５", "BDT"); fmt.Sprint(amounts) != "[30000 300 4500 1500000]" {
+		t.Errorf("amounts: %v", amounts)
+	}
+	// The owner's own amounts are read the same way.
+	delivery := CheckData{Currency: "BDT", OwnerTexts: []string{"ঢাকার ভেতরে ডেলিভারি চার্জ ৳৬০।"}}
+	if got := CheckReply("Delivery inside Dhaka is ৳60.", delivery); got != "" {
+		t.Errorf("an amount the owner wrote in Bengali digits: %q", got)
+	}
+}
+
+// Refund words in Bangla stop a reply too; a bare ফেরত ("back") doesn't:
+// ফেরত কল is a call back, a normal reply.
+func TestBanglaRefundWordsStopAReply(t *testing.T) {
+	cases := map[string]string{
+		"আপনার টাকা ফেরত দেওয়া হবে":          ReasonRefundPromise,
+		"আমরা রিফান্ড করে দেব":                ReasonRefundPromise,
+		"রিফান্ডের জন্য একটু অপেক্ষা করুন":    ReasonRefundPromise,
+		"ক্ষতিপূরণ হিসেবে একটি ডেজার্ট পাবেন": ReasonRefundPromise,
+		"পরের অর্ডারে একটি ভাউচার পাবেন":      ReasonRefundPromise,
+		"ম্যানেজার আপনাকে ফেরত কল করবেন":      "",
+	}
+	for text, want := range cases {
+		if got := CheckReply(text, data); got != want {
+			t.Errorf("%q: got %q, want %q", text, got, want)
+		}
+	}
+}
+
 func TestTheAILabelSaysWhoItWorksFor(t *testing.T) {
 	if got := WithAILabel("Hi!", "Luigi's", "business", true); got != "I'm the AI assistant for Luigi's.\nHi!" {
 		t.Errorf("business: %q", got)

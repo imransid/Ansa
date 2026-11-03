@@ -67,10 +67,12 @@ reads half a piece. Lengths are counted as the old JavaScript did (UTF-16),
 so both backends keep the same hits.
 
 **In the assistant ([assistant](assistant.md)):** `Inputs.AddKnowledge`
-searches the support articles for the customer's newest message (in a
-real reply and in "Try your assistant") and gives the brain the best 3,
-within 3,000 characters; their texts count as the owner's own words for
-ansa's checks (a price or a link an article states may be quoted).
+searches the support articles for the customer's newest 3 messages, their
+words in turns, newest first (`CombineSearchTexts`; in a real reply, on a
+call, and in "Try your assistant" with its one typed message) and gives
+the brain the best 3, within 3,000 characters; their titles and texts
+count as the owner's own words for ansa's checks (a price or a link an
+article states may be quoted).
 
 **Tests:** `articles_test.go` (pieces, import parts and cleaning; a
 member's draft, a stale approval refused, an approved article found and

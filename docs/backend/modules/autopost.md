@@ -43,7 +43,8 @@ plain line of at most 200; at most 4 hashtags of letters, digits and _).
 **ansa's checks (`checks.go`):** the assistant's reply checks on the
 whole published text (every amount with a currency mark a listed price or
 in the owner's own words, no refund words, every link the owner's own);
-every percentage and every discount, promo or coupon word the owner's own;
+every percentage (any script's digits read as 0-9, the owner's too: "৫০%"
+is "50%") and every discount, promo or coupon word the owner's own;
 Facebook's rules (length, 10 hashtags, words to avoid). A text they stop
 gets one more try on another kind of post; still stopped = skipped
 "checks_failed"; the AI failing both = "ai_failed"; no AI = "no_ai".
@@ -85,7 +86,8 @@ only; never the post, the prompt or the AI's answer.
 
 **Tests:** `autopost_test.go` (the topic brain's choices, posting times
 across clock changes, made-up prices, percentages, coupons, words to avoid
-and Facebook's hashtags stopped); `writer_test.go` (live database, a fake
+and Facebook's hashtags stopped, a Bangla post's in Bengali digits too);
+`writer_test.go` (live database, a fake
 brain: Automatic writes Wednesday's post once on Tuesday, queues it at
 11:00 in Rome under the owner's rule with only the business's details sent,
 switching off takes it back and switches the rule off; a made-up price is

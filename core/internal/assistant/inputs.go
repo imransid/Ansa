@@ -8,7 +8,6 @@ import (
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/hours"
-	"ansa/core/internal/knowledge"
 	"ansa/core/internal/money"
 	"ansa/core/internal/orders"
 	"ansa/core/internal/packages"
@@ -164,36 +163,6 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 			Options:     orders.Options{Delivery: settings.Delivery, Pickup: settings.Pickup, DeliveryFeeCents: fee, Currency: settings.Currency},
 		},
 	}, nil
-}
-
-// The articles the assistant reads: the best 3 hits, whole, within this many characters.
-const (
-	knowledgeHits          = 3
-	knowledgeMaxCharacters = 3_000
-)
-
-// AddKnowledge gives the brain the company's approved support articles that
-// match the customer's newest message (once the conversation is final: a
-// real one, or the test box's typed message), each in its own escaped
-// <article> tags. Their texts count as the owner's own words for the checks
-// (a price or a link written in an article may be repeated).
-func (in *Inputs) AddKnowledge(ctx context.Context, pool *database.Pool, company tenant.CompanyID) error {
-	newest := ""
-	for _, line := range in.Request.Conversation {
-		if line.Sender == "customer" {
-			newest = line.Text
-		}
-	}
-	hits, err := knowledge.Search(ctx, pool, company, newest, "support", knowledgeHits)
-	if err != nil {
-		return fmt.Errorf("knowledge: %w", err)
-	}
-	kept, text := knowledge.Slice(hits, knowledgeMaxCharacters)
-	in.Request.Knowledge = text
-	for _, hit := range kept {
-		in.Checks.OwnerTexts = append(in.Checks.OwnerTexts, hit.Text)
-	}
-	return nil
 }
 
 // describeOrders gives the brain this conversation's order being written up

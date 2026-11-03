@@ -8,6 +8,7 @@ import (
 
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 // Why a proposed reply is stopped (then the holding reply goes out instead).
@@ -25,7 +26,10 @@ type CheckData struct {
 	OwnerTexts []string
 }
 
-// The same marks, amounts and words as the old lib/assistant/reply-checks.ts.
+// The same marks, amounts and words as the old lib/assistant/reply-checks.ts,
+// and taka as Bangladesh writes it: "Tk 450", "Tk. 450", "450 Tk" and
+// "৪৫০ টাকা". টাকা goes without \b, which knows only ASCII letters, and
+// keeps its endings ("৩০০ টাকায়": for 300 taka).
 const (
 	symbols = "€$£¥₹৳₺₽₩₪₫฿₱₦₴₸₭"
 	codes   = "EUR|USD|GBP|CHF|JPY|INR|BDT|TRY|RUB|KRW|ILS|VND|THB|PHP|NGN|UAH|KZT|SEK|NOK|DKK|PLN|BRL|CAD|AUD|NZD|MXN|AED|SAR|ZAR|CNY|HKD|SGD|MYR|IDR|PKR|EGP|CZK|HUF|RON"
@@ -34,10 +38,15 @@ const (
 )
 
 var (
-	moneyBefore = regexp.MustCompile(`(?i)(?:[` + symbols + `]|R\$|\b(?:` + codes + `)\b)\s?(` + amount + `)`)
-	moneyAfter  = regexp.MustCompile(`(?i)(` + amount + `)\s?(?:[` + symbols + `]|\b(?:` + codes + `|` + words + `)\b)`)
+	moneyBefore = regexp.MustCompile(`(?i)(?:[` + symbols + `]|R\$|\b(?:` + codes + `)\b|\bTk\b\.?)\s?(` + amount + `)`)
+	moneyAfter  = regexp.MustCompile(`(?i)(` + amount + `)\s?(?:[` + symbols + `]|\b(?:` + codes + `|` + words + `|Tk)\b|টাকা)`)
 	refundWords = regexp.MustCompile(`(?i)\b(?:refund\w*|reimburs\w*|compensat\w*|money back|voucher\w*|rimbors\w*|risarci\w*|reembols\w*|indemniz\w*|rembours\w*|dédommag\w*|erstatt\w*|entschädig\w*|gutschein\w*)`)
-	link        = regexp.MustCompile(`(?i)\bhttps?://[^\s<>"']+|\bwww\.[^\s<>"']+`)
+	// Bangla's refund, money back, compensation and voucher. \b and \w know
+	// only ASCII letters, so a word starts after anything but a letter or a
+	// mark, and keeps its endings ("রিফান্ডের"). Never a bare ফেরত ("back"):
+	// ফেরত কল is a call back, a normal reply.
+	refundWordsBangla = regexp.MustCompile(`(?:^|[^\p{L}\p{M}])(?:রিফান্ড|টাকা ফেরত|ক্ষতিপূরণ|ভাউচার)`)
+	link              = regexp.MustCompile(`(?i)\bhttps?://[^\s<>"']+|\bwww\.[^\s<>"']+`)
 )
 
 // CheckReply returns "" when the reply may go, else the reason it may not.
@@ -45,7 +54,7 @@ func CheckReply(text string, data CheckData) string {
 	if !pricesAreKnown(text, data) {
 		return ReasonPriceNotOnMenu
 	}
-	if refundWords.MatchString(text) {
+	if refundWords.MatchString(text) || refundWordsBangla.MatchString(text) {
 		return ReasonRefundPromise
 	}
 	if !linksAreKnown(text, data.OwnerTexts) {
@@ -57,6 +66,7 @@ func CheckReply(text string, data CheckData) string {
 // MoneyAmounts lists the amounts written with a currency mark, in smallest
 // units; -1 for one that can't be read as a price of this currency.
 func MoneyAmounts(text, currency string) []int64 {
+	text = WithASCIIDigits(text)
 	var amounts []int64
 	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
 		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
@@ -96,6 +106,25 @@ func linksAreKnown(text string, ownerTexts []string) bool {
 		}
 	}
 	return true
+}
+
+// WithASCIIDigits writes every script's decimal digits as 0-9 ("৳৩০০" is
+// "৳300"): RE2's \d and money.ParsePrice read 0-9 only, so a price written
+// in Bengali digits passed the checks unread. Unicode keeps each script's
+// digits in a row from 0 to 9, so a digit's value is how far it sits from
+// its row's zero (modulo 10: some rows follow each other, like the five of
+// mathematical digits).
+func WithASCIIDigits(text string) string {
+	return strings.Map(func(r rune) rune {
+		if !unicode.IsDigit(r) {
+			return r
+		}
+		zero := r
+		for unicode.IsDigit(zero - 1) {
+			zero--
+		}
+		return '0' + (r-zero)%10
+	}, text)
 }
 
 // groupedAmount is an amount written in groups of three digits ("15,000",
