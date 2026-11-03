@@ -19,19 +19,21 @@ import { requireSessionContext } from "@/lib/session";
 
 const PAGE = "/settings/channels/practice-chat";
 
+// asBusiness: the business answers the customer from its own app instead.
 const sendInput = z.object({
   channel: z.enum(["whatsapp", "telegram", "messenger"]),
   name: z.string().trim().min(1).max(100),
   text: z.string().trim().min(1).max(4000),
+  asBusiness: z.boolean(),
 });
 
-export async function sendPracticeMessageAction(input: { channel: string; name: string; text: string }): Promise<PracticeSent> {
+export async function sendPracticeMessageAction(input: { channel: string; name: string; text: string; asBusiness: boolean }): Promise<PracticeSent> {
   await requireSessionContext(PAGE);
   const parsed = sendInput.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Write the customer's name and a message." };
   }
-  return sendPracticeMessageThroughCore(parsed.data.channel, parsed.data.name, parsed.data.text);
+  return sendPracticeMessageThroughCore(parsed.data.channel, parsed.data.name, parsed.data.text, parsed.data.asBusiness);
 }
 
 export async function readPracticeChatAction(input: { conversationId: string }): Promise<PracticeLine[] | null> {

@@ -4,6 +4,7 @@
 // (core/: make check) and the brain's (brain/: pytest).
 import { getFailureCount } from "./screen-checks/check";
 import { runCofounderConsistencyChecks } from "./screen-checks/cofounder-consistency-checks";
+import { runConnectionsChecks } from "./screen-checks/connections-checks";
 import { runContentRulesChecks } from "./screen-checks/content-rules-checks";
 import { runContentRulesVectorChecks } from "./screen-checks/content-rules-vector-checks";
 import { runInboxChecks } from "./screen-checks/inbox-checks";
@@ -30,6 +31,7 @@ async function main() {
   await runMenuChecks();
   await runMenuAndOrdersChecks();
   await runSocialPageChecks();
+  await runConnectionsChecks();
   await runPracticePhoneChecks();
   await runContentRulesChecks();
   await runContentRulesVectorChecks();

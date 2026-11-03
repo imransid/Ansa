@@ -59,7 +59,7 @@ func TestTheBusinessAnsweringItselfStopsTheWait(t *testing.T) {
 	ctx := context.Background()
 	turn, _ := InsertCustomerMessage(ctx, pool, company, contact, IncomingMessage{ID: newID(t), BodyEncrypted: "v1:x:y:z", ChannelMessageID: "c-1"})
 	pool.Exec(ctx, `UPDATE conversations SET assistant_due_at = now() + interval '5 minutes' WHERE company_id = $1 AND id = $2`, company.String(), turn.ConversationID)
-	saved, err := InsertBusinessAccountMessage(ctx, pool, company, contact, IncomingMessage{ID: newID(t), BodyEncrypted: "v1:x:y:z", ChannelMessageID: "b-1"})
+	saved, err := InsertBusinessAccountMessage(ctx, pool, company, contact, IncomingMessage{ID: newID(t), BodyEncrypted: "v1:x:y:z", ChannelMessageID: "b-1"}, "")
 	if err != nil || !saved {
 		t.Fatalf("saved=%v err=%v", saved, err)
 	}

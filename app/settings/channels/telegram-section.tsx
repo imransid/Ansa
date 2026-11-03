@@ -5,6 +5,8 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot } from "@/components/status-dot";
 import type { ConnectionsPage } from "@/lib/core-views/channels";
 import { CONNECTION_STATUS_TEXT } from "@/lib/telegram";
+import { OwnAnswersNote } from "./own-answers";
+import { PracticeChatAdvice, StandInName } from "./stand-in";
 
 // Settings → Connections → Telegram (step 48): the connected account and
 // Disconnect, or how to connect one. Owners connect and disconnect, members read.
@@ -15,8 +17,8 @@ export function TelegramSection({ page }: { page: ConnectionsPage }) {
       <div className="grid gap-3">
         <StatusDot tone={telegram.status === "connected" ? "success" : "attention"}>{CONNECTION_STATUS_TEXT[telegram.status]}</StatusDot>
         <p className="text-sm">
-          <span className="font-medium">{telegram.displayName}</span>
-          {telegram.isStandIn ? " (development stand-in)" : ""}, since <LocalDateTime iso={telegram.connectedAt.toISOString()} />
+          {telegram.isStandIn ? <StandInName name="Telegram account" /> : <span className="font-medium">{telegram.displayName}</span>}, since{" "}
+          <LocalDateTime iso={telegram.connectedAt.toISOString()} />
         </p>
         <ConnectionAdvice status={telegram.status} isStandIn={telegram.isStandIn} />
         {page.canManage && (
@@ -44,9 +46,9 @@ export function TelegramSection({ page }: { page: ConnectionsPage }) {
       <div className="grid gap-3">
         <p className="text-sm text-muted-foreground">
           Development: ansa&apos;s bot isn&apos;t set (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET in .env.core), so this connects
-          a stand-in account. Bring a customer&apos;s message in with{" "}
-          <code className="rounded bg-muted px-1">cd core &amp;&amp; make simulate-telegram OWNER=&lt;your email&gt; NAME=&quot;Customer name&quot; TEXT=&quot;Message&quot;</code>.
+          a stand-in account.
         </p>
+        <PracticeChatAdvice connected={false} />
         <TelegramConnectButton action={connectStandInTelegramAction} label="Connect a stand-in Telegram account" />
       </div>
     );
@@ -83,14 +85,14 @@ function ConnectionAdvice({ status, isStandIn }: { status: "connected" | "cannot
       </p>
     );
   }
-  if (isStandIn) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Bring a customer&apos;s message in with{" "}
-        <code className="rounded bg-muted px-1">cd core &amp;&amp; make simulate-telegram OWNER=&lt;your email&gt; NAME=&quot;Customer name&quot; TEXT=&quot;Message&quot;</code>.
-        Replies are written to .dev-messages/.
-      </p>
-    );
-  }
-  return <p className="text-sm text-muted-foreground">Customers&apos; messages arrive in your Inbox, and you can reply from there.</p>;
+  return (
+    <>
+      {isStandIn ? (
+        <PracticeChatAdvice connected />
+      ) : (
+        <p className="text-sm text-muted-foreground">Customers&apos; messages arrive in your Inbox, and you can reply from there.</p>
+      )}
+      <OwnAnswersNote app="in Telegram" />
+    </>
+  );
 }

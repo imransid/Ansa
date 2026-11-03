@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PracticeChannel, PracticeLine } from "@/lib/core-views/practice-chat";
 import { CHAT_CHANNELS, ChatWindow } from "./chat-window";
+import { MessageForm } from "./message-form";
 import { PracticeEmail } from "./practice-email";
 
 // How often the chat looks for ansa's answer, and for what ansa sends later
@@ -23,6 +24,8 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
   const [writesEmail, setWritesEmail] = useState(false);
   const [name, setName] = useState("Tanvir");
   const [text, setText] = useState("");
+  // The business answers the customer from its own app instead.
+  const [asBusiness, setAsBusiness] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [lines, setLines] = useState<PracticeLine[]>([]);
   const [error, setError] = useState("");
@@ -93,7 +96,7 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
       return;
     }
     startSending(async () => {
-      const sent = await sendPracticeMessageAction({ channel, name, text: message });
+      const sent = await sendPracticeMessageAction({ channel, name, text: message, asBusiness });
       if (!sent.ok) {
         setError(sent.error);
         return;
@@ -153,29 +156,17 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
       ) : (
         <>
           <ChatWindow channel={channel} name={name} lines={lines} personal={personal} />
-          <form onSubmit={send} className="grid gap-2">
-            <Label htmlFor="customer-message">Message</Label>
-            <div className="flex gap-2">
-              <Input
-                id="customer-message"
-                value={text}
-                maxLength={4000}
-                autoComplete="off"
-                placeholder="Are you open tonight?"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? "customer-message-error" : undefined}
-                onChange={(event) => setText(event.target.value)}
-              />
-              <Button type="submit" disabled={isSending || !standIns[channel] || !name.trim()}>
-                {isSending ? "Sending..." : "Send"}
-              </Button>
-            </div>
-            {error && (
-              <p id="customer-message-error" role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-          </form>
+          <MessageForm
+            businessApp={(CHAT_CHANNELS.find((each) => each.id === channel) ?? CHAT_CHANNELS[0]).businessApp}
+            asBusiness={asBusiness}
+            onAsBusinessChange={setAsBusiness}
+            text={text}
+            onTextChange={setText}
+            error={error}
+            isSending={isSending}
+            canSend={standIns[channel] && name.trim() !== ""}
+            onSubmit={send}
+          />
           {conversationId && (
             <p className="text-sm">
               Your side:{" "}

@@ -7,6 +7,7 @@ import (
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/tenant"
+	"ansa/core/internal/whatsapp"
 )
 
 // The practice chat (step 58): an owner writes as a made-up customer
@@ -70,6 +71,48 @@ func TestThePracticeChatWritesAsACustomerThroughAStandIn(t *testing.T) {
 	w.api.Development = false
 	if code, _ := w.call("POST", "/api/v1/practice/chat", lena, screensSecret, w.cookie); code != 403 {
 		t.Fatalf("production: %d", code)
+	}
+}
+
+// "Answer as the business, from its own app": the text is saved as the
+// business's own message through each channel's own path (Telegram's
+// update handling, the WhatsApp Business app's echo, the Page's own
+// message), in the made-up customer's conversation, and the chat shows it
+// on the business's side. ansa steps back as for a real one (it answers
+// always here: the conversation is taken over, until Hand back). The
+// customer writes first.
+func TestThePracticeChatAnswersAsTheBusinessFromItsOwnApp(t *testing.T) {
+	w := newAPIWorld(t)
+	w.serverAPI().WhatsApp = &whatsapp.Connector{Pool: w.pool, Box: w.api.Box, Development: true}
+	for _, standIn := range []string{"/api/v1/channels/telegram/stand-in", "/api/v1/channels/whatsapp/stand-in", "/api/v1/social/facebook/stand-in"} {
+		if code, _ := w.call("POST", standIn, "", screensSecret, w.cookie); code != 200 {
+			t.Fatalf("%s: %d", standIn, code)
+		}
+	}
+	for _, channel := range []string{"telegram", "whatsapp", "messenger"} {
+		answer := `{"channel":"` + channel + `","name":"Nadia","text":"On my way!","asBusiness":true}`
+		if code, _ := w.call("POST", "/api/v1/practice/chat", answer, screensSecret, w.cookie); code != 409 {
+			t.Fatalf("%s: the customer writes first: %d", channel, code)
+		}
+		_, asked := w.call("POST", "/api/v1/practice/chat", `{"channel":"`+channel+`","name":"Nadia","text":"Is my order coming?"}`, screensSecret, w.cookie)
+		conversation, _ := asked["conversationId"].(string)
+		if code, answered := w.call("POST", "/api/v1/practice/chat", answer, screensSecret, w.cookie); code != 200 || answered["conversationId"] != conversation {
+			t.Fatalf("%s: answered: %d %v", channel, code, answered)
+		}
+		_, chat := w.call("GET", "/api/v1/practice/chat/"+conversation, "", screensSecret, w.cookie)
+		lines, _ := chat["lines"].([]any)
+		if len(lines) != 2 || lines[1].(map[string]any)["text"] != "On my way!" || lines[1].(map[string]any)["fromCustomer"] != false {
+			t.Fatalf("%s: on the business's side of the chat: %v", channel, chat)
+		}
+		inConversation := ` AND conversation_id = '` + conversation + `'`
+		if w.count(`SELECT count(*) FROM messages WHERE company_id = $1 AND author = 'business_account'`+inConversation) != 1 ||
+			w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'taken_over' AND actor_user_id IS NULL`+inConversation) != 1 {
+			t.Fatalf("%s: saved as the business's own message, and ansa stepped back", channel)
+		}
+		if code, _ := w.call("POST", "/api/v1/conversations/"+conversation+"/hand-back", "", screensSecret, w.cookie); code != 200 ||
+			w.count(`SELECT count(*) FROM conversations WHERE company_id = $1 AND handled_by = 'assistant' AND id = '`+conversation+`'`) != 1 {
+			t.Fatalf("%s: Hand back to ansa gives it back", channel)
+		}
 	}
 }
 

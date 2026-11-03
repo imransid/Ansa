@@ -60,7 +60,10 @@ export function PhoneConnection({ lines }: { lines: { id: string; lastCallAt: Da
   );
 }
 
-// LinkedIn, X and YouTube: where ansa can post besides Facebook.
+// LinkedIn, X and YouTube: where ansa can post besides Facebook. A
+// development stand-in is one account per platform (connecting it again
+// would only save it again), so it is offered only while none is
+// connected; connecting one brings the owner back here ("from").
 export function PostingPlatforms({ platforms, canManage }: { platforms: PlatformView[]; canManage: boolean }) {
   return (
     <ul className="divide-y border-y">
@@ -78,12 +81,20 @@ export function PostingPlatforms({ platforms, canManage }: { platforms: Platform
                 <span className="text-muted-foreground">{platform.mode === "not-set-up" ? "Not set up by ansa yet" : "Not connected"}</span>
               )}
             </span>
-            {canManage && platform.mode !== "not-set-up" && (
+            {canManage && platform.mode === "real" && (
               <ActionButton
-                action={platform.mode === "real" ? connectSocialAccountAction : connectStandInAccountAction}
+                action={connectSocialAccountAction}
                 fields={{ platform: platform.platform }}
                 label={live.length > 0 ? "Connect another" : "Connect"}
                 accessibleLabel={`Connect ${platform.label}`}
+              />
+            )}
+            {canManage && platform.mode === "stand-in" && live.length === 0 && (
+              <ActionButton
+                action={connectStandInAccountAction}
+                fields={{ platform: platform.platform, from: "connections" }}
+                label="Connect"
+                accessibleLabel={`Connect a development stand-in ${platform.label} account`}
               />
             )}
           </li>

@@ -19,9 +19,21 @@ side, in the browser, beside the owner's own pages.
   Latin letters or digits (Bangla, Arabic) is a number from the name's hash
   on Messenger and WhatsApp too, as on Telegram, so two such names are two
   customers; a Latin name keeps the id it always had.
+- **Answer as the business, from its own app** (`business.go`, a tick on
+  the page): the text is saved as the business's own message, as if written
+  in its own app, through each channel's own path for one: Telegram, a
+  business message from the stand-in account's own user handed to core's
+  Telegram update handling (`telegram.Webhook.HandleUpdate`); WhatsApp, an
+  echo of the WhatsApp Business app (`whatsapp.SaveEvent` with `KindEcho`);
+  Messenger, the Page's own message (`messenger.SavePagesOwnMessage`). So
+  "Written in Telegram" (and the others) show in the Inbox, and ansa steps
+  back as for a real one ([conversations](conversations.md): taken over
+  with "Always", until Hand back). The customer writes first: refused (409)
+  before their first message.
 - The chat shows what reached the customer: their messages, and replies sent
-  (or being sent, or unclear), never a reply waiting for the owner's approval
-  ("Ask me first") or one discarded.
+  (or being sent, or unclear) and the business's own on the business's
+  side, never a reply waiting for the owner's approval ("Ask me first") or
+  one discarded.
 - Without a stand-in account on that channel: refused (409), the page links
   Connections.
 - **Email** (`email.go`): the owner writes an email as a customer (a name or
@@ -42,9 +54,10 @@ side, in the browser, beside the owner's own pages.
 **API** (`internal/api/practice_chat.go`, `practice_email.go`, owners only,
 refused on a production server): `GET /api/v1/practice/chat` (available,
 which channels have a stand-in, whether the practice email works here),
-`POST /api/v1/practice/chat` {channel, name, text}
+`POST /api/v1/practice/chat` {channel, name, text, asBusiness}
 (checked: a known channel, a name of 1-100, a message of 1-4,000; 300 an
-hour per company), `GET /api/v1/practice/chat/find?channel=&name=`,
+hour per company; asBusiness: the business's own answer, 409 before the
+customer wrote), `GET /api/v1/practice/chat/find?channel=&name=`,
 `GET /api/v1/practice/chat/{id}` (the company's own conversations only),
 `POST /api/v1/practice/email` {name, address, subject, text, verified}:
 {to} (body up to 1 MB; checked: a name of 0-100 and a subject of 1-1,000,
@@ -53,13 +66,18 @@ box of 1-100,000; 100 an hour per company).
 
 **Screens:** `app/settings/channels/practice-chat/` (the page polls every
 2 seconds while a chat is open, so an order accepted on the Orders page
-shows in the customer's chat; "Email" shows `practice-email.tsx` instead,
-which says where the email went and links the Inbox and the Emails page).
+shows in the customer's chat; the message box and its "Answer as the
+business" tick are `message-form.tsx`; "Email" shows `practice-email.tsx`
+instead, which says where the email went and links the Inbox and the
+Emails page). Settings → Connections links it in each stand-in's advice.
 
 **Tests:** `internal/api/practice_chat_test.go` (a stand-in needed, the
 reply queued as for any customer, the same name the same customer, found
 again, never a draft shown, fields checked, another company's chat not
-there, members and production refused); `internal/api/practice_email_test.go`
+there, members and production refused; answering as the business on each
+channel: not before the customer wrote, saved as the business's own in
+their conversation, shown on the business's side, ansa stepping back until
+Hand back); `internal/api/practice_email_test.go`
 (the email saved as received and its job queued for this company only, its
 content where the development fetcher reads it, fields checked, an unknown
 one refused, refused while real email is on, members and production

@@ -14,7 +14,10 @@ integers, texts capped) → handle. An update ansa can't read is answered 200.
   conversation, once per Telegram message id, and a job `assistant.reply` is
   queued once for it.
 - A message the business wrote in its own Telegram app is saved as the
-  business's own and stops the assistant's wait.
+  business's own, and ansa steps back ([conversations](conversations.md):
+  with "Always" the conversation is taken over in the name of the owner who
+  connected the account, until someone hands it back; with "Only when I'm
+  away" only the wait ends).
 - ansa's own reply coming back (`sender_business_bot`) isn't saved again.
 - Messages deleted in Telegram are deleted in ansa.
 - The company comes ONLY from the business connection id (a cross-company
@@ -46,12 +49,15 @@ secret as `secret_token`, the four kinds of updates ansa reads in
 `UpdateTypes`, 40 connections) and `DeleteWebhook`, for the operator's
 `telegram-webhook`; `GetUpdates` (25-second long polls; 409 = a webhook is
 set) for the development `telegram-poll`, which hands each update to this
-webhook's handler in its own process ([commands](commands.md)). Read by
+webhook's handler in its own process ([commands](commands.md)); the
+development practice chat hands it the stand-in account's own messages
+(`HandleUpdate`, [practicechat](practicechat.md)). Read by
 status, `ok` and the updates only, never Telegram's own words.
 **Settings:** TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, TELEGRAM_WEBHOOK_SECRET (all or none).
 **Tests:** `update_test.go`; `webhook_test.go` (live database): a wrong or
 missing secret saves nothing; a customer message is saved once, encrypted,
-with one reply job; the business's own message, the bot's echo and deletions;
+with one reply job; the business's own message (it takes the conversation
+over in the name of who connected the account), the bot's echo and deletions;
 `send_test.go`: sent, rate limited, unclear, a wrong token; `links_test.go`
 (live database): Start then chatbot connects the code's company, once; a
 chatbot added first waits for the Start; a stranger is told how to connect;

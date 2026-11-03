@@ -35,7 +35,7 @@ export function AwaySummaryCard({ summary }: { summary: AwaySummary }) {
         {summary.conversations.map((line) => (
           <li key={line.conversationId}>
             <Link href={`/inbox/${line.conversationId}`} className="grid gap-0.5 py-2.5 text-sm hover:text-link">
-              <span className="font-medium">{contactLabel({ displayName: line.contactName, externalId: "" }) || "Someone"}</span>
+              <span className="font-medium">{contactLabel({ displayName: line.contactName, externalId: "", channel: line.channel }) || "Someone"}</span>
               <span className="text-muted-foreground">{awayLineText(line)}</span>
             </Link>
           </li>

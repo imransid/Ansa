@@ -5,8 +5,10 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot } from "@/components/status-dot";
 import type { ConnectionsPage } from "@/lib/core-views/channels";
+import { OwnAnswersNote } from "./own-answers";
+import { PracticeChatAdvice, StandInName } from "./stand-in";
 
-const SIMULATE_COMMAND = 'cd core && make simulate-whatsapp OWNER=<your email> NAME="Customer name" TEXT="Message"';
+const IN_THE_APP = "in the WhatsApp Business app";
 
 // Settings → Connections → WhatsApp (step 56): the connected number and
 // Disconnect, or Meta's sign-up to connect one. Owners connect and
@@ -20,9 +22,15 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
           {whatsapp.status === "connected" ? "Connected" : "Removed on WhatsApp's side"}
         </StatusDot>
         <p className="text-sm">
-          <span className="font-medium">{whatsapp.displayPhoneNumber}</span>
-          {whatsapp.verifiedName ? ` (${whatsapp.verifiedName})` : ""}
-          {whatsapp.isStandIn ? ", a development stand-in" : ""}, since <LocalDateTime iso={whatsapp.connectedAt.toISOString()} />
+          {whatsapp.isStandIn ? (
+            <StandInName name={whatsapp.displayPhoneNumber} />
+          ) : (
+            <>
+              <span className="font-medium">{whatsapp.displayPhoneNumber}</span>
+              {whatsapp.verifiedName ? ` (${whatsapp.verifiedName})` : ""}
+            </>
+          )}
+          , since <LocalDateTime iso={whatsapp.connectedAt.toISOString()} />
         </p>
         <NumberAdvice number={whatsapp} />
         {page.canManage && (
@@ -54,9 +62,9 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
       <div className="grid gap-3">
         <p className="text-sm text-muted-foreground">
           Development: ansa&apos;s Meta app isn&apos;t set up for WhatsApp (FACEBOOK_APP_ID, FACEBOOK_APP_SECRET and WHATSAPP_SIGNUP_CONFIG_ID in
-          .env.core), so this connects a stand-in number. Bring a customer&apos;s message in with{" "}
-          <code className="rounded bg-muted px-1">{SIMULATE_COMMAND}</code>.
+          .env.core), so this connects a stand-in number.
         </p>
+        <PracticeChatAdvice connected={false} />
         <TelegramConnectButton action={connectStandInWhatsAppAction} label="Connect a stand-in WhatsApp number" />
       </div>
     );
@@ -69,10 +77,10 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
         <li>Allow ansa to send and receive messages, and finish.</li>
       </ol>
       <p className="text-sm text-muted-foreground">
-        With the WhatsApp Business app you keep using it on your phone as always: ansa sees what you answer there and stays quiet. A
-        personal WhatsApp number can&apos;t be connected to any assistant: WhatsApp doesn&apos;t allow it. Meta charges your business for
-        replies after the first 1,000 a month.
+        With the WhatsApp Business app you keep using it on your phone as always. A personal WhatsApp number can&apos;t be connected to any
+        assistant: WhatsApp doesn&apos;t allow it. Meta charges your business for replies after the first 1,000 a month.
       </p>
+      <OwnAnswersNote app={IN_THE_APP} />
       <WhatsAppSignupButton signup={page.whatsappSignup} />
     </div>
   );
@@ -89,16 +97,19 @@ function NumberAdvice({ number }: { number: NonNullable<ConnectionsPage["whatsap
   }
   if (number.isStandIn) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Bring a customer&apos;s message in with <code className="rounded bg-muted px-1">{SIMULATE_COMMAND}</code>. Replies are written to
-        .dev-messages/.
-      </p>
+      <>
+        <PracticeChatAdvice connected />
+        <OwnAnswersNote app={IN_THE_APP} />
+      </>
     );
   }
   return (
-    <p className="text-sm text-muted-foreground">
-      Customers&apos; messages arrive in your Inbox, and you can reply from there within 24 hours of their last message (WhatsApp&apos;s rule).
-      {number.sharedWithApp ? " You can keep answering in the WhatsApp Business app too." : ""}
-    </p>
+    <>
+      <p className="text-sm text-muted-foreground">
+        Customers&apos; messages arrive in your Inbox, and you can reply from there within 24 hours of their last message (WhatsApp&apos;s rule).
+        {number.sharedWithApp ? " You can keep answering in the WhatsApp Business app too." : ""}
+      </p>
+      {number.sharedWithApp && <OwnAnswersNote app={IN_THE_APP} />}
+    </>
   );
 }

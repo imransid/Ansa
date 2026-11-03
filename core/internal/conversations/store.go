@@ -87,36 +87,6 @@ func InsertCallerWords(ctx context.Context, pool *database.Pool, company tenant.
 	return turn, err
 }
 
-// InsertBusinessAccountMessage saves a message the business wrote in its own
-// app (Telegram, Meta Business Suite): sent, no teammate named. You answered
-// yourself, so the assistant stops waiting to step in. False when it was
-// saved before.
-func InsertBusinessAccountMessage(ctx context.Context, pool *database.Pool, company tenant.CompanyID, contact ContactKey, message IncomingMessage) (bool, error) {
-	saved := false
-	err := database.InTx(ctx, pool, func(tx database.Tx) error {
-		conversationID, err := conversationForContact(ctx, tx, company, contact)
-		if err != nil {
-			return err
-		}
-		const insert = `
-			INSERT INTO messages (id, company_id, conversation_id, direction, author, body_encrypted, send_status, channel_message_id)
-			VALUES ($1, $2, $3, 'out', 'business_account', $4, 'sent', $5)
-			ON CONFLICT (conversation_id, channel_message_id) DO NOTHING`
-		tag, err := tx.Exec(ctx, insert, message.ID, company.String(), conversationID, message.BodyEncrypted, message.ChannelMessageID)
-		if err != nil || tag.RowsAffected() == 0 {
-			return err
-		}
-		saved = true
-		if err := touchConversation(ctx, tx, company, conversationID, false); err != nil {
-			return err
-		}
-		const stopWaiting = `UPDATE conversations SET assistant_due_at = NULL WHERE company_id = $1 AND id = $2`
-		_, err = tx.Exec(ctx, stopWaiting, company.String(), conversationID)
-		return err
-	})
-	return saved, err
-}
-
 // conversationForContact returns the contact's conversation, making both on
 // first use. Two saves at once for a new contact end on one conversation.
 func conversationForContact(ctx context.Context, tx database.Tx, company tenant.CompanyID, contact ContactKey) (string, error) {

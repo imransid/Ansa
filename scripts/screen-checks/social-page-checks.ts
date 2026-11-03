@@ -57,12 +57,13 @@ export async function runSocialPageChecks() {
     assert.equal(describeConnectResult("connected", "Facebook", 3), "Connected 3 Facebook Pages.");
   });
 
-  await check("accounts page: connecting a stand-in and disconnecting open the page again at its own address, replacing it, so a platform's last result there (?result=...) doesn't stay above what changed", async () => {
+  await check("accounts: connecting a stand-in and disconnecting open the page they came from again at its own address (Settings → Connections when its form says so, else the Accounts page), replacing it, so a platform's last result there (?result=...) doesn't stay above what changed", async () => {
     const actions = withoutComments(await read("app/actions/social-accounts.ts"));
-    assert.match(actions, /function backToAccountsPageOrErrors\(result: FormResult\)[\s\S]*?redirect\("\/cofounder\/accounts", RedirectType\.replace\);\n\}/);
+    assert.match(actions, /function backToPageOrErrors\(result: FormResult, page: string\)[\s\S]*?redirect\(page, RedirectType\.replace\);\n\}/);
+    assert.match(actions, /formData\.get\("from"\) === "connections" \? "\/settings\/channels" : "\/cofounder\/accounts"/);
     for (const action of ["connectStandInAccountAction", "disconnectSocialAccountAction"]) {
       const body = actions.slice(actions.indexOf(`export async function ${action}(`)).split("\n}\n")[0];
-      assert.match(body, /return backToAccountsPageOrErrors\(/, `${action} no longer opens the page again`);
+      assert.match(body, /return backToPageOrErrors\(.*, returnPageOf\(formData\)\);/, `${action} no longer opens its page again`);
     }
   });
 

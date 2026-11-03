@@ -8,8 +8,9 @@ import { requireSessionContext } from "@/lib/session";
 
 // Server actions are public POST endpoints. Keep them thin: read the form, ask
 // core (which checks the role, the input and the rate limit), then send the
-// owner on to the platform or back to the Accounts page. Core asks the
-// platform to take a disconnected account's access back, after its answer.
+// owner on to the platform or back to the page they acted on (the Accounts
+// page, or Settings → Connections). Core asks the platform to take a
+// disconnected account's access back, after its answer.
 
 export async function connectSocialAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   await requireSessionContext();
@@ -24,22 +25,31 @@ export async function connectSocialAccountAction(_previous: FormErrors | undefin
 
 export async function connectStandInAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   await requireSessionContext();
-  return backToAccountsPageOrErrors(await connectStandInThroughCore(formData.get("platform")));
+  return backToPageOrErrors(await connectStandInThroughCore(formData.get("platform")), returnPageOf(formData));
 }
 
 export async function disconnectSocialAccountAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   await requireSessionContext();
-  return backToAccountsPageOrErrors(await disconnectAccountThroughCore(formData.get("connectionId")));
+  return backToPageOrErrors(await disconnectAccountThroughCore(formData.get("connectionId")), returnPageOf(formData));
 }
 
-function backToAccountsPageOrErrors(result: FormResult): FormErrors | undefined {
+// Where the owner acted: Settings → Connections when its form says so (a
+// hidden "from"), else the Accounts page. Never an address from the form.
+function returnPageOf(formData: FormData): string {
+  return formData.get("from") === "connections" ? "/settings/channels" : "/cofounder/accounts";
+}
+
+function backToPageOrErrors(result: FormResult, page: string): FormErrors | undefined {
   if (!result.ok) {
     return result.errors;
   }
   revalidatePath("/cofounder", "layout");
+  revalidatePath("/settings/channels");
+  // A Facebook Page also carries messages: its conversations' replies change.
+  revalidatePath("/inbox", "layout");
   // WHY a redirect, not only the refresh: the address may still hold the
   // last return from a platform (?result=connected), whose message would
   // stay above what this changed. "replace": Back doesn't bring it back.
   // redirect() works by throwing, so it must never sit inside a try/catch.
-  redirect("/cofounder/accounts", RedirectType.replace);
+  redirect(page, RedirectType.replace);
 }

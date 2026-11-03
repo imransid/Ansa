@@ -22,7 +22,11 @@ can't read is answered 200.
   Meta message id (text, or the attachment named: never downloaded), the
   assistant's reply is queued, and so is the name job.
 - An echo sent by ansa's own app (its app_id) isn't saved again; any other
-  echo is the Page's own message (it stops the assistant's wait).
+  echo is the Page's own message (`SavePagesOwnMessage`, `own_message.go`),
+  and ansa steps back ([conversations](conversations.md): with "Always" the
+  conversation is taken over in the name of whoever connected the Page,
+  until someone hands it back; with "Only when I'm away" only the wait
+  ends). The practice chat saves the stand-in Page's own messages with it.
 - The name job (`messenger.name`, `names.go`): the customer's first and last
   name read once from Meta, only while the contact has none (best effort).
 **Sending (`send.go`):** the Send API with `messaging_type` RESPONSE and
@@ -36,7 +40,8 @@ logged (the token is in the address).
 **Tests:** `messenger_test.go`: events read strictly; long replies in parts,
 no word cut or lost; (live database) only Meta's signature lets a message
 in, saved once, reply and name queued, the contact id; ansa's own echo
-skipped, the Page's own saved, a Page in two companies decides nothing; the
+skipped, the Page's own saved (taking the conversation over in its
+connector's name), a Page in two companies decides nothing; the
 setup check; sending, the window-closed code and the name through a fake
 Graph API.
 **Development:** `make simulate-messenger` (from `core/`) brings a

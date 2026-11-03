@@ -1,0 +1,68 @@
+// Settings → Connections checks (the fixes of 2026-11-03), on the code
+// itself, as ui-polish-checks.ts does: the social account buttons there
+// bring the owner back there and offer a stand-in only while none is
+// connected; a Facebook Page has its own Disconnect there; a stand-in is
+// marked once and its advice links the practice chat; each chat channel
+// says what ansa does when the business answers in its own app; and the
+// practice chat can answer as the business.
+
+import assert from "node:assert/strict";
+import { check } from "./check";
+import { attributeValue, openingTags, read, withoutComments } from "./source-helpers";
+
+const FOLDER = "app/settings/channels";
+const MESSENGER = `${FOLDER}/messenger-from-core.tsx`;
+const POSTING = "components/channels/more-connections.tsx";
+const CHAT_SECTIONS = [`${FOLDER}/whatsapp-section.tsx`, `${FOLDER}/telegram-section.tsx`, MESSENGER];
+
+export async function runConnectionsChecks() {
+  await check("connections: its social account buttons (a stand-in Page, LinkedIn, X, YouTube, a Page's Disconnect) name their page, so the owner comes back to Settings → Connections; a stand-in is offered only while none is connected", async () => {
+    for (const file of [MESSENGER, POSTING]) {
+      const source = withoutComments(await read(file));
+      const buttons = openingTags(source, ["ActionButton", "ConfirmButton"]).filter((tag) => /connectStandInAccountAction|disconnectSocialAccountAction/.test(tag));
+      assert.ok(buttons.length > 0, `${file}: no stand-in or Disconnect button`);
+      for (const tag of buttons) {
+        assert.match(attributeValue(tag, "fields") ?? "", /from: "connections"/, `${file}: a button that doesn't name its page`);
+      }
+    }
+    assert.match(withoutComments(await read(POSTING)), /platform\.mode === "stand-in" && live\.length === 0 && \(\s*<ActionButton\s+action=\{connectStandInAccountAction\}/);
+    assert.match(withoutComments(await read(MESSENGER)), /messenger\.pages\.length === 0 && \(\s*<ActionButton\s+action=\{connectStandInAccountAction\}/);
+  });
+
+  await check("connections: a Facebook Page has its own Disconnect there, for owners, asking first", async () => {
+    const source = withoutComments(await read(MESSENGER));
+    assert.match(source, /\{canManage && \(\s*<ConfirmButton\s+action=\{disconnectSocialAccountAction\}\s+fields=\{\{ connectionId: page\.id, from: "connections" \}\}/);
+  });
+
+  await check("connections: a stand-in is marked once (one Development stand-in tag), and its advice links the practice chat instead of a make command", async () => {
+    for (const file of CHAT_SECTIONS) {
+      const source = withoutComments(await read(file));
+      assert.doesNotMatch(source, /\(development stand-in\)|, a development stand-in|make simulate/, `${file} marks a stand-in twice, or names a make command`);
+      assert.match(source, /<StandInName /, `${file} doesn't mark its stand-in`);
+      assert.match(source, /<PracticeChatAdvice /, `${file} doesn't link the practice chat`);
+    }
+    const standIn = withoutComments(await read(`${FOLDER}/stand-in.tsx`));
+    assert.match(standIn, /<Badge variant="outline">Development stand-in<\/Badge>/);
+    assert.match(standIn, /href="\/settings\/channels\/practice-chat"/);
+  });
+
+  await check("connections: each chat channel says what ansa does when the business answers in its own app, with Always and with Only when I'm away", async () => {
+    for (const file of CHAT_SECTIONS) {
+      assert.match(withoutComments(await read(file)), /<OwnAnswersNote app=/, `${file} doesn't say it`);
+    }
+    const note = withoutComments(await read(`${FOLDER}/own-answers.tsx`));
+    for (const words of ["Always", "Only when I&apos;m away", "Hand back to ansa"]) {
+      assert.ok(note.includes(words), `the note doesn't name ${words}`);
+    }
+    assert.doesNotMatch(withoutComments(await read(`${FOLDER}/whatsapp-section.tsx`)), /stays quiet\./, "WhatsApp promises ansa always stays quiet");
+  });
+
+  await check("practice chat: the owner may answer as the business, from its own app (a tick), and the page sends that choice to core", async () => {
+    const form = withoutComments(await read(`${FOLDER}/practice-chat/message-form.tsx`));
+    assert.match(form, /<Checkbox\s+checked=\{asBusiness\}/);
+    assert.match(form, /Answer as the business, from its own app/);
+    assert.match(withoutComments(await read(`${FOLDER}/practice-chat/practice-chat.tsx`)), /sendPracticeMessageAction\(\{ channel, name, text: message, asBusiness \}\)/);
+    assert.match(withoutComments(await read("app/actions/practice-chat.ts")), /asBusiness: z\.boolean\(\)/);
+    assert.match(withoutComments(await read("lib/core-views/practice-chat.ts")), /\{ channel, name, text, asBusiness \}/);
+  });
+}

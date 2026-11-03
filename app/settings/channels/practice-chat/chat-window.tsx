@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 
 // Each app's look, enough to tell them apart in a demo. Fixed light colours
 // in dark mode too, as the apps' own chats keep (white text on each header
-// stays above 4.5:1).
-export const CHAT_CHANNELS: { id: PracticeChannel; label: string; header: string; own: string }[] = [
-  { id: "whatsapp", label: "WhatsApp", header: "bg-[#075e54]", own: "bg-[#d9fdd3]" },
-  { id: "telegram", label: "Telegram", header: "bg-[#1b5f8c]", own: "bg-[#dff1fd]" },
-  { id: "messenger", label: "Messenger", header: "bg-[#0a4fbf]", own: "bg-[#e3edff]" },
+// stays above 4.5:1). businessApp: where the business answers itself.
+export const CHAT_CHANNELS: { id: PracticeChannel; label: string; header: string; own: string; businessApp: string }[] = [
+  { id: "whatsapp", label: "WhatsApp", header: "bg-[#075e54]", own: "bg-[#d9fdd3]", businessApp: "the WhatsApp Business app" },
+  { id: "telegram", label: "Telegram", header: "bg-[#1b5f8c]", own: "bg-[#dff1fd]", businessApp: "its Telegram app" },
+  { id: "messenger", label: "Messenger", header: "bg-[#0a4fbf]", own: "bg-[#e3edff]", businessApp: "its Facebook Page's inbox" },
 ];
 
 // How long after the customer's last message "ansa is writing..." shows: an
@@ -27,8 +27,8 @@ function chatTitle(name: string, personal: boolean): string {
 }
 
 // The chat as the customer sees it on their phone: their own messages on the
-// right, the business's (ansa's) on the left. personal: they write to one
-// person, not to a business.
+// right, the business's (ansa's, or its own from its app) on the left.
+// personal: they write to one person, not to a business.
 export function ChatWindow({ channel, name, lines, personal }: { channel: PracticeChannel; name: string; lines: PracticeLine[]; personal: boolean }) {
   const look = CHAT_CHANNELS.find((each) => each.id === channel) ?? CHAT_CHANNELS[0];
   const bottom = useRef<HTMLDivElement>(null);

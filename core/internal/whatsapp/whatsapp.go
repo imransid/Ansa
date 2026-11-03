@@ -29,7 +29,7 @@ func ContactID(phoneNumberID, customer string) string {
 }
 
 // SplitContactID splits at the LAST ":" (a stand-in number's id,
-// "stand-in:<uuid>", holds one; a customer id never does).
+// "stand-in:<company id>", holds one; a customer id never does).
 func SplitContactID(externalID string) (phoneNumberID, customer string, ok bool) {
 	at := strings.LastIndex(externalID, ":")
 	if at <= 0 || at == len(externalID)-1 {

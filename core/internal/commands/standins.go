@@ -22,6 +22,17 @@ func StandInTelegramConnection(ctx context.Context, pool *database.Pool, company
 	return oneText(pool.QueryRow(ctx, statement, company.String()))
 }
 
+// StandInTelegramAccountUser is the Telegram user id of the company's
+// development stand-in Telegram account itself ("" = none connected): what
+// the business writes in its own Telegram app comes from it.
+func StandInTelegramAccountUser(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (string, error) {
+	const statement = `
+		SELECT account_telegram_id FROM channel_connections
+		WHERE company_id = $1 AND channel = 'telegram' AND is_stand_in AND status <> 'disconnected'
+		LIMIT 1`
+	return oneText(pool.QueryRow(ctx, statement, company.String()))
+}
+
 // StandInFacebookPage is the Page id of the company's connected development
 // stand-in Facebook Page ("" = none).
 func StandInFacebookPage(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (string, error) {

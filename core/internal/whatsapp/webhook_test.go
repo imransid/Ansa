@@ -108,6 +108,9 @@ func TestAnEchoFromTheAppMeansYouAnswered(t *testing.T) {
 		w.count(t, `SELECT count(*) FROM conversations WHERE company_id = $1`) != 1 {
 		t.Fatal("in the customer's own conversation, and the assistant no longer waits to answer")
 	}
+	if w.count(t, `SELECT count(*) FROM conversations WHERE company_id = $1 AND handled_by = 'person' AND taken_over_by_user_id = '`+w.owner+`'`) != 1 {
+		t.Fatal("ansa answers always here: the business answering in its app takes the conversation over, in the name of who connected the number")
+	}
 }
 
 // Meta ends the link to the business account (the business removed ansa,

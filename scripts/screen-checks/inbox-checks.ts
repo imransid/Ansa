@@ -6,12 +6,24 @@
 // time; and "Try your assistant" shows the question it answers.
 
 import assert from "node:assert/strict";
+import { contactLabel } from "@/lib/inbox";
 import { check } from "./check";
 import { attributeValue, openingTags, read, withoutComments } from "./source-helpers";
 
 const CONVERSATION = "app/inbox/[conversationId]";
 
 export async function runInboxChecks() {
+  await check("Inbox: a customer without a name is never shown by a platform's raw id: on a chat channel they are '<app> customer'; an email address and a phone number stay as written", async () => {
+    assert.equal(contactLabel({ displayName: null, externalId: "102290129340398:US.13491208655302741918", channel: "whatsapp" }), "WhatsApp customer");
+    assert.equal(contactLabel({ displayName: null, externalId: "dev:stand-in:4242", channel: "messenger" }), "Messenger customer");
+    assert.equal(contactLabel({ displayName: null, externalId: "5550001", channel: "telegram" }), "Telegram customer");
+    assert.equal(contactLabel({ displayName: null, externalId: "unverified:ana@example.test", channel: "email" }), "ana@example.test");
+    assert.equal(contactLabel({ displayName: null, externalId: "393331234567", channel: "phone" }), "393331234567");
+    assert.equal(contactLabel({ displayName: "Lena Moretti", externalId: "5550001", channel: "telegram" }), "Lena Moretti");
+    // Home's lines pass no id: an unnamed caller or sender stays "", for their own fallback.
+    assert.equal(contactLabel({ displayName: null, externalId: "", channel: "phone" }), "");
+  });
+
   await check("live pages: Home, the Inbox and a conversation ask the server again every 5 seconds while in view (Orders every 20), and the reply box and the open request's note keep what is typed through it", async () => {
     for (const file of ["app/dashboard/page.tsx", "app/inbox/page.tsx", `${CONVERSATION}/page.tsx`]) {
       assert.match(withoutComments(await read(file)), /<RefreshEvery seconds=\{5\} \/>/, `${file} doesn't refresh itself`);

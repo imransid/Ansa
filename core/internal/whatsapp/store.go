@@ -2,6 +2,9 @@ package whatsapp
 
 import (
 	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/tenant"
@@ -50,6 +53,20 @@ func followAccountChange(ctx context.Context, pool *database.Pool, wabaID, newSt
 		}
 	}
 	return nil
+}
+
+// numberConnectedBy is who connected the number in this company ("" when it
+// is no longer connected).
+func numberConnectedBy(ctx context.Context, pool *database.Pool, company tenant.CompanyID, phoneNumberID string) (string, error) {
+	const statement = `
+		SELECT connected_by_user_id FROM whatsapp_numbers
+		WHERE company_id = $1 AND phone_number_id = $2 AND status <> 'disconnected'`
+	var userID string
+	err := pool.QueryRow(ctx, statement, company.String(), phoneNumberID).Scan(&userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return userID, err
 }
 
 func numbers(ctx context.Context, pool *database.Pool, statement, id string) ([]number, error) {

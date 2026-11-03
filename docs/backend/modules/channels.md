@@ -31,3 +31,13 @@ forwarding address; no link without a bot; one stand-in account; disconnect;
 a link with a 43-character code whose hash is kept for 10 minutes.
 **Connecting Facebook Pages and other social accounts** (OAuth):
 [socialconnect](socialconnect.md).
+**Screens:** `app/settings/channels/`. Each chat channel says what ansa does
+when the business answers in its own app, with "Always" and with "Only when
+I'm away" (`own-answers.tsx`, [conversations](conversations.md)). A
+development stand-in is marked once ("Development stand-in") and its advice
+links the practice chat (`stand-in.tsx`). A Facebook Page has its own
+Disconnect there; a stand-in Page, LinkedIn, X or YouTube stand-in is
+offered only while none is connected; connecting a stand-in or
+disconnecting brings the owner back to Connections (the form's hidden
+`from`: `app/actions/social-accounts.ts`). A real platform's consent screen
+still returns to the Accounts page, which explains its result.

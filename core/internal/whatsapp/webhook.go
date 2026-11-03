@@ -116,9 +116,11 @@ func (h *Webhook) handle(ctx context.Context, event Event) error {
 
 // SaveEvent saves a customer's message in their conversation (the
 // assistant's answer queued with it) or the business's own message written
-// in the WhatsApp Business app (you answered: the assistant stops waiting),
-// encrypted, once per WhatsApp message id. The simulator saves the stand-in
-// number's messages with it too.
+// in the WhatsApp Business app (you answered: ansa steps back as
+// conversations.InsertBusinessAccountMessage says, a take over in the name
+// of whoever connected the number), encrypted, once per WhatsApp message id.
+// The simulator and the practice chat save the stand-in number's messages
+// with it too.
 func SaveEvent(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, event Event) error {
 	text := event.Describe()
 	if text == "" {
@@ -135,7 +137,11 @@ func SaveEvent(ctx context.Context, pool *database.Pool, box *secure.Box, compan
 	saved := conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: event.MessageID}
 	contact := conversations.ContactKey{Channel: conversations.ChannelWhatsApp, ExternalID: ContactID(event.PhoneNumberID, event.CustomerID)}
 	if event.Kind == KindEcho {
-		_, err = conversations.InsertBusinessAccountMessage(ctx, pool, company, contact, saved)
+		holder, err := numberConnectedBy(ctx, pool, company, event.PhoneNumberID)
+		if err != nil {
+			return err
+		}
+		_, err = conversations.InsertBusinessAccountMessage(ctx, pool, company, contact, saved, holder)
 		return err
 	}
 	if name := cleanName(event.CustomerName); name != "" {

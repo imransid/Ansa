@@ -23,7 +23,7 @@ const STATUS_TONE: Record<OrderStatus, StatusTone> = {
 // total; each line; how and when; and the one next step as the main button.
 export function OrderCard({ order }: { order: OrderView }) {
   const money = (cents: number) => formatPrice(cents, order.currency);
-  const customer = contactLabel({ displayName: order.contactName, externalId: "" }) || "A customer";
+  const customer = contactLabel({ displayName: order.contactName, externalId: "", channel: order.channel }) || "A customer";
   return (
     <article aria-label={`Order #${order.orderNumber}`} className="grid gap-3 rounded-2xl border bg-card p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

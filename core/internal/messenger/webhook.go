@@ -116,30 +116,21 @@ func (h *Webhook) handle(ctx context.Context, event Event) error {
 		}
 		return err
 	}
-	text := event.Describe()
-	if text == "" {
-		return nil
-	}
-	id, err := conversations.NewID()
-	if err != nil {
-		return err
-	}
-	body, err := h.Box.Encrypt(text, conversations.MessageContext(page.CompanyID, id))
-	if err != nil {
-		return err
-	}
-	saved := conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: event.MID}
 	if event.IsEcho {
 		// The Page's own message, unless ansa's app sent it (saved already).
-		if h.AppID == "" || event.AppID != h.AppID {
-			_, err = conversations.InsertBusinessAccountMessage(ctx, h.Pool, page.CompanyID, contactKey(event.PageID, event.RecipientID), saved)
+		if h.AppID != "" && event.AppID == h.AppID {
+			return nil
 		}
-		return err
+		return SavePagesOwnMessage(ctx, h.Pool, h.Box, page.CompanyID, event)
 	}
 	if event.RecipientID != event.PageID {
 		return nil
 	}
-	turn, err := conversations.InsertCustomerMessage(ctx, h.Pool, page.CompanyID, contactKey(event.PageID, event.SenderID), saved)
+	saved, err := encryptedMessage(h.Box, page.CompanyID, event)
+	if err != nil || saved == nil {
+		return err
+	}
+	turn, err := conversations.InsertCustomerMessage(ctx, h.Pool, page.CompanyID, contactKey(event.PageID, event.SenderID), *saved)
 	if err != nil || turn == nil {
 		return err
 	}

@@ -39,6 +39,22 @@ func findConnection(ctx context.Context, pool *database.Pool, businessConnection
 	return &connection{CompanyID: id, AccountTelegramID: account}, nil
 }
 
+// connectedBy is who connected the business's Telegram account in ansa:
+// what the business writes in its own app takes a conversation over in
+// their name ("" when the account is no longer tied).
+func connectedBy(ctx context.Context, pool *database.Pool, company tenant.CompanyID, businessConnectionID string) (string, error) {
+	const statement = `
+		SELECT connected_by_user_id FROM channel_connections
+		WHERE company_id = $1 AND channel = 'telegram' AND external_id = $2 AND status IN ('connected', 'cannot_reply')
+		LIMIT 1`
+	var userID string
+	err := pool.QueryRow(ctx, statement, company.String(), businessConnectionID).Scan(&userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return userID, err
+}
+
 // deleteMessages deletes ansa's copies of messages deleted in Telegram.
 func deleteMessages(ctx context.Context, pool *database.Pool, company tenant.CompanyID, chatID string, channelMessageIDs []string) error {
 	if len(channelMessageIDs) == 0 {

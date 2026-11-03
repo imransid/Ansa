@@ -76,6 +76,13 @@ func (h *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleUpdate handles one update already read, as the webhook does once its
+// checks passed. The development practice chat hands it the messages it
+// makes for a company's stand-in account (core/internal/practicechat).
+func (h *Webhook) HandleUpdate(ctx context.Context, update *Update) error {
+	return h.handle(ctx, update)
+}
+
 func (h *Webhook) handle(ctx context.Context, update *Update) error {
 	switch {
 	case update.BusinessMessage != nil:
@@ -111,7 +118,11 @@ func (h *Webhook) handleBusinessMessage(ctx context.Context, message *Message) e
 	}
 	contact := customerContact(message.Chat)
 	if message.From.ID == found.AccountTelegramID {
-		_, err := conversations.InsertBusinessAccountMessage(ctx, h.Pool, found.CompanyID, contact, saved)
+		holder, err := connectedBy(ctx, h.Pool, found.CompanyID, message.BusinessConnectionID)
+		if err != nil {
+			return err
+		}
+		_, err = conversations.InsertBusinessAccountMessage(ctx, h.Pool, found.CompanyID, contact, saved, holder)
 		return err
 	}
 	// Saved with its reply job (the assistant answers it in a moment).

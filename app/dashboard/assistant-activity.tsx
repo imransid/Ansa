@@ -26,7 +26,7 @@ export function AssistantActivity({ rows }: { rows: ActivityRow[] }) {
                   <LocalDateTime iso={row.createdAt.toISOString()} />
                 </span>
                 <span>
-                  {ACTIVITY_TEXT[row.action]}: {contactLabel({ displayName: row.contactName, externalId: "" }) || "a customer"}
+                  {ACTIVITY_TEXT[row.action]}: {contactLabel({ displayName: row.contactName, externalId: "", channel: row.channel }) || "a customer"}
                 </span>
               </Link>
             </li>

@@ -81,6 +81,8 @@ type pageWorld struct {
 	pageID  string
 	conn    string
 	hook    *Webhook
+	// The owner who connected the Page.
+	owner string
 }
 
 func newPageWorld(t *testing.T) *pageWorld {
@@ -88,9 +90,9 @@ func newPageWorld(t *testing.T) *pageWorld {
 	w := &pageWorld{pool: pool, pageID: fmt.Sprint(rand.Uint64())}
 	companyID := database.TestCompany(t, pool)
 	w.company, _ = tenant.FromTrustedSource(companyID)
-	owner := database.TestOwner(t, pool, companyID)
+	w.owner = database.TestOwner(t, pool, companyID)
 	w.box, _ = secure.NewBox("BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")
-	w.conn = w.connectPage(t, companyID, owner)
+	w.conn = w.connectPage(t, companyID, w.owner)
 	limiter := ratelimit.New(pool, strings.Repeat("r", 40))
 	w.hook = &Webhook{Pool: pool, Limiter: limiter, Box: w.box, Log: logging.New(io.Discard), AppID: "987", AppSecret: appSecret, VerifyToken: strings.Repeat("v", 40)}
 	return w
@@ -164,6 +166,9 @@ func TestEchoesAndAPageInTwoCompanies(t *testing.T) {
 	w.post(sign(other), other)
 	if w.count(t, `SELECT count(*) FROM messages WHERE company_id = $1 AND author = 'business_account'`) != 1 {
 		t.Fatal("ansa's own echo is skipped; the Page's own message is saved")
+	}
+	if w.count(t, `SELECT count(*) FROM conversations WHERE company_id = $1 AND handled_by = 'person' AND taken_over_by_user_id = '`+w.owner+`'`) != 1 {
+		t.Fatal("ansa answers always here: the Page's own message takes the conversation over, in the name of who connected the Page")
 	}
 	second := database.TestCompany(t, w.pool)
 	w.connectPage(t, second, database.TestOwner(t, w.pool, second))

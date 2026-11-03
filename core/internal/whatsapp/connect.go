@@ -63,17 +63,12 @@ func (c *Connector) Connect(ctx context.Context, company tenant.CompanyID, actor
 }
 
 // ConnectStandIn connects a development stand-in number (no Meta app: its
-// customers come from the simulator, replies go to .dev-messages/).
+// customers come from the simulator, replies go to .dev-messages/). Its ids
+// are the company's own, the same at every connect: each customer's contact
+// id names the number, so a stand-in connected again keeps its
+// conversations (as the stand-in Facebook Page's fixed id does).
 func (c *Connector) ConnectStandIn(ctx context.Context, company tenant.CompanyID, actorUserID string) (string, error) {
-	waba, err := conversations.NewID()
-	if err != nil {
-		return "", err
-	}
-	phone, err := conversations.NewID()
-	if err != nil {
-		return "", err
-	}
-	number := VerifiedNumber{WABAID: "stand-in:" + waba, PhoneNumberID: "stand-in:" + phone, DisplayPhoneNumber: "+00 000 000 000", VerifiedName: "Stand-in WhatsApp number"}
+	number := VerifiedNumber{WABAID: "stand-in:waba-" + company.String(), PhoneNumberID: "stand-in:" + company.String(), DisplayPhoneNumber: "+00 000 000 000", VerifiedName: "Stand-in WhatsApp number"}
 	return c.save(ctx, company, actorUserID, number, true)
 }
 

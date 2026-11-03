@@ -40,9 +40,10 @@ export async function sendPracticeEmailThroughCore(email: PracticeEmail): Promis
   return { ok: true, to: answer.data.to };
 }
 
-// Saves the made-up customer's message: the conversation it joined.
-export async function sendPracticeMessageThroughCore(channel: PracticeChannel, name: string, text: string): Promise<PracticeSent> {
-  const answer = await callCore<{ conversationId: string }>("POST", "/api/v1/practice/chat", { channel, name, text });
+// Saves the made-up customer's message, or (asBusiness) the business's own
+// answer to them from its app: the conversation it is in.
+export async function sendPracticeMessageThroughCore(channel: PracticeChannel, name: string, text: string, asBusiness: boolean): Promise<PracticeSent> {
+  const answer = await callCore<{ conversationId: string }>("POST", "/api/v1/practice/chat", { channel, name, text, asBusiness });
   if (!answer.ok) {
     return { ok: false, error: answer.fields.text ?? answer.fields.name ?? answer.fields.channel ?? answer.message };
   }

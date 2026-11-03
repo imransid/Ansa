@@ -31,6 +31,9 @@ in the company works conversations, as they work tickets.
 `team.RoleWithin`: confirmed, not removed, FOR SHARE):**
 - `TakeOver` / `HandBack` (an activity line with who; doing it twice is
   "unchanged"); `SetImportant` (ansa never answers an important person itself).
+  The business answering in its own app takes a conversation over too where
+  ansa answers every message ([conversations](conversations.md)); HandBack
+  gives it back the same way.
 - `Replies.Reply`: a person's reply (1-4,000 characters, a line break counted
   once, no control characters) saved "sending" encrypted, then sent through
   the chat door and recorded. Replying takes the conversation over when ansa

@@ -54,7 +54,10 @@ downloaded; reactions and WhatsApp's own notices are left out. Saved once
 per WhatsApp message id, encrypted, with the assistant's answer queued
 (`conversations.InsertCustomerMessage`). An echo (`smb_message_echoes`) is
 the business's own message: author `business_account` ("Written in the
-WhatsApp Business app"), and the assistant stops waiting to step in. An
+WhatsApp Business app"), and ansa steps back ([conversations](conversations.md):
+with "Always" the conversation is taken over in the name of whoever
+connected the number, until someone hands it back; with "Only when I'm
+away" only the wait ends). An
 `account_update` (`PARTNER_REMOVED`, `ACCOUNT_OFFBOARDED`) marks the
 business account's numbers `removed_in_whatsapp` (nothing arrives or goes;
 the token kept), `ACCOUNT_RECONNECTED` connects them again; a number an
@@ -78,7 +81,10 @@ answer or a 5xx = `unclear`, never sent again by itself.
 `FACEBOOK_APP_SECRET` and `WHATSAPP_SIGNUP_CONFIG_ID` (the id of a Facebook
 Login for Business configuration made for WhatsApp Embedded Signup);
 "stand-in" in development without them (a stand-in number: its customers
-come from `make simulate-whatsapp`, replies are files in `.dev-messages/`);
+come from the practice chat or `make simulate-whatsapp`, replies are files
+in `.dev-messages/`; its ids are the company's own, `stand-in:<company id>`
+and `stand-in:waba-<company id>`, the same at every connect, so a stand-in
+connected again keeps its conversations);
 "not-set-up" in production without them.
 
 **Table `whatsapp_numbers`** (migration 0050): company, business account
@@ -97,9 +103,11 @@ anything is saved, each refusal; owners only, one number per company,
 another company's number refused, the token encrypted and gone on
 disconnect; the stand-in), `webhook_test.go` (Meta's signature, once per
 message id, the name, the reply queued; an echo stops the assistant
-waiting; Meta ending and restoring the link; the setup check). Also
-`internal/chat` (the route), `internal/api/channels_test.go` (the
-endpoints) and `cmd/simulate` (the stand-in).
+waiting and takes the conversation over in the connector's name; Meta
+ending and restoring the link; the setup check). Also `internal/chat` (the
+route; a stand-in connected again keeps its conversations),
+`internal/api/channels_test.go` (the endpoints) and `cmd/simulate` (the
+stand-in).
 
 **Not confirmed (nothing has met Meta yet):** the shape of
 `smb_message_echoes` for a customer known only by a business-scoped id

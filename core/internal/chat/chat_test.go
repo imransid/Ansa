@@ -9,6 +9,7 @@ import (
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/tenant"
+	"ansa/core/internal/whatsapp"
 )
 
 func customerTurn(t *testing.T, pool *database.Pool, company tenant.CompanyID, contact conversations.ContactKey, id string) *conversations.Turn {
@@ -161,5 +162,33 @@ func TestWhatsAppNeedsItsNumberConnectedHereWithin24Hours(t *testing.T) {
 	pool.Exec(ctx, `UPDATE conversations SET last_customer_message_at = now() - interval '25 hours' WHERE company_id = $1`, companyID)
 	if _, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != RefusedWindowClosed {
 		t.Fatalf("past 24 hours: %q", refusal)
+	}
+}
+
+// A stand-in WhatsApp number connected again (development) is the same
+// number: every contact's id names it, so its customers' conversations
+// still route to it.
+func TestAStandInWhatsAppNumberConnectedAgainKeepsItsConversations(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	owner := database.TestOwner(t, pool, companyID)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	numbers := &whatsapp.Connector{Pool: pool, Development: true}
+	if _, err := numbers.ConnectStandIn(ctx, company, owner); err != nil {
+		t.Fatal(err)
+	}
+	var phone string
+	pool.QueryRow(ctx, `SELECT phone_number_id FROM whatsapp_numbers WHERE company_id = $1 AND status = 'connected'`, companyID).Scan(&phone)
+	id, _ := conversations.NewID()
+	turn := customerTurn(t, pool, company, conversations.ContactKey{Channel: conversations.ChannelWhatsApp, ExternalID: whatsapp.ContactID(phone, "XX.lena")}, id)
+	if _, err := whatsapp.Disconnect(ctx, pool, company, owner); err != nil {
+		t.Fatal(err)
+	}
+	if outcome, err := numbers.ConnectStandIn(ctx, company, owner); err != nil || outcome != "saved" {
+		t.Fatalf("connected again: %q %v", outcome, err)
+	}
+	if target, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != "" || target.WhatsAppPhoneNumberID != phone || !target.WhatsAppIsStandIn {
+		t.Fatalf("the conversation from before routes to the number connected again: %+v %q", target, refusal)
 	}
 }

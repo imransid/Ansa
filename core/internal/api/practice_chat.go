@@ -63,12 +63,15 @@ func (s *Server) withPracticeChat(h handler) handler {
 	}
 }
 
-// sendPracticeChat: POST {channel, name, text}: {conversationId}.
+// sendPracticeChat: POST {channel, name, text, asBusiness}: {conversationId}.
+// asBusiness: the business answers the customer from its own app instead
+// (the customer wrote first).
 func (s *Server) sendPracticeChat(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
 	var input struct {
-		Channel string `json:"channel"`
-		Name    string `json:"name"`
-		Text    string `json:"text"`
+		Channel    string `json:"channel"`
+		Name       string `json:"name"`
+		Text       string `json:"text"`
+		AsBusiness bool   `json:"asBusiness"`
 	}
 	if !readJSON(body, &input) {
 		problem(w, http.StatusBadRequest, "Something went wrong. Reload the page.")
@@ -94,15 +97,30 @@ func (s *Server) sendPracticeChat(w http.ResponseWriter, r *http.Request, body [
 		problem(w, http.StatusTooManyRequests, "That's a lot of practice messages this hour. Try again later.")
 		return
 	}
-	turn, err := practicechat.Send(r.Context(), s.Pool, s.Box, who.CompanyID, input.Channel, name, text)
+	conversationID, err := s.sendPracticeMessage(r, who, input.Channel, name, text, input.AsBusiness)
 	switch {
 	case errors.Is(err, practicechat.ErrNoStandIn):
 		problem(w, http.StatusConflict, "Connect a stand-in account for this channel on Settings → Connections first.")
+	case errors.Is(err, practicechat.ErrNoConversation):
+		problem(w, http.StatusConflict, "Write as the customer first: the business answers them.")
 	case err != nil:
 		s.failed(w, "practice chat", err)
 	default:
-		writeJSON(w, http.StatusOK, map[string]string{"conversationId": turn.ConversationID})
+		writeJSON(w, http.StatusOK, map[string]string{"conversationId": conversationID})
 	}
+}
+
+// sendPracticeMessage saves the customer's message, or the business's own
+// answer from its app: the conversation it is in.
+func (s *Server) sendPracticeMessage(r *http.Request, who *session.Session, channel, name, text string, asBusiness bool) (string, error) {
+	if asBusiness {
+		return practicechat.SendAsBusiness(r.Context(), s.Pool, s.Box, s.Log, who.CompanyID, channel, name, text)
+	}
+	turn, err := practicechat.Send(r.Context(), s.Pool, s.Box, who.CompanyID, channel, name, text)
+	if err != nil {
+		return "", err
+	}
+	return turn.ConversationID, nil
 }
 
 // findPracticeChat: GET ?channel=&name=: {conversationId} ("" before the

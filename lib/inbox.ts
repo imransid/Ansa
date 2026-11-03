@@ -1,4 +1,4 @@
-import type { ConversationChannel } from "@/lib/conversations";
+import { CHANNEL_LABELS, CHAT_CHANNELS, type ConversationChannel } from "@/lib/conversations";
 
 // The Inbox's views (step 47): "needs-you" (a conversation with an open
 // request) and "all". Pure: the page and its links share them; core reads
@@ -13,9 +13,18 @@ export function parseInboxView(value: unknown): InboxView {
 }
 
 // How a contact is named in the Inbox: the name the channel gave, else who
-// they are on it (a number, an address), never the "unverified:" key.
-export function contactLabel(contact: { displayName: string | null; externalId: string }): string {
-  return contact.displayName ?? contact.externalId.replace(/^unverified:/, "");
+// they are on it: an address or a number as written (never the
+// "unverified:" key), and on a chat channel "<app> customer" (a chat or
+// Page-scoped id means nothing to a person; Messenger and WhatsApp may give
+// no name).
+export function contactLabel(contact: { displayName: string | null; externalId: string; channel: ConversationChannel }): string {
+  if (contact.displayName !== null) {
+    return contact.displayName;
+  }
+  if (CHAT_CHANNELS.includes(contact.channel)) {
+    return `${CHANNEL_LABELS[contact.channel]} customer`;
+  }
+  return contact.externalId.replace(/^unverified:/, "");
 }
 
 // Whether an email contact's address was never verified (step 25).

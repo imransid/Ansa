@@ -25,6 +25,8 @@ type fixture struct {
 	box       *secure.Box
 	bcID      string
 	accountID string
+	// The owner who connected the account.
+	owner string
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -42,7 +44,7 @@ func newFixture(t *testing.T) *fixture {
 	box, _ := secure.NewBox("BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")
 	var logs bytes.Buffer
 	hook := &Webhook{Pool: pool, Limiter: ratelimit.New(pool, strings.Repeat("r", 40)), Box: box, Log: logging.New(&logs), Secret: testSecret}
-	return &fixture{pool: pool, company: company, webhook: hook, box: box, bcID: bcID, accountID: "9001"}
+	return &fixture{pool: pool, company: company, webhook: hook, box: box, bcID: bcID, accountID: "9001", owner: owner}
 }
 
 func (f *fixture) post(secret, body string) int {
@@ -109,6 +111,9 @@ func TestTheBusinessOwnMessageAndTheBotsEchoAndDeletions(t *testing.T) {
 	f.post(testSecret, echo)
 	if f.count(t, `SELECT count(*) FROM messages WHERE company_id = $1 AND author = 'business_account'`) != 1 || f.count(t, `SELECT count(*) FROM messages WHERE company_id = $1`) != 2 {
 		t.Fatal("the owner's message saved as the business's; the bot's echo not saved")
+	}
+	if f.count(t, `SELECT count(*) FROM conversations WHERE company_id = $1 AND handled_by = 'person' AND taken_over_by_user_id = '`+f.owner+`'`) != 1 {
+		t.Fatal("ansa answers always here: the business answering in Telegram takes the conversation over, in the name of who connected it")
 	}
 	deleted := `{"update_id":3,"deleted_business_messages":{"business_connection_id":"` + f.bcID + `","chat":{"id":555,"type":"private"},"message_ids":[50]}}`
 	if code := f.post(testSecret, deleted); code != 200 || f.count(t, `SELECT count(*) FROM messages WHERE company_id = $1`) != 1 {
