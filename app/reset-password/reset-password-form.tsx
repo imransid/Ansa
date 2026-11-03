@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { resetPasswordAction } from "@/app/actions/auth";
@@ -45,6 +45,10 @@ export function ResetPasswordForm() {
   }
 
   const [state, formAction, isPending] = useActionState(resetPassword, null);
+  // False until the page runs in the browser. WHY: the form's action is the
+  // function above (it reads the link's #token), which only exists once the
+  // page woke up; a press before then was lost without a word.
+  const inBrowser = useSyncExternalStore(subscribeToNothing, () => true, () => false);
 
   if (state?.accountRemoved) {
     return <AccountRemovedNote />;
@@ -66,8 +70,8 @@ export function ResetPasswordForm() {
         maxLength={PASSWORD_MAX_LENGTH}
         errors={state?.errors?.fieldErrors?.newPassword}
       />
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Saving..." : "Save new password"}
+      <Button type="submit" disabled={isPending || !inBrowser}>
+        {submitLabel(inBrowser, isPending)}
       </Button>
       <p className="text-sm text-muted-foreground">
         Link expired?{" "}
@@ -78,6 +82,18 @@ export function ResetPasswordForm() {
       </p>
     </form>
   );
+}
+
+function submitLabel(inBrowser: boolean, isPending: boolean): string {
+  if (!inBrowser) {
+    return "Loading...";
+  }
+  return isPending ? "Saving..." : "Save new password";
+}
+
+// Being in the browser never changes while the page is open.
+function subscribeToNothing(): () => void {
+  return () => {};
 }
 
 function AccountRemovedNote() {

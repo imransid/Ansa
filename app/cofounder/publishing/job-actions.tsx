@@ -52,6 +52,7 @@ export function JobActions({ jobId, status, scheduledAgain, accountLabel, postLa
             question={`Cancel this post? It won't go out on ${accountLabel}. Schedule it again to send it later.`}
             confirmLabel="Yes, cancel it"
             pendingLabel="Canceling..."
+            dismissLabel="Keep it"
           />
         </div>
       );

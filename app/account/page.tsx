@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getAccountFromCore } from "@/lib/core-views/account";
+import { getAccountKindFromCore } from "@/lib/core-views/inbox";
 import { requireSessionContext } from "@/lib/session";
 import { NameForm, OtherDevicesForm, PasswordForm } from "./account-forms";
 
@@ -22,7 +23,7 @@ export default function AccountPage({ searchParams }: PageProps<"/account">) {
 async function AccountContent({ searchParams }: Pick<PageProps<"/account">, "searchParams">) {
   const passwordWasChanged = (await searchParams).changed === "password";
   await requireSessionContext("/account");
-  const account = await getAccountFromCore();
+  const [account, kind] = await Promise.all([getAccountFromCore(), getAccountKindFromCore()]);
 
   return (
     <>
@@ -35,7 +36,9 @@ async function AccountContent({ searchParams }: Pick<PageProps<"/account">, "sea
 
       <section className="grid gap-3">
         <h2 className="text-lg font-semibold">Your name</h2>
-        <p className="text-sm text-muted-foreground">Your teammates see it in the team list and on the tickets you handle.</p>
+        <p className="text-sm text-muted-foreground">
+          {kind === "personal" ? "It shows beside what you write and do in ansa." : "Your teammates see it in the team list and on the requests you handle."}
+        </p>
         <NameForm currentName={account.name} />
       </section>
 

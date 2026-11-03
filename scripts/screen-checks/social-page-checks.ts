@@ -67,6 +67,19 @@ export async function runSocialPageChecks() {
     }
   });
 
+  await check("developer notes: the Accounts page's notes for ansa's operator (setting names, scopes, app review) and How posts did's simulate command sit in a closed \"For developers\" fold, so the pages read like the product to people trying ansa", async () => {
+    for (const [file, marker] of [
+      ["app/cofounder/accounts/platform-section.tsx", "missingSettings.id"],
+      ["app/cofounder/analytics/post-table.tsx", "make simulate-post-metrics"],
+    ]) {
+      const source = withoutComments(await read(file));
+      const fold = source.indexOf("<summary className=\"cursor-pointer");
+      assert.ok(fold > 0 && /For developers<\/summary>/.test(source), `${file} has no "For developers" fold`);
+      assert.ok(source.indexOf(marker) > fold, `${file} shows a developer note outside its fold`);
+      assert.doesNotMatch(source, /<details[^>]*\bopen\b/, `${file} opens its developer fold by itself`);
+    }
+  });
+
   await check("accounts route: the platforms' callback stays a thin route (the session, the platform and the query handed to the service) that reads the request, so it runs on every request (ƒ in the build)", async () => {
     const route = await read("app/api/social/[platform]/callback/route.ts");
     assert.ok(route.trimEnd().split("\n").length <= 15, "the route grew past ~15 lines");

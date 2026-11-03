@@ -16,7 +16,8 @@ import { KNOWLEDGE_QUESTION_MAX_LENGTH } from "@/lib/knowledge/limits";
 // action, not a link: a question can hold a customer's details, and a URL
 // would keep them in the browser history and the host's logs. Nothing is
 // saved or sent to the AI.
-export function TestSearchBox() {
+// personal: one person's account (step 50), asked by anyone, not customers.
+export function TestSearchBox({ personal }: { personal: boolean }) {
   const [state, action, isSearching] = useActionState(testKnowledgeSearchAction, undefined);
   const problem = state?.errors?.fieldErrors?.question?.[0] ?? state?.errors?.message;
 
@@ -25,14 +26,14 @@ export function TestSearchBox() {
       <h2 className="text-lg font-semibold">Test what the AI finds</h2>
       <form action={action} className="flex flex-wrap items-end gap-2">
         <div className="grid min-w-0 flex-1 gap-2">
-          <Label htmlFor="question">A question a customer might ask</Label>
+          <Label htmlFor="question">{personal ? "A question someone might ask you" : "A question a customer might ask"}</Label>
           <Input
             id="question"
             name="question"
             required
             maxLength={KNOWLEDGE_QUESTION_MAX_LENGTH}
             defaultValue={state?.question}
-            placeholder="How long does a refund take?"
+            placeholder={personal ? "What are your rates?" : "How long does a refund take?"}
             aria-invalid={problem ? true : undefined}
             aria-describedby={problem ? "question-error" : undefined}
           />

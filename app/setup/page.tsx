@@ -56,7 +56,7 @@ async function SetupContent() {
         <h2 className="text-lg font-semibold">Reply-to address</h2>
         <p className="text-sm text-muted-foreground">
           When a customer replies to a &quot;solved&quot; email, the reply goes to this address. Leave it empty and replies
-          go to your forwarding address, so they become new tickets here (not added to the solved one).
+          go to your forwarding address, so they become new requests here (not added to the solved one).
         </p>
         {isOwner ? (
           <ReplyToForm current={setup.replyToEmail} />

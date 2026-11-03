@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { callMinutesUsed, packageNotice, trialDaysLeft } from "@/lib/packages";
 import type { AnsaPackage, PackageStatus } from "@/lib/types/packages";
 import { check } from "./check";
-import { read, withoutComments } from "./source-helpers";
+import { attributeValue, openingTags, read, withoutComments } from "./source-helpers";
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -76,5 +76,16 @@ export async function runPackageChecks() {
     assert.match(list, /slot\.engagementSimulated && /);
     assert.match(list, /SIMULATED_LABEL/);
     assert.match(withoutComments(await read("app/settings/posts/page.tsx")), /<RefreshWhilePending isPending=\{page\.isBusy\} \/>/);
+  });
+
+  await check("posts for me: \"Post one now\" says that ansa is writing while it waits for the AI, and that the post was written once it was, beside the button", async () => {
+    const page = withoutComments(await read("app/settings/posts/page.tsx"));
+    const [postNow] = openingTags(page, ["ActionButton"]).filter((tag) => attributeValue(tag, "action") === "{postNowAction}");
+    assert.ok(postNow, "Post one now moved: check it here");
+    assert.equal(attributeValue(postNow, "pendingLabel"), '"ansa is writing a post..."');
+    assert.ok(attributeValue(postNow, "doneText"), "Post one now says nothing once it worked");
+    const button = withoutComments(await read("components/action-button.tsx"));
+    assert.match(button, /\{isPending && pendingLabel \? pendingLabel : label\}/);
+    assert.match(button, /\{worked \? doneText : ""\}/);
   });
 }

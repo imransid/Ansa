@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
+import { getAccountKindFromCore } from "@/lib/core-views/inbox";
 import { getKnowledgeListFromCore } from "@/lib/core-views/knowledge";
 import { parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
@@ -34,13 +35,15 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
   const query = parseKnowledgeListQuery(urlQuery);
   await requireSessionContext("/knowledge");
   // Hiding the buttons is only for a tidy page: both refuse members.
-  const { articles, counts, totalArticles, isOwner } = await getListFromCore(page, query);
+  const [{ articles, counts, totalArticles, isOwner }, kind] = await Promise.all([getListFromCore(page, query), getAccountKindFromCore()]);
+  // One person's account (step 50): Settings calls these "Saved answers".
+  const personal = kind === "personal";
 
   return (
     <>
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">Knowledge</h1>
+          <h1 className="text-xl font-semibold">{personal ? "Saved answers" : "Knowledge"}</h1>
           <div className="flex flex-wrap gap-2">
             {isOwner && (
               <Link href="/knowledge/import" className={buttonVariants({ size: "sm", variant: "outline" })}>
@@ -52,22 +55,32 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
             </Link>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          What your team knows about your products, policies and common problems, written down once. Anyone can write
-          drafts; only articles an owner approved show on tickets or are ever given to the AI. Before each answer in a
-          chat or a phone call, ansa&apos;s assistant reads the approved support articles that best match the
-          customer&apos;s message (3 at most) and may quote them to the customer word for word, prices and links
-          included. It doesn&apos;t use them for emails yet.
-        </p>
+        {personal ? (
+          <p className="text-sm text-muted-foreground">
+            What ansa may tell people about you, written down once: what you do, your rates, how and when to reach you,
+            the answers you give again and again. Only the ones you approved are ever given to the AI. Before each
+            answer in a chat or a phone call, ansa&apos;s assistant reads the approved ones that best match the
+            message (3 at most) and may quote them word for word, prices and links included. It doesn&apos;t use them
+            for emails yet.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            What your team knows about your products, policies and common problems, written down once. Anyone can write
+            drafts; only articles an owner approved show on requests or are ever given to the AI. Before each answer in
+            a chat or a phone call, ansa&apos;s assistant reads the approved support articles that best match the
+            customer&apos;s message (3 at most) and may quote them to the customer word for word, prices and links
+            included. It doesn&apos;t use them for emails yet.
+          </p>
+        )}
         {totalArticles > 0 && <KnowledgeFilters query={query} counts={counts} />}
         {articles.length > 0 ? (
           <ArticleTable articles={articles} />
         ) : (
-          <KnowledgeListEmpty query={query} page={page} totalArticles={totalArticles} isOwner={isOwner} />
+          <KnowledgeListEmpty query={query} page={page} totalArticles={totalArticles} isOwner={isOwner} personal={personal} />
         )}
         <PaginationLinks basePath="/knowledge" page={page} totalRows={counts[query.status]} query={{ status: query.status, q: query.search }} />
       </section>
-      {totalArticles > 0 && <TestSearchBox />}
+      {totalArticles > 0 && <TestSearchBox personal={personal} />}
     </>
   );
 }

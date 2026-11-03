@@ -38,7 +38,7 @@ export function TicketViews({ query, counts }: TicketViewsProps) {
       <SearchBox
         action="/inbox/requests"
         label="Search all requests"
-        placeholder="Number, subject, customer name, email or phone"
+        placeholder="Number, subject, name, email or phone"
         search={query.search}
         hiddenFields={{ view: "all" }}
         clearHref={buildListUrl("/inbox/requests", { view: query.view })}

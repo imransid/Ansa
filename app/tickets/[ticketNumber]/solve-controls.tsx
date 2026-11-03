@@ -82,7 +82,7 @@ export function SolveControls({
         </form>
       </div>
       <p className="text-sm text-muted-foreground">
-        Close without emailing is for spam, thank-you replies and duplicates: the ticket is solved and the customer gets
+        Close without emailing is for spam, thank-you replies and duplicates: the request is solved and the customer gets
         no email.
       </p>
     </div>

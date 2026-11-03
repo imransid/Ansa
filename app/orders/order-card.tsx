@@ -7,7 +7,7 @@ import { StatusDot, type StatusTone } from "@/components/status-dot";
 import { CHANNEL_LABELS, CHAT_CHANNELS } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
 import { formatPrice } from "@/lib/menu";
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/orders";
+import { orderStatusLabel, type OrderStatus } from "@/lib/orders";
 import type { OrderView } from "@/lib/types/orders";
 
 const STATUS_TONE: Record<OrderStatus, StatusTone> = {
@@ -34,7 +34,7 @@ export function OrderCard({ order }: { order: OrderView }) {
         <span className="text-lg font-semibold numbers">{money(order.totalCents)}</span>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <StatusDot tone={STATUS_TONE[order.status]}>{ORDER_STATUS_LABELS[order.status]}</StatusDot>
+        <StatusDot tone={STATUS_TONE[order.status]}>{orderStatusLabel(order.status, order.fulfilment)}</StatusDot>
         {order.placedAt && (
           <span className="text-xs text-subtle-foreground">
             Placed <LocalDateTime iso={order.placedAt.toISOString()} />
@@ -79,9 +79,10 @@ export function OrderCard({ order }: { order: OrderView }) {
   );
 }
 
-// The one thing to do next, and Cancel (asks first). The question promises
-// a message only as far as the chat allows one (Telegram, Messenger and
-// WhatsApp: within 24 hours of the customer's last message); a caller gets none.
+// The one thing to do next, and Cancel (asks first; a new order is turned
+// down, "Can't take it"). The question promises a message only as far as the
+// chat allows one (Telegram, Messenger and WhatsApp: within 24 hours of the
+// customer's last message); a caller gets none.
 function NextStep({ order }: { order: OrderView }) {
   const fields = (change: string) => ({ orderId: order.id, change });
   const name = `order #${order.orderNumber}`;
@@ -89,6 +90,7 @@ function NextStep({ order }: { order: OrderView }) {
     return null;
   }
   const whetherTheyAreTold = CHAT_CHANNELS.includes(order.channel) ? "The customer gets a message when their chat allows it." : "ansa can't message them: they didn't order in a chat.";
+  const isTurnDown = order.status === "new";
   return (
     <>
       {order.status === "new" && (
@@ -109,11 +111,12 @@ function NextStep({ order }: { order: OrderView }) {
       <ConfirmButton
         action={changeOrderStatusAction}
         fields={fields("cancel")}
-        label={order.status === "new" ? "Can't take it" : "Cancel"}
-        accessibleLabel={`Cancel ${name}`}
-        question={`Cancel ${name}? ${whetherTheyAreTold}`}
-        confirmLabel="Yes, cancel it"
-        pendingLabel="Cancelling..."
+        label={isTurnDown ? "Can't take it" : "Cancel"}
+        accessibleLabel={isTurnDown ? `Can't take ${name}` : `Cancel ${name}`}
+        question={isTurnDown ? `Turn down ${name}? ${whetherTheyAreTold}` : `Cancel ${name}? ${whetherTheyAreTold}`}
+        confirmLabel={isTurnDown ? "Yes, turn it down" : "Yes, cancel it"}
+        pendingLabel={isTurnDown ? "Turning it down..." : "Cancelling..."}
+        dismissLabel="Keep it"
       />
     </>
   );

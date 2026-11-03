@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RefreshWhilePending } from "@/components/refresh-while-pending";
 import { CONTENT_FORMAT_PLURALS } from "@/lib/content-studio/formats";
+import type { DraftReview } from "@/lib/content-studio/review";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
 import type { ContentDraftPage } from "@/lib/types/content-drafts";
 import type { DraftPublishing } from "@/lib/types/draft-publishing";
@@ -9,7 +10,7 @@ import { JobList } from "../../publishing/job-list";
 import { ScheduleForm } from "./schedule-form";
 
 type DraftPublishingSectionProps = {
-  draft: Pick<ContentDraftPage, "id" | "platform" | "format" | "status" | "version" | "approval" | "plannedFor">;
+  draft: Pick<ContentDraftPage, "id" | "platform" | "format" | "status" | "version" | "approval" | "plannedFor" | "review">;
   publishing: DraftPublishing;
 };
 
@@ -63,6 +64,16 @@ function SchedulePart({ draft, publishing }: DraftPublishingSectionProps) {
   if (!draft.approval && !ruleLabel) {
     return <p className="text-sm text-muted-foreground">An owner approves this version first; then it can be scheduled here.</p>;
   }
+  // A rule never sends what an owner must look at first: core would refuse
+  // it after the press (core/internal/publishing), so it isn't offered.
+  const ruleCantSend = draft.approval ? null : whyARuleCantSend(draft.review);
+  if (ruleCantSend) {
+    return (
+      <p className="max-w-3xl text-sm">
+        An auto-publish rule ({ruleLabel}) covers this draft, but it can&apos;t send this version: {ruleCantSend}
+      </p>
+    );
+  }
   const connected = publishing.accounts.filter((account) => account.status === "connected");
   if (connected.length === 0 || connected.every((account) => account.hasLiveJob)) {
     return (
@@ -94,4 +105,24 @@ function SchedulePart({ draft, publishing }: DraftPublishingSectionProps) {
       />
     </div>
   );
+}
+
+// Why an auto-publish rule can't send this unapproved version, in words
+// ending the sentence above, or null: it breaks a rule (nobody may send
+// it), or its claims need an owner's tick ("I checked these claims").
+function whyARuleCantSend(review: DraftReview): string | null {
+  if (review.blockingIssues.length > 0) {
+    return "it breaks one of its platform's rules or uses a word to avoid (see Checks above), so fix it first.";
+  }
+  if (!review.acknowledgmentNeeded) {
+    return null;
+  }
+  switch (review.claimsState) {
+    case "written_by_hand":
+      return "the AI didn't write its text, so an owner checks its claims and approves it (above).";
+    case "edited":
+      return "its text was changed by hand since the AI listed its claims, so an owner checks them and approves it (above).";
+    case "current":
+      return "a claim isn't backed by a confirmed fact, so an owner checks it and approves it (above).";
+  }
 }

@@ -15,7 +15,7 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
   return (
     <div className="grid max-w-xl gap-3">
       {categories.length === 0 && (
-        <p className="text-sm text-muted-foreground">No categories yet. Tickets stay unassigned until one fits.</p>
+        <p className="text-sm text-muted-foreground">No categories yet. Requests stay unassigned until one fits.</p>
       )}
       {/* Keyed by id only: a rename keeps the row, so its "Saved" can show. */}
       {categories.map((category) => (

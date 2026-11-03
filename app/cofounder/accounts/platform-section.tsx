@@ -57,22 +57,26 @@ function SetUpBadge({ mode }: { mode: PlatformView["mode"] }) {
 
 // Development only (the settings named here mean nothing to customers):
 // what the stand-in is, and what ansa must get from the platform first.
+// Folded away, closed: the page is also shown to people trying ansa.
 function OperatorNotes({ platform }: { platform: PlatformView }) {
   return (
-    <div className="grid gap-2 rounded-md border border-dashed p-3 text-sm">
-      {platform.missingSettings && (
-        <p>
-          {platform.label} isn&apos;t set up on this development server ({platform.missingSettings.id} and {platform.missingSettings.secret}{" "}
-          are not set), so a stand-in account is offered instead: it connects at once, without {platform.label}, and what
-          it publishes is written to .dev-social/{platform.platform}/ instead of being posted.
+    <details className="rounded-md border border-dashed px-3 py-2 text-sm">
+      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">For developers</summary>
+      <div className="grid gap-2 pt-2 pb-1">
+        {platform.missingSettings && (
+          <p>
+            {platform.label} isn&apos;t set up on this development server ({platform.missingSettings.id} and {platform.missingSettings.secret}{" "}
+            are not set), so a stand-in account is offered instead: it connects at once, without {platform.label}, and what
+            it publishes is written to .dev-social/{platform.platform}/ instead of being posted.
+          </p>
+        )}
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Before customers can connect real accounts:</span> {platform.facts.accessBlocker}
         </p>
-      )}
-      <p className="text-muted-foreground">
-        <span className="font-medium text-foreground">Before customers can connect real accounts:</span> {platform.facts.accessBlocker}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        ansa asks {platform.label} for: {platform.scopesAsked.join(", ")}.
-      </p>
-    </div>
+        <p className="text-xs text-muted-foreground">
+          ansa asks {platform.label} for: {platform.scopesAsked.join(", ")}.
+        </p>
+      </div>
+    </details>
   );
 }

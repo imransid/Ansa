@@ -20,9 +20,7 @@ export function PostedList({ slots, kindLabels, skipText }: { slots: PostedSlot[
         return (
           <li key={slot.id} className="grid gap-1 py-3 text-sm">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-semibold">
-                {kindLabels[slot.kind]}: {slot.topic}
-              </span>
+              <span className="font-semibold">{titleOf(slot, kindLabels)}</span>
               <span className="text-xs text-subtle-foreground">
                 <LocalDateTime iso={slot.postAt.toISOString()} />
               </span>
@@ -45,6 +43,16 @@ export function PostedList({ slots, kindLabels, skipText }: { slots: PostedSlot[
       })}
     </ol>
   );
+}
+
+// "Something you offer: Kacchi Biryani", "A special day: ...". The other
+// kinds' topic is their own words already (core's topicFor: "Behind the
+// scenes", "Come and see us"), so the kind isn't said twice.
+function titleOf(slot: PostedSlot, kindLabels: Record<PostKind, string>): string {
+  if (slot.kind === "spotlight" || slot.kind === "special_day") {
+    return `${kindLabels[slot.kind]}: ${slot.topic}`;
+  }
+  return slot.topic;
 }
 
 function describe(slot: PostedSlot, skipText: Record<SkipReason, string>): { tone: StatusTone; text: string } {

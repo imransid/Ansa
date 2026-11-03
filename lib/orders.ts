@@ -20,3 +20,12 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   done: "Done",
   cancelled: "Cancelled",
 };
+
+// An order's status as the Orders page's button named it: "ready" is "On
+// its way" for a delivery and "Ready to pick up" for a pickup.
+export function orderStatusLabel(status: OrderStatus, fulfilment: Fulfilment): string {
+  if (status !== "ready") {
+    return ORDER_STATUS_LABELS[status];
+  }
+  return fulfilment === "delivery" ? "On its way" : "Ready to pick up";
+}

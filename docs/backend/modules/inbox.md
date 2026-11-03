@@ -22,7 +22,8 @@ in the company works conversations, as they work tickets.
   over, a request open), its newest 200 entries oldest first (chat messages
   decrypted; calls and emails as links, an email's subject decrypted and
   the number of the request it became), its open requests, its newest 20
-  activity lines, the customer's newest 3 placed orders, and whether a
+  activity lines, the customer's newest 3 placed orders (number, status,
+  delivery or pickup, total), and whether a
   reply can go now (the same rules a reply checks, `chat.RouteWithin`, read
   without writing).
 - `ListActivity`: a conversation's lines, or ansa's own newest work (Home's

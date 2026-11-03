@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { LocalDateTime } from "@/components/local-date-time";
 import { RefreshWhilePending } from "@/components/refresh-while-pending";
 import type { TicketView } from "@/lib/core-views/tickets";
@@ -64,11 +65,26 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
       );
     }
     // Real email is off (SEND_REAL_EMAIL), so it was only written to a file.
-    // The folder's name helps a developer; a company's team only needs to
-    // know the customer got nothing (production warns the operator at startup).
+    // On the laptop that file is what the Development mailbox shows (the
+    // demo's "the customer was emailed"); in production a company's team only
+    // needs to know the customer got nothing (core warns the operator at startup).
     if (latestEmail.providerMessageId?.startsWith("dev-outbox:")) {
-      const where = process.env.NODE_ENV === "production" ? "not sent: sending email isn't switched on yet. Contact ansa support" : "saved to .dev-emails/ instead: real email is off, so it was not sent";
-      return <StatusLine text={<>Email to {latestEmail.toEmail} on {when} was {where}.</>} />;
+      if (process.env.NODE_ENV === "production") {
+        return <StatusLine text={<>Email to {latestEmail.toEmail} on {when} was not sent: sending email isn&apos;t switched on yet. Contact ansa support.</>} />;
+      }
+      return (
+        <StatusLine
+          text={
+            <>
+              Email to {latestEmail.toEmail} on {when} is in the{" "}
+              <Link href="/settings/channels/mailbox" className="text-link hover:underline">
+                Development mailbox
+              </Link>{" "}
+              (on this computer ansa doesn&apos;t send email).
+            </>
+          }
+        />
+      );
     }
     return <StatusLine text={<>Customer emailed at {latestEmail.toEmail} on {when}.</>} />;
   }

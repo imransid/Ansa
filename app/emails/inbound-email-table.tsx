@@ -62,17 +62,17 @@ function WhatHappened({ email }: { email: InboundEmailListItem }) {
   if (email.ticketNumber !== null) {
     return (
       <Link href={`/tickets/${email.ticketNumber}`} className="underline">
-        Ticket #{email.ticketNumber}
+        Request #{email.ticketNumber}
       </Link>
     );
   }
   if (email.status === "ignored") {
-    return <>Not a ticket: {describeIgnoredReason(email.ignoredReason)}.</>;
+    return <>Not a request: {describeIgnoredReason(email.ignoredReason)}.</>;
   }
   if (email.stuck) {
     return <span className="text-destructive">Stuck: processing never finished.</span>;
   }
-  return <>Being turned into a ticket...</>;
+  return <>Being turned into a request...</>;
 }
 
 // "Process again" for an email that failed or got stuck, "Make a ticket

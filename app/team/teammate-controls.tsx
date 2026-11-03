@@ -21,7 +21,7 @@ type RemoveTeammateButtonProps = {
 // Removing is destructive, so it uses the app's one confirm step.
 export function RemoveTeammateButton({ userId, name, emailConfirmed }: RemoveTeammateButtonProps) {
   const question = emailConfirmed
-    ? `Remove ${name}? Their open tickets go back to routing, LinkedIn profiles they connected for posts are disconnected, and they lose access now.`
+    ? `Remove ${name}? Their open requests go back to routing, LinkedIn profiles they connected for posts are disconnected, and they lose access now.`
     : `Remove ${name}? They never confirmed their email, so their account is deleted and the address can be invited again.`;
   return (
     <ConfirmButton

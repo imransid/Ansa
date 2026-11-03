@@ -28,7 +28,7 @@ export function SomethingWentWrong({ error, retry }: SomethingWentWrongProps) {
           Try again
         </Button>
         <Link href="/dashboard" className="text-sm underline">
-          Go to your tickets
+          Go to Home
         </Link>
       </div>
       {reference && <p className="text-xs text-muted-foreground">Reference for ansa support: {reference}</p>}

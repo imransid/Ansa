@@ -88,7 +88,14 @@ async function PostsForMe() {
               </p>
             )}
             {page.canManage && (
-              <ActionButton action={postNowAction} fields={{}} label="Post one now" accessibleLabel="Write a post now and send it" />
+              <ActionButton
+                action={postNowAction}
+                fields={{}}
+                label="Post one now"
+                accessibleLabel="Write a post now and send it"
+                pendingLabel="ansa is writing a post..."
+                doneText="Written: see where it is in ansa's posts below."
+              />
             )}
           </>
         ) : (

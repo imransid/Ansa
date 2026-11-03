@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CONTENT_FORMAT_LABELS, CONTENT_STATUS_LABELS, type ContentDraftStatus } from "@/lib/content-studio/formats";
 import { PUBLISH_JOB_STATUS_LABELS, type PublishJobStatus } from "@/lib/publishing/kinds";
 import { CALENDAR_DAYS } from "@/lib/publishing/limits";
-import { addDays, isKnownTimeZone, localDateOf, localTimeOf, weekdayOf } from "@/lib/publishing/schedule-time";
+import { addDays, isKnownTimeZone, localDateOf, localTimeOf, shortDateOf, weekdayOf } from "@/lib/publishing/schedule-time";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social-platforms";
 import type { CalendarItem } from "@/lib/types/publishing-pages";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,10 @@ function CalendarDay({ day, isToday, items, timeZone }: { day: string; isToday: 
     <li className="grid gap-2 border-b pb-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
       <p className="text-sm font-medium">
         {isToday ? "Today, " : ""}
-        {weekdayOf(day)} <span className="text-muted-foreground tabular-nums">{day}</span>
+        {weekdayOf(day)}{" "}
+        <time dateTime={day} className="whitespace-nowrap text-muted-foreground tabular-nums">
+          {shortDateOf(day)}
+        </time>
       </p>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing planned.</p>

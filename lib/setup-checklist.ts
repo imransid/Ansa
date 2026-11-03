@@ -21,7 +21,7 @@ export function buildSetupChecklist(setup: SetupOverview): ChecklistItem[] {
       label: "Phone number, set up by ansa (done after the first call)",
       done: setup.phoneLines.some((line) => line.lastCallAt !== null),
     },
-    { label: "Categories, so tickets reach the right person", done: setup.activeCategoryCount > 0, href: "/team" },
+    { label: "Categories, so requests reach the right person", done: setup.activeCategoryCount > 0, href: "/team" },
     { label: "Invite your team", done: setup.memberCount > 1, href: "/team" },
     {
       label: describeCategoryPicking(setup.peopleWithoutCategories),

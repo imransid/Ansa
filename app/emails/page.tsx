@@ -40,7 +40,7 @@ async function EmailsContent({ searchParams }: Pick<PageProps<"/emails">, "searc
         <p className="text-sm text-muted-foreground">
           Every email that reached your forwarding address, and what became of it. Automatic replies, bulk mail, bounces,
           floods from one sender and mail from your own support addresses are skipped; you can still make any of them a
-          ticket.
+          request.
         </p>
         <InboundEmailTable emails={emails} page={page} />
         <PaginationLinks basePath="/emails" page={page} totalRows={totalEmails} />

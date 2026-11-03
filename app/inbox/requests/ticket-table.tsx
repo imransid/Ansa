@@ -16,7 +16,9 @@ import type { TicketListItem } from "@/lib/types/tickets";
 // subjects say. Long text is cut with "..." (the full text shows when the
 // pointer rests on it, and on the ticket), so Status and Created never slide
 // out of view on a laptop (step 29). Narrow screens hide the less important
-// columns instead: phones keep #, Subject and Status.
+// columns instead: phones keep #, Subject and Status, and Created waits for
+// a wide screen. The subject gets what the others leave: it says what the
+// request is about, so the other columns stay narrow.
 export function TicketTable({ tickets }: { tickets: TicketListItem[] }) {
   return (
     <Table className="table-fixed">
@@ -25,10 +27,10 @@ export function TicketTable({ tickets }: { tickets: TicketListItem[] }) {
           <TableHead className="w-16">#</TableHead>
           <TableHead>Subject</TableHead>
           <TableHead className="w-20">Status</TableHead>
-          <TableHead className="hidden w-52 md:table-cell">Customer</TableHead>
+          <TableHead className="hidden w-40 md:table-cell">Customer</TableHead>
           <TableHead className="hidden w-28 lg:table-cell">Category</TableHead>
           <TableHead className="hidden w-32 lg:table-cell">Assigned to</TableHead>
-          <TableHead className="hidden w-32 lg:table-cell">Created</TableHead>
+          <TableHead className="hidden w-28 xl:table-cell">Created</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -70,7 +72,7 @@ function TicketRow({ ticket }: { ticket: TicketListItem }) {
       <TableCell className="hidden truncate lg:table-cell" title={assigneeDetails}>
         {assignee}
       </TableCell>
-      <TableCell className="hidden truncate lg:table-cell">
+      <TableCell className="hidden truncate xl:table-cell">
         <LocalDateTime iso={ticket.createdAt.toISOString()} dateOnly />
       </TableCell>
     </TableRow>

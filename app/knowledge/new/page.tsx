@@ -34,13 +34,13 @@ async function NewArticleContent({ searchParams }: Pick<PageProps<"/knowledge/ne
   return (
     <>
       <Link href={ticket ? `/tickets/${ticket.ticketNumber}` : "/knowledge"} className="text-sm hover:underline">
-        &larr; {ticket ? `Ticket #${ticket.ticketNumber}` : "All knowledge"}
+        &larr; {ticket ? `Request #${ticket.ticketNumber}` : "All knowledge"}
       </Link>
       <section className="grid gap-2">
-        <h1 className="text-xl font-semibold">{ticket ? `Save ticket #${ticket.ticketNumber} as knowledge` : "New article"}</h1>
+        <h1 className="text-xl font-semibold">{ticket ? `Save request #${ticket.ticketNumber} as knowledge` : "New article"}</h1>
         <p className="text-sm text-muted-foreground">
           {ticket
-            ? "Write down how this kind of problem is solved, so the next customer gets the answer faster. The ticket itself is not copied."
+            ? "Write down how this kind of problem is solved, so the next customer gets the answer faster. The request itself is not copied."
             : "It is saved as a draft. The AI uses it only once an owner approves it."}
         </p>
       </section>

@@ -74,6 +74,18 @@ export function weekdayOf(date: string): string {
   return naive === null ? "" : WEEKDAYS[new Date(naive).getUTCDay()];
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// "4 Nov" for a date ("2026-11-04"): the calendar's days, read at a glance.
+export function shortDateOf(date: string): string {
+  const naive = naiveUtcOf({ date, time: "00:00" });
+  if (naive === null) {
+    return date;
+  }
+  const day = new Date(naive);
+  return `${day.getUTCDate()} ${MONTHS[day.getUTCMonth()]}`;
+}
+
 // Whether a post may be scheduled for this moment: not further back than a
 // minute (the form took a moment), not more than a year ahead.
 export function checkScheduleTime(at: Date, now: Date): "ok" | "past" | "too_far" {

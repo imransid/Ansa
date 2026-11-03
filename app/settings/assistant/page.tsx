@@ -26,7 +26,13 @@ export default function AssistantSettingsPage() {
           &larr; Settings
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Assistant</h1>
-        <p className="text-muted-foreground">How and when ansa answers for you. It starts once Telegram (or another channel) is connected.</p>
+        <p className="text-muted-foreground">
+          How and when ansa answers for you, on every channel in{" "}
+          <Link href="/settings/channels" className="underline">
+            Connections
+          </Link>
+          .
+        </p>
       </div>
       {/* Cache Components rule: the session is only known at request time. */}
       <Suspense fallback={<PageLoading />}>

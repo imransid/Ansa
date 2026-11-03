@@ -18,6 +18,7 @@ export function CancelGenerationButton({ jobId, onPendingChange }: { jobId: stri
       question="Cancel this request? Nothing is made, and it can't be started again."
       confirmLabel="Yes, cancel it"
       pendingLabel="Canceling..."
+      dismissLabel="Keep it"
       onPendingChange={onPendingChange}
     />
   );

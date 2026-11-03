@@ -91,8 +91,6 @@ function MemberRow({ member, isYou, canManageTeam, activeCategories, handledCate
       <TableCell>
         {member.emailConfirmed ? (
           <MemberCategories
-            // A new key after each save closes the editor.
-            key={handledCategoryIds.join(",")}
             userId={member.id}
             activeCategories={activeCategories}
             handledCategoryIds={handledCategoryIds}
@@ -100,7 +98,7 @@ function MemberRow({ member, isYou, canManageTeam, activeCategories, handledCate
           />
         ) : (
           // Routing and the assignee menu skip them until they confirm.
-          <span className="text-sm text-muted-foreground">No tickets until they confirm their email</span>
+          <span className="text-sm text-muted-foreground">No requests until they confirm their email</span>
         )}
       </TableCell>
       {canManageTeam && (
