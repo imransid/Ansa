@@ -74,7 +74,7 @@ export async function runNavigationChecks() {
       assert.ok(COFOUNDER_PAGES.some((page) => page.segment === segment && page.href === `/cofounder/${segment}` && page.description.length > 0), `the planner doesn't list ${segment}`);
     }
     const inbox = withoutComments(await read("app/inbox/page.tsx"));
-    for (const href of ["/calls", "/emails", "/tickets/new"]) {
+    for (const href of ["/calls", "/emails", "/inbox/comments", "/tickets/new"]) {
       assert.ok(inbox.includes(`href="${href}"`), `the Inbox doesn't link ${href}`);
     }
   });
