@@ -38,6 +38,12 @@ func TestTheBrainGetsOneCompanysSliceOnly(t *testing.T) {
 	if len(request.Menu) != 1 || request.Menu[0].Label != "M1" || request.Menu[0].Price != "€9.50" {
 		t.Fatalf("only available dishes, labelled: %+v", request.Menu)
 	}
+	if len(request.NotAvailableToday) != 1 || request.NotAvailableToday[0] != "Sold out" {
+		t.Fatalf("a dish not available today goes by its name only, so the AI never calls it off the menu: %+v", request.NotAvailableToday)
+	}
+	if encoded, _ := json.Marshal(request); strings.Contains(string(encoded), "€8.00") {
+		t.Fatal("a dish not available today has no price to give")
+	}
 	if request.Orders.DeliveryFee == nil || *request.Orders.DeliveryFee != "€2.50" || !request.Orders.TakesOrders {
 		t.Fatalf("orders: %+v", request.Orders)
 	}

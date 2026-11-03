@@ -18,7 +18,7 @@ KNOWLEDGE_RULE = (
 ORDER_RULES = "\n".join(
     [
         "Orders: <ordering> says whether the restaurant takes orders through this chat. If not, someone who wants to order or book gets action needs_person (order).",
-        "If it does, take the order yourself. Collect which dishes (only from <menu>, by their label) and how many, delivery or pickup (only what <ordering> offers), the address for a delivery, when they want it, and any notes. Ask for what is missing, one short question at a time. A dish that isn't on the menu: say so and offer what is. While <hours> says it is closed now, take no order: say when it opens.",
+        "If it does, take the order yourself. Collect which dishes (only from <menu>, by their label) and how many, delivery or pickup (only what <ordering> offers), the address for a delivery, when they want it, and any notes. Ask for what is missing, one short question at a time. A dish that isn't on the menu: say so and offer what is. A dish in <not_available_today> can't be ordered today: say it isn't available today and offer what is. While <hours> says it is closed now, take no order: say when it opens.",
         "Once you have the dishes and delivery or pickup (and the address for a delivery), use action order_summary with the WHOLE order in `order` (each dish by its label exactly as <menu> writes it, like M1, never by its name; time empty if they didn't say) and leave reply empty. ansa then writes the summary with the prices and the total and asks the customer to confirm. Never write a total, a sum or an order summary yourself.",
         "When the customer clearly says yes to ansa's order summary (the restaurant's newest message, with 'Here is your order', or 'আপনার অর্ডার' when ansa wrote it in Bangla), use action order_confirmed. If they change something first, order_summary again with the whole new order; if they no longer want it, order_withdrawn. Booking a table is always needs_person (order).",
         "An order in <placed_orders> they want to change or cancel: needs_person (order_change). Questions about where a placed order is: answer from <placed_orders>.",
@@ -31,6 +31,7 @@ BUSINESS_SYSTEM_PROMPT = "\n".join(
         "You answer a restaurant's customers in its chats, on its behalf, as its AI assistant.",
         "Use ONLY the restaurant data in the tags below: its details, hours, ordering notes, menu, the owner's instructions and its articles. Never invent a dish, a price, an opening time, an offer or a rule.",
         "Prices: write a price only exactly as the menu shows it, with its currency symbol. Never add prices up, never estimate a total, never give a discount.",
+        "A dish in <not_available_today> is on the menu but not available today: say exactly that (never that it isn't on the menu or that the restaurant doesn't have it) and offer what <menu> has. It has no price to give, and it can't be ordered today.",
         "Hand the conversation to a person (action needs_person) when: you are not sure, or the data doesn't answer the question (unsure); the customer complains (complaint); asks for a refund, compensation or a discount (refund); asks to talk to a person (asked_for_person). Never promise a refund, compensation, a table or a delivery time yourself.",
         ORDER_RULES,
         "Use action no_reply when the customer's last message needs no answer (a thank you, an emoji, ok).",
@@ -96,6 +97,7 @@ def _business_prompt(r: ReplyRequest) -> str:
             _tag("hours", _hours_lines(r)),
             _tag("ordering", _ordering_lines(r)),
             _tag("menu", _menu_lines(r)),
+            _tag("not_available_today", "\n".join(_owner(name) for name in r.not_available_today) or "None."),
             _tag("order_in_progress", "\n".join(_owner(line) for line in r.orders.in_progress) or "None."),
             _tag("placed_orders", "\n".join(_owner(line) for line in r.orders.placed) or "None."),
             _tag("owner_instructions", _owner(r.instructions) or "None."),

@@ -55,6 +55,16 @@ def test_the_prompt_holds_the_data_escaped_with_secrets_hidden():
     assert "&lt;/conversation&gt;" in prompt and prompt.count("</conversation>") == 1
 
 
+def test_a_dish_off_today_goes_by_its_name_only_and_is_called_off_today():
+    # A dish marked "Not available today" has no label or price: it can't be
+    # ordered or priced, and the AI says it's off today, never off the menu.
+    system, prompt, _ = build_request(request(not_available_today=["Shorshe <Ilish>"]))
+    assert "<not_available_today>\nShorshe &lt;Ilish&gt;\n</not_available_today>" in prompt
+    assert "not available today: say exactly that (never that it isn't on the menu" in system
+    assert "<not_available_today>\nNone.\n</not_available_today>" in build_request(request())[1]
+    assert "not_available_today" not in build_request(request(kind="personal"))[1]
+
+
 def test_a_yes_to_ansas_summary_in_either_language_is_known():
     # Core writes its order summary in the customer's language (orders.SummaryText:
     # English, or Bangla for a customer writing in Bengali script); the AI is
