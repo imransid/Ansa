@@ -13,7 +13,9 @@ is for starts the later steps again.
 **Sections, each with the old form's words (`Check`) and one write:**
 - business (`business.go`): who it is for, the name (2-100, no control
   characters; the "company_name" fact too), a business's kind (the list) and
-  what it offers (one line up to 300; the "description" fact). Changing the
+  what it offers (one line up to 300; the "description" fact; a person may
+  leave it empty, which clears that fact in the same transaction, so the AI
+  no longer reads it). Changing the
   kind switches when ansa answers (a person: only while away) and the
   holding reply while it is still one of ansa's own (never one the owner wrote).
 - contact: the address (the "location" fact, one line up to 300) and the
@@ -41,4 +43,5 @@ step = 409.
 words; every step saved in order; an unknown currency refused; finish
 refused until every step, then finished; the profile (address, fee in
 cents, phone); the name is a confirmed fact; turning into a person keeps
-the owner's own holding reply and answers only while away.
+the owner's own holding reply and answers only while away; a person who
+empties what they do clears the fact (the page and the AI read nothing).

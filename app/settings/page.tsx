@@ -21,13 +21,15 @@ const ASSISTANT_LINKS: SettingsLink[] = [
   { href: "/settings/posts", label: "Posts for me", description: "ansa plans, writes and posts on your Facebook Page by itself." },
 ];
 
-// A person (step 50) has no menu, and "What it knows" is about them.
+// A person (step 50) has no menu, and "What it knows" is about them. Email
+// forwarding is Connections' email section: the Setup page is a support
+// desk's (a team checklist, support addresses).
 const PERSONAL_ASSISTANT_LINKS: SettingsLink[] = [
   { href: "/settings/assistant", label: "Assistant", description: "When and how ansa answers for you, and a place to try it." },
   { href: "/settings/channels", label: "Connections", description: "WhatsApp, Telegram, Facebook Messenger and email: where people write to you." },
   { href: "/settings/business", label: "About you", description: "Who you are, and what ansa may tell people about you." },
   { href: "/knowledge", label: "Saved answers", description: "Longer answers ansa can give: notes, documents and web pages." },
-  { href: "/setup", label: "Email forwarding", description: "Forward your email to ansa: each email becomes a note in your inbox." },
+  { href: "/settings/channels#email-heading", label: "Email forwarding", description: "Forward your email to ansa: each email becomes a note in your inbox." },
 ];
 
 // The rest of a business's tools, one click further. Social media posts

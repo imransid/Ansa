@@ -226,6 +226,53 @@ func TestWhenAwayTheAssistantWaitsForYouFirst(t *testing.T) {
 	}
 }
 
+// Someone marked important comes to you at once, whatever your away
+// settings say: available with no minutes to wait, their message still gets
+// the holding reply, a request and an alert (no AI); anyone else's is yours.
+func TestAnImportantPersonComesToYouAtOnceWhileYoureAvailable(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"They'll be back soon."}`)
+	mustExec(t, w.pool, `INSERT INTO assistant_settings (company_id, answer_when) VALUES ($1, 'when_away')`, w.companyID)
+	anyone := w.customerSays("jo", "Are you there?")
+	if got := w.answer(anyone); got != OutcomeQuiet {
+		t.Fatalf("available: a message is yours to answer: %s", got)
+	}
+	important := w.customerSays("ka", "It's me, call me back")
+	mustExec(t, w.pool, `UPDATE contacts SET important = true WHERE company_id = $1 AND external_id = 'ka'`, w.companyID)
+	if got := w.answer(important); got != OutcomeHandedOver || w.brainCalls != 0 {
+		t.Fatalf("an important person is handed to you at once, no AI asked: %s, %d brain calls", got, w.brainCalls)
+	}
+	if messages := w.assistantMessages(important); len(messages) != 1 || messages[0][0] != "sent" || !strings.HasSuffix(messages[0][1], "Our team will get back to you as soon as possible.") {
+		t.Fatalf("the holding reply: %+v", messages)
+	}
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, important.ConversationID) != 1 ||
+		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND conversation_id = $2 AND reason = 'important_person'`, w.companyID, important.ConversationID) != 1 ||
+		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert'`, w.companyID) != 1 {
+		t.Fatal("a request, the handover line and the owners' alert")
+	}
+}
+
+// For one person a reply that would commit them is never sent: their
+// holding reply goes, and a note "It needs your decision" waits for them.
+func TestAPersonsReplyThatWouldCommitThemIsNeverSent(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"Sure, Rafa can meet you tomorrow at 3 pm."}`)
+	mustExec(t, w.pool, `UPDATE companies SET kind = 'personal', name = 'Rafa' WHERE id = $1`, w.companyID)
+	mustExec(t, w.pool, `INSERT INTO assistant_settings (company_id, holding_reply) VALUES ($1, 'Thanks! Rafa will get back to you soon.')`, w.companyID)
+	turn := w.customerSays("lu", "Can Rafa meet me tomorrow at 3?")
+	if got := w.answer(turn); got != OutcomeHandedOver {
+		t.Fatalf("outcome: %s", got)
+	}
+	messages := w.assistantMessages(turn)
+	if len(messages) != 1 || messages[0] != [2]string{"sent", "I'm Rafa's AI assistant.\nThanks! Rafa will get back to you soon."} {
+		t.Fatalf("the holding reply, never the AI's words: %+v", messages)
+	}
+	var description string
+	w.pool.QueryRow(context.Background(), `SELECT description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&description)
+	if !strings.HasPrefix(description, ReasonText["needs_decision"]) ||
+		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'needs_decision'`, w.companyID) != 1 {
+		t.Fatalf("a note that it needs Rafa's decision: %q", description)
+	}
+}
+
 func TestABrainThatIsDownGivesTheHoldingReply(t *testing.T) {
 	w := newReplyWorld(t, "")
 	turn := w.customerSays("ha", "Hi")

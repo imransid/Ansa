@@ -54,7 +54,7 @@ func (s *Server) homePage(w http.ResponseWriter, r *http.Request, _ []byte, who 
 		_ = s.Brain.Call(ctx, "/v1/status", map[string]string{}, &brain)
 	}
 	page := map[string]any{"presence": presence}
-	steps, err := home.GettingStarted(ctx, s.Pool, who.CompanyID, who.Role, brain)
+	steps, err := home.GettingStarted(ctx, s.Pool, who.CompanyID, who.Role, brain, time.Now())
 	if err == nil {
 		page["gettingStarted"] = steps
 		if presence.AnswerWhen == "when_away" {

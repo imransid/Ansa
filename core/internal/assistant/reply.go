@@ -84,6 +84,11 @@ func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfter
 	if err != nil || gate != GateMay {
 		return OutcomeQuiet, err
 	}
+	// Someone you marked important always comes to you at once, whatever
+	// your away settings say: no AI answer at all.
+	if info.Important {
+		return OutcomeHandedOver, r.handOverImportant(ctx, turn, info)
+	}
 	if !coverAfterNoReply {
 		availability, err := ReadAvailability(ctx, r.Pool, turn.CompanyID)
 		if err != nil {
@@ -105,10 +110,6 @@ func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfter
 	}
 	if err := inputs.AddKnowledge(ctx, r.Pool, turn.CompanyID); err != nil {
 		return "", err
-	}
-	// Someone you marked important always comes to you: no AI answer at all.
-	if info.Important {
-		return OutcomeHandedOver, r.handOver(ctx, turn, info, inputs, Handover{Reason: "important_person", SendHoldingReply: true})
 	}
 	over, err := r.Limiter.Over(ctx, "assistant-replies", turn.CompanyID.String(), companyReplyLimit)
 	if err != nil {

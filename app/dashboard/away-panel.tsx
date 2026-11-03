@@ -4,8 +4,10 @@ import { markAwaySummarySeenAction } from "@/app/actions/away";
 import { ActionButton } from "@/components/action-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { HANDOVER_REASON_TEXT } from "@/lib/assistant/reasons";
+import { ACTIVITY_TEXT } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
 import type { AwaySummary } from "@/lib/types/away";
+import type { AwaySummaryLine } from "@/lib/types/away-summary";
 
 // "While you were away": what ansa did since you last pressed "Got it",
 // each conversation once, the ones that need you first in the words.
@@ -34,13 +36,7 @@ export function AwaySummaryCard({ summary }: { summary: AwaySummary }) {
           <li key={line.conversationId}>
             <Link href={`/inbox/${line.conversationId}`} className="grid gap-0.5 py-2.5 text-sm hover:text-link">
               <span className="font-medium">{contactLabel({ displayName: line.contactName, externalId: "" }) || "Someone"}</span>
-              <span className="text-muted-foreground">
-                {line.action === "handed_over"
-                  ? `Needs you. ${line.reason ? HANDOVER_REASON_TEXT[line.reason] : ""}`
-                  : line.action === "drafted"
-                    ? "A reply waits for you to send it."
-                    : "ansa answered."}
-              </span>
+              <span className="text-muted-foreground">{awayLineText(line)}</span>
             </Link>
           </li>
         ))}
@@ -48,4 +44,19 @@ export function AwaySummaryCard({ summary }: { summary: AwaySummary }) {
       <ActionButton action={markAwaySummarySeenAction} fields={{}} label="Got it" accessibleLabel="Got it: clear the summary" />
     </section>
   );
+}
+
+// What ansa did in one conversation, in a few words.
+function awayLineText(line: AwaySummaryLine): string {
+  switch (line.action) {
+    case "handed_over":
+      return `Needs you. ${line.reason ? HANDOVER_REASON_TEXT[line.reason] : ""}`;
+    case "email_made_request":
+    case "call_needs_person":
+      return `Needs you. ${ACTIVITY_TEXT[line.action]}.`;
+    case "drafted":
+      return "A reply waits for you to send it.";
+    case "replied":
+      return "ansa answered.";
+  }
 }

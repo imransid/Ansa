@@ -3,10 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLoading } from "@/components/page-loading";
 import { getPracticeChatFromCore } from "@/lib/core-views/practice-chat";
+import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
 import { PracticeChat } from "./practice-chat";
 
 export const metadata: Metadata = { title: "Practice chat - ansa" };
+
+// What the practice chat does: for a business, its customers (orders
+// included); for one person (step 50), someone writing to them.
+const BUSINESS_INTRO =
+  "Write as one of your customers. Your message arrives in your Inbox, and ansa answers it as it would on the real app: questions, " +
+  "orders, complaints. An email becomes a request in your Inbox, as a forwarded email does. Open your Inbox or Orders in another " +
+  "tab to see your side.";
+const PERSONAL_INTRO =
+  "Write as someone who writes to you. Your message arrives in your Inbox, and ansa answers it as it would on the real app. An " +
+  "email becomes a note in your Inbox, as a forwarded email does. Open your Inbox in another tab to see your side.";
 
 // Settings → Connections → Practice chat (step 58, development only): write
 // as one of your customers on WhatsApp, Telegram or Messenger, through the
@@ -21,11 +32,10 @@ export default function PracticeChatPage() {
           &larr; Connections
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Practice chat</h1>
-        <p className="text-muted-foreground">
-          Write as one of your customers. Your message arrives in your Inbox, and ansa answers it as it would on the real app: questions,
-          orders, complaints. An email becomes a request in your Inbox, as a forwarded email does. Open your Inbox or Orders in another
-          tab to see your side.
-        </p>
+        {/* Cache Components rule: who the account is for is only known at request time. */}
+        <Suspense fallback={null}>
+          <Intro />
+        </Suspense>
       </div>
       {/* Cache Components rule: the session is only known at request time. */}
       <Suspense fallback={<PageLoading />}>
@@ -33,6 +43,13 @@ export default function PracticeChatPage() {
       </Suspense>
     </main>
   );
+}
+
+// What the practice chat is for, as the account is: a business's or one person's.
+async function Intro() {
+  await requireSessionContext("/settings/channels/practice-chat");
+  const { kind } = await getSetupStateFromCore();
+  return <p className="text-muted-foreground">{kind === "personal" ? PERSONAL_INTRO : BUSINESS_INTRO}</p>;
 }
 
 async function Chat() {
@@ -47,5 +64,6 @@ async function Chat() {
       </p>
     );
   }
-  return <PracticeChat standIns={chat.standIns} email={chat.email} />;
+  const { kind } = await getSetupStateFromCore();
+  return <PracticeChat standIns={chat.standIns} email={chat.email} personal={kind === "personal"} />;
 }

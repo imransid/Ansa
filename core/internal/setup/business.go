@@ -72,10 +72,8 @@ func SaveBusiness(ctx context.Context, pool *database.Pool, company tenant.Compa
 		if err := SetOwnerFactWithin(ctx, tx, company, actorUserID, "company_name", b.CompanyName); err != nil {
 			return err
 		}
-		if b.Description != "" {
-			if err := SetOwnerFactWithin(ctx, tx, company, actorUserID, "description", b.Description); err != nil {
-				return err
-			}
+		if err := saveDescriptionWithin(ctx, tx, company, actorUserID, b); err != nil {
+			return err
 		}
 		if err := followKindWithin(ctx, tx, company, actorUserID, kindBefore, nameBefore, b); err != nil {
 			return err
@@ -86,6 +84,19 @@ func SaveBusiness(ctx context.Context, pool *database.Pool, company tenant.Compa
 		}
 		return recordProgressWithin(ctx, tx, company, reached)
 	})
+}
+
+// saveDescriptionWithin saves what a business offers or what a person
+// does. A person may leave it empty: that clears what was saved, so the AI
+// no longer reads it (a business always has one: Check).
+func saveDescriptionWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, actorUserID string, b Business) error {
+	if b.Description != "" {
+		return SetOwnerFactWithin(ctx, tx, company, actorUserID, "description", b.Description)
+	}
+	if b.Kind != "personal" {
+		return nil
+	}
+	return clearOwnerFactWithin(ctx, tx, company, "description")
 }
 
 // followKindWithin sets the assistant's defaults that depend on who it is for.

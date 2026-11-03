@@ -10,10 +10,17 @@ import type { PlatformView } from "@/lib/types/social-accounts";
 // platforms ansa posts to, each with its one button. Owners connect;
 // members read.
 
-export function EmailConnection({ address, lastEmailAt }: { address: string; lastEmailAt: Date | null }) {
+// personal: one person's account (step 50), whose email is their own, not a
+// business's; the Setup page's email settings are a support desk's
+// (support addresses, a team checklist), so a person isn't sent there.
+export function EmailConnection({ address, lastEmailAt, personal }: { address: string; lastEmailAt: Date | null; personal: boolean }) {
   return (
     <div className="grid gap-2 text-sm">
-      <p className="text-muted-foreground">Forward your business email to this address: every email arrives in your Inbox.</p>
+      <p className="text-muted-foreground">
+        {personal
+          ? "Forward your email to this address: every email arrives in your Inbox as a note for you."
+          : "Forward your business email to this address: every email arrives in your Inbox."}
+      </p>
       <code className="justify-self-start rounded-md bg-muted px-2 py-1 wrap-anywhere">{address}</code>
       {lastEmailAt ? (
         <StatusDot tone="success">
@@ -22,9 +29,11 @@ export function EmailConnection({ address, lastEmailAt }: { address: string; las
       ) : (
         <StatusDot tone="quiet">No email has arrived yet</StatusDot>
       )}
-      <Link href="/setup" className="justify-self-start underline">
-        Email settings (reply-to address, your support addresses)
-      </Link>
+      {!personal && (
+        <Link href="/setup" className="justify-self-start underline">
+          Email settings (reply-to address, your support addresses)
+        </Link>
+      )}
     </div>
   );
 }

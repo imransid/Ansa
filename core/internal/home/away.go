@@ -31,6 +31,10 @@ type AwayLine struct {
 	CreatedAt      time.Time `json:"createdAt"`
 }
 
+// The lines of ansa's that are notes for you: a conversation handed to you,
+// an email it read and kept a note of, a finished call that needs you.
+var awayNotes = map[string]bool{"handed_over": true, "email_made_request": true, "call_needs_person": true}
+
 // ReadAwaySummary counts ansa's newest 200 lines since then and lists the
 // newest 8 conversations. What waits is read from the replies themselves,
 // not from the "drafted" lines: a reply replaced by a newer one, sent,
@@ -57,7 +61,8 @@ func ReadAwaySummary(ctx context.Context, pool *database.Pool, company tenant.Co
 		JOIN conversations ON conversations.id = assistant_activity.conversation_id AND conversations.company_id = assistant_activity.company_id
 		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 		WHERE assistant_activity.company_id = $1 AND assistant_activity.actor_user_id IS NULL
-			AND assistant_activity.action IN ('replied', 'drafted', 'handed_over') AND assistant_activity.created_at > $2
+			AND assistant_activity.action IN ('replied', 'drafted', 'handed_over', 'email_made_request', 'call_needs_person')
+			AND assistant_activity.created_at > $2
 		ORDER BY assistant_activity.created_at DESC LIMIT 200`
 	rows, err := pool.Query(ctx, lines, company.String(), summary.Since)
 	if err != nil {
@@ -75,7 +80,7 @@ func ReadAwaySummary(ctx context.Context, pool *database.Pool, company tenant.Co
 			continue
 		case line.Action == "replied":
 			summary.Replies++
-		case line.Action == "handed_over":
+		case awayNotes[line.Action]:
 			summary.Notes++
 		}
 		if !seen[line.ConversationID] && len(summary.Conversations) < 8 {

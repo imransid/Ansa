@@ -23,6 +23,8 @@ type CheckData struct {
 	Currency   string
 	MenuPrices []int64
 	OwnerTexts []string
+	// One person's account: a reply may not commit them (commitments.go).
+	Personal bool
 }
 
 // The same marks, amounts and words as the old lib/assistant/reply-checks.ts,
@@ -60,6 +62,9 @@ func CheckReply(text string, data CheckData) string {
 	}
 	if !linksAreKnown(text, data.OwnerTexts) {
 		return ReasonUnknownLink
+	}
+	if data.Personal && !commitmentsAreKnown(text, data.OwnerTexts) {
+		return ReasonNeedsDecision
 	}
 	return ""
 }

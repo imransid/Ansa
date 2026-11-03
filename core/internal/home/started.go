@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/tenant"
 )
 
@@ -31,7 +33,7 @@ type BrainStatus struct {
 
 // GettingStarted is the few things that make ansa answer at all, in the
 // order to do them: owners only, and empty once all are done.
-func GettingStarted(ctx context.Context, pool *database.Pool, company tenant.CompanyID, role string, brain BrainStatus) ([]Step, error) {
+func GettingStarted(ctx context.Context, pool *database.Pool, company tenant.CompanyID, role string, brain BrainStatus, now time.Time) ([]Step, error) {
 	if role != "owner" {
 		return []Step{}, nil
 	}
@@ -39,7 +41,7 @@ func GettingStarted(ctx context.Context, pool *database.Pool, company tenant.Com
 	if err := pool.QueryRow(ctx, `SELECT kind FROM companies WHERE id = $1`, company.String()).Scan(&kind); err != nil {
 		return nil, err
 	}
-	channel, err := channelStep(ctx, pool, company)
+	channel, err := channelStep(ctx, pool, company, now)
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +80,9 @@ func HasTeam(ctx context.Context, pool *database.Pool, company tenant.CompanyID)
 	return people > 1, err
 }
 
-// channelStep: a chat where people write to you, WhatsApp (step 56) or
-// Telegram, connected and allowed to reply.
-func channelStep(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (Step, error) {
+// channelStep: a chat where people write to you, connected and allowed to
+// reply: WhatsApp (step 56), Telegram or a Facebook Page (messengerPage).
+func channelStep(ctx context.Context, pool *database.Pool, company tenant.CompanyID, now time.Time) (Step, error) {
 	var telegramStatus string
 	var telegramStandIn bool
 	err := pool.QueryRow(ctx, `SELECT status, is_stand_in FROM channel_connections WHERE company_id = $1 AND channel = 'telegram' AND status <> 'disconnected'`, company.String()).Scan(&telegramStatus, &telegramStandIn)
@@ -91,6 +93,10 @@ func channelStep(ctx context.Context, pool *database.Pool, company tenant.Compan
 	var whatsappStandIn bool
 	err = pool.QueryRow(ctx, `SELECT status, is_stand_in FROM whatsapp_numbers WHERE company_id = $1 AND status <> 'disconnected'`, company.String()).Scan(&whatsappStatus, &whatsappStandIn)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return Step{}, err
+	}
+	pageFound, pageStandIn, err := messengerPage(ctx, pool, company, now)
+	if err != nil {
 		return Step{}, err
 	}
 	step := Step{Key: "channel", Label: "Connect WhatsApp or Telegram, where people write to you", Href: "/settings/channels"}
@@ -105,8 +111,35 @@ func channelStep(ctx context.Context, pool *database.Pool, company tenant.Compan
 		if telegramStandIn {
 			step.DoneText = "A stand-in Telegram account is connected (development)."
 		}
+	case pageFound:
+		step.Done, step.DoneText = true, "Facebook Messenger is connected."
+		if pageStandIn {
+			step.DoneText = "A stand-in Facebook Page is connected (development)."
+		}
 	case telegramStatus != "":
 		step.Label = "Let ansa reply on Telegram"
 	}
 	return step, nil
+}
+
+// messengerPage: whether a connected Facebook Page of the company takes
+// messages through ansa, as Settings → Connections says ("Messages come to
+// ansa": Messenger and its message switch allowed on the Page, or the
+// development stand-in Page) while the package includes Messenger, and
+// whether that Page is the stand-in (a real Page counts first).
+func messengerPage(ctx context.Context, pool *database.Pool, company tenant.CompanyID, now time.Time) (found, standIn bool, err error) {
+	pkg, err := packages.Of(ctx, pool, company, now)
+	if err != nil || !pkg.Messenger {
+		return false, false, err
+	}
+	const statement = `
+		SELECT is_stand_in FROM social_connections
+		WHERE company_id = $1 AND platform = 'facebook' AND status = 'connected'
+			AND (is_stand_in OR ('pages_messaging' = ANY(scopes) AND 'pages_manage_metadata' = ANY(scopes)))
+		ORDER BY is_stand_in LIMIT 1`
+	err = pool.QueryRow(ctx, statement, company.String()).Scan(&standIn)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, false, nil
+	}
+	return err == nil, standIn, err
 }

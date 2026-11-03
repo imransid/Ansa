@@ -150,12 +150,13 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 			request.APIKey = &key
 		}
 	}
+	checks := CheckData{Currency: settings.Currency, MenuPrices: prices, Personal: kind == "personal", OwnerTexts: ownerTexts}
 	return &Inputs{
 		KeyUnreadable: keyUnreadable,
 		OwnKey:        request.APIKey != nil,
 		Package:       pkg,
 		Request:       request,
-		Checks:        CheckData{Currency: settings.Currency, MenuPrices: prices, OwnerTexts: ownerTexts},
+		Checks:        checks,
 		Name:          name,
 		Kind:          kind,
 		HoldingReply:  settings.HoldingReply,

@@ -7,14 +7,17 @@ passes, and sending, drafting or handing over to a person), as the old
 
 **One run (`reply.go`, `Runner.Answer`), in this order:**
 1. The gate (below), read before anything else: not "may" = quiet.
-2. When ansa answers (`availability.go`, the old `decideCover`): "always",
+2. An important person goes to a person at once (`important_person`: the
+   holding reply, a request and the alert), no AI, whatever the away
+   settings say (also while you're available and ansa would leave the
+   message to you).
+3. When ansa answers (`availability.go`, the old `decideCover`): "always",
    or "when_away" while you said you're away or it is one of your away hours;
    otherwise it waits `reply_grace_minutes` (`assistant_due_at` set, the
    catch-up looks again; outcome "waiting") or leaves it to you. The
    catch-up's own run (`coverAfterNoReply`) skips this step.
-3. The customer's hourly limit (20 per conversation: past it, quiet and the
+4. The customer's hourly limit (20 per conversation: past it, quiet and the
    message counts as handled), then the slice (`GatherInputs`).
-4. An important person goes to a person at once (`important_person`), no AI.
 5. The business's hourly limit (200: past it, `reply_limit`).
 6. The brain (`POST /v1/assistant/reply`, signed). Its answer is checked
    again by core: a reply must pass the checks below; an unknown kind is
@@ -65,7 +68,20 @@ their words: `reasons.go`.
 - no refund, compensation or voucher words in English, Italian, Spanish,
   French, German or Bangla (রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার; never a
   bare ফেরত, "back": ফেরত কল is a call back) (`refund_promise`);
-- every link must appear in the business's own texts (`unknown_link`).
+- every link must appear in the business's own texts (`unknown_link`);
+- for one person (`CheckData.Personal`, `commitments.go`), never a
+  commitment for them: a clock time ("3 pm", "15:00", "4 o'clock", "৩টায়",
+  "বিকেল ৩টা"), a day (today, tonight, tomorrow, the weekdays; আজ,
+  আগামীকাল, কাল, পরশু and the weekdays in Bangla, as whole words with their
+  endings) or an agreement ("confirmed", "booked", "see you", "agreed",
+  "it's a deal"; কনফার্ম, বুকিং, রাজি, দেখা হবে) that the person's own texts
+  don't name stops the reply (`needs_decision`: their holding reply and a
+  note "It needs your decision"). Either language's word allows the
+  other's ("আগামীকাল" is "tomorrow"), and a time either way of writing it
+  ("3 pm" is "15:00"; an hour without am or pm may be either half of the
+  day). It reads words, not meaning: a reply that only repeats the
+  customer's own "tomorrow at 3" stops too. A business's replies aren't
+  checked for it.
 **Prices (`ParsePrice`, `MinorUnitDigits`):** "9.50", "9,50", "€ 12",
 "1 200", "1,200", "1.200,50", "1,50,000", "৪৫০" read in the currency's
 smallest units (ISO 4217 digits: 0 for yen or won, 3 for dinars, 2 for
@@ -103,7 +119,11 @@ engine goes too: "api_key" with the business's own key decrypted
 (the brain holds it), or "claude_code" (development only, refused by the
 brain in production).
 **Tests:** `checks_test.go` (also Bengali digits, Tk and টাকা, lakhs, and
-the Bangla refund words); `gate_test.go`; `inputs_test.go` (live database:
+the Bangla refund words); `commitments_test.go` (a person's reply naming a
+time, a day or an agreement they never wrote stops, in English and Bangla,
+য় written either way; their own times and days pass, written the other
+way or in the other language; সকাল, কালো, আজব and the name রাজিব don't
+stop a reply; a business's replies aren't checked); `gate_test.go`; `inputs_test.go` (live database:
 only available dishes, labelled; the fee; "Tuesday 19:30, open until
 midnight"; the decrypted conversation; no id in the request; a price in
 today's dish's description may be quoted; no orders without delivery or
@@ -117,9 +137,11 @@ goes out once with the AI label; a made-up price is never sent and a person
 is asked (holding reply, request, line, alert queued) and the assistant then
 stays quiet; the AI's own request keeps its cleaned subject and category;
 paused is quiet without asking the brain; Ask me first saves a draft; an
-important person is handed over without the brain; "when away" waits, then
-the catch-up's run answers; the brain down = the holding reply; an own key
-that can't be read is never replaced by ansa's. `drafts_test.go` (Ask me
+important person is handed over without the brain, also at once while you're
+available (holding reply, request, alert); "when away" waits, then the
+catch-up's run answers; a person's reply that would commit them is never
+sent (their holding reply, a `needs_decision` request); the brain down =
+the holding reply; an own key that can't be read is never replaced by ansa's. `drafts_test.go` (Ask me
 first and the AI label): a draft that replaces a waiting one keeps the
 label, and the next one after a reply reached the customer has none; a
 handover while a draft waits discards it and labels the holding reply; an

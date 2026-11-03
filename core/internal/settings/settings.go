@@ -54,17 +54,6 @@ func SetStatus(ctx context.Context, pool *database.Pool, company tenant.CompanyI
 	})
 }
 
-// SetAway: "I'm away" (since now) or "I'm back".
-func SetAway(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, away bool) (string, error) {
-	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
-		const upsert = `
-			INSERT INTO assistant_settings (company_id, away_since, updated_by_user_id) VALUES ($1, CASE WHEN $2 THEN now() END, $3)
-			ON CONFLICT (company_id) DO UPDATE SET away_since = CASE WHEN $2 THEN now() END, updated_by_user_id = $3, updated_at = now()`
-		_, err := tx.Exec(ctx, upsert, company.String(), away, actorUserID)
-		return err
-	})
-}
-
 // SetAnswerWhen: "always" or "when_away" (only when I'm away).
 func SetAnswerWhen(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, answerWhen string) (string, error) {
 	return AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {

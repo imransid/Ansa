@@ -38,6 +38,41 @@ func TestWhileYouWereAwaySaysAReplyWaitsOnlyWhileOneDoes(t *testing.T) {
 	}
 }
 
+// An email ansa read and noted, and a finished call that needs you, are
+// notes too; a call ansa solved isn't one.
+func TestWhileYouWereAwayCountsEmailsAndCallsThatNeedYouAsNotes(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	company, _ := tenant.FromTrustedSource(companyID)
+	owner := database.TestOwner(t, pool, companyID)
+	emailed := conversationOf(t, pool, company, "ed")
+	ansaNoted(t, pool, companyID, emailed, "email_made_request")
+	called := conversationOf(t, pool, company, "fi")
+	ansaNoted(t, pool, companyID, called, "call_needs_person")
+	solved := conversationOf(t, pool, company, "gu")
+	ansaNoted(t, pool, companyID, solved, "call_solved")
+
+	summary, err := ReadAwaySummary(context.Background(), pool, company, owner)
+	if err != nil {
+		t.Fatalf("ReadAwaySummary: %v", err)
+	}
+	if summary.Notes != 2 || summary.Replies != 0 || summary.Waiting != 0 {
+		t.Fatalf("two notes: %+v", summary)
+	}
+	lines := summary.Conversations
+	if len(lines) != 2 || lines[0].ConversationID != called || lines[0].Action != "call_needs_person" || lines[1].ConversationID != emailed || lines[1].Action != "email_made_request" {
+		t.Fatalf("the call and the email, newest first: %+v", lines)
+	}
+}
+
+// ansaNoted saves one of ansa's own lines (no message of its own: a call or an email).
+func ansaNoted(t *testing.T, pool *database.Pool, companyID, conversationID, action string) {
+	t.Helper()
+	if _, err := pool.Exec(context.Background(), `INSERT INTO assistant_activity (company_id, conversation_id, action) VALUES ($1, $2, $3)`, companyID, conversationID, action); err != nil {
+		t.Fatalf("saving the line: %v", err)
+	}
+}
+
 // conversationOf is a stand-in customer's conversation, with their first message.
 func conversationOf(t *testing.T, pool *database.Pool, company tenant.CompanyID, externalID string) string {
 	t.Helper()

@@ -100,7 +100,7 @@ function ConnectionsSections({ page, practicePhone, messenger, posting }: { page
         <h2 id="email-heading" className="text-lg font-semibold">
           Email
         </h2>
-        <EmailConnection address={page.forwardingAddress} lastEmailAt={page.lastEmailAt} />
+        <EmailConnection address={page.forwardingAddress} lastEmailAt={page.lastEmailAt} personal={page.kind === "personal"} />
       </section>
       <section aria-labelledby="phone-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
         <h2 id="phone-heading" className="text-lg font-semibold">

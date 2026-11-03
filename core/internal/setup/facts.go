@@ -44,6 +44,17 @@ func SetOwnerFactWithin(ctx context.Context, tx database.Tx, company tenant.Comp
 	return err
 }
 
+// clearOwnerFactWithin clears one confirmed business fact (its four
+// columns together, as a CHECK wants); a waiting proposal stays for the
+// owner to look at.
+func clearOwnerFactWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, topic string) error {
+	const statement = `
+		UPDATE business_facts SET confirmed_value = NULL, confirmed_source = NULL, confirmed_by_user_id = NULL, confirmed_at = NULL, updated_at = now()
+		WHERE company_id = $1 AND topic = $2 AND confirmed_value IS NOT NULL`
+	_, err := tx.Exec(ctx, statement, company.String(), topic)
+	return err
+}
+
 // recordProgressWithin counts a setup step as saved: the progress is only
 // ever raised (reached 0: a Settings save, not a setup step).
 func recordProgressWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, reached int) error {

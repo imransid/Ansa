@@ -9,8 +9,8 @@ import { requireSessionContext } from "@/lib/session";
 // Setup step 6: where messages reach ansa. Email works today through the
 // company's forwarding address; ansa links phone numbers itself; WhatsApp
 // (step 56), Telegram (step 48) and Messenger (step 53) connect on
-// Settings → Connections.
-export async function ChannelsStep({ backHref }: { backHref: string }) {
+// Settings → Connections. personal: one person's account (step 50).
+export async function ChannelsStep({ backHref, personal }: { backHref: string; personal: boolean }) {
   await requireSessionContext("/welcome");
   const { forwardingAddress, phoneLineCount } = await getChannelsStepFromCore();
   return (
@@ -56,7 +56,9 @@ export async function ChannelsStep({ backHref }: { backHref: string }) {
         <li className="grid gap-2 py-4">
           <h2 className="font-semibold">Facebook Messenger</h2>
           <p className="text-sm text-muted-foreground">
-            Connect your business&apos;s Facebook Page, and the messages people send it arrive in your Inbox.
+            {personal
+              ? "Connect your Facebook Page, and the messages people send it arrive in your Inbox."
+              : "Connect your business's Facebook Page, and the messages people send it arrive in your Inbox."}
           </p>
           <Link href="/settings/channels" className="justify-self-start text-sm font-medium underline">
             Connect Messenger in Settings → Connections

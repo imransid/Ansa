@@ -18,9 +18,18 @@ export const CHAT_CHANNELS: { id: PracticeChannel; label: string; header: string
 // waiting (Ask me first, a teammate took over, or it chose not to answer).
 const TYPING_SHOWN_MS = 90_000;
 
+// Who writes to whom, above the chat.
+function chatTitle(name: string, personal: boolean): string {
+  if (personal) {
+    return `${name.trim() || "Someone"} writing to you`;
+  }
+  return `${name.trim() || "Customer"} writing to your business`;
+}
+
 // The chat as the customer sees it on their phone: their own messages on the
-// right, the business's (ansa's) on the left.
-export function ChatWindow({ channel, name, lines }: { channel: PracticeChannel; name: string; lines: PracticeLine[] }) {
+// right, the business's (ansa's) on the left. personal: they write to one
+// person, not to a business.
+export function ChatWindow({ channel, name, lines, personal }: { channel: PracticeChannel; name: string; lines: PracticeLine[]; personal: boolean }) {
   const look = CHAT_CHANNELS.find((each) => each.id === channel) ?? CHAT_CHANNELS[0];
   const bottom = useRef<HTMLDivElement>(null);
   const last = lines.at(-1);
@@ -37,7 +46,7 @@ export function ChatWindow({ channel, name, lines }: { channel: PracticeChannel;
     <section aria-label={`${look.label} chat of ${name || "the customer"}`} className="overflow-hidden rounded-3xl border bg-[#f4f1ec] text-[#11211a]">
       <div className={cn("flex items-center justify-between px-4 py-3 text-sm text-white", look.header)}>
         <span className="font-semibold">{look.label}</span>
-        <span>{name.trim() || "Customer"} writing to your business</span>
+        <span>{chatTitle(name, personal)}</span>
       </div>
       <div aria-live="polite" className="grid max-h-[28rem] min-h-64 content-start gap-2 overflow-y-auto p-4">
         {lines.length === 0 && <p className="text-sm text-[#4a5a52]">Write a message below, as {name.trim() || "the customer"} would.</p>}

@@ -15,8 +15,9 @@ import { PracticeEmail } from "./practice-email";
 const LOOK_EVERY_MS = 2000;
 
 // The customer's side: which app they write on (or an email), their name
-// (each name is one customer, with their own conversation), and the chat itself.
-export function PracticeChat({ standIns, email }: { standIns: Record<PracticeChannel, boolean>; email: boolean }) {
+// (each name is one customer, with their own conversation), and the chat
+// itself. personal: one person's account, written to by people, not customers.
+export function PracticeChat({ standIns, email, personal }: { standIns: Record<PracticeChannel, boolean>; email: boolean; personal: boolean }) {
   const [channel, setChannel] = useState<PracticeChannel>(CHAT_CHANNELS.find((each) => standIns[each.id])?.id ?? "whatsapp");
   // An email to your forwarding address instead of a chat.
   const [writesEmail, setWritesEmail] = useState(false);
@@ -151,7 +152,7 @@ export function PracticeChat({ standIns, email }: { standIns: Record<PracticeCha
         <PracticeEmail available={email} />
       ) : (
         <>
-          <ChatWindow channel={channel} name={name} lines={lines} />
+          <ChatWindow channel={channel} name={name} lines={lines} personal={personal} />
           <form onSubmit={send} className="grid gap-2">
             <Label htmlFor="customer-message">Message</Label>
             <div className="flex gap-2">

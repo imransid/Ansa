@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"testing"
 )
 
@@ -55,5 +56,27 @@ func TestTheSetupStepByStep(t *testing.T) {
 	w.pool.QueryRow(ctx, `SELECT holding_reply, answer_when FROM assistant_settings WHERE company_id = $1`, w.company.String()).Scan(&holding, &answerWhen)
 	if holding != "One moment please." || answerWhen != "when_away" {
 		t.Fatalf("an owner's own holding reply stays; a person answers only while away: %q %q", holding, answerWhen)
+	}
+}
+
+// "What you do" is optional for a person: emptied, the saved text is gone
+// (the AI no longer reads it), never kept while the page says "Saved.".
+func TestAPersonCanClearWhatTheyDo(t *testing.T) {
+	w := newAPIWorld(t)
+	person := `{"kind":"personal","companyName":"Rafa","businessType":null,"description":%q}`
+	if code, _ := w.call("POST", "/api/v1/setup/business", fmt.Sprintf(person, "Logo designer"), screensSecret, w.cookie); code != 200 {
+		t.Fatalf("saving what Rafa does: %d", code)
+	}
+	if code, _ := w.call("POST", "/api/v1/setup/business", fmt.Sprintf(person, ""), screensSecret, w.cookie); code != 200 {
+		t.Fatalf("clearing it: %d", code)
+	}
+	_, answer := w.call("GET", "/api/v1/setup", "", screensSecret, w.cookie)
+	if description := answer["profile"].(map[string]any)["description"]; description != "" {
+		t.Fatalf("the page shows it empty: %v", description)
+	}
+	var confirmed *string
+	w.pool.QueryRow(context.Background(), `SELECT confirmed_value FROM business_facts WHERE company_id = $1 AND topic = 'description'`, w.company.String()).Scan(&confirmed)
+	if confirmed != nil {
+		t.Fatalf("the fact the AI reads is cleared: %q", *confirmed)
 	}
 }

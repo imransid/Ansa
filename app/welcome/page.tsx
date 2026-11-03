@@ -10,7 +10,7 @@ import { OrdersForm } from "@/components/restaurant-setup/orders-form";
 import { buttonVariants } from "@/components/ui/button";
 import { getRestaurantProfileFromCore } from "@/lib/core-views/restaurant-setup";
 import { currencyOptions, timeZoneOptions } from "@/lib/locale-options";
-import { NEW_COMPANY_NAME, setupStepNumber, setupStepsFor, stepToShow, type CompanyKind, type SetupStepKey } from "@/lib/restaurant-setup";
+import { NEW_COMPANY_NAME, sellsFood, setupStepNumber, setupStepsFor, stepToShow, type CompanyKind, type SetupStepKey } from "@/lib/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
 import type { RestaurantProfile } from "@/lib/types/restaurant-setup";
 import { ChannelsStep } from "./channels-step";
@@ -41,6 +41,18 @@ const STEP_LEADS: Record<CompanyKind, Record<SetupStepKey, string>> = {
     ready: "Here is what ansa knows. You can change any of it in Settings.",
   },
 };
+
+// The orders step of a business that sells no food (a salon, a shop).
+const ORDERS_LEAD_WITHOUT_FOOD = "Whether ansa takes orders for you, how customers get them, and how they pay.";
+
+// What a step says above its form: a food business's words, or words that
+// fit any other business.
+function stepLead(profile: RestaurantProfile, step: SetupStepKey): string {
+  if (profile.kind === "business" && step === "orders" && !sellsFood(profile.businessType)) {
+    return ORDERS_LEAD_WITHOUT_FOOD;
+  }
+  return STEP_LEADS[profile.kind][step];
+}
 
 // The restaurant setup (step 45), one step at a time: ?step= names one, and a
 // step not reached yet shows the first one left instead, so a returning
@@ -84,7 +96,7 @@ async function WelcomeStep({ searchParams }: Pick<PageProps<"/welcome">, "search
           <div className="h-full rounded-full bg-primary" style={{ width: `${(number / steps.length) * 100}%` }} />
         </div>
         <h1 className="font-display text-4xl leading-tight">{steps[number - 1].title}</h1>
-        <p className="text-muted-foreground">{STEP_LEADS[profile.kind][step]}</p>
+        <p className="text-muted-foreground">{stepLead(profile, step)}</p>
       </div>
       <StepBody step={step} profile={profile} />
     </>
@@ -154,7 +166,7 @@ function StepBody({ step, profile }: { step: SetupStepKey; profile: RestaurantPr
     return <AssistantTextsForm backHref={backHref} instructions={settings.instructions} holdingReply={settings.holdingReply} />;
   }
   if (step === "connect") {
-    return <ChannelsStep backHref={backHref} />;
+    return <ChannelsStep backHref={backHref} personal={profile.kind === "personal"} />;
   }
   return <ReadyStep profile={profile} backHref={backHref} />;
 }

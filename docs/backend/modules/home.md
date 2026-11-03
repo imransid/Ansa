@@ -8,15 +8,20 @@
   ("You're away: ansa answers", "You're available: ansa answers after 10
   min"), "I'm away" since when, the minutes ansa waits for you, and
   whether this person may change it (owners).
-- `gettingStarted` (owners only; empty once all are done): Telegram
-  connected and allowed to reply, an AI ready (the business's own key,
+- `gettingStarted` (owners only; empty once all are done): a chat
+  connected and allowed to reply (WhatsApp, Telegram, or a Facebook Page
+  whose messages come to ansa as Settings → Connections says: Messenger and
+  its message switch allowed on the Page, or the development stand-in Page,
+  while the package includes Messenger), an AI ready (the business's own key,
   ansa's key, Claude Code standing in for ansa's key in development, or the
   Claude Code engine while its program is there: the brain's signed
   `/v1/status` says which it has, never a key), and a business's menu or a
   person's instructions.
 - `awaySummary` (only in "Only when I'm away"): ansa's replied / drafted /
   handed-over lines since this person last pressed "Got it" (or the last
-  day): counts of the newest 200 and the newest 8 conversations, each once.
+  day), and its notes of an email it read or a finished call that needs you
+  (`email_made_request`, `call_needs_person`: notes, as a handover is):
+  counts of the newest 200 and the newest 8 conversations, each once.
   What waits comes from the replies themselves, not the lines: `waiting` is
   the replies written since then still "draft", and a drafted line whose
   reply no longer waits (replaced by a newer one, sent, edited or
@@ -49,8 +54,12 @@ in the business's own time zone ("Open until 23:00").
 `POST /api/v1/assistant/status {"status": "on"|"paused"}`,
 `.../away {"away": bool}`, `.../answer-when {"answerWhen": "always"|"when_away"}`.
 Each takes the company row lock first, then reads the person again (still
-an owner), in one transaction (`settings.asOwner`). "Got it":
-`POST /api/v1/home/away-summary/seen` (anyone in the company).
+an owner), in one transaction (`settings.asOwner`). "I'm away" means ansa
+answers for you everywhere: in the same transaction every conversation a
+person took over is handed back (a "handed_back" line by whoever pressed
+it, as "Hand back" writes) and every message waiting out its minutes is
+due now, so core's catch-up answers it within 15 seconds (`settings/away.go`).
+"Got it": `POST /api/v1/home/away-summary/seen` (anyone in the company).
 **Settings → Assistant (`GET /api/v1/settings/assistant`, everyone reads):**
 the saved settings (defaults until anything is saved) and the engine's
 state: whose key answers ("restaurant": the business's own, shown only by
@@ -82,9 +91,17 @@ show the summary; "Got it"; a member can't pause and gets no checklist;
 the requests in no conversation counted for whoever looks (nobody's and
 their own, not a colleague's, a chat's or a solved one).
 `home/away_test.go`: a reply replaced by a newer one counts once, and one a
-teammate sent is neither waiting nor listed.
+teammate sent is neither waiting nor listed; an email ansa read and a call
+that needs you are notes, a solved call isn't.
 `home/overview_test.go`: setup's facts alone show no post numbers; a fact
 of another topic, a draft or an interview message does.
+`home/started_test.go`: a Facebook Page counts as a chat once its messages
+come to ansa (not one that only posts), never on a package without
+Messenger, and the stand-in Page says so.
+`settings/away_test.go`: "I'm away" hands back the conversations a person
+took over (with the line, by the owner) and makes a waiting message due
+now, never another company's; "I'm back" and a member's "I'm away" hand
+nothing back.
 `api/assistant_settings_test.go`: defaults; an empty holding reply refused
 with its words; saved; an own key stored encrypted and shown by its last
 four; Claude Code refused without the brain's say-so; Claude Code standing

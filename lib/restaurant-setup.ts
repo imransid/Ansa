@@ -33,6 +33,15 @@ export const BUSINESS_TYPES = [
 ] as const;
 export type BusinessType = (typeof BUSINESS_TYPES)[number];
 
+// The kinds that sell food: setup speaks of their food and their menu, and
+// of what any other business sells.
+export const FOOD_BUSINESS_TYPES: readonly BusinessType[] = ["restaurant", "cafe", "bakery", "takeaway", "food_truck", "bar", "catering"];
+
+// Whether a business of this kind sells food (none chosen yet: no).
+export function sellsFood(type: BusinessType | null): boolean {
+  return type !== null && FOOD_BUSINESS_TYPES.includes(type);
+}
+
 export const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   restaurant: "Restaurant",
   cafe: "Café",
