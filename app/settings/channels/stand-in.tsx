@@ -15,15 +15,25 @@ export function StandInName({ name }: { name: string }) {
 }
 
 // What to do with a stand-in account: be one of its customers, or the
-// business answering from its own app, in the practice chat.
-export function PracticeChatAdvice({ connected }: { connected: boolean }) {
+// business answering from its own app, in the practice chat. For one
+// person (step 50): someone writing to them, or they answering themselves.
+export function PracticeChatAdvice({ connected, personal }: { connected: boolean; personal: boolean }) {
   return (
     <p className="text-sm text-muted-foreground">
-      {connected ? "Write to it as a customer, or answer as the business from its own app, in the " : "Once it is connected, write to it as a customer in the "}
+      {practiceChatWords(connected, personal)}
       <Link href="/settings/channels/practice-chat" className="text-link hover:underline">
         practice chat
       </Link>
       . ansa&apos;s replies are written to .dev-messages/.
     </p>
   );
+}
+
+function practiceChatWords(connected: boolean, personal: boolean): string {
+  const writer = personal ? "someone writing to you" : "a customer";
+  if (!connected) {
+    return `Once it is connected, write to it as ${writer} in the `;
+  }
+  const answerer = personal ? "answer as yourself from your own app" : "answer as the business from its own app";
+  return `Write to it as ${writer}, or ${answerer}, in the `;
 }

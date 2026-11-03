@@ -8,6 +8,7 @@ import { HoursForm } from "@/components/restaurant-setup/hours-form";
 import { OrdersForm } from "@/components/restaurant-setup/orders-form";
 import { RestaurantSummary } from "@/components/restaurant-setup/restaurant-summary";
 import { getRestaurantProfileFromCore } from "@/lib/core-views/restaurant-setup";
+import type { RestaurantProfile } from "@/lib/types/restaurant-setup";
 import { currencyOptions, timeZoneOptions } from "@/lib/locale-options";
 import { requireSessionContext } from "@/lib/session";
 
@@ -15,18 +16,16 @@ export const metadata: Metadata = { title: "What it knows - ansa" };
 
 // Settings → What it knows (step 45): what ansa tells customers about the
 // restaurant, the same sections as the setup at /welcome, each saved on its
-// own. Owners change it; members read it.
+// own. Owners change it; members read it. For one person (step 50) it is
+// "About you", as Settings calls it.
 export default function WhatItKnowsPage() {
   return (
     <main className="mx-auto grid w-full max-w-3xl gap-6 p-6">
-      <div className="grid gap-1">
-        <Link href="/settings" className="text-sm text-muted-foreground hover:underline">
-          &larr; Settings
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">What it knows</h1>
-        <p className="text-muted-foreground">What ansa tells people about you or your business. Keep it as you would say it.</p>
-      </div>
-      {/* Cache Components rule: the session is only known at request time. */}
+      <Link href="/settings" className="text-sm text-muted-foreground hover:underline">
+        &larr; Settings
+      </Link>
+      {/* Cache Components rule: the session is only known at request time,
+          and the heading depends on whose account it is. */}
       <Suspense fallback={<PageLoading />}>
         <WhatItKnows />
       </Suspense>
@@ -37,6 +36,22 @@ export default function WhatItKnowsPage() {
 async function WhatItKnows() {
   await requireSessionContext("/settings/business");
   const profile = await getRestaurantProfileFromCore();
+  return (
+    <>
+      <div className="grid gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{profile.kind === "personal" ? "About you" : "What it knows"}</h1>
+        <p className="text-muted-foreground">
+          {profile.kind === "personal" ? "What ansa tells people about you." : "What ansa tells people about your business."} Keep it as you would say
+          it.
+        </p>
+      </div>
+      <WhatItKnowsSections profile={profile} />
+    </>
+  );
+}
+
+// Who it is for, and for a business where to find it, its hours, orders and menu.
+function WhatItKnowsSections({ profile }: { profile: RestaurantProfile }) {
   const extraInfo = (
     <>
     <Section title="Menu">
@@ -90,7 +105,7 @@ async function WhatItKnows() {
           <p className="text-sm text-muted-foreground">
             Longer answers ansa can give for you, like how to book time with you or what you do:{" "}
             <Link href="/knowledge" className="text-foreground underline">
-              Knowledge
+              Saved answers
             </Link>
             .
           </p>

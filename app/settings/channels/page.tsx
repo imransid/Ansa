@@ -25,7 +25,7 @@ export default function ChannelsSettingsPage() {
           &larr; Settings
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Connections</h1>
-        <p className="text-muted-foreground">Everywhere ansa answers and posts for you, each with one button. Messages arrive in your Inbox.</p>
+        <p className="text-muted-foreground">Everywhere ansa answers for you, each with one button. Messages arrive in your Inbox.</p>
       </div>
       {/* Cache Components rule: the session is only known at request time. */}
       <Suspense fallback={<PageLoading />}>
@@ -63,7 +63,7 @@ function ConnectionsSections({ page, practicePhone, messenger, posting }: { page
     <div className="grid gap-6">
       {practicePhone && (
         <p className="rounded-2xl border border-dashed px-5 py-4 text-sm">
-          Development: be one of your customers on this computer with the{" "}
+          Development: be {page.kind === "personal" ? "someone writing to you" : "one of your customers"} on this computer with the{" "}
           <Link href="/settings/channels/practice-chat" className="text-link hover:underline">
             practice chat
           </Link>{" "}

@@ -15,6 +15,7 @@ const IN_THE_APP = "in the WhatsApp Business app";
 // disconnect, members read.
 export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
   const { whatsapp } = page;
+  const personal = page.kind === "personal";
   if (whatsapp) {
     return (
       <div className="grid gap-3">
@@ -32,7 +33,7 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
           )}
           , since <LocalDateTime iso={whatsapp.connectedAt.toISOString()} />
         </p>
-        <NumberAdvice number={whatsapp} />
+        <NumberAdvice number={whatsapp} personal={personal} />
         {page.canManage && (
           <ConfirmButton
             action={disconnectWhatsAppAction}
@@ -64,7 +65,7 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
           Development: ansa&apos;s Meta app isn&apos;t set up for WhatsApp (FACEBOOK_APP_ID, FACEBOOK_APP_SECRET and WHATSAPP_SIGNUP_CONFIG_ID in
           .env.core), so this connects a stand-in number.
         </p>
-        <PracticeChatAdvice connected={false} />
+        <PracticeChatAdvice connected={false} personal={personal} />
         <TelegramConnectButton action={connectStandInWhatsAppAction} label="Connect a stand-in WhatsApp number" />
       </div>
     );
@@ -80,13 +81,13 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
         With the WhatsApp Business app you keep using it on your phone as always. A personal WhatsApp number can&apos;t be connected to any
         assistant: WhatsApp doesn&apos;t allow it. Meta charges your business for replies after the first 1,000 a month.
       </p>
-      <OwnAnswersNote app={IN_THE_APP} />
+      <OwnAnswersNote app={IN_THE_APP} personal={personal} />
       <WhatsAppSignupButton signup={page.whatsappSignup} />
     </div>
   );
 }
 
-function NumberAdvice({ number }: { number: NonNullable<ConnectionsPage["whatsapp"]> }) {
+function NumberAdvice({ number, personal }: { number: NonNullable<ConnectionsPage["whatsapp"]>; personal: boolean }) {
   if (number.status === "removed_in_whatsapp") {
     return (
       <p className="text-sm text-muted-foreground">
@@ -98,18 +99,18 @@ function NumberAdvice({ number }: { number: NonNullable<ConnectionsPage["whatsap
   if (number.isStandIn) {
     return (
       <>
-        <PracticeChatAdvice connected />
-        <OwnAnswersNote app={IN_THE_APP} />
+        <PracticeChatAdvice connected personal={personal} />
+        <OwnAnswersNote app={IN_THE_APP} personal={personal} />
       </>
     );
   }
   return (
     <>
       <p className="text-sm text-muted-foreground">
-        Customers&apos; messages arrive in your Inbox, and you can reply from there within 24 hours of their last message (WhatsApp&apos;s rule).
+        {personal ? "Messages" : "Customers' messages"} arrive in your Inbox, and you can reply from there within 24 hours of their last message (WhatsApp&apos;s rule).
         {number.sharedWithApp ? " You can keep answering in the WhatsApp Business app too." : ""}
       </p>
-      {number.sharedWithApp && <OwnAnswersNote app={IN_THE_APP} />}
+      {number.sharedWithApp && <OwnAnswersNote app={IN_THE_APP} personal={personal} />}
     </>
   );
 }

@@ -54,9 +54,9 @@ export function MessengerFromCore({ messenger, canManage, personal }: { messenge
           ))}
         </ul>
       )}
-      {messenger.pages.some((page) => page.isStandIn) && <PracticeChatAdvice connected />}
-      {canManage && messenger.mode === "stand-in" && messenger.pages.length === 0 && <PracticeChatAdvice connected={false} />}
-      {messenger.pages.length > 0 && <OwnAnswersNote app="on your Facebook Page (Meta Business Suite)" />}
+      {messenger.pages.some((page) => page.isStandIn) && <PracticeChatAdvice connected personal={personal} />}
+      {canManage && messenger.mode === "stand-in" && messenger.pages.length === 0 && <PracticeChatAdvice connected={false} personal={personal} />}
+      {messenger.pages.length > 0 && <OwnAnswersNote app="on your Facebook Page (Meta Business Suite)" personal={personal} />}
       {messenger.mode === "not-set-up" ? (
         <p className="text-sm text-muted-foreground">Not set up by ansa yet.</p>
       ) : canManage ? (
@@ -74,9 +74,12 @@ export function MessengerFromCore({ messenger, canManage, personal }: { messenge
               />
             )
           )}
-          <Link href="/cofounder/accounts" className="text-sm underline">
-            All social media accounts
-          </Link>
+          {/* The marketing pages are a business's (Settings → Social media posts). */}
+          {!personal && (
+            <Link href="/cofounder/accounts" className="text-sm underline">
+              All social media accounts
+            </Link>
+          )}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">An owner connects the Page.</p>

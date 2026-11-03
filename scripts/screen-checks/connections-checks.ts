@@ -57,6 +57,22 @@ export async function runConnectionsChecks() {
     assert.doesNotMatch(withoutComments(await read(`${FOLDER}/whatsapp-section.tsx`)), /stays quiet\./, "WhatsApp promises ansa always stays quiet");
   });
 
+  await check("one person's pages (step 50) speak to a person, a business's keep their words: Connections' notes (someone writing to you, answering as yourself, no marketing accounts link), Saved answers, About you and Account", async () => {
+    for (const file of CHAT_SECTIONS) {
+      const source = withoutComments(await read(file));
+      for (const tag of openingTags(source, ["PracticeChatAdvice", "OwnAnswersNote"])) {
+        assert.equal(attributeValue(tag, "personal"), "{personal}", `${file}: ${tag} isn't told whose account it is`);
+      }
+    }
+    assert.match(withoutComments(await read(`${FOLDER}/stand-in.tsx`)), /personal \? "someone writing to you" : "a customer"/);
+    assert.match(withoutComments(await read(`${FOLDER}/own-answers.tsx`)), /\{personal \? "someone" : "a customer"\}/);
+    assert.match(withoutComments(await read(MESSENGER)), /\{!personal && \(\n\s*<Link href="\/cofounder\/accounts"/);
+    assert.match(withoutComments(await read("app/knowledge/page.tsx")), /\{personal \? "Saved answers" : "Knowledge"\}/);
+    assert.match(withoutComments(await read("app/knowledge/test-search-box.tsx")), /personal \? "A question someone might ask you" : "A question a customer might ask"/);
+    assert.match(withoutComments(await read("app/settings/business/page.tsx")), /\{profile\.kind === "personal" \? "About you" : "What it knows"\}/);
+    assert.match(withoutComments(await read("app/account/page.tsx")), /kind === "personal" \?/);
+  });
+
   await check("practice chat: the owner may answer as the business, from its own app (a tick), and the page sends that choice to core", async () => {
     const form = withoutComments(await read(`${FOLDER}/practice-chat/message-form.tsx`));
     assert.match(form, /<Checkbox\s+checked=\{asBusiness\}/);
