@@ -23,12 +23,13 @@ type NeedsYouProps = {
 
 // Home's "Needs you" (the "easy to use" pass of 2026-11-01): the people
 // waiting for an answer, each by name with why, then anything else that
-// waits for someone (a request nobody has, a stuck email, a post to check,
-// an account to reconnect), each a link to where it is handled. Only what
-// waits; with nothing, one calm line.
+// waits for someone (a request nobody has, or without a team the requests
+// no conversation lists, a stuck email, a post to check, an account to
+// reconnect), each a link to where it is handled. Only what waits; with
+// nothing, one calm line.
 export function NeedsYou({ conversations, overview, personal, newOrders }: NeedsYouProps) {
-  const showUnassigned = !personal && conversations.hasTeam;
-  const { peopleWaiting, otherThingsWaiting } = countWaiting(overview, showUnassigned, newOrders);
+  const hasTeam = !personal && conversations.hasTeam;
+  const { peopleWaiting, otherThingsWaiting } = countWaiting(overview, hasTeam, newOrders);
   const nothingWaiting = peopleWaiting === 0 && otherThingsWaiting === 0;
   return (
     <section aria-labelledby="needs-you-heading" className="grid content-start gap-2">
@@ -75,22 +76,32 @@ export function NeedsYou({ conversations, overview, personal, newOrders }: Needs
               </NumberLink>
             </WaitingRow>
           )}
-          <OtherThingsWaiting overview={overview} showUnassigned={showUnassigned} />
+          <OtherThingsWaiting overview={overview} hasTeam={hasTeam} />
         </ul>
       )}
     </section>
   );
 }
 
-function OtherThingsWaiting({ overview, showUnassigned }: { overview: BusinessOverview; showUnassigned: boolean }) {
+function OtherThingsWaiting({ overview, hasTeam }: { overview: BusinessOverview; hasTeam: boolean }) {
   const { support, cofounder } = overview;
   return (
     <>
-      {/* Without a team to share them with, requests are the conversations listed above. */}
-      {showUnassigned && support.unassignedTickets > 0 && (
+      {hasTeam && support.unassignedTickets > 0 && (
         <WaitingRow>
           <NumberLink href={buildListUrl("/inbox/requests", { view: "unassigned" })} className={ROW_LINK}>
             {countWithNoun(support.unassignedTickets, "request has nobody on it", "requests have nobody on them")}
+            <RowArrow />
+          </NumberLink>
+        </WaitingRow>
+      )}
+      {/* Without a team every request is yours: those in a conversation are
+          the people listed above, the rest (typed in, a hidden caller's)
+          only All requests lists. */}
+      {!hasTeam && support.requestsWaitingForYou > 0 && (
+        <WaitingRow>
+          <NumberLink href={buildListUrl("/inbox/requests", { view: "open" })} className={ROW_LINK}>
+            {countWithNoun(support.requestsWaitingForYou, "request waits for you", "requests wait for you")}
             <RowArrow />
           </NumberLink>
         </WaitingRow>
@@ -133,8 +144,9 @@ function OtherThingsWaiting({ overview, showUnassigned }: { overview: BusinessOv
 
 // How many people and kinds of things wait for someone: the status card's
 // sentence (lib/home-briefing.ts) and whether "Needs you" lists anything.
-export function countWaiting({ support, cofounder }: BusinessOverview, showUnassigned: boolean, newOrders: number) {
-  const others = [newOrders, showUnassigned ? support.unassignedTickets : 0, support.emailsStuck];
+// hasTeam: more than one person in a business takes requests.
+export function countWaiting({ support, cofounder }: BusinessOverview, hasTeam: boolean, newOrders: number) {
+  const others = [newOrders, hasTeam ? support.unassignedTickets : support.requestsWaitingForYou, support.emailsStuck];
   if (cofounder) {
     others.push(cofounder.postsNeedingAttention, cofounder.postsFailedLastWeek, cofounder.accountsNeedingReconnect);
   }

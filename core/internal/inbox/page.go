@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/chat"
-	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/tenant"
@@ -24,7 +23,11 @@ type Page struct {
 	TakenOverAt     *time.Time `json:"takenOverAt"`
 	TakenOverByName *string    `json:"takenOverByName"`
 	Important       bool       `json:"important"`
-	Entries         []Entry    `json:"entries"`
+	// "If I haven't answered within N minutes" (step 51): when ansa answers
+	// unless a person does first; nil while it isn't waiting, or while
+	// something keeps it quiet then anyway (answersWhenDue).
+	AssistantDueAt *time.Time `json:"assistantDueAt"`
+	Entries        []Entry    `json:"entries"`
 	// Its open requests, newest first (the newest one's actions: the tickets API).
 	OpenTickets []TicketLine `json:"openTickets"`
 	Activity    []Activity   `json:"activity"`
@@ -32,34 +35,6 @@ type Page struct {
 	CanReply     bool          `json:"canReply"`
 	ReplyBlocked string        `json:"replyBlocked"`
 	Orders       []PlacedOrder `json:"orders"`
-}
-
-// Entry is a chat message (decrypted), or a call or an email linked to the
-// conversation (their content stays on their own pages).
-type Entry struct {
-	ID         string    `json:"id"`
-	Author     string    `json:"author"`
-	AuthorName *string   `json:"authorName"`
-	CreatedAt  time.Time `json:"createdAt"`
-	SendStatus *string   `json:"sendStatus"`
-	SendError  *string   `json:"sendError"`
-	Text       *string   `json:"text"`
-	Unreadable bool      `json:"unreadable"`
-	Call       *Call     `json:"call"`
-	Email      *Email    `json:"email"`
-}
-
-// Call is a phone call linked to a conversation.
-type Call struct {
-	ID        string     `json:"id"`
-	StartedAt *time.Time `json:"startedAt"`
-	AIOutcome *string    `json:"aiOutcome"`
-}
-
-// Email is a received email linked to a conversation.
-type Email struct {
-	Subject  *string `json:"subject"`
-	TicketID *string `json:"ticketId"`
 }
 
 // PlacedOrder is one of this customer's placed orders.
@@ -72,6 +47,13 @@ type PlacedOrder struct {
 
 // ErrNotFound: no such conversation in this company.
 var ErrNotFound = errors.New("inbox: no such conversation")
+
+// answersWhenDue: the catch-up's run answers a conversation whose minutes
+// are up only while nothing keeps ansa quiet there (the gate,
+// internal/assistant/gate.go): not paused, not taken over, no request open.
+const answersWhenDue = `conversations.handled_by = 'assistant'
+	AND NOT EXISTS (SELECT 1 FROM assistant_settings WHERE assistant_settings.company_id = conversations.company_id AND assistant_settings.status = 'paused')
+	AND NOT EXISTS (SELECT 1 FROM tickets WHERE tickets.company_id = conversations.company_id AND tickets.conversation_id = conversations.id AND tickets.status = 'open')`
 
 // ReadPage reads one conversation of the company.
 func ReadPage(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) (*Page, error) {
@@ -90,6 +72,9 @@ func ReadPage(ctx context.Context, pool *database.Pool, box *secure.Box, company
 	if err != nil {
 		return nil, err
 	}
+	if p.AssistantDueAt, err = answersAt(ctx, pool, company, p.ID); err != nil {
+		return nil, err
+	}
 	if p.Entries, err = entries(ctx, pool, box, company, p.ID); err != nil {
 		return nil, err
 	}
@@ -106,6 +91,16 @@ func ReadPage(ctx context.Context, pool *database.Pool, box *secure.Box, company
 	return &p, err
 }
 
+// answersAt is when ansa answers unless a person does first: the wait's
+// due time, or nil while it isn't waiting or would stay quiet then anyway.
+func answersAt(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string) (*time.Time, error) {
+	// Built from the fixed text above, never input.
+	statement := `SELECT assistant_due_at FROM conversations WHERE conversations.company_id = $1 AND conversations.id = $2 AND ` + answersWhenDue
+	var due *time.Time
+	err := pool.QueryRow(ctx, statement, company.String(), conversationID).Scan(&due)
+	return due, ignoreNoRows(err)
+}
+
 // replyState reads the same rules a reply checks (chat.RouteWithin), so the
 // page says it before anyone types. Nothing is written.
 func replyState(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string) (bool, string, error) {
@@ -119,64 +114,6 @@ func replyState(ctx context.Context, pool *database.Pool, company tenant.Company
 		return false, "", err
 	}
 	return true, refusal, err
-}
-
-// entries are the newest 200 entries, oldest first.
-func entries(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) ([]Entry, error) {
-	const statement = `
-		SELECT messages.id, messages.author, author.name, messages.created_at, messages.send_status, messages.send_error, messages.body_encrypted,
-			calls.id, calls.started_at, calls.ai_outcome, inbound_emails.id, inbound_emails.subject_encrypted, inbound_emails.ticket_id
-		FROM messages
-		LEFT JOIN users AS author ON author.id = messages.author_user_id AND author.company_id = messages.company_id
-		LEFT JOIN calls ON calls.id = messages.call_id AND calls.company_id = messages.company_id
-		LEFT JOIN inbound_emails ON inbound_emails.id = messages.inbound_email_id AND inbound_emails.company_id = messages.company_id
-		WHERE messages.company_id = $1 AND messages.conversation_id = $2
-		ORDER BY messages.created_at DESC LIMIT 200`
-	rows, err := pool.Query(ctx, statement, company.String(), conversationID)
-	if err != nil {
-		return nil, err
-	}
-	var newestFirst []Entry
-	for rows.Next() {
-		var e Entry
-		var body, callID, emailID, subject, outcome *string
-		var callStarted *time.Time
-		var ticketID *string
-		if err := rows.Scan(&e.ID, &e.Author, &e.AuthorName, &e.CreatedAt, &e.SendStatus, &e.SendError, &body, &callID, &callStarted, &outcome, &emailID, &subject, &ticketID); err != nil {
-			return nil, err
-		}
-		if body != nil {
-			if text, err := box.Decrypt(*body, conversations.MessageContext(company, e.ID)); err == nil {
-				e.Text = &text
-			} else {
-				e.Unreadable = true
-			}
-		}
-		if callID != nil {
-			e.Call = &Call{ID: *callID, StartedAt: callStarted, AIOutcome: outcome}
-		}
-		if emailID != nil {
-			e.Email = &Email{Subject: emailSubject(box, company, *emailID, subject), TicketID: ticketID}
-		}
-		newestFirst = append(newestFirst, e)
-	}
-	oldestFirst := make([]Entry, 0, len(newestFirst))
-	for i := len(newestFirst) - 1; i >= 0; i-- {
-		oldestFirst = append(oldestFirst, newestFirst[i])
-	}
-	return oldestFirst, rows.Err()
-}
-
-// emailSubject decrypts a received email's subject ("inbound-email-subject:<company>:<email>").
-func emailSubject(box *secure.Box, company tenant.CompanyID, emailID string, encrypted *string) *string {
-	if encrypted == nil {
-		return nil
-	}
-	subject, err := box.Decrypt(*encrypted, "inbound-email-subject:"+company.String()+":"+emailID)
-	if err != nil {
-		return nil
-	}
-	return &subject
 }
 
 func placedOrders(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string) ([]PlacedOrder, error) {

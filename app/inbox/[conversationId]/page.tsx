@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listAssigneeMenu } from "@/app/tickets/[ticketNumber]/assignee-menu";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshEvery } from "@/components/refresh-every";
 import { StatusDot } from "@/components/status-dot";
 import { CHANNEL_LABELS } from "@/lib/conversations";
 import { getAccountKindFromCore, getConversationFromCore } from "@/lib/core-views/inbox";
@@ -13,7 +14,7 @@ import { formatPrice } from "@/lib/menu";
 import { ORDER_STATUS_LABELS } from "@/lib/orders";
 import { getSessionContext, requireSessionContext } from "@/lib/session";
 import type { ConversationPage } from "@/lib/types/conversation-page";
-import { Handler, History, Importance, WaitingReply } from "./conversation-parts";
+import { AnswersAt, Handler, History, Importance, WaitingReply } from "./conversation-parts";
 import { ConversationTimeline } from "./conversation-timeline";
 import { ReplyForm } from "./reply-form";
 import { RequestBox } from "./request-box";
@@ -78,15 +79,18 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
     notFound();
   }
   const openTicketNumber = conversation.openTicket?.ticketNumber;
-  const [assigneeChoices, kind] = await Promise.all([
+  const [request, kind] = await Promise.all([
         // The open request's own page read, already made for the conversation (React cache).
-        openTicketNumber ? getRequestPageFromCore(String(openTicketNumber)).then((request) => request?.assigneeChoices ?? []) : Promise.resolve([]),
+        openTicketNumber ? getRequestPageFromCore(String(openTicketNumber)) : Promise.resolve(null),
         getAccountKindFromCore(),
       ]);
+  const assigneeChoices = request?.assigneeChoices ?? [];
   const waiting = conversation.entries.findLast((entry) => entry.sendStatus === "draft" && entry.text !== null);
   const editing = waiting && edit === waiting.id ? { id: waiting.id, text: waiting.text ?? "" } : undefined;
   return (
     <>
+      {/* The customer's messages and ansa's replies show up by themselves. */}
+      <RefreshEvery seconds={5} />
       <div className="grid gap-2">
         <Link href="/inbox" className="text-sm text-muted-foreground hover:underline">
           &larr; Inbox
@@ -97,6 +101,9 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
           {isUnverifiedSender(conversation) ? ": the sender's address was not verified" : ""}
         </p>
         <Handler conversation={conversation} />
+        {conversation.assistantDueAt && (
+          <AnswersAt conversationId={conversation.id} dueAt={conversation.assistantDueAt} canAnswerNow={conversation.canAnswerNow} />
+        )}
         <Importance conversationId={conversation.id} important={conversation.important} />
       </div>
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -110,7 +117,10 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
             <p className="text-sm text-muted-foreground">{blockedTextsFor(conversation.channel)[conversation.replyBlocked]}</p>
           ) : conversation.canReply ? (
             <ReplyForm
-              key={editing?.id ?? "new"}
+              // Keyed by the address, not by the waiting reply: a refresh
+              // that finds the reply being edited gone (sent, discarded, or
+              // replaced by a newer one) must not empty what was typed.
+              key={typeof edit === "string" ? edit : "new"}
               conversationId={conversation.id}
               handledByAssistant={conversation.handledBy === "assistant"}
               draft={editing}
@@ -122,11 +132,15 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
         <aside className="grid content-start gap-6">
           {conversation.openTicket ? (
             <RequestBox
+              // A newer request arriving while the page refreshes gets a box of
+              // its own: a note typed for one request never goes to another.
+              key={conversation.openTicket.id}
               conversation={conversation}
               ticket={conversation.openTicket}
               teamMembers={listAssigneeMenu(assigneeChoices, conversation.openTicket)}
               canAssign={kind === "business" && assigneeChoices.length > 1}
               canReopen={session.role === "owner"}
+              relatedArticles={request?.relatedArticles ?? []}
             />
           ) : (
             <StatusDot tone="success">Nothing needs you in this conversation.</StatusDot>

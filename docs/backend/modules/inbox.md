@@ -16,11 +16,15 @@ in the company works conversations, as they work tickets.
   request, and whether a reply of ansa's waits for a person
   (`draftWaiting`). `Counts` per view.
 - `ReadPage`: the conversation and its contact (important or not, who took
-  it over), its newest 200 entries oldest first (chat messages decrypted;
-  calls and emails as links, an email's subject decrypted), its open
-  requests, its newest 20 activity lines, the customer's newest 3 placed
-  orders, and whether a reply can go now (the same rules a reply checks,
-  `chat.RouteWithin`, read without writing).
+  it over), when ansa answers unless a person does first (`assistantDueAt`,
+  "if I haven't answered within N minutes": the wait's due time, nil while
+  none is on or while the run would stay quiet then anyway: paused, taken
+  over, a request open), its newest 200 entries oldest first (chat messages
+  decrypted; calls and emails as links, an email's subject decrypted and
+  the number of the request it became), its open requests, its newest 20
+  activity lines, the customer's newest 3 placed orders, and whether a
+  reply can go now (the same rules a reply checks, `chat.RouteWithin`, read
+  without writing).
 - `ListActivity`: a conversation's lines, or ansa's own newest work (Home's
   "What ansa did"); never a message's text.
 **Changing (each in ONE transaction that reads the person again,
@@ -42,19 +46,27 @@ in the company works conversations, as they work tickets.
 - `Replies.SendDraft` (as the assistant wrote it; the conversation isn't
   taken over) and `DiscardDraft` (kept as "discarded"): only while it still
   waits.
+- `AnswerNow` (development only, owners; `api/answer_now.go`): ansa's wait
+  ends now (`assistant_due_at = now()`), so the catch-up's next round
+  (within 15 seconds) answers as if the minutes were up. Only a wait the
+  page shows; it never starts one ("ansa isn't waiting", 409). A
+  production server refuses it (403) and the page never offers it
+  (`canAnswerNow`: development and an owner).
 **API:** `GET /api/v1/inbox?view=&page=`, `GET /api/v1/activity`,
 `GET /api/v1/conversations/{id}`, `POST .../take-over`, `.../hand-back`,
 `.../important {"important": bool}`, `.../reply {"text", "replacesDraftId"}`,
-`.../drafts/{message}/send`, `.../drafts/{message}/discard` (120 changes per
-10 minutes per person, the old counter).
+`.../drafts/{message}/send`, `.../drafts/{message}/discard`, `.../answer-now`
+(120 changes per 10 minutes per person, the old counter).
 **Tests:** `api/inbox_test.go` (live database): a waiting reply is "Needs
 you" and flagged, never the preview (the customer's words are), until it is
 sent; the page decrypted and replyable; Send then Discard (already sent =
 409); an empty reply refused with its words; a reply goes out and takes the
 conversation over; hand back; important; another company's conversation =
-404; what ansa did. A person's reply, and a take over, discard ansa's
-waiting reply (it can't be sent after; one "draft_discarded" line each,
-naming the person; nothing left under Needs you), and a discarded reply is
-never the preview.
+404; what ansa did; an email entry names its request's number; when ansa
+answers (hidden while taken over), and "Answer now": not without a wait,
+not by a member, never in production. A person's reply, and a take over,
+discard ansa's waiting reply (it can't be sent after; one "draft_discarded"
+line each, naming the person; nothing left under Needs you), and a
+discarded reply is never the preview.
 **The request on the page:** its actions (assign, Done, notes) are
 [requests](requests.md)'s.

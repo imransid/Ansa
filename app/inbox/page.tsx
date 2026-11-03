@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FilterLinks } from "@/components/filter-links";
 import { PageLoading } from "@/components/page-loading";
 import { PaginationLinks } from "@/components/pagination-links";
+import { RefreshEvery } from "@/components/refresh-every";
 import { buttonVariants } from "@/components/ui/button";
 import { getAccountKindFromCore, getInboxFromCore } from "@/lib/core-views/inbox";
 import { parseInboxView } from "@/lib/inbox";
@@ -65,6 +66,8 @@ async function InboxContent({ searchParams }: Pick<PageProps<"/inbox">, "searchP
           </Link>
         )}
       </div>
+      {/* New messages and ansa's replies show up by themselves. */}
+      <RefreshEvery seconds={5} />
       <FilterLinks
         label="Inbox views"
         links={[

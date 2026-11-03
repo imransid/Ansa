@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshEvery } from "@/components/refresh-every";
 import { getHomeFromCore } from "@/lib/core-views/home";
 import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
@@ -45,11 +46,14 @@ async function HomeContent() {
   const home = await getHomeFromCore();
   const { undeliveredEmails, hints, overview, activity, presence, awaySummary, gettingStarted, needsYou, newOrders, packageStatus } = home;
   const personal = presence.kind === "personal";
+  const hasTeam = !personal && needsYou.hasTeam;
 
   return (
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Home</h1>
-      <StatusCard presence={presence} waiting={countWaiting(overview, !personal && needsYou.hasTeam, newOrders)} openTickets={overview.support.openTickets} />
+      {/* Who needs you and what ansa did show up by themselves. */}
+      <RefreshEvery seconds={5} />
+      <StatusCard presence={presence} waiting={countWaiting(overview, hasTeam, newOrders)} openTickets={overview.support.openTickets} hasTeam={hasTeam} />
       {!setup.finished && (
         <p role="status" className="rounded-xl bg-attention-surface px-4 py-3 text-sm">
           An owner is still setting ansa up. Everything else works meanwhile.

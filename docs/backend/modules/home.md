@@ -25,7 +25,10 @@
   whether more than one person takes requests), `newOrders`, `activity`
   ("What ansa did", newest 6).
 - `overview` ("Your business in numbers", `overview.go`): open and
-  unassigned requests, calls of the last 7 days and those the AI solved,
+  unassigned requests, the open requests in no conversation (typed in, a
+  hidden caller's) that nobody has or this person has (`requestsWaitingForYou`:
+  without a team, "Needs you" names them, as no conversation lists them),
+  calls of the last 7 days and those the AI solved,
   emails being read and stuck, conversations that need a person; once the
   company started the marketing helper (a fact, an interview answer or a
   draft) also drafts waiting, posts scheduled within 7 days, needing
@@ -73,7 +76,9 @@ typed message as a customer's first; answers `{outcome: reply | handover |
 no_reply, text (with the AI label), why}`. Nothing is saved, sent or alerted.
 **Tests:** `api/home_test.go` (live database): the page and the checklist;
 pause, "only when I'm away" and "I'm away" change what the card says and
-show the summary; "Got it"; a member can't pause and gets no checklist.
+show the summary; "Got it"; a member can't pause and gets no checklist;
+the requests in no conversation counted for whoever looks (nobody's and
+their own, not a colleague's, a chat's or a solved one).
 `home/away_test.go`: a reply replaced by a newer one counts once, and one a
 teammate sent is neither waiting nor listed.
 `api/assistant_settings_test.go`: defaults; an empty holding reply refused

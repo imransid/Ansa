@@ -114,8 +114,12 @@ export async function runNavigationChecks() {
     for (const number of ["countWithNoun(", "formatOverviewCount(", "keyFactsConfirmed"]) {
       assert.ok(!withoutLinks.includes(number), `a number shown outside a link: ${number}`);
     }
-    assert.equal((panel.match(/<NumberLink\b/g) ?? []).length, 14, "a number was added or taken away: list it here");
-    assert.equal((panel.match(/buildListUrl\("\/inbox\/requests", \{ view: "(open|unassigned)" \}\)/g) ?? []).length, 2);
+    assert.equal((panel.match(/<NumberLink\b/g) ?? []).length, 15, "a number was added or taken away: list it here");
+    assert.equal((panel.match(/buildListUrl\("\/inbox\/requests", \{ view: "(open|unassigned)" \}\)/g) ?? []).length, 3);
+    // Without a team (a person, a business of one), the requests no
+    // conversation lists wait for you; with one, those nobody has.
+    assert.match(panel, /hasTeam && support\.unassignedTickets > 0/);
+    assert.match(panel, /!hasTeam && support\.requestsWaitingForYou > 0 && \(\s*<WaitingRow>\s*<NumberLink href=\{buildListUrl\("\/inbox\/requests", \{ view: "open" \}\)\}/);
     // Conversations that need you open the Inbox's own "Needs you" (step 47).
     assert.match(panel, /buildListUrl\("\/inbox", \{ view: "needs-you" \}\)/);
     assert.ok(!panel.includes('"/dashboard"'), "a number still opens the old ticket list");
@@ -133,13 +137,17 @@ export async function runNavigationChecks() {
     }
   });
 
-  await check("home: the status card's sentence says how many people and things wait for the owner in words, and says 'all quiet' only when nothing is open", async () => {
-    assert.equal(briefingSentence({ peopleWaiting: 1, otherThingsWaiting: 0, openTickets: 4 }), "One person is waiting for you below.");
-    assert.equal(briefingSentence({ peopleWaiting: 2, otherThingsWaiting: 0, openTickets: 2 }), "Two people are waiting for you below.");
-    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 1, openTickets: 4 }), "One thing is waiting for you below.");
-    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 3, openTickets: 0 }), "Three things are waiting for you below.");
-    assert.equal(briefingSentence({ peopleWaiting: 12, otherThingsWaiting: 1, openTickets: 0 }), "12 people and one more thing are waiting for you below.");
-    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 0, openTickets: 2 }), "Nothing is waiting for you. Your team has the open requests in hand.");
-    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 0, openTickets: 0 }), "All quiet. Nothing is waiting for you.");
+  await check("home: the status card's sentence says how many people and things wait for the owner in words, says 'all quiet' only when nothing is open, and names a team only when there is one", async () => {
+    assert.equal(briefingSentence({ peopleWaiting: 1, otherThingsWaiting: 0, openTickets: 4, hasTeam: true }), "One person is waiting for you below.");
+    assert.equal(briefingSentence({ peopleWaiting: 2, otherThingsWaiting: 0, openTickets: 2, hasTeam: true }), "Two people are waiting for you below.");
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 1, openTickets: 4, hasTeam: true }), "One thing is waiting for you below.");
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 3, openTickets: 0, hasTeam: true }), "Three things are waiting for you below.");
+    assert.equal(briefingSentence({ peopleWaiting: 12, otherThingsWaiting: 1, openTickets: 0, hasTeam: true }), "12 people and one more thing are waiting for you below.");
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 0, openTickets: 2, hasTeam: true }), "Nothing is waiting for you. Your team has the open requests in hand.");
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 0, openTickets: 0, hasTeam: true }), "All quiet. Nothing is waiting for you.");
+    // A person or a business of one has no team to have their requests.
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 0, openTickets: 2, hasTeam: false }), "Nothing is waiting for you.");
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 0, openTickets: 0, hasTeam: false }), "All quiet. Nothing is waiting for you.");
+    assert.equal(briefingSentence({ peopleWaiting: 0, otherThingsWaiting: 1, openTickets: 2, hasTeam: false }), "One thing is waiting for you below.");
   });
 }

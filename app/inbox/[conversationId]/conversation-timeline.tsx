@@ -47,7 +47,20 @@ function EntryBody({ entry }: { entry: ConversationEntryView }) {
     );
   }
   if (entry.email) {
-    return <p className="rounded-2xl border px-3 py-2 text-sm">Email: {entry.email.subject ?? "(no subject)"}</p>;
+    // The email's content shows on the request it became ("Original email").
+    return (
+      <p className="rounded-2xl border px-3 py-2 text-sm wrap-anywhere">
+        Email: {entry.email.subject ?? "(no subject)"}
+        {entry.email.ticketNumber !== null && (
+          <>
+            {" "}
+            <Link href={`/tickets/${entry.email.ticketNumber}`} className="underline">
+              Open the email (request #{entry.email.ticketNumber})
+            </Link>
+          </>
+        )}
+      </p>
+    );
   }
   const style =
     entry.author === "customer"

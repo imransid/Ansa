@@ -19,10 +19,16 @@ export type ConversationEntryView = {
   text: string | null;
   unreadable: boolean;
   call: { id: string; startedAt: Date | null; aiOutcome: string | null } | null;
-  email: { subject: string | null; ticketId: string | null } | null;
+  // The request it became, by number: the request's page holds the email.
+  email: { subject: string | null; ticketId: string | null; ticketNumber: number | null } | null;
 };
 
 export type ConversationPage = ConversationRow & {
+  // "If I haven't answered within N minutes" (step 51): when ansa answers
+  // unless a person replies first; null while it isn't waiting.
+  assistantDueAt: Date | null;
+  // Development only, owners: "Answer now" instead of waiting (core decides).
+  canAnswerNow: boolean;
   entries: ConversationEntryView[];
   // The newest open request, with what its actions need; others listed.
   openTicket: TicketDetail | null;

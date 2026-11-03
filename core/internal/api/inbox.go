@@ -16,6 +16,9 @@ var inboxRefusals = map[string]string{
 	inbox.NotFound:   "This conversation isn't there any more. Reload the page.",
 	inbox.NotAllowed: "You can no longer work this company's conversations.",
 	inbox.NotWaiting: "This reply was already sent or discarded. Reload the page.",
+	inbox.OwnersOnly: "Only owners can make ansa answer now.",
+	inbox.NotDue:     "ansa isn't waiting to answer here any more. Reload the page.",
+	developmentOnly:  answerNowOnly,
 	"not-chat":       "Calls and emails can't be answered from ansa yet.",
 	"not-connected":  "This chat's channel isn't connected. Connect it in Settings → Connections.",
 	"cannot-reply":   "ansa isn't allowed to reply on this channel. Allow it in Settings → Connections.",
@@ -32,6 +35,7 @@ func (s *Server) registerInbox(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/conversations/{id}/reply", s.withSession(s.inboxChange(s.reply)))
 	routes.HandleFunc("POST /api/v1/conversations/{id}/drafts/{message}/send", s.withSession(s.inboxChange(s.sendDraft)))
 	routes.HandleFunc("POST /api/v1/conversations/{id}/drafts/{message}/discard", s.withSession(s.inboxChange(s.discardDraft)))
+	routes.HandleFunc("POST /api/v1/conversations/{id}/answer-now", s.withSession(s.inboxChange(s.answerNow)))
 }
 
 // listInbox: GET /api/v1/inbox?view=needs-you|all&page=N.
@@ -80,7 +84,11 @@ func (s *Server) conversationPage(w http.ResponseWriter, r *http.Request, _ []by
 		s.failed(w, "conversation page", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	writeJSON(w, http.StatusOK, struct {
+		*inbox.Page
+		// "Answer now" on a conversation ansa waits on (answer_now.go).
+		CanAnswerNow bool `json:"canAnswerNow"`
+	}{page, s.Development && who.IsOwner()})
 }
 
 // inboxAction is one change in a conversation: its outcome, or an error.
@@ -126,7 +134,7 @@ func statusFor(outcome string) int {
 	switch outcome {
 	case inbox.NotFound:
 		return http.StatusNotFound
-	case inbox.NotAllowed:
+	case inbox.NotAllowed, inbox.OwnersOnly, developmentOnly:
 		return http.StatusForbidden
 	}
 	return http.StatusConflict

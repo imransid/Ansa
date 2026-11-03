@@ -57,23 +57,25 @@ export async function saveAiEngineThroughCore(formData: FormData): Promise<{ ok:
   return answer.ok ? { ok: true } : { ok: false, errors: coreFormErrors(answer) };
 }
 
-// What the assistant would answer one typed message. Nothing is saved or sent.
+// What the assistant would answer one typed message, with that message (the
+// question) to show above it. Nothing is saved or sent.
 export async function testAssistantThroughCore(formData: FormData): Promise<AssistantTestResult> {
+  const question = textOf(formData, "text");
   const answer = await callCore<{ outcome: "reply" | "handover" | "no_reply"; text: string; why: string }>("POST", "/api/v1/assistant/try", {
-    text: textOf(formData, "text"),
+    text: question,
   });
   if (!answer.ok) {
     return { ok: false, errors: coreFormErrors(answer) };
   }
   const { outcome, text, why } = answer.data;
   if (outcome === "reply") {
-    return { ok: true, outcome: "reply", text };
+    return { ok: true, question, outcome: "reply", text };
   }
   if (outcome === "handover") {
     // Core's text is the holding reply the customer would get then.
-    return { ok: true, outcome: "handover", holdingReply: text, why };
+    return { ok: true, question, outcome: "handover", holdingReply: text, why };
   }
-  return { ok: true, outcome: "no_reply" };
+  return { ok: true, question, outcome: "no_reply" };
 }
 
 // A form value as the forms send it: text, or nothing.

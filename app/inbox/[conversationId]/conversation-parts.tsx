@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { setImportantAction } from "@/app/actions/away";
-import { discardDraftAction, handBackAction, sendDraftAction, takeOverAction } from "@/app/actions/conversations";
+import { answerNowAction, discardDraftAction, handBackAction, sendDraftAction, takeOverAction } from "@/app/actions/conversations";
 import { ActionButton } from "@/components/action-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { LocalDateTime } from "@/components/local-date-time";
@@ -11,7 +11,8 @@ import { ACTIVITY_TEXT } from "@/lib/conversations";
 import type { ConversationView } from "@/lib/core-views/inbox";
 
 // The smaller parts of one conversation's page (step 47): the assistant's
-// waiting reply, someone marked important, who answers it, and its history.
+// waiting reply, someone marked important, when ansa steps in, who answers
+// it, and its history.
 
 // The assistant's reply waiting for a person ("Ask me first", step 49):
 // send it as written, edit it in the reply box, or discard it.
@@ -53,6 +54,27 @@ export function Importance({ conversationId, important }: { conversationId: stri
         label={important ? "Not important" : "Mark important"}
         accessibleLabel={important ? "Let ansa answer this person again" : "Mark this person important: they always come to you"}
       />
+    </div>
+  );
+}
+
+// "If I haven't answered within N minutes" (step 51): ansa waits for your
+// reply and answers by itself at its time. In development an owner may let
+// it answer now, at the scheduler's next round (core refuses it elsewhere).
+export function AnswersAt({ conversationId, dueAt, canAnswerNow }: { conversationId: string; dueAt: Date; canAnswerNow: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <StatusDot tone="info">
+        ansa answers at <LocalDateTime iso={dueAt.toISOString()} timeOnly /> unless you reply
+      </StatusDot>
+      {canAnswerNow && (
+        <ActionButton
+          action={answerNowAction}
+          fields={{ conversationId }}
+          label="Answer now"
+          accessibleLabel="Let ansa answer now instead of waiting (development only)"
+        />
+      )}
     </div>
   );
 }

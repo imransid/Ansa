@@ -31,7 +31,8 @@ export function KnowledgeSection({ ticketNumber, isSolved, articles }: Knowledge
   );
 }
 
-function RelatedArticles({ articles }: Pick<KnowledgeSectionProps, "articles">) {
+// The list alone, also under a conversation's open request (its box has its own heading).
+export function RelatedArticles({ articles }: Pick<KnowledgeSectionProps, "articles">) {
   if (articles.length === 0) {
     return <p className="text-sm text-muted-foreground">No approved article matches this request.</p>;
   }

@@ -37,8 +37,12 @@ type Overview struct {
 
 // SupportNumbers are the requests, calls, emails and conversations.
 type SupportNumbers struct {
-	OpenTickets             int `json:"openTickets"`
-	UnassignedTickets       int `json:"unassignedTickets"`
+	OpenTickets       int `json:"openTickets"`
+	UnassignedTickets int `json:"unassignedTickets"`
+	// Open requests in no conversation (typed in, a hidden caller's, from
+	// before the Inbox) that nobody has or the viewer has: Home lists
+	// conversations by name, so without a team these would show nowhere.
+	RequestsWaitingForYou   int `json:"requestsWaitingForYou"`
 	CallsLastWeek           int `json:"callsLastWeek"`
 	CallsSolvedByAILastWeek int `json:"callsSolvedByAiLastWeek"`
 	EmailsWaiting           int `json:"emailsWaiting"`
@@ -57,14 +61,16 @@ type MarketingNumbers struct {
 	AccountsNeedingReconnect int `json:"accountsNeedingReconnect"`
 }
 
-// ReadOverview reads the company's numbers.
-func ReadOverview(ctx context.Context, pool *database.Pool, company tenant.CompanyID, role string) (Overview, error) {
+// ReadOverview reads the company's numbers as this person (role, userID) sees them.
+func ReadOverview(ctx context.Context, pool *database.Pool, company tenant.CompanyID, role, userID string) (Overview, error) {
 	o := Overview{CanStartMarketing: role == "owner"}
 	s := &o.Support
 	const support = `
 		SELECT
 			(SELECT count(*) FROM (SELECT 1 FROM tickets WHERE tickets.company_id = $1 AND status = 'open' LIMIT $2) AS counted),
 			(SELECT count(*) FROM (SELECT 1 FROM tickets WHERE tickets.company_id = $1 AND status = 'open' AND assigned_to_user_id IS NULL LIMIT $2) AS counted),
+			(SELECT count(*) FROM (SELECT 1 FROM tickets WHERE tickets.company_id = $1 AND status = 'open' AND conversation_id IS NULL
+				AND (assigned_to_user_id IS NULL OR assigned_to_user_id = $3) LIMIT $2) AS counted),
 			(SELECT count(*) FROM (SELECT 1 FROM calls WHERE calls.company_id = $1 AND created_at >= now() - interval '7 days' LIMIT $2) AS counted),
 			(SELECT count(*) FROM (SELECT 1 FROM calls WHERE calls.company_id = $1 AND created_at >= now() - interval '7 days'
 				AND analysis_status = 'decided' AND ai_outcome = 'solved' LIMIT $2) AS counted),
@@ -72,8 +78,8 @@ func ReadOverview(ctx context.Context, pool *database.Pool, company tenant.Compa
 				AND NOT ` + stuckEmail + ` LIMIT $2) AS counted),
 			(SELECT count(*) FROM (SELECT 1 FROM inbound_emails WHERE inbound_emails.company_id = $1 AND ` + stuckEmail + ` LIMIT $2) AS counted),
 			(SELECT count(*) FROM (SELECT 1 FROM conversations WHERE conversations.company_id = $1 AND ` + needsYou + ` LIMIT $2) AS counted)`
-	err := pool.QueryRow(ctx, support, company.String(), OverviewCountLimit+1).Scan(&s.OpenTickets, &s.UnassignedTickets, &s.CallsLastWeek,
-		&s.CallsSolvedByAILastWeek, &s.EmailsWaiting, &s.EmailsStuck, &s.ConversationsNeedingYou)
+	err := pool.QueryRow(ctx, support, company.String(), OverviewCountLimit+1, userID).Scan(&s.OpenTickets, &s.UnassignedTickets, &s.RequestsWaitingForYou,
+		&s.CallsLastWeek, &s.CallsSolvedByAILastWeek, &s.EmailsWaiting, &s.EmailsStuck, &s.ConversationsNeedingYou)
 	if err != nil {
 		return o, err
 	}

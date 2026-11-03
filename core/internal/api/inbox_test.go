@@ -2,12 +2,16 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"ansa/core/internal/conversations"
+	"ansa/core/internal/database"
 	"ansa/core/internal/secure"
+	"ansa/core/internal/session"
 )
 
 func TestTheInboxThroughCoresAPI(t *testing.T) {
@@ -143,4 +147,89 @@ func (w *apiWorld) inboxRow(conversationID string) map[string]any {
 	}
 	w.t.Fatalf("the conversation isn't in the Inbox: %v", answer)
 	return nil
+}
+
+// An email in a conversation names its request by number, which the page links.
+func TestAnEmailInAConversationNamesItsRequest(t *testing.T) {
+	w := newAPIWorld(t)
+	ctx := context.Background()
+	var conversationID, ticketID, emailID string
+	w.pool.QueryRow(ctx, `SELECT id FROM conversations WHERE company_id = $1`, w.company.String()).Scan(&conversationID)
+	w.pool.QueryRow(ctx, `INSERT INTO tickets (company_id, ticket_number, subject, description, channel, conversation_id) VALUES ($1, 12, 'Table for six', 'd', 'email', $2) RETURNING id`,
+		w.company.String(), conversationID).Scan(&ticketID)
+	resendID, _ := conversations.NewID()
+	w.pool.QueryRow(ctx, `INSERT INTO inbound_emails (company_id, resend_email_id, status, ticket_id, conversation_id) VALUES ($1, $2, 'ticketed', $3, $4) RETURNING id`,
+		w.company.String(), "core-test-"+resendID, ticketID, conversationID).Scan(&emailID)
+	subject, _ := w.api.Box.Encrypt("Table for six?", "inbound-email-subject:"+w.company.String()+":"+emailID)
+	w.must(`UPDATE inbound_emails SET subject_encrypted = $3 WHERE company_id = $1 AND id = $2`, w.company.String(), emailID, subject)
+	w.must(`INSERT INTO messages (company_id, conversation_id, direction, author, inbound_email_id) VALUES ($1, $2, 'in', 'customer', $3)`, w.company.String(), conversationID, emailID)
+
+	_, page := w.call("GET", "/api/v1/conversations/"+conversationID, "", screensSecret, w.cookie)
+	entries := page["entries"].([]any)
+	email, _ := entries[len(entries)-1].(map[string]any)["email"].(map[string]any)
+	if email["subject"] != "Table for six?" || email["ticketNumber"] != 12.0 {
+		t.Fatalf("the email with its request's number: %v", entries)
+	}
+}
+
+// "If I haven't answered within N minutes": the page says when ansa answers,
+// and in development an owner may let it answer at the scheduler's next round.
+func TestTheConversationPageSaysWhenAnsaAnswersAndAnOwnerMayHurryIt(t *testing.T) {
+	w := newAPIWorld(t)
+	ctx := context.Background()
+	var conversationID string
+	w.pool.QueryRow(ctx, `SELECT id FROM conversations WHERE company_id = $1`, w.company.String()).Scan(&conversationID)
+	base := "/api/v1/conversations/" + conversationID
+	if _, page := w.call("GET", base, "", screensSecret, w.cookie); page["assistantDueAt"] != nil || page["canAnswerNow"] != true {
+		t.Fatalf("ansa isn't waiting here, and an owner in development may hurry it: %v", page)
+	}
+	if code, answer := w.call("POST", base+"/answer-now", "", screensSecret, w.cookie); code != 409 || !strings.Contains(fmt.Sprint(answer["error"]), "isn't waiting") {
+		t.Fatalf("answering now never starts a wait: %d %v", code, answer)
+	}
+	w.must(`UPDATE conversations SET assistant_due_at = now() + interval '10 minutes' WHERE company_id = $1 AND id = $2`, w.company.String(), conversationID)
+	_, page := w.call("GET", base, "", screensSecret, w.cookie)
+	due, err := time.Parse(time.RFC3339Nano, fmt.Sprint(page["assistantDueAt"]))
+	if err != nil || time.Until(due) < 9*time.Minute {
+		t.Fatalf("the page says when ansa answers: %v", page["assistantDueAt"])
+	}
+	w.call("POST", base+"/take-over", "", screensSecret, w.cookie)
+	if _, page := w.call("GET", base, "", screensSecret, w.cookie); page["assistantDueAt"] != nil {
+		t.Fatalf("taken over, ansa stays quiet at its time: the page doesn't promise it: %v", page["assistantDueAt"])
+	}
+	if code, _ := w.call("POST", base+"/answer-now", "", screensSecret, w.cookie); code != 409 {
+		t.Fatalf("nor may it be hurried then: %d", code)
+	}
+	w.call("POST", base+"/hand-back", "", screensSecret, w.cookie)
+
+	member := database.TestOwner(t, w.pool, w.company.String())
+	w.must(`UPDATE users SET role = 'member' WHERE company_id = $1 AND id = $2`, w.company.String(), member)
+	token, _ := conversations.NewID()
+	w.must(`INSERT INTO sessions (id, token, expires_at, user_id) VALUES ($1, $1, now() + interval '1 day', $2)`, token, member)
+	t.Cleanup(func() {
+		w.pool.Exec(context.Background(), `DELETE FROM sessions WHERE token = $1`, token)
+		w.pool.Exec(context.Background(), `DELETE FROM rate_limits WHERE key = $1`, w.api.Limiter.Key("inbox-changes", member))
+	})
+	memberCookie := "better-auth.session_token=" + session.SignValue(token, authSecret)
+	if _, page := w.call("GET", base, "", screensSecret, memberCookie); page["canAnswerNow"] != false {
+		t.Fatal("only owners may hurry ansa")
+	}
+	if code, _ := w.call("POST", base+"/answer-now", "", screensSecret, memberCookie); code != 403 {
+		t.Fatalf("a member can't: %d", code)
+	}
+	if code, _ := w.call("POST", "/api/v1/conversations/00000000-0000-4000-8000-000000000000/answer-now", "", screensSecret, w.cookie); code != 404 {
+		t.Fatalf("another company's or no conversation: %d", code)
+	}
+	if code, _ := w.call("POST", base+"/answer-now", "", screensSecret, w.cookie); code != 200 {
+		t.Fatalf("answer now: %d", code)
+	}
+	if w.count(`SELECT count(*) FROM conversations WHERE company_id = $1 AND assistant_due_at <= now()`) != 1 {
+		t.Fatal("due now: the catch-up's next round answers it")
+	}
+	w.api.Development = false
+	if _, page := w.call("GET", base, "", screensSecret, w.cookie); page["canAnswerNow"] != false {
+		t.Fatal("never offered on a production server")
+	}
+	if code, _ := w.call("POST", base+"/answer-now", "", screensSecret, w.cookie); code != 403 {
+		t.Fatalf("never on a production server: %d", code)
+	}
 }

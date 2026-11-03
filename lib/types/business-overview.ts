@@ -6,6 +6,10 @@
 export type SupportOverviewCounts = {
   openTickets: number;
   unassignedTickets: number;
+  // Open requests in no conversation (typed in, a hidden caller's) that
+  // nobody has or the viewer has: Home's "Needs you" names them when there
+  // is no team (a person, or a business of one).
+  requestsWaitingForYou: number;
   callsLastWeek: number;
   callsSolvedByAiLastWeek: number;
   // Received emails still being turned into tickets, and those stuck at it

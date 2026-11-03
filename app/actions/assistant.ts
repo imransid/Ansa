@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { saveAiEngineThroughCore, testAssistantThroughCore } from "@/lib/core-views/assistant";
-import type { SaveState } from "@/lib/form-result";
+import { withTypedValues, type SaveState } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import type { AssistantTestResult } from "@/lib/types/assistant-test";
 
@@ -17,7 +17,9 @@ export async function saveAiEngineAction(_previous: SaveState | undefined, formD
   return result.ok ? { saved: true } : { errors: result.errors };
 }
 
+// A refused test gets back what was typed (React empties the box after the action).
 export async function testAssistantAction(_previous: AssistantTestResult | undefined, formData: FormData): Promise<AssistantTestResult> {
   await requireSessionContext();
-  return testAssistantThroughCore(formData);
+  const result = await testAssistantThroughCore(formData);
+  return result.ok ? result : { ok: false, errors: withTypedValues(result.errors, formData, ["text"]) };
 }

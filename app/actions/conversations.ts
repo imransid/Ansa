@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  answerNowThroughCore,
   discardDraftThroughCore,
   finishChatRequestThroughCore,
   handBackThroughCore,
@@ -61,6 +62,14 @@ export async function sendDraftAction(_previous: FormErrors | undefined, formDat
 export async function discardDraftAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
   await requireSessionContext();
   const result = await discardDraftThroughCore(String(formData.get("conversationId") ?? ""), String(formData.get("messageId") ?? ""));
+  revalidatePath("/inbox", "layout");
+  return result.ok ? undefined : result.errors;
+}
+
+// "Answer now" while ansa waits for a person's reply (development only, step 51).
+export async function answerNowAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
+  await requireSessionContext();
+  const result = await answerNowThroughCore(String(formData.get("conversationId") ?? ""));
   revalidatePath("/inbox", "layout");
   return result.ok ? undefined : result.errors;
 }

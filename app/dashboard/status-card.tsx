@@ -8,13 +8,15 @@ type StatusCardProps = {
   // What waits for someone (Home's "Needs you"): app/dashboard/needs-you.tsx.
   waiting: { peopleWaiting: number; otherThingsWaiting: number };
   openTickets: number;
+  // More than one person in a business takes requests.
+  hasTeam: boolean;
 };
 
 // The signature of Home (step 44; since the "easy to use" pass of 2026-11-01
 // it says what ansa is doing right now): a deep green card with a fine brass
 // rule inside its edge, like a printed menu. One sentence for what ansa
 // does, one for what waits, and the one button that changes it (owners).
-export function StatusCard({ presence, waiting, openTickets }: StatusCardProps) {
+export function StatusCard({ presence, waiting, openTickets, hasTeam }: StatusCardProps) {
   const now = describeNow(presence);
   return (
     <section
@@ -27,7 +29,7 @@ export function StatusCard({ presence, waiting, openTickets }: StatusCardProps) 
         </h2>
         <p className="max-w-[26ch] font-display text-[1.75rem] leading-[2.125rem] text-balance">{now.sentence}</p>
         <p className="max-w-[48ch] text-ivory/85">
-          {now.detail} {briefingSentence({ ...waiting, openTickets })}
+          {now.detail} {briefingSentence({ ...waiting, openTickets, hasTeam })}
         </p>
       </div>
       {presence.canManage && now.button && (

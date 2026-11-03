@@ -3,21 +3,21 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// How often an open page asks the server again.
-const REFRESH_EVERY_MS = 20_000;
-
-// A page that waits for what customers send (the Orders page, step 52):
-// while the tab is in view it asks the server again every 20 seconds, so a
-// new order shows up by itself. Renders nothing.
-export function RefreshEvery() {
+// A page that waits for what customers send: while the tab is in view it
+// asks the server again every `seconds`, so new things show up by
+// themselves (the Orders page every 20, step 52; Home, the Inbox and a
+// conversation every 5, so ansa's replies and who needs you appear while
+// you look). A refresh only brings the server's parts again: what is typed
+// in a box and other state in the browser stay. Renders nothing.
+export function RefreshEvery({ seconds = 20 }: { seconds?: number }) {
   const router = useRouter();
   useEffect(() => {
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") {
         router.refresh();
       }
-    }, REFRESH_EVERY_MS);
+    }, seconds * 1000);
     return () => clearInterval(timer);
-  }, [router]);
+  }, [router, seconds]);
   return null;
 }

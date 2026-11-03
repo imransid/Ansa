@@ -7,6 +7,9 @@ type LocalDateTimeProps = {
   // Lists: only the date ("17 Oct 2026"), so the column stays narrow. The
   // full time with its zone shows when the pointer rests on it.
   dateOnly?: boolean;
+  // A moment within the hour ("ansa answers at 15:05"): only the time,
+  // the full one on hover.
+  timeOnly?: boolean;
 };
 
 // Shows a moment in the VIEWER's own timezone, with the zone's name
@@ -16,10 +19,17 @@ type LocalDateTimeProps = {
 // server, and in the browser while the page wakes up) shows UTC. Right after,
 // the browser switches to local time. useSyncExternalStore is React's way to
 // render differently on the server and in the browser without a mismatch error.
-export function LocalDateTime({ iso, dateOnly = false }: LocalDateTimeProps) {
+export function LocalDateTime({ iso, dateOnly = false, timeOnly = false }: LocalDateTimeProps) {
   const inBrowser = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const date = new Date(iso);
   const fullText = inBrowser ? localFormat.format(date) : `${utcFormat.format(date)} UTC`;
+  if (timeOnly) {
+    return (
+      <time dateTime={iso} title={fullText}>
+        {inBrowser ? localTimeFormat.format(date) : `${utcTimeFormat.format(date)} UTC`}
+      </time>
+    );
+  }
   if (!dateOnly) {
     return <time dateTime={iso}>{fullText}</time>;
   }
@@ -44,6 +54,8 @@ const localFormat = new Intl.DateTimeFormat(undefined, {
 
 const localDateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
+const localTimeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+
 const utcFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -51,6 +63,8 @@ const utcFormat = new Intl.DateTimeFormat("en-GB", {
 });
 
 const utcDateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "UTC" });
+
+const utcTimeFormat = new Intl.DateTimeFormat("en-GB", { timeStyle: "short", timeZone: "UTC" });
 
 // Nothing ever changes after the page has loaded, so there is nothing to subscribe to.
 function subscribeToNothing(): () => void {

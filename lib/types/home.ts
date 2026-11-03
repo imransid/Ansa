@@ -16,7 +16,8 @@ export type GettingStartedStep = {
 
 // The newest conversations that need a person, how many there are, and
 // whether requests can be shared out (more than one person takes them:
-// otherwise "nobody on it" only repeats the conversations listed).
+// otherwise "nobody on it" only repeats the conversations listed, and every
+// open request waits for the one person, so Home never names a team).
 export type NeedsYou = {
   // The newest 5; the rest are one click away.
   rows: InboxRow[];

@@ -15,6 +15,9 @@ const (
 	NotAllowed = "not-allowed"
 	NotFound   = "not-found"
 	NotWaiting = "not-waiting"
+	OwnersOnly = "owners-only"
+	// ansa isn't waiting to answer the conversation (AnswerNow).
+	NotDue = "not-due"
 )
 
 // TakeOver: a person takes the conversation over from ansa (its waiting
@@ -81,6 +84,36 @@ func SetImportant(ctx context.Context, pool *database.Pool, company tenant.Compa
 		if err == nil && tag.RowsAffected() == 0 {
 			outcome = NotFound
 		}
+		return err
+	})
+	return outcome, err
+}
+
+// AnswerNow (owners; development only, which the API checks) makes ansa
+// stop waiting for a person's answer: the catch-up's next round (within 15
+// seconds) answers the conversation, as if the minutes were up. It only
+// shortens a wait the page shows (one ansa will answer), never starts one.
+func AnswerNow(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, conversationID string) (string, error) {
+	outcome := Saved
+	err := database.InTx(ctx, pool, func(tx database.Tx) error {
+		role, err := team.RoleWithin(ctx, tx, company, actorUserID)
+		if err != nil || role == "" {
+			outcome = NotAllowed
+			return err
+		}
+		if role != "owner" {
+			outcome = OwnersOnly
+			return nil
+		}
+		// Built from the fixed text in page.go, never input.
+		update := `
+			UPDATE conversations SET assistant_due_at = now()
+			WHERE conversations.company_id = $1 AND conversations.id = $2 AND conversations.assistant_due_at IS NOT NULL AND ` + answersWhenDue
+		tag, err := tx.Exec(ctx, update, company.String(), conversationID)
+		if err != nil || tag.RowsAffected() == 1 {
+			return err
+		}
+		outcome, err = existsOr(ctx, tx, company, conversationID, NotDue)
 		return err
 	})
 	return outcome, err

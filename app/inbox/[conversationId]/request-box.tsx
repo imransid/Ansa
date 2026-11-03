@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { finishChatRequestAction } from "@/app/actions/conversations";
+import { RelatedArticles } from "@/app/tickets/[ticketNumber]/related-knowledge";
 import { TicketActions } from "@/app/tickets/[ticketNumber]/ticket-actions";
 import { NoteForm } from "@/app/tickets/[ticketNumber]/note-form";
 import { ActionButton } from "@/components/action-button";
 import { StatusDot } from "@/components/status-dot";
 import type { ConversationView } from "@/lib/core-views/inbox";
+import type { RelatedArticle } from "@/lib/types/knowledge-search";
 
 type RequestBoxProps = {
   conversation: ConversationView;
@@ -13,19 +15,24 @@ type RequestBoxProps = {
   // A business with more than one person who takes requests.
   canAssign: boolean;
   canReopen: boolean;
+  // The request page's "Related knowledge" (found by core with the request).
+  relatedArticles: RelatedArticle[];
 };
 
 // "Needs you" on a conversation's page (step 47; simpler since the "easy to
-// use" pass of 2026-11-01): the open request. A chat's has one main button,
-// Done, and the rest folded under More; a call's or an email's keeps the
-// request's own actions (an email may go to the customer).
-export function RequestBox({ conversation, ticket, teamMembers, canAssign, canReopen }: RequestBoxProps) {
+// use" pass of 2026-11-01): the open request, what it is about (the AI's
+// summary, a call's note), and the saved answers that match it. A chat's
+// has one main button, Done, and the rest folded under More; a call's or an
+// email's keeps the request's own actions (an email may go to the customer).
+export function RequestBox({ conversation, ticket, teamMembers, canAssign, canReopen, relatedArticles }: RequestBoxProps) {
   return (
-    <section aria-labelledby="request-heading" className="grid gap-3 rounded-2xl border p-5">
+    <section aria-labelledby="request-heading" className="grid min-w-0 gap-3 rounded-2xl border p-5">
       <StatusDot tone="attention">Needs you</StatusDot>
-      <h2 id="request-heading" className="text-lg font-semibold">
+      <h2 id="request-heading" className="text-lg font-semibold wrap-anywhere">
         {ticket.subject}
       </h2>
+      {/* Plain text: what the AI or a person wrote, never markup. */}
+      <p className="text-sm whitespace-pre-wrap wrap-anywhere">{ticket.description}</p>
       {conversation.canReply && !ticket.customerEmail ? (
         // A chat (the "easy to use" pass of 2026-11-01): answer in the
         // box, then Done, which closes the request without an email (a
@@ -80,6 +87,10 @@ export function RequestBox({ conversation, ticket, teamMembers, canAssign, canRe
           </Link>
         </>
       )}
+      <div className="grid min-w-0 gap-2 wrap-anywhere">
+        <h3 className="text-sm font-semibold">Related knowledge</h3>
+        <RelatedArticles articles={relatedArticles} />
+      </div>
     </section>
   );
 }

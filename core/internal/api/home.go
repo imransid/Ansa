@@ -106,7 +106,7 @@ func (s *Server) addNeedsYou(r *http.Request, who *session.Session, page map[str
 func (s *Server) addNumbers(r *http.Request, who *session.Session, page map[string]any) error {
 	ctx := r.Context()
 	var err error
-	if page["overview"], err = home.ReadOverview(ctx, s.Pool, who.CompanyID, who.Role); err != nil {
+	if page["overview"], err = home.ReadOverview(ctx, s.Pool, who.CompanyID, who.Role, who.UserID); err != nil {
 		return err
 	}
 	if page["undeliveredEmails"], err = outbox.CountUndelivered(ctx, s.Pool, who.CompanyID); err != nil {

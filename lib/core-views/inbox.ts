@@ -28,8 +28,9 @@ type CoreEntry = Omit<ConversationEntryView, "createdAt" | "call"> & {
 
 type CoreActivity = Omit<ConversationPage["activity"][number], "createdAt"> & { createdAt: string };
 
-type CoreConversation = Pick<ConversationPage, "id" | "channel" | "displayName" | "externalId" | "handledBy" | "takenOverByName" | "important" | "canReply"> & {
+type CoreConversation = Pick<ConversationPage, "id" | "channel" | "displayName" | "externalId" | "handledBy" | "takenOverByName" | "important" | "canReply" | "canAnswerNow"> & {
   takenOverAt: string | null;
+  assistantDueAt: string | null;
   entries: CoreEntry[];
   // Newest first: the first one is the request the page works on.
   openTickets: CoreRequestLine[];
@@ -82,6 +83,8 @@ export async function getConversationFromCore(conversationId: string): Promise<C
     takenOverAt: conversation.takenOverAt ? new Date(conversation.takenOverAt) : null,
     takenOverByName: conversation.takenOverByName,
     important: conversation.important,
+    assistantDueAt: conversation.assistantDueAt ? new Date(conversation.assistantDueAt) : null,
+    canAnswerNow: conversation.canAnswerNow,
     entries: conversation.entries.map(toEntryView),
     openTicket: request?.ticket ?? null,
     otherOpenTickets: others.map((ticket) => ({ ticketNumber: ticket.number, subject: ticket.subject })),
@@ -124,6 +127,12 @@ export async function discardDraftThroughCore(conversationId: string, messageId:
   return asFormResult(await callCore("POST", `${conversationPath(conversationId, "drafts")}/${encodeURIComponent(messageId)}/discard`));
 }
 
+// "Answer now" (development only, owners): ansa answers at the scheduler's
+// next round instead of waiting out the minutes. Core refuses it elsewhere.
+export async function answerNowThroughCore(conversationId: string): Promise<FormResult> {
+  return asFormResult(await callCore("POST", conversationPath(conversationId, "answer-now")));
+}
+
 // The id is only a claim from a form: core checks it belongs to the session's company.
 function conversationPath(conversationId: string, action: string): string {
   return `/api/v1/conversations/${encodeURIComponent(conversationId)}/${action}`;
@@ -154,6 +163,6 @@ function toEntryView(entry: CoreEntry): ConversationEntryView {
     text: entry.text,
     unreadable: entry.unreadable,
     call: entry.call ? { id: entry.call.id, startedAt: entry.call.startedAt ? new Date(entry.call.startedAt) : null, aiOutcome: entry.call.aiOutcome } : null,
-    email: entry.email ? { subject: entry.email.subject, ticketId: entry.email.ticketId } : null,
+    email: entry.email ? { subject: entry.email.subject, ticketId: entry.email.ticketId, ticketNumber: entry.email.ticketNumber } : null,
   };
 }

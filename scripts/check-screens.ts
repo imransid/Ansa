@@ -6,6 +6,7 @@ import { getFailureCount } from "./screen-checks/check";
 import { runCofounderConsistencyChecks } from "./screen-checks/cofounder-consistency-checks";
 import { runContentRulesChecks } from "./screen-checks/content-rules-checks";
 import { runContentRulesVectorChecks } from "./screen-checks/content-rules-vector-checks";
+import { runInboxChecks } from "./screen-checks/inbox-checks";
 import { runLoginRedirectChecks } from "./screen-checks/login-redirect-checks";
 import { runMediaUiChecks } from "./screen-checks/media-ui-checks";
 import { runNavigationChecks } from "./screen-checks/navigation-checks";
@@ -18,6 +19,7 @@ import { runWebsiteChecks } from "./screen-checks/website-checks";
 async function main() {
   await runPageHeadingChecks();
   await runNavigationChecks();
+  await runInboxChecks();
   await runLoginRedirectChecks();
   await runUiPolishChecks();
   await runCofounderConsistencyChecks();
