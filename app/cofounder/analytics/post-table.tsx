@@ -84,10 +84,14 @@ function PostNumbers({ post, platformLabel }: { post: ShownPost; platformLabel: 
       ) : (
         <p className="text-muted-foreground">{describeWhyNoNumbers(post, platformLabel)}</p>
       )}
+      {/* Folded away, closed: the page is also shown to people trying ansa. */}
       {post.accountIsStandIn && (
-        <p className="text-xs text-muted-foreground wrap-anywhere">
-          Development: <code>cd core &amp;&amp; make simulate-post-metrics JOB={post.jobId} NUMBERS=&quot;views=120 reactions=8&quot;</code>
-        </p>
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer hover:text-foreground">For developers</summary>
+          <p className="pt-1 wrap-anywhere">
+            Simulate its numbers: <code>cd core &amp;&amp; make simulate-post-metrics JOB={post.jobId} NUMBERS=&quot;views=120 reactions=8&quot;</code>
+          </p>
+        </details>
       )}
     </div>
   );
