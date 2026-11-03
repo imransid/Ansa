@@ -23,7 +23,7 @@ var scheduleRefusals = map[string]string{
 	"no-rule":               "No auto-publish rule that is switched on covers this draft's platform and content pillar, so it needs an owner's approval.",
 	"rule-owner-gone":       "An owner behind the auto-publish rule is no longer an owner of the company, so the rule can't send it: approve the draft instead.",
 	"format-not-published":  "ansa can't publish this kind of post to this platform yet.",
-	"blocked":               "This draft breaks one of its platform's rules or uses a word to avoid (see Checks on its page): fix it, then approve it again.",
+	"blocked":               "This draft breaks one of its platform's rules or uses a word to avoid (see Checks on its page): fix it first.",
 	"claims-need-owner":     "A claim in this draft isn't backed by a confirmed fact, or its text was changed by hand, so it can't go out without an owner's approval.",
 	"account-not-connected": "An account you picked isn't connected any more (or isn't on this draft's platform). Reload the page and pick again.",
 	"already-scheduled":     "This draft is already scheduled, published or waiting for a check on an account you picked.",

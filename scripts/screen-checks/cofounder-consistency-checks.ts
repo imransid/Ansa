@@ -84,4 +84,14 @@ export async function runCofounderConsistencyChecks() {
     }
     assert.ok(localTimes >= 20, `only ${localTimes} times shown through LocalDateTime`);
   });
+
+  await check("draft's Publish section: an unapproved draft is offered the auto-publish rule's form only when it breaks no rule and needs no owner's claims check, else one sentence says why (core would refuse it after the press)", async () => {
+    const section = withoutComments(await read("app/cofounder/studio/[draftId]/draft-publishing.tsx"));
+    const decided = section.indexOf("const ruleCantSend = draft.approval ? null : whyARuleCantSend(draft.review);");
+    assert.ok(decided > 0, "the Publish section no longer asks whether a rule may send the draft");
+    assert.ok(decided < section.indexOf("<ScheduleForm"), "the schedule form shows before the rule's limits are checked");
+    const reasons = section.slice(section.indexOf("function whyARuleCantSend("));
+    assert.match(reasons, /review\.blockingIssues\.length > 0/);
+    assert.match(reasons, /review\.acknowledgmentNeeded/);
+  });
 }
