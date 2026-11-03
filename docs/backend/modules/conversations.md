@@ -24,6 +24,13 @@ conversations (one per contact) and messages.
   conversation records a person for a take over (the database's rule): the
   one who connected the account. The activity lines it writes
   (`taken_over`, `draft_discarded`) name no one: nobody did anything in ansa.
+- A message ansa sent by another way than the conversation's route, the
+  private reply to a customer's Facebook comment ([comments](comments.md)),
+  is saved as ansa's, "sent", once per Meta's id
+  (`InsertSentAssistantMessageWithin`, `sent.go`, in the caller's
+  transaction with `ConversationForWithin`): it moves the conversation up
+  the Inbox, never the 24-hour window (only the customer's own message
+  opens it), and the next automated message carries no AI label again.
 - Two saves at once for a new contact end on one conversation.
 **Tests:** `store_test.go`, `own_answer_test.go` (live database: "Always"
 takes over in the holder's name with lines naming no one, a second answer

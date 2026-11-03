@@ -17,8 +17,16 @@ An important person who writes again while their request is still open
 (`wroteAgain`, queued at once: no holding reply to wait for) is alerted
 again: "<name> wrote again on <channel>", saying that ansa didn't reply
 again.
-Never the customer's messages. Best effort: a send that fails is logged as a
+**`comment.alert`** ([comments](comments.md), `comments.go`): a comment on
+the business's Facebook post that a person follows up (a complaint, or ansa
+unsure), 20 s after its answer was saved: "<name> needs you about a comment
+on your Facebook post", why, what reached the commenter (the public note,
+the holding reply in Messenger) and a link to their Messenger conversation,
+else to the request. The same hourly limit, emails and Telegram note.
+Never the customer's messages or comments. Best effort: a send that fails is logged as a
 code and never undoes the handover.
 **Tests:** `alerts_test.go` (live database): one email, to the confirmed owner
 only, with who, where, why and the link, never the message; none while
 "alert by email" is off; an important person writing again is said so.
+`comments_test.go`: a comment's alert says who, why, what reached them and
+where, never the comment; another company's job finds nothing.

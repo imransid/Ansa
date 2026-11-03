@@ -400,7 +400,9 @@ paid model call.
 
 Each use has its own request settings in brain/brain/ai.py, so tuning one
 never changes another: `ASSISTANT_REPLY` (effort low, 3,000 tokens, 30
-seconds a try, 1 retry: a customer is waiting), `CALL_DECISION` (effort
+seconds a try, 1 retry: a customer is waiting), `COMMENT_REPLY` (a comment
+on a Facebook post: effort low, 3,000 tokens, 30 seconds, 1 retry),
+`CALL_DECISION` (effort
 high, 8,000 tokens, 60 seconds, 2 retries), `EMAIL_TRIAGE` (effort medium,
 4,000 tokens, 45 seconds, 1 retry), `AUTOPOST` ("Post for me": effort low,
 3,000 tokens, 60 seconds, 1 retry), `MENU_READING` (effort low, 16,000
@@ -414,8 +416,8 @@ tokens, 90 seconds, 1 retry) and `PERFORMANCE_REVIEW` (effort medium, 8,000
 tokens, 120 seconds, 1 retry). The brain waits at most 8 seconds between
 two tries (`MAX_RETRY_WAIT_SECONDS`), even when Anthropic's "too busy"
 answer asks for longer. Core waits a fixed time for each answer
-(core/internal/brainclient/waits.go: 120 seconds for a chat reply or an
-email, 135 for "Post for me", 260 for a call, a menu, a draft or a review,
+(core/internal/brainclient/waits.go: 120 seconds for a chat reply, a
+comment or an email, 135 for "Post for me", 260 for a call, a menu, a draft or a review,
 285 for the Co-Founder's interview, suggestions, plans and calendar). A
 core test reads both files and fails when a use's seconds a try times its
 tries, plus those waits, no longer fit inside core's wait.
@@ -1055,20 +1057,31 @@ sending).
 
 Restaurants connect their Facebook Page once (Settings → Connections → Connect
 Facebook Page, the same login as posts, step 40): ansa then switches the
-Page's messages on for ansa's Meta app (`subscribed_apps`), and customers'
-messages reach the Inbox (step 53). When Meta refuses that for a Page, core's
-log says `socialconnect: messenger messages not switched on for a page`.
+Page's messages, and comments on its posts, on for ansa's Meta app
+(`subscribed_apps` with `messages,message_echoes,feed`, as far as the owner
+allowed them), and customers' messages reach the Inbox (step 53) and their
+comments ansa's answers ([comments](backend/modules/comments.md)). When Meta
+refuses that for a Page, core's log says `socialconnect: page webhooks not
+switched on`.
 
 1. **Meta app**: the same app as section 10 (core's `FACEBOOK_APP_ID` and
    `FACEBOOK_APP_SECRET`), with the Messenger product added. It asks for
-   `pages_messaging` and `pages_manage_metadata` besides the posting
-   permissions: both need App Review (a screencast each) before Pages of
-   other businesses can use them. Until then only Pages of people with a
-   role on the app work (development mode).
+   `pages_messaging` and `pages_manage_metadata` (messages), and
+   `pages_read_user_content` and `pages_manage_engagement` (reading the
+   comments on the Page's posts and replying under them), besides the
+   posting permissions: all four need App Review (a screencast each), and
+   Advanced Access needs Business Verification, before Pages of other
+   businesses can use them. Until then only Pages of people with a role on
+   the app work (development mode). A Page answers comments only with both
+   comment permissions (Settings shows each Page as allowed or not); its
+   private replies (Meta's one Messenger message per comment, within 7 days)
+   also need `pages_messaging`.
 2. **Webhook**: in the app's Messenger settings, Callback URL
    `https://<core address>/webhooks/messenger`, Verify token = core's
    `MESSENGER_VERIFY_TOKEN` (`openssl rand -hex 32`; 32 to 256 letters,
-   digits, `_` or `-`), fields `messages` and `message_echoes`. Meta's setup
+   digits, `_` or `-`), fields `messages`, `message_echoes` and `feed` (the
+   Page's feed: core reads only new comments, item `comment` with verb
+   `add`). Meta's setup
    check with any other token gets `403` (`messenger webhook verification
    refused`). Meta signs every message with the app secret
    (`X-Hub-Signature-256`); an unsigned or badly signed one gets `401` and
@@ -1081,10 +1094,26 @@ log says `socialconnect: messenger messages not switched on for a page`.
    arriving, a reply written in Meta Business Suite shown as written there,
    and a reply after 24 hours refused by ansa before sending.
 
+5. **Check comments** with ansa's own test Page, comments switched on
+   (Social media posts → Comments): a question under a post answered in
+   public within seconds; "price?" answered with a public note and a
+   Messenger message from the Page, the commenter's answer there continuing
+   in the Inbox; a complaint apologised for in public, the holding reply in
+   Messenger and a request opened; praise left alone; ansa's own reply never
+   answered again.
+
 What stays unconfirmed until then: the exact shape of `message_echoes`
 (ansa skips an echo whose `app_id` is its own app and saves the others as
 the Page's own message), and whether the name lookup needs more than
-`pages_messaging`.
+`pages_messaging`. For comments: the feed webhook's exact fields
+(`created_time` as Unix seconds or Meta's written time, `parent_id` on a
+comment on the post itself, a photo or video named by `photo` / `video`),
+that the private reply's answer names the commenter's Page-scoped id
+(`recipient_id`: without it the Messenger conversation starts only when
+they answer), Meta's error codes for a private reply past 7 days or a
+second one, whether `GET /{post id}?fields=message` works with the Page
+token alone, and whether Meta sends ansa's own public reply back through
+the webhook (ansa never keeps the Page's own replies in a thread anyway).
 
 ## 14. WhatsApp Business (a business's WhatsApp number)
 
@@ -1214,7 +1243,10 @@ No part logs an error's message, because it can contain customer data
     `post metrics: skipped` (a code; tried again in about a day), `social:
     revoke failed`, `social: revoke skipped, the account is still connected`
     (expected: the last company to disconnect an account has it revoked),
-    `socialconnect: messenger messages not switched on for a page`. Never a
+    `socialconnect: page webhooks not switched on`, `comments: run
+    finished` (a code: answered, waiting, skipped, failed, cut_off), `comments:
+    brain unavailable`, `messenger comment ignored`
+    (`page_not_connected_once`). Never a
     post's text, a token or a platform's words. A social account that didn't
     connect isn't logged: the Accounts page tells the owner why (for example
     "LinkedIn didn't confirm the connection").

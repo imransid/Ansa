@@ -26,23 +26,35 @@ type alertDetails struct {
 	Owners         []owner
 }
 
+// readDetails is a conversation's alert details: who and where, whether
+// the holding reply reached them, and the company's.
 func readDetails(ctx context.Context, pool *database.Pool, company tenant.CompanyID, payload assistant.AlertPayload) (alertDetails, error) {
-	details := alertDetails{AlertByEmail: true}
+	var conversationPart alertDetails
 	id := company.String()
 	const conversation = `
 		SELECT contacts.channel, contacts.display_name
 		FROM conversations
 		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 		WHERE conversations.company_id = $1 AND conversations.id = $2`
-	if err := pool.QueryRow(ctx, conversation, id, payload.ConversationID).Scan(&details.Channel, &details.CustomerName); err != nil {
-		return details, err
+	if err := pool.QueryRow(ctx, conversation, id, payload.ConversationID).Scan(&conversationPart.Channel, &conversationPart.CustomerName); err != nil {
+		return conversationPart, err
 	}
 	if payload.HoldingMessageID != "" {
 		const holding = `SELECT COALESCE(send_status = 'sent', false) FROM messages WHERE company_id = $1 AND id = $2`
-		if err := pool.QueryRow(ctx, holding, id, payload.HoldingMessageID).Scan(&details.HoldingReplySent); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return details, err
+		if err := pool.QueryRow(ctx, holding, id, payload.HoldingMessageID).Scan(&conversationPart.HoldingReplySent); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return conversationPart, err
 		}
 	}
+	details, err := readCompanyDetails(ctx, pool, company)
+	details.Channel, details.CustomerName, details.HoldingReplySent = conversationPart.Channel, conversationPart.CustomerName, conversationPart.HoldingReplySent
+	return details, err
+}
+
+// readCompanyDetails is what every alert reads of the company: whether
+// owners want emails, its name and kind, its Telegram chat, its owners.
+func readCompanyDetails(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (alertDetails, error) {
+	details := alertDetails{AlertByEmail: true}
+	id := company.String()
 	if err := pool.QueryRow(ctx, `SELECT alert_by_email FROM assistant_settings WHERE company_id = $1`, id).Scan(&details.AlertByEmail); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return details, err
 	}

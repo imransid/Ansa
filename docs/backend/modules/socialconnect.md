@@ -27,8 +27,10 @@ allows it exactly there), its S256 challenge in the consent screen's
 address. The platform sends the owner back to
 `<APP_URL>/api/social/<platform>/callback`, the same address the code
 exchange names. Facebook asks for pages_show_list, pages_read_engagement,
-pages_manage_posts (posting needs all three) and pages_messaging,
-pages_manage_metadata (a person may untick these: posts still work).
+pages_manage_posts (posting needs all three), pages_messaging,
+pages_manage_metadata (messages) and pages_read_user_content,
+pages_manage_engagement (answering comments, [comments](comments.md)): a
+person may untick the last four, and posts still work.
 
 **The return (`Complete`), in order:** the state CLAIMED in one UPDATE
 (this person, company and platform, unused, unexpired: two returns with one
@@ -40,8 +42,10 @@ short-lived user token → a long-lived one → `/me/permissions` (all three
 posting permissions, else "missing_permission") → `/me/accounts`: one
 connection per Page with CREATE_CONTENT, each with its Page token (no
 expiry; the user token is never kept; appsecret_proof on every call), none
-= "no_pages"; each Page that allowed messages is switched on for ansa's
-webhook (`subscribed_apps`, best effort). LinkedIn, X, YouTube: one account
+= "no_pages"; each Page is switched on for ansa's webhook
+(`subscribed_apps`, best effort: `webhookFields`) with what the person
+allowed: `messages,message_echoes` with the messaging permissions, `feed`
+(comments) with both comment ones, nothing without pages_manage_metadata. LinkedIn, X, YouTube: one account
 each, with its refresh token and lifetimes when the platform gives them
 (see [platforms](platforms.md); "missing_permission", "no_channel").
 Result codes: connected, denied, provider_error, expired_state,
@@ -108,7 +112,9 @@ is 404:**
 **Tests (live database; refuse to run with any platform app setting set;
 LinkedIn, X and YouTube answer through a fake, Facebook through a local
 server):** `connect_test.go` (Facebook: a login connects the one Page they
-may post to, its token encrypted for its connection, messages switched on,
+may post to, its token encrypted for its connection, messages and comments
+switched on (`messages,message_echoes,feed`), the fields following what was
+allowed,
 a made-up or reused state refused, disconnect; an unticked permission, a
 denial and a member connect nothing; the stand-in);
 `platforms_test.go` (only the state's hash, PKCE where the platform has it,

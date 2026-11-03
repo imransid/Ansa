@@ -2,7 +2,10 @@
 
 **What:** making and routing requests ("Needs you"), as the old
 `db/ticket-creation.ts` and `db/routing.ts`. So far: a chat request the
-assistant opens when it hands a conversation to a person.
+assistant opens when it hands a conversation to a person, and one about a
+comment on the business's Facebook post ([comments](comments.md)), which
+starts without a conversation (`ConversationID` "") and becomes the
+commenter's Messenger conversation's once ansa's private reply opened it.
 **Rules:**
 - The caller's transaction takes the company row lock FIRST
   (`LockCompanyWithin`): numbering and routing run one at a time per company.

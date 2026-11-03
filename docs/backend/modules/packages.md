@@ -27,7 +27,8 @@ call_seconds):**
 - `TakeAIReply`: one reply written with ansa's AI, counted in ONE statement
   only while the month has one left (two at once never pass the limit).
   Counted: the assistant's chat replies (`assistant.packageRefusal`), every
-  email the AI reads (`inbound`), every "Post for me" post (`autopost`).
+  email the AI reads (`inbound`), every "Post for me" post (`autopost`),
+  every comment on a Facebook post the AI reads ([comments](comments.md)).
   Not counted: replies written with the business's own Claude key, "Try
   your assistant", calls (their minutes count instead) and the hidden
   marketing pages (their own hourly limits).
@@ -42,7 +43,10 @@ call_seconds):**
 request (reason `package_used_up`; a channel the package doesn't include,
 Messenger on Personal: `not_in_package`), the AI not asked; a call takes
 the message with fixed words; an email still becomes a request, without
-the AI; a post is skipped (`package`). Orders come only with packages that
+the AI; a post is skipped (`package`); a comment on a Facebook post is
+left unanswered (`package`: it shows on the comments list, for a person to
+answer on Facebook). Comments come with Messenger (`AnswersComments`: the
+answer may be a Messenger message), so Personal has neither. Orders come only with packages that
 include them (otherwise the assistant hands an order to a person). Home
 tells owners (the free trial's days and end, replies at 80% and used up,
 no call minutes left), and Billing shows the package, this month's use and

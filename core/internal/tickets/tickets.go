@@ -19,11 +19,13 @@ import (
 // NewChatTicket is a request the assistant opens in a conversation.
 type NewChatTicket struct {
 	// "chat", or "phone" for a request from a live call ("" = chat).
-	Channel        string
-	Subject        string
-	Description    string
-	CategoryID     string
-	CustomerName   *string
+	Channel      string
+	Subject      string
+	Description  string
+	CategoryID   string
+	CustomerName *string
+	// The conversation it belongs to ("" = none yet: a Facebook comment's
+	// request, linked once its private reply opened the Messenger chat).
 	ConversationID string
 	// The caller's number on a request from a call ("" = none).
 	CustomerPhone string
@@ -52,7 +54,7 @@ func CreateChatTicketWithin(ctx context.Context, tx database.Tx, company tenant.
 	}
 	const insert = `
 		INSERT INTO tickets (company_id, ticket_number, subject, description, channel, category, customer_name, conversation_id, customer_phone)
-		VALUES ($1, $2, $3, $4, $8::ticket_channel, $5, $6, $7, NULLIF($9, ''))
+		VALUES ($1, $2, $3, $4, $8::ticket_channel, $5, $6, NULLIF($7::text, '')::uuid, NULLIF($9, ''))
 		RETURNING id`
 	channel := "chat"
 	if input.Channel == "phone" {

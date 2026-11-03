@@ -68,3 +68,10 @@ func (p Package) AllowsPosting(frequency string) bool {
 	}
 	return false
 }
+
+// AnswersComments: whether ansa answers comments on the business's Facebook
+// posts. They come with Messenger: an answer may be a Messenger message
+// (Meta's private reply), and the conversation goes on there.
+func (p Package) AnswersComments() bool {
+	return p.Messenger
+}

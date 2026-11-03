@@ -12,6 +12,7 @@ import (
 	"ansa/core/internal/billing"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/calls"
+	"ansa/core/internal/comments"
 	"ansa/core/internal/config"
 	"ansa/core/internal/database"
 	"ansa/core/internal/email"
@@ -71,6 +72,12 @@ func assemble(cfg config.Config, pool *database.Pool, box *secure.Box, log *logg
 	// (brainclient/waits.go, checked against the brain's own limits).
 	callAnalyzer := &calls.Analyzer{Pool: pool, Box: box, Log: log, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.CallDecisionWait)}
 	worker.Handle(calls.AnalyzeJobKind, callAnalyzer.HandleJob)
+	// Comments on the business's Facebook posts: answered by a job, sent
+	// through Meta (or, in development, the stand-in Page's folder).
+	commentAnswers := &comments.Answerer{Pool: pool, Box: box, Limiter: limiter, Log: log, MetaAppSecret: cfg.FacebookAppSecret,
+		Brain:           brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.CommentReplyWait),
+		StandInsAllowed: !cfg.IsProduction(), StandInDir: filepath.Join(cfg.DevFolder, ".dev-messages")}
+	worker.Handle(comments.AnswerJobKind, commentAnswers.HandleJob)
 	storage := fileStore(cfg)
 	// LinkedIn, X and YouTube; the renewer gets any account ready for a
 	// platform call (the only place a token is renewed).
@@ -122,7 +129,8 @@ func assemble(cfg config.Config, pool *database.Pool, box *secure.Box, log *logg
 // own signature before reading anything.
 func addWebhooks(routes *http.ServeMux, cfg config.Config, pool *database.Pool, box *secure.Box, limiter *ratelimit.Limiter, log *logging.Logger, storage *files.Store, stripe *billing.Stripe) {
 	routes.Handle("POST /webhooks/telegram", &telegram.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, Secret: cfg.TelegramWebhookSecret, BotToken: cfg.TelegramBotToken})
-	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken}
+	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken,
+		Comments: &comments.Saver{Pool: pool, Box: box}}
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
 	whatsappHook := &whatsapp.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.WhatsAppVerifyToken}

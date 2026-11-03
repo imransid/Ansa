@@ -29,6 +29,21 @@ can't read is answered 200.
   ends). The practice chat saves the stand-in Page's own messages with it.
 - The name job (`messenger.name`, `names.go`): the customer's first and last
   name read once from Meta, only while the contact has none (best effort).
+**Comments on the Page's posts (`comment_events.go`, `comment_api.go`):**
+the same signed webhook carries `entry[].changes` with field `feed`. Only a
+new comment is read (item `comment`, verb `add`: post_id, comment_id,
+parent_id, from {id, name}, message, created_time, and a photo or video
+named, never downloaded); edits, removals, reactions and posts are left
+out, and a new comment in another shape makes the body one ansa can't read
+(200). The webhook hands each comment, for the one company that has the
+Page connected, to [comments](comments.md) (`Webhook.Comments`, a
+`CommentSaver`), which decides the rest. Answering one: `ReplyUnderComment`
+(`POST /{comment id}/comments`: the new comment's id), `SendPrivateReply`
+(`POST /{page id}/messages` with `recipient {comment_id}`, messaging_type
+RESPONSE: Meta's ONE private reply per comment, within 7 days, cut to 2,000
+characters; Meta's answer names the commenter's Page-scoped id), and
+`PostText` (`GET /{post id}?fields=message`). The same error codes as
+messages; only ids and status codes are read.
 **Sending (`send.go`):** the Send API with `messaging_type` RESPONSE and
 `appsecret_proof` on every call; a text over 2,000 characters goes as parts
 cut at a line break or a space; Meta's 10/2018278 = `reply_window_closed`,
@@ -37,7 +52,11 @@ throttling = `rate_limited`, 190 = `not_connected`, other refusals =
 part after the first that fails is `unclear`. Meta's words are never read or
 logged (the token is in the address).
 **Settings:** FACEBOOK_APP_ID, FACEBOOK_APP_SECRET, MESSENGER_VERIFY_TOKEN.
-**Tests:** `messenger_test.go`: events read strictly; long replies in parts,
+**Tests:** `comment_test.go`: a new comment read, edits, removals and
+reactions left out, a bad shape refused; only a signed comment handed on,
+for the Page's one company; the public reply, the private reply and the
+post's text through a fake Graph API (the window closed after 7 days, a
+5xx unclear). `messenger_test.go`: events read strictly; long replies in parts,
 no word cut or lost; (live database) only Meta's signature lets a message
 in, saved once, reply and name queued, the contact id; ansa's own echo
 skipped, the Page's own saved (taking the conversation over in its
