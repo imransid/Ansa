@@ -4,11 +4,13 @@ import Link from "next/link";
 import { EmailConnection, PhoneConnection, PostingPlatforms } from "@/components/channels/more-connections";
 import { PageLoading } from "@/components/page-loading";
 import { getAccountsPageFromCore } from "@/lib/core-views/accounts";
-import { getConnectionsFromCore, type ConnectionsPage } from "@/lib/core-views/channels";
+import { getConnectionsFromCore, type ConnectionsPage, type CoreMessenger } from "@/lib/core-views/channels";
+import { getCommentSettingsFromCore } from "@/lib/core-views/comments";
 import { getPracticePhoneFromCore } from "@/lib/core-views/phone";
 import { requireSessionContext } from "@/lib/session";
 import type { PlatformView, SocialAccountsPage } from "@/lib/types/social-accounts";
 import { MessengerFromCore } from "./messenger-from-core";
+import { PageComments } from "./page-comments";
 import { TelegramSection } from "./telegram-section";
 import { WhatsAppSection } from "./whatsapp-section";
 
@@ -42,14 +44,23 @@ async function Channels() {
   // business, the one that shows them.
   const social = page.kind === "business" ? await getAccountsPageFromCore() : null;
   const practice = await getPracticePhoneFromCore();
+  const comments = answersComments(page.kind, page.messenger) ? await getCommentSettingsFromCore() : null;
   return (
     <ConnectionsSections
       page={page}
       practicePhone={practice.available}
       messenger={<MessengerFromCore messenger={page.messenger} canManage={page.canManage} personal={page.kind === "personal"} />}
+      comments={comments && <PageComments settings={comments} mode={page.messenger.mode} />}
       posting={social && <PostingPlatforms platforms={postingPlatformsOf(social)} canManage={social.canManage} />}
     />
   );
+}
+
+// Comments on a Facebook Page's posts are a business's, and come with its
+// Facebook Page: where Messenger is in its package and ansa's Meta app is
+// set up here (or its development stand-in).
+function answersComments(kind: ConnectionsPage["kind"], messenger: CoreMessenger): boolean {
+  return kind === "business" && messenger.inPackage && messenger.mode !== "not-set-up";
 }
 
 // LinkedIn, X and YouTube: where ansa can post besides Facebook.
@@ -57,8 +68,10 @@ function postingPlatformsOf(social: SocialAccountsPage): PlatformView[] {
   return social.platforms.filter((platform) => platform.platform !== "facebook");
 }
 
+type ConnectionsSectionsProps = { page: ConnectionsPage; practicePhone: boolean; messenger: ReactNode; comments: ReactNode; posting: ReactNode };
+
 // The page's sections, whichever backend read them.
-function ConnectionsSections({ page, practicePhone, messenger, posting }: { page: ConnectionsPage; practicePhone: boolean; messenger: ReactNode; posting: ReactNode }) {
+function ConnectionsSections({ page, practicePhone, messenger, comments, posting }: ConnectionsSectionsProps) {
   return (
     <div className="grid gap-6">
       {practicePhone && (
@@ -67,7 +80,8 @@ function ConnectionsSections({ page, practicePhone, messenger, posting }: { page
           <Link href="/settings/channels/practice-chat" className="text-link hover:underline">
             practice chat
           </Link>{" "}
-          (WhatsApp, Telegram or Messenger, through the stand-in accounts below, or an email to your forwarding address), or call with
+          (WhatsApp, Telegram or Messenger, through the stand-in accounts below
+          {page.kind === "business" ? ", a comment on your Facebook Page's posts" : ""}, or an email to your forwarding address), or call with
           the practice phone (Phone calls). The
           emails ansa writes are in the{" "}
           <Link href="/settings/channels/mailbox" className="text-link hover:underline">
@@ -90,10 +104,12 @@ function ConnectionsSections({ page, practicePhone, messenger, posting }: { page
       </section>
       {messenger && (
         <section aria-labelledby="messenger-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
+          {/* A business's Page also has its posts' comments here. */}
           <h2 id="messenger-heading" className="text-lg font-semibold">
-            Facebook Messenger
+            {page.kind === "business" ? "Facebook Page" : "Facebook Messenger"}
           </h2>
           {messenger}
+          {comments}
         </section>
       )}
       <section aria-labelledby="email-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
