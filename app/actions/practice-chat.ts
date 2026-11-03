@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { readPracticeCommentFromCore, sendPracticeCommentThroughCore } from "@/lib/core-views/comments";
 import {
   findPracticeChatFromCore,
   readPracticeChatFromCore,
@@ -12,6 +13,7 @@ import {
   type PracticeSent,
 } from "@/lib/core-views/practice-chat";
 import { requireSessionContext } from "@/lib/session";
+import type { PracticeCommentRead, PracticeCommentSent } from "@/lib/types/comments";
 
 // Thin, like every action: core checks the person (an owner), that this is a
 // development server, the input and the limits. The practice chat page
@@ -65,4 +67,28 @@ export async function sendPracticeEmailAction(input: PracticeEmail): Promise<Pra
     return { ok: false, error: "Write the sender's address, a subject and the email.", fields: {} };
   }
   return sendPracticeEmailThroughCore(parsed.data);
+}
+
+// A made-up person's comment under one of the stand-in Facebook Page's
+// posts (a business's; core checks the post is its stand-in Page's).
+const commentInput = z.object({
+  postId: z.string().trim().min(1).max(200),
+  name: z.string().trim().min(1).max(100),
+  text: z.string().trim().min(1).max(2000),
+});
+
+export async function sendPracticeCommentAction(input: { postId: string; name: string; text: string }): Promise<PracticeCommentSent> {
+  await requireSessionContext(PAGE);
+  const parsed = commentInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Pick a post, and write a name and a comment." };
+  }
+  return sendPracticeCommentThroughCore(parsed.data);
+}
+
+// The practice comment as the Comments page shows it, while ansa answers it.
+export async function readPracticeCommentAction(input: { commentId: string }): Promise<PracticeCommentRead | null> {
+  await requireSessionContext(PAGE);
+  const parsed = z.object({ commentId: z.string().uuid() }).safeParse(input);
+  return parsed.success ? readPracticeCommentFromCore(parsed.data.commentId) : null;
 }

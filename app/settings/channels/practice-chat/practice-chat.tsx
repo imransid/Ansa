@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { findPracticeChatAction, readPracticeChatAction, sendPracticeMessageAction } from "@/app/actions/practice-chat";
 import type { PracticeChannel, PracticeLine, PracticeNext } from "@/lib/core-views/practice-chat";
+import type { PracticePost } from "@/lib/types/comments";
 import { CHAT_CHANNELS, ChatWindow } from "./chat-window";
 import { MessageForm } from "./message-form";
+import { PracticeComment } from "./practice-comment";
 import { PracticeEmail } from "./practice-email";
-import { WhoWrites } from "./who-writes";
+import { useFindChat } from "./use-find-chat";
+import { WhoWrites, type PracticeWrites } from "./who-writes";
 
 // How long after one look at the chat the next starts, for ansa's answer
 // and for what ansa sends later (an order accepted on the Orders page, a
@@ -22,13 +25,16 @@ const COULD_NOT_REACH = "ansa couldn't be reached just now. If your message does
 type ShownChat = { lines: PracticeLine[]; next: PracticeNext | null };
 const NO_CHAT: ShownChat = { lines: [], next: null };
 
-// The customer's side: which app they write on (or an email), their name
-// (each name is one customer, with their own conversation), and the chat
-// itself. personal: one person's account, written to by people, not customers.
-export function PracticeChat({ standIns, email, personal }: { standIns: Record<PracticeChannel, boolean>; email: boolean; personal: boolean }) {
+// The customer's side: which app they write on (or an email, or a comment on
+// the Facebook Page's posts), their name (each name is one customer, with
+// their own conversation), and the chat itself. personal: one person's
+// account, written to by people, not customers. commentPosts: a business's
+// stand-in Page's posts for a practice comment ([] = none can be written).
+export function PracticeChat(props: { standIns: Record<PracticeChannel, boolean>; email: boolean; personal: boolean; commentPosts: PracticePost[] }) {
+  const { standIns, email, personal, commentPosts } = props;
   const [channel, setChannel] = useState<PracticeChannel>(CHAT_CHANNELS.find((each) => standIns[each.id])?.id ?? "whatsapp");
-  // An email to your forwarding address instead of a chat.
-  const [writesEmail, setWritesEmail] = useState(false);
+  // A chat, or instead an email to your forwarding address or a comment under a post.
+  const [writes, setWrites] = useState<PracticeWrites>("chat");
   const [name, setName] = useState("Tanvir");
   const [text, setText] = useState("");
   // The business (or the person) answers from its own app instead.
@@ -37,6 +43,8 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
   const [chat, setChat] = useState<ShownChat>(NO_CHAT);
   const [error, setError] = useState("");
   const [isSending, startSending] = useTransition();
+  // Asks the lookup of the customer's chat to run again.
+  const [lookups, setLookups] = useState(0);
   // Server actions run one at a time: while a message is being sent the
   // chat isn't read, so the send never waits behind reads. sends counts
   // them, so a read that started before a send never shows an older chat.
@@ -52,42 +60,30 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
     setError("");
   }
 
-  // Back from an email, the same app keeps its chat.
+  // Back from an email or a comment, the same app keeps its chat.
   function pickChat(nextChannel: PracticeChannel) {
-    setWritesEmail(false);
+    setWrites("chat");
     if (nextChannel !== channel) {
       changeCustomer(nextChannel, name);
     }
   }
 
-  // The customer's chat so far, if they wrote before (a reload, or back from
-  // the Orders page): looked up once the name stops changing.
-  useEffect(() => {
-    if (!name.trim() || !standIns[channel]) {
-      return;
-    }
-    let stopped = false;
-    const timer = setTimeout(async () => {
-      // null also when the server couldn't be reached: the next look finds it.
-      const found = await findPracticeChatAction({ channel, name }).catch(() => null);
-      if (!stopped && found) {
-        setConversationId(found);
-        const read = await readPracticeChatAction({ conversationId: found }).catch(() => null);
-        if (!stopped && read) {
-          setChat(read);
-        }
-      }
-    }, 400);
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [channel, name, standIns]);
+  // "Open their Messenger chat" under a practice comment: ansa's private
+  // message to the commenter is there, and the conversation goes on in it.
+  // Their chat is looked up again (lookups), also when they are the customer already shown.
+  function openMessengerChat(commenter: string) {
+    setWrites("chat");
+    changeCustomer("messenger", commenter);
+    setLookups((count) => count + 1);
+  }
+
+  // The customer's chat so far, if they wrote before.
+  useFindChat({ channel, name, available: standIns[channel], lookups, setConversationId, setChat });
 
   // The next look starts only once the one before ended: on a busy laptop a
   // slow answer never piles reads up in front of a send.
   useEffect(() => {
-    if (!conversationId || writesEmail) {
+    if (!conversationId || writes !== "chat") {
       return;
     }
     let stopped = false;
@@ -110,7 +106,7 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
       stopped = true;
       clearTimeout(timer);
     };
-  }, [conversationId, writesEmail]);
+  }, [conversationId, writes]);
 
   function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,16 +157,22 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
       <WhoWrites
         standIns={standIns}
         channel={channel}
-        writesEmail={writesEmail}
+        writes={writes}
         name={name}
         personal={personal}
+        canComment={commentPosts.length > 0 && standIns.messenger}
         onPickChat={pickChat}
-        onPickEmail={() => setWritesEmail(true)}
+        onPick={setWrites}
         onNameChange={(nextName) => changeCustomer(channel, nextName)}
       />
-      {writesEmail ? (
-        <PracticeEmail available={email} personal={personal} />
-      ) : (
+      {/* Kept while hidden: back from a chat, the comment still shows what ansa did. */}
+      {commentPosts.length > 0 && (
+        <div hidden={writes !== "comment"}>
+          <PracticeComment posts={commentPosts} onOpenMessengerChat={openMessengerChat} />
+        </div>
+      )}
+      {writes === "email" && <PracticeEmail available={email} personal={personal} />}
+      {writes === "chat" && (
         <>
           <ChatWindow channel={channel} name={name} lines={chat.lines} next={chat.next} personal={personal} />
           <MessageForm

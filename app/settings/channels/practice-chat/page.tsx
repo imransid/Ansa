@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLoading } from "@/components/page-loading";
+import { getPracticeCommentPostsFromCore } from "@/lib/core-views/comments";
 import { getPracticeChatFromCore } from "@/lib/core-views/practice-chat";
 import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
@@ -13,16 +14,17 @@ export const metadata: Metadata = { title: "Practice chat - ansa" };
 // included); for one person (step 50), someone writing to them.
 const BUSINESS_INTRO =
   "Write as one of your customers. Your message arrives in your Inbox, and ansa answers it as it would on the real app: questions, " +
-  "orders, complaints. An email becomes a request in your Inbox, as a forwarded email does. Open your Inbox or Orders in another " +
-  "tab to see your side.";
+  "orders, complaints. An email becomes a request in your Inbox, as a forwarded email does, and a Facebook comment is answered " +
+  "under your post or in Messenger. Open your Inbox or Orders in another tab to see your side.";
 const PERSONAL_INTRO =
   "Write as someone who writes to you. Your message arrives in your Inbox, and ansa answers it as it would on the real app. An " +
   "email becomes a note in your Inbox, as a forwarded email does. Open your Inbox in another tab to see your side.";
 
 // Settings → Connections → Practice chat (step 58, development only): write
 // as one of your customers on WhatsApp, Telegram or Messenger, through the
-// stand-in accounts, and see what they would see; or send an email as one,
-// to your forwarding address. The messages land in your Inbox like any
+// stand-in accounts, and see what they would see; send an email as one, to
+// your forwarding address; or (a business) comment under one of the
+// stand-in Facebook Page's posts. The messages land in your Inbox like any
 // customer's, so a demo shows both sides on one laptop.
 export default function PracticeChatPage() {
   return (
@@ -65,5 +67,7 @@ async function Chat() {
     );
   }
   const { kind } = await getSetupStateFromCore();
-  return <PracticeChat standIns={chat.standIns} email={chat.email} personal={kind === "personal"} />;
+  // A comment under the Facebook Page's posts is a business's.
+  const commentPosts = kind === "personal" ? [] : await getPracticeCommentPostsFromCore();
+  return <PracticeChat standIns={chat.standIns} email={chat.email} personal={kind === "personal"} commentPosts={commentPosts} />;
 }
