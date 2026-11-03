@@ -61,6 +61,7 @@ export function HoursForm({ place, which = "opening", backHref, timeZone, openin
             <fieldset className="grid gap-3">
               <legend className="mb-2 text-sm font-semibold">{which === "away" ? "When ansa answers for you" : "Opening hours"}</legend>
               <SameEveryDay which={which} from={everyDay?.from ?? ""} to={everyDay?.to ?? ""} />
+              <FieldErrors id="hours-errors" errors={errors?.hours} />
               <details open={daysOpen} className="group rounded-xl border">
                 <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Set each day on its own</summary>
                 <div className="grid gap-1 px-4 pb-3">

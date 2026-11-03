@@ -22,6 +22,8 @@ is for starts the later steps again.
   phone customers may call (digits, spaces and + ( ) - only, up to 40).
 - hours / away: each day as the old form read it (`hours.ReadDay`), a time
   zone this server knows; away also the minutes ansa waits (5, 10, 15, 30, 60, or none).
+  Opening hours need a time on at least one day (with none, ansa would tell
+  every customer the business is closed every day); away hours may be empty.
 - orders (`orders.go`): takes orders, delivery and its note, the fee typed
   as a price in the currency ("2,5" = 2.50; empty = free), pickup, the
   payment note, an ISO 4217 currency (`golang.org/x/text/currency`). Taking

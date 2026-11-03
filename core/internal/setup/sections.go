@@ -84,7 +84,23 @@ func (w *Week) Check(away bool) (hours.Week, Fields) {
 	if g := w.ReplyGraceMinutes; away && g != nil && !slices.Contains([]int{5, 10, 15, 30, 60}, *g) {
 		fields["replyGraceMinutes"] = "Choose how long ansa waits."
 	}
+	// WHY: opening hours with no time on any day are "closed every day", and
+	// ansa would tell every customer so. Empty away hours are fine: the
+	// person answers themselves.
+	if !away && len(problems) == 0 && closedEveryDay(week) {
+		fields["hours"] = "Set the times you're open (empty days are closed): with none, ansa tells customers you're closed every day."
+	}
 	return week, fields
+}
+
+// closedEveryDay is true for a week without a time on any day.
+func closedEveryDay(week hours.Week) bool {
+	for _, ranges := range week {
+		if len(ranges) > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // SaveHours saves the opening hours and their time zone (step 3).
