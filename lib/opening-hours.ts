@@ -101,8 +101,9 @@ function localNow(timeZone: string, now: Date): { day: Weekday; minutes: number 
   return { day, minutes: Number(part("hour")) * 60 + Number(part("minute")) };
 }
 
-// Today's hours as the sidebar says them: "Open until 23:00", "Opens at
-// 18:00", "Closed now" or "Closed today", in the restaurant's own time zone.
+// Today's hours as the sidebar says them: "Open all day", "Open until
+// 23:00", "Opens at 18:00", "Closed now" or "Closed today", in the
+// restaurant's own time zone.
 export function describeHoursNow(hours: OpeningHours, timeZone: string, now: Date): { open: boolean; text: string } {
   const { day, minutes } = localNow(timeZone, now);
   const today = hours[day] ?? [];
@@ -110,6 +111,9 @@ export function describeHoursNow(hours: OpeningHours, timeZone: string, now: Dat
     return { open: false, text: "Closed today" };
   }
   const current = today.find((range) => minutesOf(range.opens) <= minutes && minutes < minutesOf(range.closes));
+  if (current && current.opens === "00:00" && current.closes === "24:00") {
+    return { open: true, text: "Open all day" };
+  }
   if (current) {
     return { open: true, text: `Open until ${formatTime(current.closes)}` };
   }

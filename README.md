@@ -41,8 +41,8 @@ cd brain && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.t
 Then start the brain, core and the screens, each in its own terminal, and
 open http://localhost:3000. The exact commands, and what to try:
 [docs/backend/try-it.md](docs/backend/try-it.md). Or all at once, with two
-ready demo accounts: `pnpm demo` ([docs/demo.md](docs/demo.md): a 10-minute
-demo on this laptop, free).
+ready demo accounts and a day of history: `pnpm demo` ([docs/demo.md](docs/demo.md):
+a demo of every feature on this laptop, free).
 
 Going to production: see [docs/going-live.md](docs/going-live.md).
 
@@ -61,7 +61,7 @@ The screens (from the repository root):
 | `pnpm db:studio`              | Browse the database in the browser                    |
 | `pnpm db:down`                | Stop the database (data is kept in a Docker volume)   |
 | `pnpm demo`                   | Everything at once for a demo on this laptop (database, brain, core, screens; the demo accounts the first time); Ctrl+C stops it all ([docs/demo.md](docs/demo.md)) |
-| `pnpm demo:reset`             | Delete the two demo accounts and make them again, clean (development only) |
+| `pnpm demo:reset`             | Delete every `@demo.ansa.test` account (with its files and the rate limit counters) and make the demo again: three accounts and a day of history (development only) |
 
 Core (from `core/`): `make run` starts it, `make check` runs formatting,
 `go vet` and every test (on a test database of its own, `ansa_test`). ansa's

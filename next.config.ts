@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // No "X-Powered-By: Next.js" on every answer: it only tells strangers what
   // to probe for.
   poweredByHeader: false,
+  // The development server's on-screen route badge sits over the sidebar's
+  // foot (Account) and shows in every demo; compile and runtime errors still
+  // show without it.
+  devIndicators: false,
   experimental: {
     serverActions: {
       // Document uploads (step 16) are capped at 4 MB (lib/document-files.ts),
