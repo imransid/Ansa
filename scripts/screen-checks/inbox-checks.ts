@@ -55,6 +55,16 @@ export async function runInboxChecks() {
     assert.match(parts, /\{canAnswerNow && \(\s*<ActionButton\s+action=\{answerNowAction\}/);
   });
 
+  await check("conversation page: the open request's banner names only a button the request box offers (Done on a chat's request), and says ansa still answers a caller's calls", async () => {
+    const parts = withoutComments(await read(`${CONVERSATION}/conversation-parts.tsx`));
+    const box = withoutComments(await read(`${CONVERSATION}/request-box.tsx`));
+    assert.match(box, /\{offersDone\(conversation, ticket\) \? \(/, "the box offers Done by the same rule");
+    const banner = parts.slice(parts.indexOf("function openRequestText("));
+    assert.ok(banner.indexOf("press Done") > banner.indexOf("if (offersDone(conversation, ticket))"), "Done is named only where it is offered");
+    assert.equal(banner.split("press Done").length, 2, "Done is named once");
+    assert.match(banner, /conversation\.channel === "phone"\) \{\s*return "[^"]*ansa still answers their calls"/);
+  });
+
   await check("Try your assistant: the answer shows the question it answers, and a refused test puts what was typed back in the box", async () => {
     const box = withoutComments(await read("components/restaurant-setup/assistant-test-box.tsx"));
     assert.match(box, /\{state\.question\}/);
