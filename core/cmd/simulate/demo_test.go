@@ -59,6 +59,12 @@ func TestTheDemoToolMakesTheWholeDemo(t *testing.T) {
 		"an interview with proposals waiting":  {`SELECT count(*) FROM business_facts WHERE company_id = $1 AND proposed_value IS NOT NULL`, 3},
 		"a draft the AI wrote, with claims":    {`SELECT count(*) FROM content_drafts WHERE company_id = $1 AND generated_version IS NOT NULL AND jsonb_array_length(claims) = 2`, 1},
 		"a rejected and an archived draft":     {`SELECT count(*) FROM content_drafts WHERE company_id = $1 AND status IN ('rejected', 'archived')`, 2},
+		"comments answered on Facebook":        {`SELECT count(*) FROM assistant_settings WHERE company_id = $1 AND comments_on`, 1},
+		"three comments on one post":           {`SELECT count(DISTINCT post_id) * 10 + count(*) FROM page_comments WHERE company_id = $1`, 13},
+		"a question answered in public":        {`SELECT count(*) FROM page_comments WHERE company_id = $1 AND kind = 'question' AND status = 'answered' AND public_reply_status = 'sent' AND private_message_status IS NULL`, 1},
+		"a price question answered privately":  {`SELECT count(*) FROM page_comments WHERE company_id = $1 AND kind = 'order' AND public_reply_status = 'sent' AND private_message_status = 'sent' AND conversation_id IS NOT NULL`, 1},
+		"its Messenger conversation":           {`SELECT count(*) FROM messages JOIN page_comments ON page_comments.conversation_id = messages.conversation_id AND page_comments.company_id = messages.company_id WHERE messages.company_id = $1 AND messages.author = 'assistant' AND messages.send_status = 'sent'`, 1},
+		"praise left alone":                    {`SELECT count(*) FROM page_comments WHERE company_id = $1 AND status = 'skipped' AND skip_reason = 'thanks'`, 1},
 	} {
 		if got := countIn(t, w, business, check[0].(string)); got != check[1].(int) {
 			t.Errorf("%s: %d, want %d", what, got, check[1])

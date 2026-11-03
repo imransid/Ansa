@@ -105,6 +105,9 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 	if err := setUpMarketing(ctx, w, a); err != nil {
 		return err
 	}
+	if err := addDemoComments(ctx, w, a); err != nil {
+		return err
+	}
 	return addDemoExtras(ctx, w, a)
 }
 
