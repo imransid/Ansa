@@ -36,21 +36,7 @@ export async function callCore<T>(method: "GET" | "POST", path: string, body?: u
   await connection();
   const cookie = await sessionCookieHeader();
   const text = body === undefined ? "" : JSON.stringify(body);
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signature = createHmac("sha256", env.SCREENS_SHARED_SECRET ?? "")
-    .update(`${timestamp}.${method} ${path}.${text}`)
-    .digest("hex");
-  const response = await fetch(`${env.CORE_API_URL}${path}`, {
-    method,
-    headers: {
-      "X-Ansa-Timestamp": timestamp,
-      "X-Ansa-Signature": signature,
-      ...(text ? { "Content-Type": "application/json" } : {}),
-      Cookie: cookie,
-    },
-    body: text || undefined,
-    cache: "no-store",
-  });
+  const response = await sendToCore(method, path, text, cookie);
   const answer: unknown = await response.json().catch(() => null);
   if (response.ok) {
     return { ok: true, data: answer as T };
@@ -62,6 +48,41 @@ export async function callCore<T>(method: "GET" | "POST", path: string, body?: u
     message: problem.error ?? "Something went wrong. Try again in a moment.",
     fields: problem.fields ?? {},
   };
+}
+
+// Sends one request to core. A read (GET) whose connection broke before
+// core answered (a connection reset when the laptop or server is very busy)
+// is sent once more, since reading changes nothing: the page would
+// otherwise show its error screen. A POST is never sent twice: core may
+// have done it already.
+async function sendToCore(method: "GET" | "POST", path: string, text: string, cookie: string): Promise<Response> {
+  try {
+    return await signedFetch(method, path, text, cookie);
+  } catch (error) {
+    if (method !== "GET") {
+      throw error;
+    }
+    return signedFetch(method, path, text, cookie);
+  }
+}
+
+// One signed request (a new timestamp and signature each time).
+function signedFetch(method: "GET" | "POST", path: string, text: string, cookie: string): Promise<Response> {
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const signature = createHmac("sha256", env.SCREENS_SHARED_SECRET ?? "")
+    .update(`${timestamp}.${method} ${path}.${text}`)
+    .digest("hex");
+  return fetch(`${env.CORE_API_URL}${path}`, {
+    method,
+    headers: {
+      "X-Ansa-Timestamp": timestamp,
+      "X-Ansa-Signature": signature,
+      ...(text ? { "Content-Type": "application/json" } : {}),
+      Cookie: cookie,
+    },
+    body: text || undefined,
+    cache: "no-store",
+  });
 }
 
 // What the login pages send core about the browser (in the signed body).
