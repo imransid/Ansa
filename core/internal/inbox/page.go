@@ -37,10 +37,12 @@ type Page struct {
 	Orders       []PlacedOrder `json:"orders"`
 }
 
-// PlacedOrder is one of this customer's placed orders.
+// PlacedOrder is one of this customer's placed orders. Fulfilment
+// ("delivery" or "pickup") words its "ready": on its way, or ready to pick up.
 type PlacedOrder struct {
 	Number     int    `json:"number"`
 	Status     string `json:"status"`
+	Fulfilment string `json:"fulfilment"`
 	TotalCents int64  `json:"totalCents"`
 	Currency   string `json:"currency"`
 }
@@ -118,7 +120,7 @@ func replyState(ctx context.Context, pool *database.Pool, company tenant.Company
 
 func placedOrders(ctx context.Context, pool *database.Pool, company tenant.CompanyID, conversationID string) ([]PlacedOrder, error) {
 	const statement = `
-		SELECT order_number, status, total_cents, currency FROM orders
+		SELECT order_number, status, fulfilment, total_cents, currency FROM orders
 		WHERE company_id = $1 AND conversation_id = $2 AND order_number IS NOT NULL
 		ORDER BY created_at DESC LIMIT 3`
 	rows, err := pool.Query(ctx, statement, company.String(), conversationID)
@@ -128,7 +130,7 @@ func placedOrders(ctx context.Context, pool *database.Pool, company tenant.Compa
 	list := []PlacedOrder{}
 	for rows.Next() {
 		var o PlacedOrder
-		if err := rows.Scan(&o.Number, &o.Status, &o.TotalCents, &o.Currency); err != nil {
+		if err := rows.Scan(&o.Number, &o.Status, &o.Fulfilment, &o.TotalCents, &o.Currency); err != nil {
 			return nil, err
 		}
 		list = append(list, o)

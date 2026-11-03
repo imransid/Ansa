@@ -11,7 +11,7 @@ import { getAccountKindFromCore, getConversationFromCore } from "@/lib/core-view
 import { getRequestPageFromCore } from "@/lib/core-views/tickets";
 import { contactLabel, isUnverifiedSender } from "@/lib/inbox";
 import { formatPrice } from "@/lib/menu";
-import { ORDER_STATUS_LABELS } from "@/lib/orders";
+import { orderStatusLabel } from "@/lib/orders";
 import { getSessionContext, requireSessionContext } from "@/lib/session";
 import type { ConversationPage } from "@/lib/types/conversation-page";
 import { AnswersAt, Handler, History, Importance, WaitingReply } from "./conversation-parts";
@@ -162,7 +162,7 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
               </h2>
               {conversation.orders.map((order) => (
                 <Link key={order.orderNumber} href="/orders" className="underline">
-                  #{order.orderNumber}: {ORDER_STATUS_LABELS[order.status]}, {formatPrice(order.totalCents, order.currency)}
+                  #{order.orderNumber}: {orderStatusLabel(order.status, order.fulfilment)}, {formatPrice(order.totalCents, order.currency)}
                 </Link>
               ))}
             </section>

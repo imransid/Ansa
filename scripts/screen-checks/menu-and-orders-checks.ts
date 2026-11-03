@@ -8,6 +8,7 @@
 import assert from "node:assert/strict";
 import { parsePrice } from "@/lib/menu";
 import { orderNotToldText } from "@/lib/order-notices";
+import { orderStatusLabel } from "@/lib/orders";
 import { ordersPageNoticeSchema } from "@/lib/validation/orders";
 import { check } from "./check";
 import { attributeValue, openingTags, read, withoutComments } from "./source-helpers";
@@ -62,6 +63,21 @@ export async function runMenuAndOrdersChecks() {
     const card = withoutComments(await read("app/orders/order-card.tsx"));
     assert.match(card, /The customer gets a message when their chat allows it\./);
     assert.doesNotMatch(card, /The customer gets a message that it was cancelled\./);
+  });
+
+  await check("Orders: a ready order's status says what its button said (On its way for a delivery, Ready to pick up for a pickup), on the Orders page and the conversation page; the question that cancels keeps the order with \"Keep it\", never a second \"Cancel\"", async () => {
+    assert.equal(orderStatusLabel("ready", "delivery"), "On its way");
+    assert.equal(orderStatusLabel("ready", "pickup"), "Ready to pick up");
+    assert.equal(orderStatusLabel("accepted", "delivery"), "Accepted");
+    const card = withoutComments(await read("app/orders/order-card.tsx"));
+    assert.match(card, /label=\{order\.fulfilment === "delivery" \? "On its way" : "Ready to pick up"\}/, "the button's words changed: change orderStatusLabel with them");
+    for (const file of ["app/orders/order-card.tsx", "app/inbox/[conversationId]/page.tsx"]) {
+      const source = withoutComments(await read(file));
+      assert.match(source, /orderStatusLabel\(order\.status, order\.fulfilment\)/, `${file} shows a status without its fulfilment`);
+      assert.doesNotMatch(source, /ORDER_STATUS_LABELS\[/, `${file} shows "Ready" for an order on its way`);
+    }
+    const [cancel] = openingTags(card, ["ConfirmButton"]);
+    assert.equal(attributeValue(cancel, "dismissLabel"), '"Keep it"');
   });
 
   await check("orders form: a save refused (no delivery or pickup) keeps the boxes as they were ticked", async () => {

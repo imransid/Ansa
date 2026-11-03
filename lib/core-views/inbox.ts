@@ -37,7 +37,7 @@ type CoreConversation = Pick<ConversationPage, "id" | "channel" | "displayName" 
   activity: CoreActivity[];
   // "" when a reply may go now.
   replyBlocked: NonNullable<ConversationPage["replyBlocked"]> | "";
-  orders: { number: number; status: ConversationPage["orders"][number]["status"]; totalCents: number; currency: string }[];
+  orders: { number: number; status: ConversationPage["orders"][number]["status"]; fulfilment: ConversationPage["orders"][number]["fulfilment"]; totalCents: number; currency: string }[];
 };
 
 // One page of a view of the Inbox, and how many each view holds.
@@ -91,7 +91,13 @@ export async function getConversationFromCore(conversationId: string): Promise<C
     activity: conversation.activity.map((row) => ({ ...row, createdAt: new Date(row.createdAt) })),
     canReply: conversation.canReply,
     replyBlocked: conversation.replyBlocked === "" ? null : conversation.replyBlocked,
-    orders: conversation.orders.map((order) => ({ orderNumber: order.number, status: order.status, totalCents: order.totalCents, currency: order.currency })),
+    orders: conversation.orders.map((order) => ({
+      orderNumber: order.number,
+      status: order.status,
+      fulfilment: order.fulfilment,
+      totalCents: order.totalCents,
+      currency: order.currency,
+    })),
   };
 }
 

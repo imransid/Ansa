@@ -20,6 +20,9 @@ type ConfirmButtonProps = {
   // e.g. "Yes, remove" and "Removing...".
   confirmLabel: string;
   pendingLabel: string;
+  // The button that closes the question and does nothing: "Cancel" unless
+  // the action itself cancels something ("Keep it" beside "Yes, cancel it").
+  dismissLabel?: string;
   // Told when the action starts and when it ends, for a page that holds
   // still meanwhile (the content studio's editor while the AI writes).
   onPendingChange?: (isPending: boolean) => void;
@@ -30,7 +33,7 @@ type ConfirmButtonProps = {
 // runs the action. A failure stays next to it (role="alert"); when it works,
 // the page refreshes and the row it sat on is gone.
 export function ConfirmButton(props: ConfirmButtonProps) {
-  const { action, fields, label, accessibleLabel, question, confirmLabel, pendingLabel, onPendingChange } = props;
+  const { action, fields, label, accessibleLabel, question, confirmLabel, pendingLabel, dismissLabel = "Cancel", onPendingChange } = props;
   const [isConfirming, setIsConfirming] = useState(false);
   const [errors, formAction, isPending] = useActionState(action, undefined);
   useReportPending(isPending, onPendingChange);
@@ -55,7 +58,7 @@ export function ConfirmButton(props: ConfirmButtonProps) {
         {/* Focus moves here when the question opens: the button that was
             clicked is gone, and Enter on Cancel can't remove anything. */}
         <Button type="button" variant="ghost" size="sm" disabled={isPending} autoFocus onClick={() => setIsConfirming(false)}>
-          Cancel
+          {dismissLabel}
         </Button>
       </div>
       {errors?.message && (
