@@ -174,3 +174,14 @@ def test_claude_code_is_development_only_and_locked_down(tmp_path):
     assert claude_code.read_result('{"subtype": "error_max_turns"}').kind == "truncated"
     assert claude_code.read_result('{"subtype": "success", "structured_output": null}').kind == "unexpected_stop"
     assert claude_code.read_result("not json").error_name == "ClaudeCodeUnreadable"
+
+
+def test_the_wanted_time_is_asked_for_unambiguously_on_chats_and_calls():
+    # "at 7" was stored as "7:00" (read as morning beside "19:30"), and a time
+    # already past was summed up for a yes: the AI writes a 24-hour time with
+    # its day, and asks about one that is unclear or past.
+    for channel in ("chat", "call"):
+        system, _, schema = build_request(request(channel=channel))
+        assert "'19:00 today'" in system and "24-hour" in system
+        assert "already past (compare with Now in <hours>)" in system and "ask which they mean" in system
+        assert "24-hour" in schema["properties"]["order"]["properties"]["time"]["description"]

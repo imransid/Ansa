@@ -166,7 +166,9 @@ already in the Inbox continues that customer's chat.
   posts, "Plan the next 2 weeks" on the calendar, and How posts did →
   **Review performance** (the AI reads the numbers; takes a minute).
 - **Calls page** (Inbox → Calls): the two finished calls, the recording,
-  "Escalate to a ticket" on the solved one.
+  "Open a request for this call" on the solved one. Calls made on the
+  practice phone aren't listed there (nor counted on Home): each is a
+  conversation in the Inbox, as the page says.
 - **Emails page** (Inbox → Emails): "Process again" on Imtiaz's email, and
   the bounced email under "Customer emails not delivered".
 - **Menu**: Settings → Menu and prices → "Not available today" on a dish

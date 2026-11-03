@@ -35,6 +35,8 @@ type callWorld struct {
 	modes       []string
 	lastBody    string
 	brainAnswer string
+	// Runs while the brain "thinks" (before it answers), when set.
+	whileThinking func()
 }
 
 func newCallWorld(t *testing.T, brainAnswer string) *callWorld {
@@ -54,6 +56,9 @@ func newCallWorld(t *testing.T, brainAnswer string) *callWorld {
 		w.channels = append(w.channels, request.Channel)
 		w.modes = append(w.modes, request.CallMode)
 		w.lastBody = string(body)
+		if w.whileThinking != nil {
+			w.whileThinking()
+		}
 		rw.Header().Set("Content-Type", "application/json")
 		io.WriteString(rw, w.brainAnswer)
 	}))
@@ -163,7 +168,7 @@ func TestAnOrderIsTakenOnTheCallInSpokenWords(t *testing.T) {
 	w.exec(`INSERT INTO assistant_settings (company_id, pickup) VALUES ($1, true)`, w.companyID)
 	call := w.start()
 	words := w.say(call.CallID, "Two Margherita for pickup at eight please")
-	if len(words) != 1 || words[0] != "Here is your order: 2 Margherita, €19.00. Total, €19.00. For pickup. When: 20:00. Shall I place the order? Please say yes to confirm." {
+	if len(words) != 1 || words[0] != "Here is your order: 2 Margherita, 19 euros. Total, 19 euros. For pickup. When: 20:00. Shall I place the order? Please say yes to confirm." {
 		t.Fatalf("ansa's own spoken summary: %q", words)
 	}
 	w.brainAnswer = `{"kind":"order_confirmed"}`

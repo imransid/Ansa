@@ -67,9 +67,10 @@ func liveCall(ctx context.Context, pool *database.Pool, company tenant.CompanyID
 	return conversationID, err
 }
 
-// countMessageTaken: the caller left one more message while ansa only took messages.
+// countMessageTaken: the caller left one more message while ansa only took
+// messages (not once they hung up: nothing of that turn was saved).
 func countMessageTaken(ctx context.Context, pool *database.Pool, company tenant.CompanyID, callID string) error {
-	const statement = `UPDATE phone_calls SET messages_taken = messages_taken + 1 WHERE company_id = $1 AND id = $2`
+	const statement = `UPDATE phone_calls SET messages_taken = messages_taken + 1 WHERE company_id = $1 AND id = $2 AND ended_at IS NULL`
 	_, err := pool.Exec(ctx, statement, company.String(), callID)
 	return err
 }

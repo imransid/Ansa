@@ -34,13 +34,19 @@ func TestTheCallsNoteReachesThePerson(t *testing.T) {
 	w.brainAnswer = `{"kind":"ok","subject":"Party of twenty","summary":"Lena wants a call back about a party of twenty.","needs_person":true}`
 	w.runNote(call.CallID)
 	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND status = 'open' AND subject = 'Party of twenty' AND description LIKE '%Lena wants a call back%' AND customer_phone = '393331234567'`, w.companyID) != 1 ||
-		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'call_message'`, w.companyID) != 1 ||
-		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert'`, w.companyID) != 1 {
-		t.Fatal("a request with the note and the caller's number, ansa's line and the owners' alert")
+		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert' AND payload->>'reason' = 'call_note'`, w.companyID) != 1 {
+		t.Fatal("a request with the note and the caller's number, and the owners' alert")
+	}
+	// ansa answered the call: it took no message and told nobody someone gets back to them.
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND description LIKE $2`, w.companyID, assistant.ReasonText["call_note"]+"%") != 1 ||
+		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'call_needs_person' AND reason IS NULL`, w.companyID) != 1 ||
+		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over'`, w.companyID) != 0 {
+		t.Fatal("the request and ansa's line say ansa noted something after the call, never that the caller left a message")
 	}
 	if !strings.Contains(w.lastBody, `"sender":"customer","text":"It's Lena: please call me back about a party of twenty"`) ||
-		!strings.Contains(w.lastBody, `"name":"Luigi's"`) || strings.Contains(w.lastBody, call.ConversationID) || strings.Contains(w.lastBody, w.companyID) {
-		t.Fatalf("the brain reads the call's words and who ansa answered for, never an id: %s", w.lastBody)
+		!strings.Contains(w.lastBody, `"name":"Luigi's"`) || !strings.Contains(w.lastBody, `"caller_name":"Lena"`) || !strings.Contains(w.lastBody, `"orders_placed":[]`) ||
+		strings.Contains(w.lastBody, call.ConversationID) || strings.Contains(w.lastBody, w.companyID) {
+		t.Fatalf("the brain reads the call's words, who ansa answered for and the line's name for the caller, never an id: %s", w.lastBody)
 	}
 
 	again := w.start()
@@ -113,5 +119,26 @@ func TestTheNoteGivesARequestOpenedOnTheCallItsSubject(t *testing.T) {
 	w.runNote(again.CallID)
 	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND subject = 'Wine delivery on Friday' AND description LIKE '%After the call: Now Saturday.'`, w.companyID) != 1 {
 		t.Fatal("a request from before this call keeps its subject; the note joins it")
+	}
+}
+
+// An order placed on the call is done: the note's AI is told its number (so
+// it waits for nobody), and with nothing else left no request is opened.
+func TestAnOrderPlacedOnTheCallIsNoRequest(t *testing.T) {
+	w := newCallWorld(t, `{"kind":"order_summary","order":{"items":[{"label":"M1","quantity":2}],"fulfilment":"pickup","address":"","time":"19:00 today","notes":""}}`)
+	w.exec(`INSERT INTO assistant_settings (company_id, pickup) VALUES ($1, true)`, w.companyID)
+	call := w.start()
+	w.say(call.CallID, "Two Margherita for pickup at seven tonight")
+	w.brainAnswer = `{"kind":"order_confirmed"}`
+	w.say(call.CallID, "Yes")
+	w.hangUp(call.CallID)
+	w.brainAnswer = `{"kind":"ok","subject":"Pickup order","summary":"Lena ordered two Margherita for pickup at 19:00 today.","needs_person":false}`
+	w.runNote(call.CallID)
+	if !strings.Contains(w.lastBody, `"orders_placed":[1]`) {
+		t.Fatalf("the note's AI knows the call placed order #1: %s", w.lastBody)
+	}
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1`, w.companyID) != 0 ||
+		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert'`, w.companyID) != 0 {
+		t.Fatal("no request and no 'needs you' alert for an order ansa fully handled")
 	}
 }

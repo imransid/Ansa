@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { HANDOVER_REASON_TEXT } from "@/lib/assistant/reasons";
 import { ACTIVITY_TEXT } from "@/lib/conversations";
 import type { ConversationView } from "@/lib/core-views/inbox";
+import { offersDone } from "./request-box";
 
 // The smaller parts of one conversation's page (step 47): the assistant's
 // waiting reply, someone marked important, when ansa steps in, who answers
@@ -100,10 +101,8 @@ export function Handler({ conversation }: { conversation: ConversationView }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* While a request is open, ansa stays quiet here (step 49): a person
-          answers next, and the request's Done gives it back. */}
       {conversation.openTicket ? (
-        <StatusDot tone="attention">You answer next: ansa stays quiet until you press Done</StatusDot>
+        <StatusDot tone="attention">{openRequestText(conversation, conversation.openTicket)}</StatusDot>
       ) : (
         <>
           <StatusDot tone="success">ansa handles this conversation</StatusDot>
@@ -112,6 +111,23 @@ export function Handler({ conversation }: { conversation: ConversationView }) {
       )}
     </div>
   );
+}
+
+// What happens while a request is open, in the words of the button the
+// request box offers. In a chat ansa stays quiet until then (step 49); a
+// caller is still answered on their next call (a call is always answered),
+// and ansa never answers an email.
+function openRequestText(conversation: ConversationView, ticket: NonNullable<ConversationView["openTicket"]>): string {
+  if (offersDone(conversation, ticket)) {
+    return "You answer next: ansa stays quiet until you press Done";
+  }
+  if (conversation.channel === "phone") {
+    return "Needs you: when it's sorted, mark the request below as solved. ansa still answers their calls";
+  }
+  if (conversation.channel === "email") {
+    return "Needs you: when it's sorted, mark the request below as solved";
+  }
+  return "You answer next: ansa stays quiet here until the request below is solved";
 }
 
 export function History({ activity }: { activity: ConversationView["activity"] }) {

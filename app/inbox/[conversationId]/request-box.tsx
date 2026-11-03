@@ -19,6 +19,12 @@ type RequestBoxProps = {
   relatedArticles: RelatedArticle[];
 };
 
+// Whether the request box offers Done (a chat's request with no email to
+// send): the conversation's banner names the same button.
+export function offersDone(conversation: ConversationView, ticket: NonNullable<ConversationView["openTicket"]>): boolean {
+  return conversation.canReply && !ticket.customerEmail;
+}
+
 // "Needs you" on a conversation's page (step 47; simpler since the "easy to
 // use" pass of 2026-11-01): the open request, what it is about (the AI's
 // summary, a call's note), and the saved answers that match it. A chat's
@@ -33,7 +39,7 @@ export function RequestBox({ conversation, ticket, teamMembers, canAssign, canRe
       </h2>
       {/* Plain text: what the AI or a person wrote, never markup. */}
       <p className="text-sm whitespace-pre-wrap wrap-anywhere">{ticket.description}</p>
-      {conversation.canReply && !ticket.customerEmail ? (
+      {offersDone(conversation, ticket) ? (
         // A chat (the "easy to use" pass of 2026-11-01): answer in the
         // box, then Done, which closes the request without an email (a
         // chat has none to send) and hands the conversation back to

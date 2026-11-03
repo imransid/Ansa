@@ -15,7 +15,7 @@ export function AnalyzeNowButton({ callId }: { callId: string }) {
         {isAnalyzing ? "Analyzing..." : "Analyze now"}
       </Button>
       <span className="text-sm text-muted-foreground">
-        The AI reads the call again and decides whether it needs a ticket. This can take a minute.
+        The AI reads the call again and decides whether it needs a request. This can take a minute.
       </span>
       {errors?.message && (
         <p role="alert" className="text-sm text-destructive">

@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LocalDateTime } from "@/components/local-date-time";
+import { describeEndedReason } from "@/lib/call-ended-reason";
 import { formatCallDuration } from "@/lib/format-duration";
 import { buildListUrl } from "@/lib/pagination";
 import type { CallListItem } from "@/lib/types/calls";
@@ -17,7 +18,7 @@ import { DecisionBadge } from "./decision-badge";
 
 // What an empty filter says (step 29).
 const EMPTY_FILTER_TEXT: Record<CallOutcomeFilter, string> = {
-  all: "No calls yet. Finished calls appear here once Vapi sends them.",
+  all: "No calls here yet.",
   solved: "No calls the AI solved.",
   needs_human: "No calls that needed a human.",
   stuck: "No stuck calls.",
@@ -41,7 +42,7 @@ export function CallsTable({ calls, page, query }: CallsTableProps) {
           <TableHead>Started</TableHead>
           <TableHead>Caller</TableHead>
           <TableHead>Duration</TableHead>
-          <TableHead>Ended because</TableHead>
+          <TableHead>How it ended</TableHead>
           <TableHead>AI decision</TableHead>
           <TableHead>
             <span className="sr-only">Links</span>
@@ -54,13 +55,7 @@ export function CallsTable({ calls, page, query }: CallsTableProps) {
             <TableCell>{call.startedAt ? <LocalDateTime iso={call.startedAt.toISOString()} /> : "-"}</TableCell>
             <TableCell>{call.callerNumber ?? "Withheld"}</TableCell>
             <TableCell>{formatCallDuration(call.startedAt, call.endedAt)}</TableCell>
-            <TableCell>
-              {/* Vapi's reasons can be long: cut, the full text on hover. A
-                  table cell ignores max-width, so it sits on a block inside. */}
-              <span className="block max-w-48 truncate" title={call.endedReason ?? undefined}>
-                {call.endedReason ?? "-"}
-              </span>
-            </TableCell>
+            <TableCell>{describeEndedReason(call.endedReason)}</TableCell>
             <TableCell>
               {call.analysisStuck ? (
                 // The run was cut off: the call page has the "Analyze now" button.

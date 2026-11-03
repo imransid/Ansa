@@ -42,7 +42,7 @@ ANSWER_JSON_SCHEMA: dict[str, Any] = {
                 },
                 "fulfilment": {"type": "string", "enum": ["", "delivery", "pickup"]},
                 "address": {"type": "string"},
-                "time": {"type": "string"},
+                "time": {"type": "string", "description": "When they want it: a 24-hour time with its day, like '19:00 today' or '13:30 tomorrow'; empty for as soon as possible."},
                 "notes": {"type": "string"},
             },
             "required": ["items", "fulfilment", "address", "time", "notes"],

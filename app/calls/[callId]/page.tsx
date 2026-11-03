@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { describeEndedReason } from "@/lib/call-ended-reason";
 import { formatCallDuration } from "@/lib/format-duration";
 import { LocalDateTime } from "@/components/local-date-time";
 import { getCallCategoriesFromCore, getCallFromCore } from "@/lib/core-views/calls";
@@ -66,8 +67,8 @@ async function CallContent({ params }: Pick<PageProps<"/calls/[callId]">, "param
         <dd>{call.startedAt ? <LocalDateTime iso={call.startedAt.toISOString()} /> : "-"}</dd>
         <dt className="text-muted-foreground">Duration</dt>
         <dd>{formatCallDuration(call.startedAt, call.endedAt)}</dd>
-        <dt className="text-muted-foreground">Ended because</dt>
-        <dd className="wrap-anywhere">{call.endedReason ?? "-"}</dd>
+        <dt className="text-muted-foreground">How it ended</dt>
+        <dd>{describeEndedReason(call.endedReason)}</dd>
       </dl>
       <CallDecision call={call} categories={categories} />
       <KnowledgeLookups session={session} callId={call.id} />

@@ -29,7 +29,7 @@ func TestAnsasOrderTextsInBangla(t *testing.T) {
 	if got := SummaryText(order, Bangla); got != want {
 		t.Fatalf("summary:\n%s", got)
 	}
-	spoken := "আপনার অর্ডার: 2 Margherita, €19.00। ডেলিভারি চার্জ, €2.50। মোট, €21.50। ডেলিভারির ঠিকানা: Road 27, Dhanmondi। কখন: যত তাড়াতাড়ি সম্ভব। নোট: কম ঝাল। অর্ডারটি কি নিশ্চিত করব? নিশ্চিত করতে অনুগ্রহ করে হ্যাঁ বলুন।"
+	spoken := "আপনার অর্ডার: ২ Margherita, ১৯ ইউরো। ডেলিভারি চার্জ, ২.৫০ ইউরো। মোট, ২১.৫০ ইউরো। ডেলিভারির ঠিকানা: Road 27, Dhanmondi। কখন: যত তাড়াতাড়ি সম্ভব। নোট: কম ঝাল। অর্ডারটি কি নিশ্চিত করব? নিশ্চিত করতে অনুগ্রহ করে হ্যাঁ বলুন।"
 	if got := SpokenSummaryText(order, Bangla); got != spoken {
 		t.Fatalf("spoken summary:\n%s", got)
 	}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { countWithNoun, formatOverviewCount, OVERVIEW_WINDOW_DAYS } from "@/lib/business-overview";
 import { buildListUrl } from "@/lib/pagination";
 import type { BusinessOverview, CofounderOverviewNumbers } from "@/lib/types/business-overview";
@@ -45,6 +46,15 @@ export function BusinessOverviewPanel({ overview }: { overview: BusinessOverview
         </li>
         {cofounder && <PostNumbers numbers={cofounder} />}
       </ul>
+      {/* The call numbers count the Calls page's list, which live calls
+          (step 55) aren't on: without this, calls just made looked lost. */}
+      <p className="text-xs text-muted-foreground">
+        Calls ansa answered live aren&apos;t counted here: each is a conversation in your{" "}
+        <Link href="/inbox" className="text-link hover:underline">
+          Inbox
+        </Link>
+        .
+      </p>
     </section>
   );
 }

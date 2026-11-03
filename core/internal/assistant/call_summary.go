@@ -44,15 +44,10 @@ const (
 // The most a request's description holds (the ticket rules: 1-10,000).
 const descriptionMaxRunes = 10_000
 
-// callSummaryRequest matches the brain's CallSummaryRequest
-// (brain/brain/assistant/call_summary.py): never an id.
-type callSummaryRequest struct {
-	Kind         string  `json:"kind"`
-	Name         string  `json:"name"`
-	Conversation []Line  `json:"conversation"`
-	Engine       string  `json:"engine"`
-	APIKey       *string `json:"api_key"`
-}
+// callNoteReason is why a request the note opened needs someone: ansa
+// answered the call, and something said on it waits for a person (the
+// request's first line and the owners' alert; never an activity row's).
+const callNoteReason = "call_note"
 
 // callNote is the brain's answer.
 type callNote struct {
@@ -73,7 +68,7 @@ func (r *Runner) HandleCallSummaryJob(ctx context.Context, job *jobs.Job) error 
 	if err != nil || call == nil {
 		return err
 	}
-	request, err := r.callSummaryRequest(ctx, job.CompanyID, call.Lines)
+	request, err := r.callSummaryRequest(ctx, job.CompanyID, call)
 	if err != nil {
 		return err
 	}
@@ -92,29 +87,6 @@ func (r *Runner) HandleCallSummaryJob(ctx context.Context, job *jobs.Job) error 
 		return nil
 	}
 	return saveCallNote(ctx, r.Pool, job.CompanyID, call, note)
-}
-
-// callSummaryRequest is the brain's slice for a call's note: who ansa
-// answered for, the call's lines and the company's AI engine; nil when the
-// business's own key can't be read.
-func (r *Runner) callSummaryRequest(ctx context.Context, company tenant.CompanyID, lines []Line) (*callSummaryRequest, error) {
-	settings, err := readSettings(ctx, r.Pool, company)
-	if err != nil {
-		return nil, err
-	}
-	kind, name, err := ReadCallVoice(ctx, r.Pool, company)
-	if err != nil {
-		return nil, err
-	}
-	request := &callSummaryRequest{Kind: kind, Name: name, Conversation: lines, Engine: settings.AIEngine}
-	if settings.AIEngine == "api_key" && settings.KeyEncrypted != nil {
-		key, err := r.Box.Decrypt(*settings.KeyEncrypted, KeyContext(company))
-		if err != nil {
-			return nil, nil
-		}
-		request.APIKey = &key
-	}
-	return request, nil
 }
 
 // knownNoteFailure is the brain's reason as one of its known codes.
@@ -162,17 +134,18 @@ func saveCallNote(ctx context.Context, pool *database.Pool, company tenant.Compa
 		// Its own alert: the one for the messages ansa took (CallMessagesLeftWithin) may still wait.
 		turn := conversations.Turn{CompanyID: company, ConversationID: conversationID, TriggerMessageID: "note-" + call.ID}
 		info := conversationInfo{ConversationID: conversationID, Channel: conversations.ChannelPhone, ContactName: name, CallerNumber: number}
-		fields, err := requestFields(ctx, tx, turn, info, Handover{Reason: "call_message", Subject: note.Subject, Summary: summary})
+		fields, err := requestFields(ctx, tx, turn, info, Handover{Reason: callNoteReason, Subject: note.Subject, Summary: summary})
 		if err != nil {
 			return err
 		}
 		if _, err := tickets.CreateChatTicketWithin(ctx, tx, company, fields); err != nil {
 			return err
 		}
-		if err := recordActivity(ctx, tx, turn, "handed_over", "call_message"); err != nil {
+		// Not "handed_over": the caller was answered, never told someone gets back to them.
+		if err := recordActivity(ctx, tx, turn, "call_needs_person", ""); err != nil {
 			return err
 		}
-		return enqueueAlert(ctx, tx, turn, "call_message", false, "")
+		return enqueueAlert(ctx, tx, turn, callNoteReason, false, "")
 	})
 }
 

@@ -48,3 +48,14 @@ func TestMoneyIsWrittenAsTheMenuShowsIt(t *testing.T) {
 		}
 	}
 }
+
+// Spoken, an amount keeps its decimals only when there are some.
+func TestAnAmountIsSaidWithDecimalsOnlyWhenItHasSome(t *testing.T) {
+	cases := map[string]string{SpokenNumber(70000, "BDT"): "700", SpokenNumber(104050, "BDT"): "1,040.50", SpokenNumber(5, "USD"): "0.05",
+		SpokenNumber(120000, "JPY"): "120,000", SpokenNumber(1250, "KWD"): "1.250", SpokenNumber(1000, "KWD"): "1"}
+	for got, want := range cases {
+		if got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+}

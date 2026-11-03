@@ -62,7 +62,7 @@ transaction, with ansa's line in the conversation (`call_solved` /
 the transcript never goes on a request. If saving fails, an
 `analysis_error` escalation is saved instead.
 
-**Escalate to a ticket (`escalate.go`):** anyone in the company, on a call
+**Escalate (`escalate.go`; the call page's "Open a request for this call"):** anyone in the company, on a call
 decided "solved" without a request: ONE transaction claims the call
 (records who and when; the AI's verdict never changes, so wrong "solved"
 verdicts can be counted), then makes its request ("escalated" history row,

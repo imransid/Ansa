@@ -93,6 +93,10 @@ customer gets (a reply, a holding reply or one of ansa's order texts).
 taken over by a person → the message handled already → a request open in the
 conversation → a newer customer message (it gets its own run) → may. Read
 again, with the conversation row locked, inside the transaction that saves.
+On a call (`OnACall`), right after not found: the call whose words started
+the turn must still be live (`callStillLiveWithin`, by the words'
+`call:<call id>:...` id), so nothing of an answer is saved once the caller
+hung up while the AI was thinking (no words, request or order).
 `MarkHandledWithin` records the message as answered (never answered twice).
 **Inputs (`inputs.go`, the old `services/assistant-inputs.ts`):** one
 company's slice for the brain (`request.go`'s `BrainRequest`): its name,
@@ -147,7 +151,7 @@ label, and the next one after a reply reached the customer has none; a
 handover while a draft waits discards it and labels the holding reply; an
 order text sent while the summary waits discards it and has the label.
 
-**Calls (`call.go`, `call_handover.go`, `call_summary.go`, step 55,
+**Calls (`call.go`, `call_handover.go`, `call_summary*.go`, step 55,
 [phone](phone.md)):** `AnswerCall` answers a live call's turn (the caller's
 words are the newest message of their phone conversation) with the same
 brain, checks, orders and handovers, for the WHOLE call: the gate's
@@ -168,10 +172,12 @@ once a request is open, and opens a request only when none is open.
 answers, fixed words take the message. When the call ends,
 `CallMessagesLeftWithin` opens the request for messages taken (reason
 `call_message`, unless one is open), and the `phone.call_summary` job
-(`HandleCallSummaryJob`) asks the brain for the call's note: added to the
+(`HandleCallSummaryJob`) asks the brain for the call's note (with the
+line's name for the caller and the orders placed on the call): added to the
 open request (its subject too when ansa opened it during this call, by its
 end: `tickets.RetitleAfterCallWithin`), or a request opened for it when
-someone has to act. Every request from a call carries the caller's number
+someone has to act (reason `call_note` on the request and the alert,
+activity `call_needs_person`: ansa answered that call). Every request from a call carries the caller's number
 (the phone contact's digits: `requestFields`, `callerWithin`).
 
 **Packages (`package_limits.go`, step 57, [packages](packages.md)):** before

@@ -69,15 +69,15 @@ func SummaryText(order Priced, language string) string {
 }
 
 // SpokenSummaryText is SummaryText for a live call: the same lines as
-// sentences a voice reads well ("2 Margherita, €17.00."), and "say yes",
-// since a caller doesn't reply in writing. It keeps "Here is your order"
-// ("আপনার অর্ডার" in Bangla), which the assistant looks for to know what a
-// yes answers.
+// sentences a voice reads well ("2 Margherita, 17 euros.": amounts as a
+// person says them, spokenPrice), and "say yes", since a caller doesn't
+// reply in writing. It keeps "Here is your order" ("আপনার অর্ডার" in
+// Bangla), which the assistant looks for to know what a yes answers.
 func SpokenSummaryText(order Priced, language string) string {
 	if language == Bangla {
 		return spokenSummaryBangla(order)
 	}
-	price := func(cents int64) string { return money.Format(cents, order.Currency) }
+	price := func(cents int64) string { return spokenPrice(cents, order.Currency, English) }
 	parts := []string{"Here is your order:"}
 	for _, line := range order.Lines {
 		parts = append(parts, strconv.Itoa(line.Quantity)+" "+line.Name+", "+price(line.LineTotalCents)+".")

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PaginationLinks } from "@/components/pagination-links";
 import { getCallsAndCountsFromCore } from "@/lib/core-views/calls";
 import { parsePageNumber } from "@/lib/pagination";
@@ -34,6 +35,15 @@ async function CallsContent({ searchParams }: Pick<PageProps<"/calls">, "searchP
     <>
       <section className="grid gap-3">
         <h1 className="text-xl font-semibold">Calls</h1>
+        {/* Live calls (step 55) are conversations, not rows here: without
+            this, calls just made on the practice phone looked lost. */}
+        <p className="text-sm text-muted-foreground">
+          Calls ansa answered live are conversations in your{" "}
+          <Link href="/inbox" className="text-link hover:underline">
+            Inbox
+          </Link>
+          , with what was said and any request or order. This page lists calls your phone line reported when they ended, with what the AI decided.
+        </p>
         <CallFilters query={query} counts={counts} />
         <CallsTable calls={calls} page={page} query={query} />
         <PaginationLinks

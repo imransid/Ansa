@@ -11,12 +11,12 @@ import type { CategoryChoice } from "@/lib/types/categories";
 
 type EscalateCallFormProps = {
   callId: string;
-  // The company's active categories; the ticket is routed by the one picked.
+  // The company's active categories; the request is routed by the one picked.
   categories: CategoryChoice[];
 };
 
-// "Escalate to a ticket" for a call the AI marked solved (step 31). On
-// success the action opens the new ticket's page.
+// "Open a request for this call" for a call the AI marked solved (step 31).
+// On success the action opens the new request's page.
 export function EscalateCallForm({ callId, categories }: EscalateCallFormProps) {
   const [errors, escalateAction, isEscalating] = useActionState(escalateCallAction, undefined);
   const noteError = errors?.fieldErrors?.note?.[0];
@@ -35,8 +35,8 @@ export function EscalateCallForm({ callId, categories }: EscalateCallFormProps) 
     <form action={escalateAction} onSubmit={submit} className="grid gap-3 border-t pt-3">
       <input type="hidden" name="callId" value={callId} />
       <p className="text-sm">
-        Did the AI get this one wrong? Escalating opens a ticket for this call, routed like any other. The AI&apos;s
-        verdict stays recorded as solved, so how often it is wrong can still be measured.
+        Did the AI get this one wrong? This opens a request for the call, routed like any other. The AI&apos;s verdict
+        stays recorded as solved, so how often it is wrong can still be measured.
       </p>
       {message && (
         <p role="alert" className="text-sm text-destructive">
@@ -71,7 +71,7 @@ export function EscalateCallForm({ callId, categories }: EscalateCallFormProps) 
         )}
       </div>
       <Button type="submit" variant="outline" className="justify-self-start" disabled={isEscalating}>
-        {isEscalating ? "Escalating..." : "Escalate to a ticket"}
+        {isEscalating ? "Opening..." : "Open a request for this call"}
       </Button>
     </form>
   );

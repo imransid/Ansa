@@ -23,6 +23,8 @@ var ReasonText = map[string]string{
 	"call_message":      "They called and left a message.",
 	"package_used_up":   "Your package has no AI replies left this month (or the free trial ended), so ansa sent your holding reply. See Billing.",
 	"not_in_package":    "Your package doesn't include this channel, so ansa sent your holding reply. See Billing.",
+	// Only a request's and an alert's (callNoteReason): its activity row is "call_needs_person".
+	"call_note": "After their call, ansa noted something that waits for you.",
 }
 
 // ChannelLabels name a conversation's channel for people.
