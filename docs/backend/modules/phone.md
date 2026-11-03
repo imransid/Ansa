@@ -54,12 +54,20 @@ calls, and its name in `phone_calls_line_known`. Nothing else changes.
   (`phone.call_summary`, `assistant.HandleCallSummaryJob`) asks the AI for
   the call's note (`POST /v1/calls/summary`, the company's own AI engine:
   who called, what they want, how and when to reach them, in the call's
-  language; the call's first 8 and newest 32 lines). The note is added below
+  language; the call's first 8 and newest 32 lines, the name the line gave
+  the caller, and the numbers of the orders placed on the call, which are
+  done and wait for nobody). The note is added below
   the open request's description ("After the call: ...", while it has room:
   10,000 characters), gives a request ansa opened during this call the
   note's subject (unless its subject was changed before; the history says
   "ansa updated the subject after the call"), or opens a request when
-  someone has to act and none is open. A note that fails changes nothing.
+  someone has to act and none is open: its first line "After their call,
+  ansa noted something that waits for you." (reason `call_note`, the
+  owners' alert says the same and "ansa answered their call"), ansa's line
+  "Took a call and kept a note for you" (`call_needs_person`), never "left
+  a message" or "told them you'll get back to them": ansa answered that
+  call. An order placed on the call, or questions ansa answered, need
+  nobody: no request. A note that fails changes nothing.
   The caller's own words stay in the encrypted conversation; a request
   carries the AI's short summaries only, as a chat's does.
 - Only the assistant answering a live call speaks into a phone
@@ -118,10 +126,12 @@ promise never said; no words of the AI's = the holding reply; paused = the
 AI only takes a message (no order) and hanging up opens one request (never
 the caller's words on it); past the call limit = fixed words; a person's
 greeting; refusals; every request from a call carries the caller's number.
-`note_test.go`: the note opens a request when someone has to act, joins the
-open one, gives a request opened during the call its subject (never one from
-before), a call fully helped needs nobody, a failed note changes nothing; an
-important caller gets message-only and the request says why.
+`note_test.go`: the note opens a request when someone has to act (its own
+words, ansa's "kept a note" line and alert, never "left a message"), joins
+the open one, gives a request opened during the call its subject (never one
+from before), a call fully helped needs nobody, an order placed on the call
+is told to the note's AI and opens no request, a failed note changes
+nothing; an important caller gets message-only and the request says why.
 `left_live_test.go`: a call left live is ended by the same caller's next
 call with its minutes, note and message request, and its note never gives
 its subject to the next call's request. `internal/api/phone_test.go`:

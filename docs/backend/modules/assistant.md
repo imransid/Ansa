@@ -168,10 +168,12 @@ once a request is open, and opens a request only when none is open.
 answers, fixed words take the message. When the call ends,
 `CallMessagesLeftWithin` opens the request for messages taken (reason
 `call_message`, unless one is open), and the `phone.call_summary` job
-(`HandleCallSummaryJob`) asks the brain for the call's note: added to the
+(`HandleCallSummaryJob`) asks the brain for the call's note (with the
+line's name for the caller and the orders placed on the call): added to the
 open request (its subject too when ansa opened it during this call, by its
 end: `tickets.RetitleAfterCallWithin`), or a request opened for it when
-someone has to act. Every request from a call carries the caller's number
+someone has to act (reason `call_note` on the request and the alert,
+activity `call_needs_person`: ansa answered that call). Every request from a call carries the caller's number
 (the phone contact's digits: `requestFields`, `callerWithin`).
 
 **Packages (`package_limits.go`, step 57, [packages](packages.md)):** before

@@ -60,7 +60,10 @@ caller; core checks them and uses them on a call only).
 `POST /v1/calls/summary` (`call_summary.py`, `CALL_SUMMARY`: effort medium,
 2,000 tokens, 45 s, one retry): the note about a finished call for the
 person (who called, what they want, how and when to reach them, in the
-call's language, at most four sentences) and whether someone has to act;
+call's language, at most four sentences; the caller's name from the call or
+the line, never a remark that none was given) and whether someone has to
+act (never for an order placed on the call, which core names in
+`orders_placed`, nor for questions the assistant answered);
 the call's lines escaped and hidden like a reply's, the company's own
 engine; a failure is `{"kind":"failed","reason":...}`.
 **Core's checks (prices, links, refunds) run in core, not here.**
