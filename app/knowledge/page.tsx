@@ -54,9 +54,10 @@ async function KnowledgeContent({ searchParams }: Pick<PageProps<"/knowledge">, 
         </div>
         <p className="text-sm text-muted-foreground">
           What your team knows about your products, policies and common problems, written down once. Anyone can write
-          drafts; only articles an owner approved show on tickets or are ever given to the AI. During phone calls the
-          AI assistant looks up approved support articles and may read them to callers word for word; it doesn&apos;t
-          use them for emails yet.
+          drafts; only articles an owner approved show on tickets or are ever given to the AI. Before each answer in a
+          chat or a phone call, ansa&apos;s assistant reads the approved support articles that best match the
+          customer&apos;s message (3 at most) and may quote them to the customer word for word, prices and links
+          included. It doesn&apos;t use them for emails yet.
         </p>
         {totalArticles > 0 && <KnowledgeFilters query={query} counts={counts} />}
         {articles.length > 0 ? (

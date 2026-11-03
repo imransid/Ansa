@@ -13,21 +13,19 @@ package safefetch
 import (
 	"context"
 	"crypto/tls"
-	"io"
-	"mime"
 	"net"
 	"net/http"
 	"net/netip"
 	"net/url"
-	"strings"
 	"time"
-
-	"golang.org/x/text/encoding/htmlindex"
 )
 
 // Fetcher fetches pages. The zero value uses the network; only the tests
 // replace Resolve and Dial (they never touch the network).
 type Fetcher struct {
+	// AppURL is ansa's own address, named in every request's User-Agent so
+	// a website's owner can tell who fetched ("" names ansa only).
+	AppURL  string
 	Resolve func(ctx context.Context, host string) ([]netip.Addr, error)
 	Dial    func(ctx context.Context, address netip.AddrPort) (net.Conn, error)
 	// Only the tests set it (their server's certificate).
@@ -43,6 +41,8 @@ const (
 	maxBytes     = 2 << 20
 	timeout      = 10 * time.Second
 	maxRedirects = 3
+	// Some sites (Wikipedia) refuse Go's default name, "Go-http-client/1.1".
+	userAgentName = "ansa-knowledge-import/1.0"
 )
 
 // Fetch fetches one page, or gives why not as a code: invalid_url,
@@ -62,7 +62,7 @@ func (f *Fetcher) Fetch(ctx context.Context, raw string) (Page, string) {
 		if code != "" {
 			return Page{}, code
 		}
-		response, err := f.client(addresses).Do(newRequest(ctx, target))
+		response, err := f.client(addresses).Do(newRequest(ctx, target, f.userAgent()))
 		if err != nil {
 			if ctx.Err() != nil {
 				return Page{}, "timeout"
@@ -178,48 +178,19 @@ func (f *Fetcher) client(addresses []netip.Addr) *http.Client {
 	return &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 }
 
-func newRequest(ctx context.Context, target *url.URL) *http.Request {
+func newRequest(ctx context.Context, target *url.URL, userAgent string) *http.Request {
 	request, _ := http.NewRequestWithContext(ctx, http.MethodGet, target.String(), nil)
 	request.Header.Set("Accept", "text/html, text/plain")
 	request.Header.Set("Accept-Encoding", "identity")
+	request.Header.Set("User-Agent", userAgent)
 	return request
 }
 
-// readAnswer takes a final answer's text: 2xx, text/html or text/plain, not
-// compressed, at most 2 MB (reading stops there), decoded with the charset
-// its server names, else UTF-8.
-func readAnswer(response *http.Response) (Page, string) {
-	if response.StatusCode < 200 || response.StatusCode > 299 {
-		return Page{}, "http_status"
+// userAgent is "ansa-knowledge-import/1.0 (+https://<ansa's address>)": a
+// name and where to find who runs it, as sites' rules for fetchers ask.
+func (f *Fetcher) userAgent() string {
+	if f.AppURL == "" {
+		return userAgentName
 	}
-	mediaType, parameters, _ := mime.ParseMediaType(response.Header.Get("Content-Type"))
-	mediaType = strings.ToLower(mediaType)
-	if mediaType != "text/html" && mediaType != "text/plain" {
-		return Page{}, "wrong_type"
-	}
-	if encoding := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Encoding"))); encoding != "" && encoding != "identity" {
-		return Page{}, "unsupported_encoding"
-	}
-	if response.ContentLength > maxBytes {
-		return Page{}, "too_large"
-	}
-	data, err := io.ReadAll(io.LimitReader(response.Body, maxBytes+1))
-	switch {
-	case err != nil:
-		return Page{}, "network_error"
-	case len(data) > maxBytes:
-		return Page{}, "too_large"
-	}
-	return Page{ContentType: mediaType, Text: decode(data, parameters["charset"])}, ""
-}
-
-func decode(data []byte, charset string) string {
-	if charset != "" {
-		if encoding, err := htmlindex.Get(charset); err == nil {
-			if text, err := encoding.NewDecoder().Bytes(data); err == nil {
-				return string(text)
-			}
-		}
-	}
-	return strings.ToValidUTF8(string(data), "�")
+	return userAgentName + " (+" + f.AppURL + ")"
 }

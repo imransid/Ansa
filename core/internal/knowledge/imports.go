@@ -13,6 +13,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/documents"
 	"ansa/core/internal/files"
+	"ansa/core/internal/logging"
 	"ansa/core/internal/menureading"
 	"ansa/core/internal/plaintext"
 	"ansa/core/internal/tenant"
@@ -30,6 +31,9 @@ const (
 const (
 	NoTextInFile = "No text could be read from this file; a scanned PDF has none."
 	Unreadable   = "This file could not be read. It may be damaged, or not the kind of file its name says."
+	// The brain reads PDFs: when it is stopped, restarting or too slow, the
+	// file is not to blame.
+	PDFReadingUnavailable = "Reading PDFs isn't available right now. Try again in a minute."
 )
 
 // Part is one article an imported text becomes.
@@ -99,7 +103,7 @@ func NormalizeExtracted(text string) string {
 // and .csv as UTF-8 (a byte order mark is no text), .docx (only its text
 // part unpacked, at most 50 MB), .pdf through the brain. "" with a problem
 // in the page's words.
-func documentText(ctx context.Context, brain *brainclient.Client, data []byte, extension string) (string, string) {
+func documentText(ctx context.Context, brain *brainclient.Client, log *logging.Logger, data []byte, extension string) (string, string) {
 	raw := ""
 	switch extension {
 	case "txt", "md", "csv":
@@ -116,7 +120,9 @@ func documentText(ctx context.Context, brain *brainclient.Client, data []byte, e
 			Text   string `json:"text"`
 		}
 		if err := brain.Call(ctx, "/v1/documents/pdf-text", map[string]string{"data": base64.StdEncoding.EncodeToString(data)}, &answer); err != nil {
-			return "", Unreadable
+			// The error's type only: never the file or what is in it.
+			log.Warn("knowledge: the brain couldn't read a pdf", logging.ErrorType(err))
+			return "", PDFReadingUnavailable
 		}
 		if answer.Kind != "ok" {
 			if answer.Reason == "no_text" {
@@ -140,7 +146,7 @@ func documentText(ctx context.Context, brain *brainclient.Client, data []byte, e
 // meant for support until an owner decides otherwise. Importing again makes
 // new drafts. Returns how many, whether the text was cut, or a problem in
 // the page's words.
-func ImportDocument(ctx context.Context, pool *database.Pool, store *files.Store, brain *brainclient.Client, company tenant.CompanyID, actorUserID, documentID string) (created int, wasCut bool, problem string, err error) {
+func ImportDocument(ctx context.Context, pool *database.Pool, store *files.Store, brain *brainclient.Client, log *logging.Logger, company tenant.CompanyID, actorUserID, documentID string) (created int, wasCut bool, problem string, err error) {
 	document, err := documents.Find(ctx, pool, company, documentID)
 	if err != nil || document == nil {
 		return 0, false, "Document not found.", err
@@ -154,7 +160,7 @@ func ImportDocument(ctx context.Context, pool *database.Pool, store *files.Store
 	}
 	// Keys end in the extension the upload checked.
 	extension := document.StorageKey[strings.LastIndex(document.StorageKey, ".")+1:]
-	text, problem := documentText(ctx, brain, data, extension)
+	text, problem := documentText(ctx, brain, log, data, extension)
 	if problem != "" {
 		return 0, false, problem, nil
 	}

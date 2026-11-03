@@ -27,12 +27,19 @@ a space, else anywhere).
 **Imports (`imports.go`, `webimport.go`, owners, 20 an hour per company):**
 a stored document's text (.txt/.md/.csv as UTF-8 without its byte order
 mark; .docx: only its text part unpacked, at most 50 MB; .pdf through the
-brain's `/v1/documents/pdf-text`, pypdf: a scanned PDF has no text) or one
-public web page (only through [safefetch](safefetch.md); HTML made text,
-its `<title>` as the name, else host and path), cleaned (one kind of line
-break, no control characters, at most one blank line in a row), at most
-200,000 characters, then cut into drafts of up to 20,000 at paragraph
-boundaries titled "<name> (part 2 of 3)". Importing again makes new drafts.
+brain's `/v1/documents/pdf-text`, pypdf: a scanned PDF has no text; a brain
+that doesn't answer, stopped, restarting or too slow, is "Reading PDFs
+isn't available right now. Try again in a minute.", never "may be
+damaged", and logs the error's type only) or one public web page (only
+through [safefetch](safefetch.md); the typed address read once and
+fetched, named and saved as Go writes it out: the scheme in small letters,
+so "Https://" typed passes the column's `https://` CHECK, and one over
+2,000 characters written out is `address_too_long` before anything is
+fetched; HTML made text, its `<title>` as the name, else host and path),
+cleaned (one kind of line break, no control characters, at most one blank
+line in a row), at most 200,000 characters, then cut into drafts of up to
+20,000 at paragraph boundaries titled "<name> (part 2 of 3)". Importing
+again makes new drafts.
 
 **API ([api](api.md)):** `GET /api/v1/knowledge?status&q&page` (50 a page,
 counts per status); `GET /api/v1/knowledge/articles/{id}` (with where it
@@ -49,10 +56,15 @@ never the address). Writes: 60 per 10 minutes per person.
 **The query (`BuildTsQuery`, pure):** what someone asked becomes OR-ed
 words for `to_tsquery('simple', ...)`: runs of letters, marks and digits
 only (no operator or quote of Postgres's gets through), NFKC and
-lower-cased (as the index holds them), 2-100 characters, a short English
-stop list, each word once, at most 20, 4+ letters matched as a prefix
-("refund" finds "refunds"). No word left = no search runs. It goes to
-Postgres as a parameter, never as SQL text.
+lower-cased as the index holds them (`searchForm`: x/text's full case
+mapping, as ICU's `lower()` in Postgres: "İSTANBUL" is "i̇stanbul" and
+"ΟΔΟΣ" is "οδος"; `strings.ToLower` maps letter by letter and missed
+both), 2-100 characters, short English and Bangla stop lists ("আছে",
+"কি", ... would find every article holding them), each word once, at most
+20, 4+ letters matched as a prefix ("refund" finds "refunds"). No word
+left = no search runs. It goes to Postgres as a parameter, never as SQL
+text. `CombineSearchTexts` (a marketing plan's facts) reads words the
+same way.
 
 **The search (`Search`):** the company first, on both tables; approved
 only; the audience's flag ("support" or "marketing"); best first
@@ -77,9 +89,16 @@ article states may be quoted).
 **Tests:** `articles_test.go` (pieces, import parts and cleaning; a
 member's draft, a stale approval refused, an approved article found and
 changed by owners only, restore only from archived, delete by owners);
+`imports_test.go` (a PDF the brain can't read right now, stopped or
+restarting, is "try again", logged by the error's type and never the file;
+a damaged or scanned one says so); `webimport_test.go` (a fake internet:
+"Https://" typed is imported and saved as "https://"; an address over
+2,000 characters written out is never fetched);
 `api/knowledge_test.go` (write, approve, the test search, a text document
 imported, a private web page never fetched); `search_test.go` (only words reach the query, NFKC, at most 20;
+capitals lower-cased as ICU does, İ and a final Σ; the Bangla stop words;
 only the company's approved support articles are found, never a draft, a
-marketing-only one or another company's; the slice escapes and never
-cuts a piece); `assistant/reply_test.go` (an approved article reaches the
-brain and its price may be quoted).
+marketing-only one or another company's; "İSTANBUL" and "ΟΔΟΣ" find their
+articles in Postgres and a Bangla question's common words find none; the
+slice escapes and never cuts a piece); `assistant/reply_test.go` (an
+approved article reaches the brain and its price may be quoted).

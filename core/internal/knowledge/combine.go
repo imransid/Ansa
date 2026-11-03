@@ -3,8 +3,6 @@ package knowledge
 import (
 	"strings"
 	"unicode/utf8"
-
-	"golang.org/x/text/unicode/norm"
 )
 
 // CombineSearchTexts searches several texts as one (a marketing plan's
@@ -39,7 +37,7 @@ func CombineSearchTexts(texts []string) string {
 func searchWords(text string) []string {
 	var words []string
 	seen := map[string]bool{}
-	for _, word := range wordPattern.FindAllString(strings.ToLower(norm.NFKC.String(text)), -1) {
+	for _, word := range wordPattern.FindAllString(searchForm(text), -1) {
 		length := utf8.RuneCountInString(word)
 		if length < 2 || length > maxWordLength || stopWords[word] || seen[word] {
 			continue

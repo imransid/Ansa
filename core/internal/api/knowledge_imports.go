@@ -72,7 +72,7 @@ func (s *Server) importDocument(w http.ResponseWriter, r *http.Request, body []b
 		return
 	}
 	allowLongAnswer(w, 120*time.Second)
-	created, wasCut, why, err := knowledge.ImportDocument(r.Context(), s.Pool, s.Files, s.MenuBrain, who.CompanyID, who.UserID, strings.ToLower(input.DocumentID))
+	created, wasCut, why, err := knowledge.ImportDocument(r.Context(), s.Pool, s.Files, s.MenuBrain, s.Log, who.CompanyID, who.UserID, strings.ToLower(input.DocumentID))
 	s.importOutcome(w, created, wasCut, why, err)
 }
 

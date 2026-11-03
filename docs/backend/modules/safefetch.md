@@ -18,11 +18,17 @@ proxy, no compression; every redirect (at most 3) checked the same way
 2xx answer only (`http_status`), text/html or text/plain only
 (`wrong_type`), not compressed (`unsupported_encoding`), at most 2 MB
 (`too_large`), decoded with the charset its server names (else UTF-8).
+Every request, redirects too, names ansa in its User-Agent:
+`ansa-knowledge-import/1.0 (+<APP_URL>)` (`Fetcher.AppURL`, set from
+APP_URL when core starts; without it the name alone), because some sites
+(Wikipedia) refuse Go's default `Go-http-client/1.1`.
 Never logs: the caller logs the code, never the address.
 
 **Tests:** `fetch_test.go` (a fake internet: no test touches the network)
 — which addresses are public; a page fetched through a redirect and decoded
-from windows-1252; a non-page and a too-large page refused; http, a port,
-credentials, a private literal, a host resolving to a private address, a
-redirect to one, a redirect to http, a redirect loop and an unknown host
-each refused, and nothing private ever dialed.
+from windows-1252; a non-page and a too-large page refused; every request
+and redirect named ansa (a fake site refuses any other name), with and
+without ansa's address; http, a port, credentials, a private literal, a
+host resolving to a private address, a redirect to one, a redirect to
+http, a redirect loop and an unknown host each refused, and nothing
+private ever dialed.

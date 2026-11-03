@@ -11,6 +11,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 
 	"ansa/core/internal/database"
@@ -37,31 +39,46 @@ const (
 	maxPiecesPerHit = 2
 )
 
-// Words that say nothing about what is asked (English only, short on
-// purpose: the 'simple' configuration has no stop words of its own).
+// Words that say nothing about what is asked, in English and Bangla (short
+// on purpose: the 'simple' configuration has no stop words of its own).
 var stopWords = map[string]bool{}
 
 func init() {
-	for _, word := range strings.Fields(`an and are as at be but by can could did do does for from
+	english := `an and are as at be but by can could did do does for from
 		had has have he hello her hi his how if in is it its me my no not of on or our please she so thank
 		thanks that the their them then there they this to us was we were what when where which who why will
-		with would you your`) {
-		stopWords[word] = true
+		with would you your`
+	// Is there, what (two spellings), I, you, you all, do, of, and (two
+	// words), no, yes: in an OR-ed query each would find every article
+	// holding it.
+	bangla := `আছে কি কী আমি আপনি আপনারা করেন এর ও এবং না হ্যাঁ`
+	for _, word := range strings.Fields(english + " " + bangla) {
+		// In the form a question's words take, however this file spells them.
+		stopWords[searchForm(word)] = true
 	}
 }
 
 var wordPattern = regexp.MustCompile(`[\p{L}\p{M}\p{N}]+`)
 
+// searchForm is text as the index holds it: NFKC, then lower-cased as
+// Postgres's ICU does, with full case mapping ("İ" becomes "i" and a
+// combining dot, a "Σ" ending a word "ς"). strings.ToLower maps letter by
+// letter ("istanbul", "οδοσ"), which the index never holds. A new Caser
+// each time: one can't be shared between goroutines.
+func searchForm(text string) string {
+	return cases.Lower(language.Und).String(norm.NFKC.String(text))
+}
+
 // BuildTsQuery turns what someone asked into the query for
 // to_tsquery('simple', ...): the words (letters, marks and digits only, so
-// no operator or quote of Postgres's gets through), lower-cased in their
-// NFKC form, each once, at most 20, OR-ed, 4+ letters as a prefix. "" when
-// no word is left: then no search runs at all. It still goes to Postgres as
-// a parameter, never as SQL text.
+// no operator or quote of Postgres's gets through) in the index's form
+// (searchForm), each once, at most 20, OR-ed, 4+ letters as a prefix. ""
+// when no word is left: then no search runs at all. It still goes to
+// Postgres as a parameter, never as SQL text.
 func BuildTsQuery(text string) string {
 	var terms []string
 	seen := map[string]bool{}
-	for _, word := range wordPattern.FindAllString(strings.ToLower(norm.NFKC.String(text)), -1) {
+	for _, word := range wordPattern.FindAllString(searchForm(text), -1) {
 		length := utf8.RuneCountInString(word)
 		if length < 2 || length > maxWordLength || stopWords[word] || seen[word] {
 			continue

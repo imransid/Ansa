@@ -76,6 +76,31 @@ func TestAPublicPageIsFetchedAndDecoded(t *testing.T) {
 	}
 }
 
+// Some sites (Wikipedia) refuse Go's default name ("Go-http-client/1.1"):
+// every request, redirects too, names ansa and where to find it. The fake
+// site refuses any other name and answers with the name it got.
+func TestEveryRequestNamesAnsa(t *testing.T) {
+	fetcher := world(t, map[string]string{"example.com": "93.184.216.34"}, func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Header.Get("User-Agent"), "ansa-knowledge-import/1.0") {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		if r.URL.Path == "/move" {
+			http.Redirect(w, r, "/page", http.StatusFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		io.WriteString(w, r.Header.Get("User-Agent"))
+	})
+	if page, code := fetcher.Fetch(context.Background(), "https://example.com/move"); code != "" || page.Text != "ansa-knowledge-import/1.0" {
+		t.Fatalf("without ansa's address: %+v %q", page, code)
+	}
+	fetcher.AppURL = "https://ansa.example"
+	if page, code := fetcher.Fetch(context.Background(), "https://example.com/move"); code != "" || page.Text != "ansa-knowledge-import/1.0 (+https://ansa.example)" {
+		t.Fatalf("with ansa's address: %+v %q", page, code)
+	}
+}
+
 func TestNothingPrivateIsEverReached(t *testing.T) {
 	fetcher := world(t, map[string]string{"example.com": "93.184.216.34", "inside.example": "10.0.0.5"}, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
