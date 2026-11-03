@@ -384,7 +384,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     (findCustomerConfirmation), encrypted in calls.ai_evidence_encrypted
     (callEvidenceContext; a CHECK allows it on "solved" calls only), shown on the
     call page, never on a ticket.
-  - "Escalate to a ticket" (step 31): anyone in the company, on a call decided
+  - "Escalate to a ticket" (step 31; on screen "Open a request for this
+    call"): anyone in the company, on a call decided
     "solved" with no ticket (services/call-escalation.ts -> db/call-escalation.ts).
     ONE transaction: an UPDATE claims the call (this company, decided, solved, not
     escalated, no ticket; the call row is locked before ticket numbering takes the
@@ -1704,7 +1705,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   holding reply (DEFAULT_HOLDING_REPLY until an owner edits it, 1-500),
   instructions (0-2,000), takes_orders, time_zone + opening_hours (both or
   neither; lib/opening-hours.ts: at most two times a day, never
-  overlapping, within 00:00 to 24:00, a closing 00:00 = midnight), delivery
+  overlapping, within 00:00 to 24:00, a closing 00:00 = midnight; opening
+  hours need a time on at least one day, away hours may be empty), delivery
   with its note, pickup, payment note, currency (ISO 4217), public_phone,
   alert_by_email, updated_by_user_id (same-company foreign key). Plain text
   on purpose: the restaurant's own information for its customers. The
@@ -2080,7 +2082,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     the restaurant's name, what it serves, address and public phone, its
     hours with "now" in its time zone, delivery / pickup / payment notes,
     the AVAILABLE dishes with labels M1... and prices as the menu shows
-    them, the owner's instructions, up to 3 approved support articles
+    them, the names of today's unavailable dishes in <not_available_today>
+    (no label or price: "not available today", never "not on the menu";
+    they can't be ordered or priced), the owner's instructions, up to 3 approved support articles
     matching the customer's newest 3 messages (their words taken in turns,
     newest first: knowledge.CombineSearchTexts, so a follow-up keeps the
     article of the question before it; 3,000 characters), the active
@@ -2097,7 +2101,12 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     needs_decision, step 50; order_change, step 52), a subject and
     summary for the request, a category name, and (step 52) an order by
     menu label with the actions order_summary / order_confirmed /
-    order_withdrawn (see Orders below).
+    order_withdrawn (see Orders below). The prompt also says: never repeat
+    an amount the customer wrote (even to say no: the menu's price
+    instead), an order's notes are only what the customer asked for in
+    their words (never a comment to the restaurant), and its wanted time
+    is a 24-hour time with its day ("19:00 today"), asked again when it
+    could be morning or evening, is past or falls when closed.
   - ansa's checks before a reply may go (lib/assistant/reply-checks.ts):
     every amount written with a currency mark is a menu price or an amount
     in the owner's own texts (notes, instructions, approved articles'
@@ -2115,12 +2124,19 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     automated message a customer RECEIVES (sending, sent or unclear: never
     a waiting, discarded or failed one) starts with ansa's own line "I'm
     the AI assistant for <restaurant>." (lib/assistant/ai-label.ts), never
-    the AI's; ansa's order texts carry it too when they are the first.
+    the AI's; ansa's order texts carry it too when they are the first. For
+    a customer whose newest message is mostly Bengali script the label is
+    Bangla ("আমি <business>-এর এআই সহকারী।", AILabelIn, as the order
+    texts choose their language).
   - Anything else hands over (services/assistant-handover.ts,
     db/assistant-handover.ts, ONE transaction): the restaurant's holding
     reply (with the AI label when first; never the AI's text), a request
     (tickets.channel "chat", the AI's subject and summary or fixed words,
-    always the reason, HANDOVER_REASONS in lib/assistant/reasons.ts; the
+    always the reason, HANDOVER_REASONS in lib/assistant/reasons.ts, worded
+    by the account's kind; a reply ansa's own checks stopped gets a subject
+    saying why, "Reply stopped: a price not on your menu", and a stopped
+    price is named: "named the price BDT 250, which isn't on your menu"; the
+    reason "order" reads "They want to place an order or book a table"; the
     category by id; routed, its assignee emailed after commit) in the
     conversation, an assistant_activity "handed_over" row with the reason.
     Then the owners are alerted (services/owner-alerts.ts: an email to each
@@ -2209,7 +2225,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   contacts.important (anyone in the company, on the conversation page):
   ansa never answers them itself; it hands over at once with
   "important_person", no AI asked, whatever the away settings say (it runs
-  right after the gate). "While you were away" on Home: the assistant's
+  right after the gate). An important person writing again while their
+  request is open is told to the owners again (an alert "<name> wrote
+  again", a handed_over line; no second holding reply, no new request). "While you were away" on Home: the assistant's
   replied / drafted / handed_over lines and its email_made_request /
   call_needs_person notes since the person last pressed "Got it"
   (away_summary_reads, per company and person; the last day before the
@@ -2366,16 +2384,23 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     words take it, no AI. A handover doesn't end the call: the caller hears
     the AI's own words when they pass core's checks (else the holding
     reply, or "I'll pass that on" once a request is open), and a request is
-    opened only when none is open (one per call at most). At the end, a
+    opened only when none is open (one per call at most). A caller who
+    hangs up while the AI thinks hears nothing more, and nothing of that
+    answer is saved (the gate checks the call is still live in the save's
+    transaction). At the end, a
     request "A caller left a message" (reason call_message, routed, owners
     alerted: "ansa took their message on the call") for messages taken,
     unless one is open; then the phone.call_summary job has the AI write
     the call's note (who, what, how and when to reach them, in the call's
-    language): added to the open request's description ("After the call:
+    language; it is told the orders placed on the call and the caller's
+    name, and an order placed or a question fully answered needs nobody): added to the open request's description ("After the call:
     ...", within its 10,000 characters), giving a request ansa opened
     during that call the note's subject (never over a subject changed
     before; history "ansa updated the subject after the call"), or opening
-    a request when someone has to act. The caller's own words stay in the
+    a request when someone has to act (worded "After their call, ansa noted
+    something that waits for you", reason call_note in words only, with a
+    call_needs_person line: never "left a message"). On a call ansa says
+    amounts as people do ("700 taka", Bangla digits and words in Bangla). The caller's own words stay in the
     encrypted conversation; a request carries the AI's short summaries
     only, as a chat's does.
   - Only the assistant answering a live call speaks into a phone
@@ -2392,7 +2417,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     core in production): pretend to be a caller in English or Bangla (each
     visit calls from a new made-up number; "New caller" is someone else;
     leaving the page hangs up, and an answer that comes back after a hang
-    up is dropped), talk or type, hear ansa with the browser's voice of the words' language
+    up is dropped; the hang-up goes through its own route,
+    app/api/phone/practice/end, so it never waits behind a turn), talk or type, hear ansa with the browser's voice of the words' language
     (lib/practice-phone/speech.ts; none for Bangla in Chrome on a Mac: the
     words are shown, the page names Edge). Hearing: the browser's speech
     service where it has one (the default; Chrome's is Google's, so the
@@ -2432,7 +2458,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   on this computer", signed up and set up through core's own functions: a
   restaurant (Shapla Kitchen, business@demo.ansa.test, open all day) with a
   member (karim@demo.ansa.test) and a day of history spread over the
-  hours, and one person (rafa@demo.ansa.test, away, with a night of
+  hours, and one person (rafa@demo.ansa.test, away by "I'm away", with no
+  away hours so I'm back and I'm away work at any time, and a night of
   history). Conversations, calls and emails go through core's real
   assistant, webhooks, analyzer and processor with a scripted brain (the
   same every time, no AI at reset); what the seed shows is listed in
@@ -2445,7 +2472,10 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   it (never a draft), an email typed as a customer (saved and queued with
   the Resend webhook's own step, resend.SaveAndQueue), and the business
   answering from its own app (asBusiness, through each channel's own
-  path). The development mailbox (core/internal/devmail, Settings →
+  path). Its read also says what ansa does next (assistant.WhatNext, the
+  same gate, writing nothing): "ansa is writing..." only when ansa will
+  answer, else a line for the presenter (a request is open, taken over,
+  "ansa answers at HH:MM"); it polls only after the previous read ended. The development mailbox (core/internal/devmail, Settings →
   Connections → Development mailbox) shows the emails ansa wrote here: an
   owner's company's, matched by the ids in each email's name; before a
   login, the newest to a made-up address only (@demo.ansa.test, .test,
@@ -3439,7 +3469,7 @@ this order and is done on the laptop, deploying aside
   (summary, questions, confirmation, status messages) are in Bangla for a
   customer whose newest message is mostly Bengali script, else English
   (a Bangla customer answering "yes" in Latin letters gets the English
-  confirmation; the AI label stays English; other languages get English). There is no online payment, no
+  confirmation; other languages get English). There is no online payment, no
   minimum order, no delivery area check, no ready-time estimate and no
   stock: "Not available today" is the only limit. A change or a cancel of
   a placed order is a person's job (handover). The status messages go
@@ -4627,3 +4657,25 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   (trial ended, limits used up, back to normal); the image stand-in draws
   a gradient with the prompt's words. No migration, no new package, no
   new production setting.
+- 2026-11-04: The demo rehearsed with the real AI (eight areas in headless
+  Chrome) and fixed. Robustness: the screens send a read (GET) to core
+  once more when its connection breaks before core answered (a POST
+  never twice), RefreshEvery and the practice chat start a refresh or a
+  read only after the previous one ended (server actions and refreshes
+  run one at a time per browser, so they had piled up under load), and the
+  practice chat and phone say when ansa couldn't be reached instead of an
+  error screen. Behaviour: a phone order no longer opens a "left a
+  message" request after the call; a hang-up while ansa thinks drops that
+  answer; important people writing again reach the owners again; the AI
+  hears which dishes are "not available today", never repeats a
+  customer's own amount, writes notes in the customer's words and times
+  as "19:00 today"; a Bangla AI label for a Bangla customer; stopped
+  replies say why in their subject and name the amount; the practice chat
+  says what ansa does next; setup refuses opening hours with no time
+  (ansa had told customers "closed every day"); an unapproved draft with
+  a blocking issue is never offered the auto-publish rule; many words
+  (requests not tickets, a person's pages, developer notes folded away).
+  Demo seed: Rafa has no away hours (I'm back / I'm away work in an
+  evening demo), the facts name every dish, no seeded date contradicts
+  its title, and no seeded reply promises a table. No migration, no new
+  package or setting.

@@ -100,7 +100,7 @@ already in the Inbox continues that customer's chat.
    saved answer. (Saved answers → "Test what the AI finds" shows what it
    reads.)
 6. **Bangla.** As **রুমি** on Telegram: "আজকে কি খোলা আছে? কাচ্চিতে কি বাদাম
-   আছে?" ansa answers in Bangla. Then an order in Bangla ("২টা কাচ্চি
+   আছে?" ansa answers in Bangla (its AI label too). Then an order in Bangla ("২টা কাচ্চি
    বিরিয়ানি পিকআপ করব, সন্ধ্যা ৭টায়", then "হ্যাঁ"): ansa's summary,
    total and confirmation come in Bangla too.
 7. **A complaint.** As **Tania** on Messenger: "My food was cold!" ansa
@@ -126,7 +126,8 @@ already in the Inbox continues that customer's chat.
     Unassigned, Solved), Kamal's two requests (same customer, same person),
     notes and history. Solve one with an email.
 12. **Karim's view.** Log in as `karim@demo.ansa.test` in a private window:
-    a member sees his requests and the Inbox, not Billing or settings.
+    a member sees his requests and the Inbox, reads Settings without
+    changing them, and has no Billing.
 13. **The development mailbox.** Settings → Connections → Development
     mailbox: every email ansa wrote (alerts to you, "request #N is yours"
     to Karim, the solved email to the customer).
@@ -172,7 +173,8 @@ already in the Inbox continues that customer's chat.
 - **Emails page** (Inbox → Emails): "Process again" on Imtiaz's email, and
   the bounced email under "Customer emails not delivered".
 - **Menu**: Settings → Menu and prices → "Not available today" on a dish
-  (ansa stops offering it), and **Read my menu**: a photo of a menu, a
+  (ansa stops offering it and tells customers it's not available today:
+  ask about Shorshe Ilish, which the demo marks so), and **Read my menu**: a photo of a menu, a
   PDF, a Word file or pasted text, for example: `Desserts / Roshogolla (2
   pcs) 40 / Mishti Doi 70 / Drinks / Lemon Mint 90 / Cha 20` (the AI
   reads it; nothing is added until "Looks right"). Prices typed the way
