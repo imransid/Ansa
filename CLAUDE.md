@@ -1946,6 +1946,40 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     _SECRET; "stand-in" in development (the stand-in Page of step 40, `pnpm
     simulate:messenger`, replies to .dev-messages/); production without
     the app has no Messenger.
+- Facebook Page comments (step 59, core/internal/comments,
+  docs/backend/modules/comments.md; Inbox → Comments, the switch on
+  Connections' Facebook Page card, the practice chat's "Facebook comment").
+  The same signed Page webhook (messenger) carries the Page's "feed":
+  only a NEW top-level comment (item comment, verb add) is read; the
+  company comes ONLY from the Page id Meta signed, connected in exactly one
+  company. page_comments: one row per company and Meta comment id (an ad
+  can send one twice), the comment ENCRYPTED, the commenter's name as Meta
+  gives it; the Page's own comments, replies inside a thread, comments over
+  7 days old, a switch off (assistant_settings.comments_on, owners of a
+  business, off by default), a Page without pages_read_user_content and
+  pages_manage_engagement (a stand-in in development aside) and a package
+  without Messenger are saved skipped with why. A job reads the business's
+  own details as the chat assistant does (today's menu, the dishes not
+  available today, saved answers, instructions) plus the post's text, and
+  the brain (POST /v1/comments/reply, one AI reply of the package) proposes
+  a kind; CORE decides: a question = the AI's short public reply (ansa's
+  reply checks: menu prices, no refund words, no unknown links); a price or
+  an order = a public note ansa picks (five English, five Bangla, by the
+  comment's id) plus a PRIVATE message (Meta's private reply: one per
+  comment, within 7 days) with the AI label and the AI's checked text; a
+  complaint or anything unsure (a text the checks stopped, no AI) = a
+  public note (an apology for a complaint), the holding reply in private,
+  a request and the owners' alert; thanks and spam = nothing. Meta's answer
+  to the private reply names the commenter's Page-scoped id: the Messenger
+  conversation is made with the private message in it, so the person's
+  answer continues there with the chat assistant (orders included). "Ask me
+  first": the AI's own texts (and an order's note with its message) wait
+  for Send or Discard; ansa's fixed notes and holding replies never wait.
+  Public replies carry no AI label; private messages always start with it.
+  Hourly ceilings: 100 comments a business, 5 a commenter. Stand-ins
+  (development) write to .dev-messages/; the practice comment's commenter
+  is standins.PSID(name), so the practice chat's Messenger chat for that
+  name continues the private message.
 - WhatsApp Business (step 56, core/internal/whatsapp, docs/backend/modules/
   whatsapp.md; Settings → Connections, POST and GET /webhooks/whatsapp). A
   business, or one person who uses the WhatsApp Business app, connects its
@@ -2625,13 +2659,16 @@ Automatic by default; "Ask me first" is an option:
     answered as on Telegram. Real customers BLOCKED until Meta's approval
 57. Packages and usage limits (names, limits and prices: the owner decides)
 58. Website, clean-up of hidden pages, final checks
+59. Facebook Page comments: a short public reply, prices and orders privately in
+    Messenger. Real Pages BLOCKED until Meta's App Review
 
 Steps 50 and 51 were added on 2026-11-01 by the owner's direction: ansa is a
 representative that answers for you when you can't, for a business (its
 customers) or for one person (their shadow). The old steps 50 to 55 became
 52 to 57; decision log entries keep the numbers they had at the time.
 WhatsApp Business was added as step 56 on 2026-11-03 (the owner's yes):
-packages and the website became 57 and 58.
+packages and the website became 57 and 58. Facebook Page comments were
+added as step 59 on 2026-11-04 (the owner's yes, after research).
 
 Every outside service gets a local stand-in (like .dev-emails/), so each step can
 be built and tested before the real account exists.
@@ -3538,6 +3575,24 @@ this order and is done on the laptop, deploying aside
   status messages of orders too. One person is a different customer on
   each Page (Page-scoped ids). Attachments are only named. A Page
   connected in two companies receives nothing in either.
+- Facebook Page comments (step 59): nothing has met Meta: the feed
+  webhook, the private reply and the public reply follow Meta's
+  documentation and are checked with fakes. Real Pages need App Review for
+  pages_read_user_content and pages_manage_engagement (and Business
+  Verification). NOT CONFIRMED: the feed payload's exact shape
+  (created_time, parent_id on a top-level comment, photo and video fields),
+  that the private reply's answer names recipient_id (without it the
+  Messenger conversation starts only when the person answers), Meta's
+  error codes past 7 days or for a second private reply, that a post's text
+  is readable with the Page token alone, and that Meta echoes ansa's
+  private reply with ansa's app id (otherwise it would be saved as the
+  Page's own message and take the conversation over in "always" mode).
+  Only top-level comments are answered (no threads), edits and deletions
+  are ignored, the comment's photo or video is only named, the post's
+  image or video isn't looked at (only its text), Instagram comments
+  aren't answered, and nothing hides or deletes spam (the owner does on
+  Facebook). The post's text on the Comments page shows only for posts
+  ansa published.
 - WhatsApp Business (step 56): nothing has met Meta: the sign-up, the
   webhook, the Send API and the account changes follow Meta's documentation
   (Graph v26.0, Embedded Signup v4) and are checked with fakes. Real
@@ -3709,9 +3764,11 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   ansa's own test company.
 - For Messenger (docs/going-live.md, section 13): add the Messenger
   product to ansa's Meta app, set MESSENGER_VERIFY_TOKEN and the webhook
-  (messages, message_echoes), pass App Review for pages_messaging and
-  pages_manage_metadata, and check one Page's message, name, reply and
-  Business Suite echo with ansa's own test Page.
+  (messages, message_echoes, feed), pass App Review for pages_messaging,
+  pages_manage_metadata and (comments, step 59) pages_read_user_content
+  and pages_manage_engagement, and check one Page's message, name, reply,
+  Business Suite echo and a comment's public and private replies with
+  ansa's own test Page.
 - For WhatsApp (docs/going-live.md, section 14): add the WhatsApp product
   to ansa's Meta app, become a Tech Provider (Business Verification, App
   Review for whatsapp_business_messaging and whatsapp_business_management),
@@ -4679,3 +4736,16 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   evening demo), the facts name every dish, no seeded date contradicts
   its title, and no seeded reply promises a table. No migration, no new
   package or setting.
+- 2026-11-04: Step 59, Facebook Page comments (the owner's yes after
+  research: ~/Documents/business/ansa-facebook-comments-research.md). The
+  market's practice (Meta's own "comment to message", ManyChat and others,
+  Bangladeshi f-commerce tools): a short public reply and the details in a
+  private Messenger message, within seconds. Decisions where the research
+  left room: the AI reads every comment (not keywords) and core decides by
+  its kind (a question answered publicly, a price or an order privately,
+  a complaint passed to a person, praise and spam left alone); the same
+  reply checks as chats; ansa's own fixed public notes, rotated, in English
+  or Bangla; the private reply opens the Messenger conversation, so an
+  order goes on there; top-level comments only; off until an owner
+  switches it on (on in the demo). Migration 0052_page_comments (the table
+  and assistant_settings.comments_on); no new package or setting.
