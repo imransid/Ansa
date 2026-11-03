@@ -2,8 +2,10 @@
 
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import { setUserCategoriesAction } from "@/app/actions/categories";
+import { SavedNote } from "@/components/saved-note";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { FormErrors } from "@/lib/form-result";
 import type { Category } from "@/lib/types/categories";
 
 type MemberCategoriesProps = {
@@ -18,11 +20,32 @@ type MemberCategoriesProps = {
 // Which categories one person handles, with checkboxes to change it.
 export function MemberCategories({ userId, activeCategories, handledCategoryIds, canEdit }: MemberCategoriesProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [errors, saveAction, isSaving] = useActionState(setUserCategoriesAction, undefined);
+  // "Saved." beside the list, from a save that worked until Edit is pressed again.
+  const [justSaved, setJustSaved] = useState(false);
+  const [errors, saveAction, isSaving] = useActionState(saveThenClose, undefined);
   const handledNames = activeCategories
     .filter((category) => handledCategoryIds.includes(category.id))
     .map((category) => category.name);
   const errorId = `categories-of-${userId}-error`;
+
+  // A save that worked closes the editor (the same boxes saved again change
+  // nothing on screen, so without it the page looked as if nothing happened).
+  // In the action's transition, so it closes as the saved list arrives.
+  async function saveThenClose(previous: FormErrors | undefined, formData: FormData) {
+    const result = await setUserCategoriesAction(previous, formData);
+    if (!result) {
+      startTransition(() => {
+        setIsEditing(false);
+        setJustSaved(true);
+      });
+    }
+    return result;
+  }
+
+  function openEditor() {
+    setJustSaved(false);
+    setIsEditing(true);
+  }
 
   // WHY by hand: when <form action> runs an action, React resets the form's
   // fields afterwards, so after an error ("Too many changes") the boxes would
@@ -39,10 +62,11 @@ export function MemberCategories({ userId, activeCategories, handledCategoryIds,
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm">{handledNames.length > 0 ? handledNames.join(", ") : <NoCategories />}</span>
         {canEdit && activeCategories.length > 0 && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+          <Button type="button" variant="ghost" size="sm" onClick={openEditor}>
             Edit
           </Button>
         )}
+        <SavedNote saved={justSaved} />
       </div>
     );
   }

@@ -91,8 +91,6 @@ function MemberRow({ member, isYou, canManageTeam, activeCategories, handledCate
       <TableCell>
         {member.emailConfirmed ? (
           <MemberCategories
-            // A new key after each save closes the editor.
-            key={handledCategoryIds.join(",")}
             userId={member.id}
             activeCategories={activeCategories}
             handledCategoryIds={handledCategoryIds}
