@@ -5,6 +5,7 @@ import (
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/profile"
+	"ansa/core/internal/setup"
 	"ansa/core/internal/tenant"
 )
 
@@ -27,7 +28,8 @@ var keyFactTopics = func() []string {
 }()
 
 // Overview is the support numbers, and the marketing helper's once the
-// company started it (a fact, an interview answer or a draft).
+// company started it (a fact setup doesn't write, an interview message or a
+// draft).
 type Overview struct {
 	Support   SupportNumbers    `json:"support"`
 	Marketing *MarketingNumbers `json:"cofounder"`
@@ -84,11 +86,14 @@ func ReadOverview(ctx context.Context, pool *database.Pool, company tenant.Compa
 		return o, err
 	}
 	var started bool
+	// WHY not any fact: setup confirms the name, what the business does and
+	// its address, and a business that only went through setup never
+	// started the marketing helper.
 	const startedMarketing = `
-		SELECT EXISTS (SELECT 1 FROM business_facts WHERE company_id = $1)
+		SELECT EXISTS (SELECT 1 FROM business_facts WHERE company_id = $1 AND NOT (topic = ANY($2)))
 			OR EXISTS (SELECT 1 FROM onboarding_messages WHERE company_id = $1)
 			OR EXISTS (SELECT 1 FROM content_drafts WHERE company_id = $1)`
-	if err := pool.QueryRow(ctx, startedMarketing, company.String()).Scan(&started); err != nil || !started {
+	if err := pool.QueryRow(ctx, startedMarketing, company.String(), setup.FactTopics).Scan(&started); err != nil || !started {
 		return o, err
 	}
 	m := &MarketingNumbers{KeyFactsTotal: len(keyFactTopics)}

@@ -10,12 +10,18 @@ import (
 	"ansa/core/internal/tenant"
 )
 
-// setOwnerFactWithin sets one business fact as the owner's own (source
+// FactTopics are the business facts setup writes as the owner's own: the
+// name, what the business does and its address. Saving them starts nothing
+// of the marketing helper (Home's numbers, core/internal/home).
+var FactTopics = []string{"company_name", "description", "location"}
+
+// SetOwnerFactWithin sets one business fact as the owner's own (source
 // "owner", confirmed at once) inside a transaction that already checked the
 // owner: the setup's name, description and location, so posts can use them
-// too. A waiting proposal that says the same is cleared (nothing is left to
-// confirm); any other stays for the owner to look at.
-func setOwnerFactWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, actorUserID, topic, value string) error {
+// too (and /setup's "Company name", core/internal/supportsetup). A waiting
+// proposal that says the same is cleared (nothing is left to confirm); any
+// other stays for the owner to look at.
+func SetOwnerFactWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, actorUserID, topic, value string) error {
 	var confirmed, proposed *string
 	err := tx.QueryRow(ctx, `SELECT confirmed_value, proposed_value FROM business_facts WHERE company_id = $1 AND topic = $2 FOR UPDATE`,
 		company.String(), topic).Scan(&confirmed, &proposed)

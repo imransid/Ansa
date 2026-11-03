@@ -18,6 +18,7 @@ func (s *Server) registerBilling(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/billing/checkout", s.withSession(s.billingOwners(s.checkout)))
 	routes.HandleFunc("POST /api/v1/billing/portal", s.withSession(s.billingOwners(s.billingPortal)))
 	routes.HandleFunc("POST /api/v1/billing/simulate", s.withSession(s.billingOwners(s.simulateBilling)))
+	routes.HandleFunc("POST /api/v1/billing/demo", s.withSession(s.billingOwners(s.billingDemoStep)))
 }
 
 // billingOwners refuses members and counts the owner's action.
@@ -140,4 +141,38 @@ func (s *Server) simulateBilling(w http.ResponseWriter, r *http.Request, body []
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"outcome": "saved"})
+}
+
+// The demo steps' refusals, worded for the person giving the demo.
+var demoRefusals = map[string]string{
+	billing.DemoNoFailedPayment: "There is no failed payment to fix: simulate a failed payment first.",
+	billing.DemoNoSubscription:  "There is no subscription to cancel: simulate choosing a package first.",
+}
+
+// billingDemoStep: {step: trial_ended | ai_replies_used_up |
+// call_minutes_used_up | payment_fixed | cancel_at_period_end |
+// back_to_normal}, development only (as simulateBilling).
+func (s *Server) billingDemoStep(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
+	var input struct {
+		Step string `json:"step"`
+	}
+	if s.BillingMode != "dev" {
+		problem(w, http.StatusConflict, "Simulating payments is only possible in development.")
+		return
+	}
+	if !readJSON(body, &input) {
+		problem(w, http.StatusBadRequest, "Unknown demo step.")
+		return
+	}
+	outcome, err := billing.SimulateDemo(r.Context(), s.Pool, who.CompanyID, input.Step, time.Now())
+	switch {
+	case err != nil:
+		s.failed(w, "billing demo", err)
+	case outcome == billing.DemoUnknown:
+		problem(w, http.StatusBadRequest, "Unknown demo step.")
+	case outcome != billing.DemoSaved:
+		problem(w, http.StatusConflict, demoRefusals[outcome])
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{"outcome": outcome})
+	}
 }

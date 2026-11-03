@@ -30,11 +30,13 @@
   without a team, "Needs you" names them, as no conversation lists them),
   calls of the last 7 days and those the AI solved,
   emails being read and stuck, conversations that need a person; once the
-  company started the marketing helper (a fact, an interview answer or a
-  draft) also drafts waiting, posts scheduled within 7 days, needing
-  attention and failed in the last 7 days, key facts confirmed (of 16) and
-  social accounts to reconnect as of now. Each count reads at most 10,001
-  rows ("10,000+") with the condition of the list it links to.
+  company started the marketing helper (a fact setup doesn't write, an
+  interview message or a draft: setup's name, description and address,
+  `setup.FactTopics`, start nothing) also drafts waiting, posts scheduled
+  within 7 days, needing attention and failed in the last 7 days, key
+  facts confirmed (of 16) and social accounts to reconnect as of now. Each
+  count reads at most 10,001 rows ("10,000+") with the condition of the
+  list it links to.
 - `undeliveredEmails` (customer emails never delivered, as the Emails
   page lists them) and `handlesNoCategory` (the company has categories,
   this person handles none).
@@ -81,6 +83,8 @@ the requests in no conversation counted for whoever looks (nobody's and
 their own, not a colleague's, a chat's or a solved one).
 `home/away_test.go`: a reply replaced by a newer one counts once, and one a
 teammate sent is neither waiting nor listed.
+`home/overview_test.go`: setup's facts alone show no post numbers; a fact
+of another topic, a draft or an interview message does.
 `api/assistant_settings_test.go`: defaults; an empty holding reply refused
 with its words; saved; an own key stored encrypted and shown by its last
 four; Claude Code refused without the brain's say-so; Claude Code standing

@@ -19,6 +19,8 @@ export type PostedSlot = {
   body: string | null;
   // Reactions + comments + shares in the post's newest numbers, or null.
   engagement: number | null;
+  // Those numbers were simulated (development), and the list says so.
+  engagementSimulated: boolean;
 };
 
 export type AutopostPage = {
@@ -35,4 +37,7 @@ export type AutopostPage = {
   nextTimes: Date[];
   // ansa's newest 20 posts.
   slots: PostedSlot[];
+  // A post is about to go out (due within the next minute, or a moment
+  // ago and not out yet): the page refreshes itself until it shows posted.
+  isBusy: boolean;
 };

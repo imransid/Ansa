@@ -56,13 +56,14 @@ func TestOneBusinessFromSignupToItsFirstOrderAndPost(t *testing.T) {
 	}
 
 	// "Post for me": the Page connected, the switch on, a post written now
-	// and sent by the queue's next round.
+	// and sent right after the answer, so the queue's next round finds
+	// nothing left to send.
 	j.mustSave(pizzeria, "/api/v1/social/facebook/stand-in", `{}`)
 	j.mustSave(pizzeria, "/api/v1/settings/posts", `{"enabled":true,"frequency":"three_a_week","time":"11:00","mode":"automatic","understood":true}`)
 	j.brain.willPost(`{"kind":"ok","body":"Fresh Margherita from our wood oven tonight.","call_to_action":"Write to us on Telegram","hashtags":["pizza"]}`)
 	j.mustSave(pizzeria, "/api/v1/settings/posts/now", `{}`)
-	if _, err := j.core.publisher.RunDue(context.Background(), pizzeria.companyID); err != nil {
-		t.Fatalf("the queue's round: %v", err)
+	if handled, err := j.core.publisher.RunDue(context.Background(), pizzeria.companyID); err != nil || handled != 0 {
+		t.Fatalf("the queue's round, after the post went out: %d %v", handled, err)
 	}
 	posted, _ := filepath.Glob(filepath.Join(j.dev, ".dev-social", "facebook", "*"))
 	if len(posted) != 1 {

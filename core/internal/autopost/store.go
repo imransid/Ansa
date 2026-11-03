@@ -120,6 +120,9 @@ type Slot struct {
 	Body        *string   `json:"body"`
 	// Reactions + comments + shares in the post's newest numbers, or nil.
 	Engagement *float64 `json:"engagement"`
+	// Those numbers were simulated (development: `make simulate-post-metrics`),
+	// and the page says so, as every page showing numbers does.
+	EngagementSimulated bool `json:"engagementSimulated"`
 }
 
 // ListPostingTimes are the company's newest planned posts, newest first,
@@ -127,14 +130,16 @@ type Slot struct {
 func ListPostingTimes(ctx context.Context, pool *database.Pool, company tenant.CompanyID, limit int) ([]Slot, error) {
 	const statement = `
 		SELECT slots.id, slots.post_at, slots.status, slots.kind, slots.topic, slots.item_name, slots.special_day, slots.skip_reason,
-			slots.draft_id, drafts.status, drafts.body,
-			(SELECT COALESCE(metrics.reactions, 0) + COALESCE(metrics.comments, 0) + COALESCE(metrics.shares, 0)
-				FROM post_metrics AS metrics
-				JOIN publish_jobs AS jobs ON jobs.company_id = metrics.company_id AND jobs.id = metrics.publish_job_id
-				WHERE jobs.company_id = slots.company_id AND jobs.draft_id = slots.draft_id
-				ORDER BY metrics.collected_at DESC LIMIT 1)::float8
+			slots.draft_id, drafts.status, drafts.body, newest.engagement, COALESCE(newest.simulated, false)
 		FROM autopost_slots AS slots
 		LEFT JOIN content_drafts AS drafts ON drafts.company_id = slots.company_id AND drafts.id = slots.draft_id
+		LEFT JOIN LATERAL (
+			SELECT (COALESCE(metrics.reactions, 0) + COALESCE(metrics.comments, 0) + COALESCE(metrics.shares, 0))::float8 AS engagement,
+				metrics.source = 'dev_simulated' AS simulated
+			FROM post_metrics AS metrics
+			JOIN publish_jobs AS jobs ON jobs.company_id = metrics.company_id AND jobs.id = metrics.publish_job_id
+			WHERE jobs.company_id = slots.company_id AND jobs.draft_id = slots.draft_id
+			ORDER BY metrics.collected_at DESC LIMIT 1) AS newest ON true
 		WHERE slots.company_id = $1
 		ORDER BY slots.post_at DESC LIMIT $2`
 	rows, err := pool.Query(ctx, statement, company.String(), limit)
@@ -145,7 +150,8 @@ func ListPostingTimes(ctx context.Context, pool *database.Pool, company tenant.C
 	slots := []Slot{}
 	for rows.Next() {
 		var s Slot
-		if err := rows.Scan(&s.ID, &s.PostAt, &s.Status, &s.Kind, &s.Topic, &s.ItemName, &s.SpecialDay, &s.SkipReason, &s.DraftID, &s.DraftStatus, &s.Body, &s.Engagement); err != nil {
+		if err := rows.Scan(&s.ID, &s.PostAt, &s.Status, &s.Kind, &s.Topic, &s.ItemName, &s.SpecialDay, &s.SkipReason, &s.DraftID, &s.DraftStatus, &s.Body,
+			&s.Engagement, &s.EngagementSimulated); err != nil {
 			return nil, err
 		}
 		slots = append(slots, s)

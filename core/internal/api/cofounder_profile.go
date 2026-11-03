@@ -2,12 +2,12 @@ package api
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"ansa/core/internal/profile"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
+	"ansa/core/internal/supportsetup"
 )
 
 // The Co-Founder's business profile (see docs/backend/modules/profile.md).
@@ -92,11 +92,17 @@ func (s *Server) confirmFact(w http.ResponseWriter, r *http.Request, body []byte
 	value := shown
 	if input.Value != nil {
 		typed, trouble := profile.FormText(*input.Value, profile.FactMaxLength, "Write the fact first.", "A fact can be at most 2,000 characters.")
+		if trouble == "" {
+			typed, trouble = businessName(input.Topic, typed)
+		}
 		if trouble != "" {
 			fieldProblems(w, map[string]string{"value": trouble})
 			return
 		}
 		value = typed
+	} else if _, trouble := businessName(input.Topic, shown); trouble != "" {
+		problem(w, http.StatusBadRequest, trouble+": use Edit and confirm to change it first.")
+		return
 	}
 	if !s.ownerWithinProfileLimit(w, r, who, "Only owners can change the business profile.") {
 		return
@@ -139,6 +145,9 @@ func (s *Server) editFact(w http.ResponseWriter, r *http.Request, body []byte, w
 		return
 	}
 	value, trouble := profile.FormText(input.Value, profile.FactMaxLength, "Write the fact first.", "A fact can be at most 2,000 characters.")
+	if trouble == "" {
+		value, trouble = businessName(input.Topic, value)
+	}
 	if trouble != "" {
 		fieldProblems(w, map[string]string{"value": trouble})
 		return
@@ -164,40 +173,13 @@ func (s *Server) factOutcome(w http.ResponseWriter, outcome string, err error, s
 	}
 }
 
-// Suggestions: 20 an hour per company (each is a paid AI call).
-var factSuggestions = ratelimit.Rule{MaxAttempts: 20, Window: time.Hour}
-
-// suggestFacts: {articleId}: the AI reads one approved article (owners).
-func (s *Server) suggestFacts(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
-	var input struct {
-		ArticleID string `json:"articleId"`
+// businessName checks the business name as the company's name it becomes
+// too (supportsetup.CheckCompanyName, as /setup's "Company name": 2-100
+// characters, one line): the cleaned name, or why not. Any other topic's
+// value passes as it is.
+func businessName(topic, value string) (string, string) {
+	if topic != profile.CompanyNameTopic {
+		return value, ""
 	}
-	if !readJSON(body, &input) || !uuidPattern.MatchString(input.ArticleID) {
-		fieldProblems(w, map[string]string{"articleId": "Pick an article first."})
-		return
-	}
-	if !who.IsOwner() {
-		problem(w, http.StatusForbidden, "Only owners can ask for suggestions.")
-		return
-	}
-	if over, err := s.Limiter.Over(r.Context(), "fact-suggestions", who.CompanyID.String(), factSuggestions); err != nil || over {
-		problem(w, http.StatusTooManyRequests, "Your company asked for a lot of suggestions this hour. Wait a while and try again.")
-		return
-	}
-	allowLongAnswer(w, 150*time.Second)
-	result, err := s.profileService().Suggest(r.Context(), who.CompanyID, who.UserID, strings.ToLower(input.ArticleID))
-	switch {
-	case err != nil:
-		s.failed(w, "fact suggestions", err)
-	case result.Outcome == profile.ArticleNotFound:
-		problem(w, http.StatusNotFound, "That article is not an approved article of your company. Reload the page and pick another.")
-	case result.Outcome == profile.ArticleNotForAI:
-		problem(w, http.StatusConflict, "That article is ticked for neither support nor marketing, so no AI may read it. Tick one on its Knowledge page, or pick another.")
-	case result.Outcome == profile.NoAnswer:
-		problem(w, http.StatusBadGateway, "The AI couldn't read the article just now, so nothing was proposed. Try again later.")
-	case result.Outcome == profile.NotAllowed:
-		problem(w, http.StatusForbidden, "Only owners can ask for suggestions.")
-	default:
-		writeJSON(w, http.StatusOK, result)
-	}
+	return supportsetup.CheckCompanyName(value)
 }

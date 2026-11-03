@@ -81,8 +81,9 @@ func (s *Server) savePosts(w http.ResponseWriter, r *http.Request, body []byte, 
 	}
 }
 
-// postNow: "Post one now" (owners), written now and, in Automatic, sent by
-// the queue within seconds. Waits for the AI (two tries at most).
+// postNow: "Post one now" (owners), written now and, in Automatic, sent
+// right after the answer, as the queue's "Publish now" is. Waits for the AI
+// (two tries at most).
 func (s *Server) postNow(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	if !who.IsOwner() {
 		problem(w, http.StatusForbidden, "Only owners can post.")
@@ -103,6 +104,9 @@ func (s *Server) postNow(w http.ResponseWriter, r *http.Request, _ []byte, who *
 	case outcome.Outcome == autopost.SlotSkipped || outcome.Outcome == "taken":
 		problem(w, http.StatusUnprocessableEntity, "ansa couldn't write a post just now: the list below says why.")
 	default:
+		if len(outcome.JobIDs) > 0 {
+			s.sendSoon(who, outcome.JobIDs)
+		}
 		writeJSON(w, http.StatusOK, map[string]string{"outcome": outcome.Outcome})
 	}
 }

@@ -43,8 +43,9 @@ export type CofounderOverviewNumbers = CofounderOverviewCounts & {
 
 export type BusinessOverview = {
   support: SupportOverviewCounts;
-  // null: the company hasn't started the Co-Founder yet (no fact, interview
-  // answer or draft): the page shows one line inviting an owner instead.
+  // null: the company hasn't started the Co-Founder yet (no fact but the
+  // ones setup writes, no interview answer or draft): the page shows one
+  // line inviting an owner instead.
   cofounder: CofounderOverviewNumbers | null;
   // Only owners answer the interview, so only they are invited to start.
   canStartCofounder: boolean;

@@ -1,5 +1,5 @@
 import { LocalDateTime } from "@/components/local-date-time";
-import { callMinutesUsed, trialDaysLeft } from "@/lib/packages";
+import { callMinutesUsed, daysLeftWords, trialDaysLeft } from "@/lib/packages";
 import type { BillingView } from "@/lib/types/billing";
 
 // The package the company has now and what it used this month (step 57):
@@ -40,9 +40,8 @@ function PackageLine({ billing }: { billing: BillingView }) {
     const days = trialDaysLeft(billing.trialEndsAt, new Date());
     return (
       <p className="text-sm">
-        Free for {days === 0 ? "the rest of today" : days === 1 ? "one more day" : `${days} more days`}, no card needed (until{" "}
-        <LocalDateTime iso={billing.trialEndsAt.toISOString()} />
-        ). Choose a package below to keep ansa answering after that.
+        Free until <LocalDateTime iso={billing.trialEndsAt.toISOString()} /> ({daysLeftWords(days)}), no card needed. Choose a package below
+        to keep ansa answering after that.
       </p>
     );
   }

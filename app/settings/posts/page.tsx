@@ -6,6 +6,7 @@ import { ActionButton } from "@/components/action-button";
 import { AutopostForm } from "@/components/autopost/autopost-form";
 import { LocalDateTime } from "@/components/local-date-time";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshWhilePending } from "@/components/refresh-while-pending";
 import { StatusDot } from "@/components/status-dot";
 import { POST_KIND_LABELS } from "@/lib/autopost/brain";
 import { AUTOPOST_FREQUENCY_LABELS } from "@/lib/autopost/schedule";
@@ -48,6 +49,8 @@ async function PostsForMe() {
   const page = await getAutopostPageFromCore();
   return (
     <>
+      {/* "Post one now" (or the next planned post) shows as posted by itself. */}
+      <RefreshWhilePending isPending={page.isBusy} />
       {page.pages.length === 0 && (
         <p className="rounded-xl bg-attention-surface px-4 py-3 text-sm">
           Connect your Facebook Page first.{" "}

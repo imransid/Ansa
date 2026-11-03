@@ -73,11 +73,17 @@ stays) and marks them "stopped".
 on, the one cross-company read in CROSS_COMPANY.md: ids and these settings
 only; at most 10 posts a round; one company's failure is logged and the
 round goes on). "Post one now" (owners, 5 an hour per company) writes one
-for this moment; the queue sends it within seconds.
+for this moment and, in Automatic, sends it right after the answer, as the
+queue's "Publish now" does (`Runner.SendSoon`; the queue's next round
+otherwise).
 
 **API ([api](api.md)):** `GET /api/v1/settings/posts` (everyone: the switch,
 the Pages by name, the next three times, the newest 20 posts with where
-each is, why one was skipped, and its reactions + comments + shares),
+each is, why one was skipped, and its reactions + comments + shares,
+`engagementSimulated` when those numbers were simulated in development;
+`isBusy` while a scheduled post is due within the next minute or went due
+in the last 2 and isn't out yet: the page refreshes itself until it shows
+posted, `page.go`),
 `POST /api/v1/settings/posts` `{enabled, frequency, time, mode, understood}`
 (owners), `POST /api/v1/settings/posts/now` (owners; waits up to 270 s).
 
@@ -92,7 +98,10 @@ brain: Automatic writes Wednesday's post once on Tuesday, queues it at
 11:00 in Rome under the owner's rule with only the business's details sent,
 switching off takes it back and switches the rule off; a made-up price is
 tried once more on another kind, then skipped with nothing saved; Ask me
-first leaves a draft for the owner; no AI is said); `api/posts_test.go`;
+first leaves a draft for the owner; no AI is said); `page_test.go` (the
+page waits for a post going out and stops once it is out; simulated
+numbers say so); `api/posts_test.go` ("Post one now" goes out right after
+the answer);
 `brain/tests/test_posts.py` (the prompt escapes and hides numbers, the
 answer is strict and cleaned, no model = nothing written, an unknown field
 refused).

@@ -10,14 +10,31 @@ import (
 	"ansa/core/internal/tenant"
 )
 
+// CompanyNameTopic is the business name: the company's own name too (the
+// sidebar, the sender of customer emails, Settings), so saving it renames
+// the company, and it follows the company name's rules (the API checks
+// them: 2-100 characters, one line).
+const CompanyNameTopic = "company_name"
+
+// renameCompanyWithin gives the company the business name just confirmed,
+// in the transaction that confirmed it (as /setup's "Company name" confirms
+// this fact): one name everywhere. The caller took the company row lock
+// first, the order every owner setting takes.
+func renameCompanyWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, name string) error {
+	_, err := tx.Exec(ctx, `UPDATE companies SET name = $2 WHERE id = $1`, company.String(), name)
+	return err
+}
+
 // SaveValue saves an owner's own value for one topic, confirmed at once
 // (source "owner": Edit, or Fill in). originalValue is the confirmed value
 // the editor opened with ("" = none): when the stored one differs, someone
 // changed the fact meanwhile and nothing is saved (Stale). A proposal
 // waiting beside it stays, unless it says the same as the new value: then
-// there is nothing left to confirm, and it is cleared.
+// there is nothing left to confirm, and it is cleared. A new business name
+// renames the company too.
 func SaveValue(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, topic, originalValue, value string) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, false, func(tx database.Tx) (string, error) {
+	isName := topic == CompanyNameTopic
+	return asOwner(ctx, pool, company, actorUserID, isName, func(tx database.Tx) (string, error) {
 		var current *string
 		err := tx.QueryRow(ctx, `SELECT confirmed_value FROM business_facts WHERE company_id = $1 AND topic = $2 FOR UPDATE`,
 			company.String(), topic).Scan(&current)
@@ -44,7 +61,11 @@ func SaveValue(ctx context.Context, pool *database.Pool, company tenant.CompanyI
 				updated_at = now()
 			WHERE business_facts.confirmed_value IS NOT DISTINCT FROM $5`
 		tag, err := tx.Exec(ctx, upsert, company.String(), topic, value, actorUserID, nullIfEmpty(originalValue))
-		return changedOrStale(tag.RowsAffected(), err)
+		outcome, err := changedOrStale(tag.RowsAffected(), err)
+		if err != nil || outcome != Changed || !isName {
+			return outcome, err
+		}
+		return outcome, renameCompanyWithin(ctx, tx, company, value)
 	})
 }
 

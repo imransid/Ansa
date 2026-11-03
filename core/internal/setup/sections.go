@@ -52,7 +52,7 @@ func (c *Contact) Check() Fields {
 // SaveContact saves step 2 (the address is the "location" business fact).
 func SaveContact(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, c Contact, reached int) (string, error) {
 	return settings.AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
-		if err := setOwnerFactWithin(ctx, tx, company, actorUserID, "location", c.Address); err != nil {
+		if err := SetOwnerFactWithin(ctx, tx, company, actorUserID, "location", c.Address); err != nil {
 			return err
 		}
 		var phone *string

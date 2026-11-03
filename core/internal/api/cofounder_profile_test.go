@@ -113,3 +113,43 @@ func TestTheInterviewThroughCoresAPI(t *testing.T) {
 		t.Fatalf("members don't answer: %d", code)
 	}
 }
+
+// The business name renames the company too, so it follows the company
+// name's rules (2-100 characters, one line) on the Profile as on /setup.
+func TestTheBusinessNameFollowsTheCompanyNamesRules(t *testing.T) {
+	w := newAPIWorld(t)
+	withCofounderBrain(t, w)
+	edit := func(value, original string) (int, map[string]any) {
+		return w.call("POST", "/api/v1/cofounder/profile/edit", `{"topic":"company_name","value":"`+value+`","originalValue":"`+original+`"}`, screensSecret, w.cookie)
+	}
+	if code, answer := edit("L", ""); code != 400 || answer["fields"].(map[string]any)["value"] != "Company name must be at least 2 characters" {
+		t.Fatalf("one letter: %d %v", code, answer)
+	}
+	if code, answer := edit(`Luigi's\nPizzeria`, ""); code != 400 || answer["fields"] == nil {
+		t.Fatalf("two lines: %d %v", code, answer)
+	}
+	if code, answer := edit(" Luigi's ", ""); code != 200 || answer["outcome"] != "changed" {
+		t.Fatalf("a name: %d %v", code, answer)
+	}
+	companyName := func() string {
+		_, glance := w.call("GET", "/api/v1/glance", "", screensSecret, w.cookie)
+		inner, _ := glance["glance"].(map[string]any)
+		name, _ := inner["companyName"].(string)
+		return name
+	}
+	if companyName() != "Luigi's" {
+		t.Fatalf("the company is renamed: %q", companyName())
+	}
+	w.must(`UPDATE business_facts SET proposed_value = $2, proposed_source = 'interview', proposed_at = now() WHERE company_id = $1 AND topic = 'company_name'`,
+		w.company.String(), "Luigi's Pizzeria\nVia Roma 1, Bologna")
+	confirm := `{"topic":"company_name","shownProposal":"Luigi's Pizzeria\nVia Roma 1, Bologna","shownConfirmedValue":"Luigi's"`
+	if code, answer := w.call("POST", "/api/v1/cofounder/profile/confirm", confirm+`}`, screensSecret, w.cookie); code != 400 || answer["error"] == nil {
+		t.Fatalf("a proposal that can't be the company's name: %d %v", code, answer)
+	}
+	if code, answer := w.call("POST", "/api/v1/cofounder/profile/confirm", confirm+`,"value":"Luigi's Pizzeria"}`, screensSecret, w.cookie); code != 200 || answer["outcome"] != "changed" {
+		t.Fatalf("edited and confirmed: %d %v", code, answer)
+	}
+	if companyName() != "Luigi's Pizzeria" {
+		t.Fatalf("renamed again: %q", companyName())
+	}
+}

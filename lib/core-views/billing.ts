@@ -55,3 +55,11 @@ export async function simulateSubscriptionThroughCore(input: { status: unknown; 
   const answer = await callCore("POST", "/api/v1/billing/simulate", { status, package: packageKey });
   return answer.ok ? { ok: true } : { ok: false, errors: { message: answer.message } };
 }
+
+// Development stand-in: one demo step (the trial ended, a month's limit used
+// up, a failed payment fixed, a cancel at the period's end, back to normal).
+// Core checks the step is one of its own.
+export async function simulateDemoStepThroughCore(step: unknown): Promise<FormResult> {
+  const answer = await callCore("POST", "/api/v1/billing/demo", { step: typeof step === "string" ? step : "" });
+  return answer.ok ? { ok: true } : { ok: false, errors: { message: answer.message } };
+}

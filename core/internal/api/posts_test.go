@@ -2,9 +2,48 @@ package api
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"ansa/core/internal/autopost"
+	"ansa/core/internal/brainclient"
+	"ansa/core/internal/logging"
 )
+
+// "Post one now" in Automatic goes out right after the answer, as the
+// queue's "Publish now" does, not at the queue's next round.
+func TestPostOneNowGoesOutRightAfterTheAnswer(t *testing.T) {
+	w := newQueueWorld(t)
+	brain := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
+		io.WriteString(rw, `{"kind":"ok","body":"Come and see us this weekend.","call_to_action":"","hashtags":[]}`)
+	}))
+	t.Cleanup(brain.Close)
+	server := w.serverAPI()
+	server.Posts = &autopost.Writer{Pool: w.pool, Box: server.Box, Brain: brainclient.New(brain.URL, strings.Repeat("s", 40), 5*time.Second), Log: logging.New(io.Discard)}
+	t.Cleanup(func() {
+		keys := []string{server.Limiter.Key("settings-changes", w.owner), server.Limiter.Key("autopost-now", w.company.String())}
+		w.pool.Exec(context.Background(), `DELETE FROM rate_limits WHERE key = ANY($1)`, keys)
+	})
+	w.must(`INSERT INTO assistant_settings (company_id, currency, time_zone, opening_hours) VALUES ($1, 'EUR', 'Europe/Rome', '{"mon":[],"tue":[],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}')`, w.company.String())
+	automatic := `{"enabled":true,"frequency":"three_a_week","time":"11:00","mode":"automatic","understood":true}`
+	if code, answer := w.call("POST", "/api/v1/settings/posts", automatic, screensSecret, w.cookie); code != 200 {
+		t.Fatalf("switched on: %d %v", code, answer)
+	}
+	if code, answer := w.call("POST", "/api/v1/settings/posts/now", "", screensSecret, w.cookie); code != 200 || answer["outcome"] != "scheduled" {
+		t.Fatalf("post one now: %d %v", code, answer)
+	}
+	if w.sent != 1 || w.count(`SELECT count(*) FROM publish_jobs WHERE company_id = $1 AND status = 'published'`) != 1 {
+		t.Fatalf("sent right after the answer: %d", w.sent)
+	}
+	_, page := w.call("GET", "/api/v1/settings/posts", "", screensSecret, w.cookie)
+	if inner, _ := page["page"].(map[string]any); inner["isBusy"] != false {
+		t.Fatalf("out: the page waits for nothing: %v", inner)
+	}
+}
 
 func TestPostForMeThroughCoresAPI(t *testing.T) {
 	w := newAPIWorld(t)

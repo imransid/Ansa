@@ -69,11 +69,11 @@ func SaveBusiness(ctx context.Context, pool *database.Pool, company tenant.Compa
 		if _, err := tx.Exec(ctx, `UPDATE companies SET name = $2, kind = $3, business_type = $4 WHERE id = $1`, company.String(), b.CompanyName, b.Kind, b.BusinessType); err != nil {
 			return err
 		}
-		if err := setOwnerFactWithin(ctx, tx, company, actorUserID, "company_name", b.CompanyName); err != nil {
+		if err := SetOwnerFactWithin(ctx, tx, company, actorUserID, "company_name", b.CompanyName); err != nil {
 			return err
 		}
 		if b.Description != "" {
-			if err := setOwnerFactWithin(ctx, tx, company, actorUserID, "description", b.Description); err != nil {
+			if err := SetOwnerFactWithin(ctx, tx, company, actorUserID, "description", b.Description); err != nil {
 				return err
 			}
 		}

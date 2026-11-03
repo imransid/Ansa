@@ -5,18 +5,42 @@ import type { AnsaPackage, PackageStatus } from "@/lib/types/packages";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Whole days left of the free trial (0 on its last day).
+// Days left of the free trial, a part of a day counted as a whole one: 14
+// right after a 14-day signup, 1 on its last day, 0 once it ended. WHY not
+// calendar days: the trial ends 14 x 24 hours after signup, at the time of
+// day it started, so the pages name that moment as a date in the viewer's
+// own time instead of saying "today" or "tomorrow".
 export function trialDaysLeft(trialEndsAt: Date, now: Date): number {
-  return Math.max(0, Math.floor((trialEndsAt.getTime() - now.getTime()) / DAY_MS));
+  return Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / DAY_MS));
 }
 
-export function callMinutesUsed(status: PackageStatus): number {
-  return Math.ceil(status.usage.callSeconds / 60);
+// "1 day left", "14 days left".
+export function daysLeftWords(days: number): string {
+  return days === 1 ? "1 day left" : `${days} days left`;
 }
+
+// The month's minutes of calls, rounded down: a minute shows once it was used whole.
+export function callMinutesUsed(status: PackageStatus): number {
+  return Math.floor(status.usage.callSeconds / 60);
+}
+
+// The month's call time is used up, by the seconds core counts
+// (core/internal/packages, CallTimeLeft), never by rounded minutes.
+export function callTimeUsedUp(status: PackageStatus): boolean {
+  return status.usage.callSeconds >= status.package.callMinutes * 60;
+}
+
+// Home's notice. trialEnd: the free trial's, which the page names before
+// the text, as a date in the viewer's own time.
+export type PackageNoticeText = {
+  tone: "attention" | "quiet";
+  text: string;
+  trialEnd?: { at: Date; daysLeft: number };
+};
 
 // One notice for Home: "attention" when ansa stopped writing with the AI
 // (or soon will), "quiet" for the free trial's days; null when all is well.
-export function packageNotice(status: PackageStatus, now: Date): { tone: "attention" | "quiet"; text: string } | null {
+export function packageNotice(status: PackageStatus, now: Date): PackageNoticeText | null {
   const { package: pkg, usage } = status;
   if (pkg.key === "none") {
     return {
@@ -30,7 +54,7 @@ export function packageNotice(status: PackageStatus, now: Date): { tone: "attent
       text: `ansa has used all ${pkg.aiReplies.toLocaleString("en")} AI replies of your package this month: it sends your holding reply until next month, or until you choose a bigger package.`,
     };
   }
-  if (callMinutesUsed(status) >= pkg.callMinutes && pkg.callMinutes > 0) {
+  if (pkg.callMinutes > 0 && callTimeUsedUp(status)) {
     return { tone: "attention", text: "No call minutes left this month: ansa takes callers' messages without the AI." };
   }
   if (usage.aiReplies >= pkg.aiReplies * 0.8) {
@@ -38,8 +62,11 @@ export function packageNotice(status: PackageStatus, now: Date): { tone: "attent
   }
   if (pkg.key === "trial") {
     const days = trialDaysLeft(status.trialEndsAt, now);
-    const when = days === 0 ? "ends today" : days === 1 ? "ends tomorrow" : `has ${days} days left`;
-    return { tone: days <= 3 ? "attention" : "quiet", text: `Your free trial ${when}. Choose a package to keep ansa answering.` };
+    return {
+      tone: days <= 3 ? "attention" : "quiet",
+      text: "Choose a package to keep ansa answering.",
+      trialEnd: { at: status.trialEndsAt, daysLeft: days },
+    };
   }
   return null;
 }

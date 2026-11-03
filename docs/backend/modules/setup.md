@@ -27,6 +27,9 @@ is for starts the later steps again.
 - connect saves nothing; `Finish` ("Open ansa") only once every step was saved.
 The name, description and address are the owner's confirmed business facts
 (`facts.go`), so posts can use them; a waiting proposal that says the same is cleared.
+They alone don't start the marketing helper on Home (`FactTopics`), and
+/setup's "Company name" writes the name fact the same way
+(`SetOwnerFactWithin`, [documents](documents.md)).
 **API:** `GET /api/v1/setup` (the profile, its steps, and the settings);
 `POST /api/v1/setup/{section}?from=setup` (owners, 60 changes per 10
 minutes) answers `{"nextStep"}` or `{"fields": {...}}`; `finish` before every

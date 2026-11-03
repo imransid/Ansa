@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { askCoreForStripePage, simulateSubscriptionThroughCore } from "@/lib/core-views/billing";
+import { askCoreForStripePage, simulateDemoStepThroughCore, simulateSubscriptionThroughCore } from "@/lib/core-views/billing";
 import type { FormErrors } from "@/lib/form-result";
 import { requireSessionContext } from "@/lib/session";
 import type { RedirectResult } from "@/lib/types/billing";
@@ -30,6 +30,19 @@ export async function simulateSubscriptionAction(_previous: FormErrors | undefin
     return result.errors;
   }
   revalidatePath("/billing");
+  return undefined;
+}
+
+// Development only: the demo step comes from the button pressed; core
+// checks it is one of its own, and refuses outside development.
+export async function simulateDemoStepAction(_previous: FormErrors | undefined, formData: FormData): Promise<FormErrors | undefined> {
+  await requireSessionContext();
+  const result = await simulateDemoStepThroughCore(formData.get("step"));
+  if (!result.ok) {
+    return result.errors;
+  }
+  // Home tells owners about the package too.
+  revalidatePath("/", "layout");
   return undefined;
 }
 

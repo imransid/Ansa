@@ -50,7 +50,8 @@ export function BusinessOverviewPanel({ overview }: { overview: BusinessOverview
 }
 
 // The social media posts' numbers, only once the company started them (a
-// fact, an interview answer or a draft): never a column of zeros.
+// fact setup doesn't write, an interview answer or a draft: core decides,
+// core/internal/home): never a column of zeros.
 function PostNumbers({ numbers }: { numbers: CofounderOverviewNumbers }) {
   return (
     <>

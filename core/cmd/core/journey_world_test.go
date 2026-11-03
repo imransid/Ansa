@@ -74,6 +74,10 @@ func newJourney(t *testing.T) *journey {
 	realTelegram := telegram.APIHost
 	telegram.APIHost = j.telegram.server.URL
 	j.core = assemble(cfg, pool, box, logging.New(io.Discard))
+	// Posts an answer made due ("Post one now") go out right after it, in a
+	// goroutine of their own on the server; here before the answer, so the
+	// test reads them at once (the runner's own hook for tests).
+	j.core.publisher.After = func(work func()) { work() }
 	j.server = httptest.NewServer(j.core.routes)
 	j.limiter = ratelimit.New(pool, cfg.AuthSecret)
 	j.identifiers = []string{j.ip}

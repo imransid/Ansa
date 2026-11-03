@@ -108,9 +108,11 @@ func asOwner(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 // the owner edited it (value differs: the source is "owner"). The UPDATE
 // requires the proposal AND the confirmed value beside it ("" = none) to
 // still be exactly the ones shown, so nobody confirms words they didn't
-// see or replaces a value they never saw. The proposal is cleared.
+// see or replaces a value they never saw. The proposal is cleared. A
+// business name confirmed renames the company too.
 func Confirm(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, topic, shownProposal, shownConfirmed, value string) (string, error) {
-	return asOwner(ctx, pool, company, actorUserID, false, func(tx database.Tx) (string, error) {
+	isName := topic == CompanyNameTopic
+	return asOwner(ctx, pool, company, actorUserID, isName, func(tx database.Tx) (string, error) {
 		// SET reads the row as it was, so proposed_source is the proposal's own.
 		const statement = `
 			UPDATE business_facts SET confirmed_value = $4,
@@ -119,7 +121,11 @@ func Confirm(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 				proposed_value = NULL, proposed_source = NULL, proposed_at = NULL, updated_at = now()
 			WHERE company_id = $1 AND topic = $2 AND proposed_value = $3 AND confirmed_value IS NOT DISTINCT FROM $6`
 		tag, err := tx.Exec(ctx, statement, company.String(), topic, shownProposal, value, actorUserID, nullIfEmpty(shownConfirmed))
-		return changedOrStale(tag.RowsAffected(), err)
+		outcome, err := changedOrStale(tag.RowsAffected(), err)
+		if err != nil || outcome != Changed || !isName {
+			return outcome, err
+		}
+		return outcome, renameCompanyWithin(ctx, tx, company, value)
 	})
 }
 

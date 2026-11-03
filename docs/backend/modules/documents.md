@@ -34,7 +34,9 @@ people, people without categories, documents).
 of the last email: received when, its status, why it was skipped, its
 request, stuck or not); `POST /api/v1/settings/support/company-name`
 `{companyName}` (owners: 2-100 characters, one line; it is the sender name
-of every customer email); `POST
+of every customer email, and the same transaction confirms it as the
+owner's business name fact, which the assistant, calls, posts and alerts
+say first: [profile](profile.md)); `POST
 /api/v1/settings/support/reply-to` `{replyToEmail}`; `POST
 /api/v1/settings/support/addresses` `{address}`; `POST
 /api/v1/settings/support/addresses/remove` `{address}`; `POST
@@ -42,6 +44,8 @@ of every customer email); `POST
 /api/v1/documents/{id}/download` → `{"url"}` or, in development,
 `{"fileName", "contentType", "data"}`; `POST /api/v1/documents/{id}/delete`.
 
-**Tests:** `documents_test.go` (types, sizes, names); `api/support_test.go`
+**Tests:** `documents_test.go` (types, sizes, names);
+`supportsetup/supportsetup_test.go` (a rename confirms the business name
+fact too, in the owner's name; a member renames nothing); `api/support_test.go`
 (ansa's own addresses refused, an address listed once, a document uploaded,
 listed with a plain name and its stored type, downloaded and deleted).

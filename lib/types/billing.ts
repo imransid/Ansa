@@ -40,3 +40,14 @@ export type BillingView = {
 };
 
 export type RedirectResult = { ok: true; url: string } | { ok: false; errors: FormErrors };
+
+// "dev" mode's demo steps (core/internal/billing/demo.go): the free trial
+// ended, this month's AI replies or call minutes used up, a failed payment
+// fixed, a cancel at the end of the paid period, and back as at signup.
+export type BillingDemoStep =
+  | "trial_ended"
+  | "ai_replies_used_up"
+  | "call_minutes_used_up"
+  | "payment_fixed"
+  | "cancel_at_period_end"
+  | "back_to_normal";

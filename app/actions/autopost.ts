@@ -18,7 +18,8 @@ export async function saveAutopostAction(_previous: SaveState | undefined, formD
 // "Post one now": written at once; in Automatic it goes out after the answer.
 export async function postNowAction(): Promise<FormErrors | undefined> {
   await requireSessionContext();
-  // Core sends the post itself (its queue), so nothing runs after the answer.
+  // Core sends the post itself right after its answer, so nothing runs
+  // after this one; the page refreshes itself until it shows posted.
   const posted = await postNowThroughCore();
   revalidatePath("/", "layout");
   return posted.ok ? undefined : posted.errors;

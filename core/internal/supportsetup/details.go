@@ -12,6 +12,7 @@ import (
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/settings"
+	"ansa/core/internal/setup"
 	"ansa/core/internal/tenant"
 )
 
@@ -59,10 +60,15 @@ func CheckCompanyName(name string) (string, string) {
 }
 
 // SaveCompanyName renames the company (owners: the role read again under
-// the company row lock). Returns settings.Saved or why not.
+// the company row lock), and confirms the new name as the owner's business
+// name fact in the same transaction: the assistant, calls, posts and alerts
+// say that fact first, so customers never hear the old name. Returns
+// settings.Saved or why not.
 func SaveCompanyName(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, name string) (string, error) {
 	return settings.AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
-		_, err := tx.Exec(ctx, `UPDATE companies SET name = $2 WHERE id = $1`, company.String(), name)
-		return err
+		if _, err := tx.Exec(ctx, `UPDATE companies SET name = $2 WHERE id = $1`, company.String(), name); err != nil {
+			return err
+		}
+		return setup.SetOwnerFactWithin(ctx, tx, company, actorUserID, "company_name", name)
 	})
 }

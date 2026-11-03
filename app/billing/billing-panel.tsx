@@ -1,17 +1,19 @@
 "use client";
 
 import { useActionState } from "react";
-import { openBillingPortalAction, simulateSubscriptionAction } from "@/app/actions/billing";
+import { openBillingPortalAction } from "@/app/actions/billing";
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BillingView, SubscriptionSnapshot } from "@/lib/types/billing";
+import { DemoControls } from "./demo-controls";
 import { PackageCards } from "./package-cards";
 import { UsageThisMonth } from "./usage-this-month";
 
 // What the Billing page shows in each mode (Mode in core/internal/billing):
 // the package the company has now and this month's use, then the packages
-// to choose from (step 57).
+// to choose from (step 57). Development ("dev") has the demo's buttons
+// instead of Stripe's page.
 export function BillingPanel({ billing }: { billing: BillingView }) {
   return (
     <div className="grid gap-6">
@@ -20,15 +22,10 @@ export function BillingPanel({ billing }: { billing: BillingView }) {
         <p className="max-w-xl text-sm">Payments aren&apos;t set up yet. There is nothing to pay or manage here for now.</p>
       ) : (
         <div className="grid max-w-xl gap-4">
-          {billing.mode === "dev" && (
-            <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-              Payments are off on this development server (USE_STRIPE is not true). Nothing can be charged; the buttons pretend Stripe
-              answered.
-            </p>
-          )}
+          {billing.mode === "dev" && <DemoControls billing={billing} />}
           {billing.confirmingPayment && <p className="text-sm">Thanks! Stripe is confirming your payment. Reload this page in a few seconds.</p>}
           <SubscriptionStatus subscription={billing.subscription} />
-          {billing.mode === "stripe" ? <ManageBilling billing={billing} /> : <SimulateStates subscription={billing.subscription} />}
+          {billing.mode === "stripe" && <ManageBilling billing={billing} />}
         </div>
       )}
       <PackageCards billing={billing} />
@@ -74,36 +71,6 @@ function ManageBilling({ billing }: { billing: BillingView }) {
         </p>
       )}
     </form>
-  );
-}
-
-// Development: what Stripe could report about the package being paid.
-function SimulateStates({ subscription }: { subscription: SubscriptionSnapshot | null }) {
-  const [errors, action, isSaving] = useActionState(simulateSubscriptionAction, undefined);
-  if (!subscription || subscription.status === "canceled") {
-    return null;
-  }
-  const options = [
-    { status: "past_due", label: "Simulate: payment failed" },
-    { status: "canceled", label: "Simulate: canceled" },
-  ];
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {options.map((option) => (
-        <form key={option.status} action={action}>
-          <input type="hidden" name="status" value={option.status} />
-          <input type="hidden" name="package" value={subscription.package} />
-          <Button type="submit" variant="outline" size="sm" disabled={isSaving}>
-            {option.label}
-          </Button>
-        </form>
-      ))}
-      {errors?.message && (
-        <p role="alert" className="w-full text-sm text-destructive">
-          {errors.message}
-        </p>
-      )}
-    </div>
   );
 }
 

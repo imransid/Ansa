@@ -31,6 +31,7 @@ export async function getAutopostPageFromCore(): Promise<AutopostPage> {
     pages: page.pages,
     nextTimes: page.nextTimes.map((time) => new Date(time)),
     slots: page.slots.map((slot) => ({ ...slot, postAt: new Date(slot.postAt) })),
+    isBusy: page.isBusy,
   };
 }
 
@@ -47,7 +48,7 @@ export async function saveAutopostThroughCore(formData: FormData): Promise<{ ok:
   return answer.ok ? { ok: true } : { ok: false, errors: coreFormErrors(answer) };
 }
 
-// "Post one now": core writes it and, in Automatic, sends it itself.
+// "Post one now": core writes it and, in Automatic, sends it itself right after its answer.
 export async function postNowThroughCore(): Promise<{ ok: true } | { ok: false; errors: FormErrors }> {
   const answer = await callCore("POST", "/api/v1/settings/posts/now");
   return answer.ok ? { ok: true } : { ok: false, errors: coreFormErrors(answer) };

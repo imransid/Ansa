@@ -101,54 +101,10 @@ func takeBackUpcoming(ctx context.Context, pool *database.Pool, company tenant.C
 	return nil
 }
 
-// Page is Settings → Posts for me.
-type Page struct {
-	Enabled   bool        `json:"enabled"`
-	Frequency string      `json:"frequency"`
-	Clock     string      `json:"time"`
-	Mode      string      `json:"mode"`
-	TimeZone  *string     `json:"timeZone"`
-	Pages     []string    `json:"pages"`
-	NextTimes []time.Time `json:"nextTimes"`
-	Slots     []Slot      `json:"slots"`
-}
-
-// ReadPage reads the switch, the connected Pages by name, the next three
-// posting times and the newest 20 planned posts with how each did.
-func ReadPage(ctx context.Context, pool *database.Pool, company tenant.CompanyID, now time.Time) (Page, error) {
-	page := Page{Frequency: FrequencyThreeAWeek, Clock: "11:00", Mode: "automatic", Pages: []string{}, NextTimes: []time.Time{}}
-	const statement = `SELECT autopost_enabled, autopost_frequency, autopost_time, autopost_mode, time_zone FROM assistant_settings WHERE company_id = $1`
-	err := pool.QueryRow(ctx, statement, company.String()).Scan(&page.Enabled, &page.Frequency, &page.Clock, &page.Mode, &page.TimeZone)
-	if err != nil && ignoreNoRows(err) != nil {
-		return Page{}, err
-	}
-	rows, err := pool.Query(ctx, `SELECT display_name FROM social_connections WHERE company_id = $1 AND platform = 'facebook' AND status = 'connected' ORDER BY connected_at`, company.String())
-	if err != nil {
-		return Page{}, err
-	}
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			rows.Close()
-			return Page{}, err
-		}
-		page.Pages = append(page.Pages, name)
-	}
-	if err := rows.Err(); err != nil {
-		return Page{}, err
-	}
-	if page.Enabled && page.TimeZone != nil {
-		if zone, err := time.LoadLocation(*page.TimeZone); err == nil {
-			page.NextTimes = append(page.NextTimes, NextPostingTimes(page.Frequency, page.Clock, zone, now, 3)...)
-		}
-	}
-	page.Slots, err = ListPostingTimes(ctx, pool, company, 20)
-	return page, err
-}
-
 // PostNow writes one post for this moment ("Post one now", owners: for
-// trying it out); the publishing queue sends it within seconds in
-// Automatic. "not-on" when Post for me is off.
+// trying it out); in Automatic its jobs come back so the caller sends them
+// right after its answer (the publishing queue's next round otherwise).
+// "not-on" when Post for me is off.
 func (w *Writer) PostNow(ctx context.Context, company tenant.CompanyID, now time.Time) (WriteOutcome, error) {
 	const statement = `
 		SELECT autopost_frequency, autopost_time, autopost_mode, time_zone, autopost_enabled_by_user_id FROM assistant_settings

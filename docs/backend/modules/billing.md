@@ -47,10 +47,25 @@ replies and call minutes, and the three packages, each with "Choose"
 (back from Stripe before its webhook arrived), so nobody pays twice;
 otherwise "Manage billing or change package" (Stripe's portal).
 
+**Demo steps (`demo.go`, "dev" mode only, like the simulate buttons):**
+the development page says "Demo payments: nothing is charged." and offers
+buttons that put the company where a demo needs it: the free trial ended
+(`trial_ends_at` = now), this month's AI replies or call minutes used up
+(`usage_months` at the package's limit), a failed payment fixed (past_due
+or unpaid back to active, the same package), a cancel at the end of the
+paid period (live until then: "Ends on"), and back to normal (one
+transaction: the trial as at signup, 14 days from `created_at`, this
+month's use deleted, no billing row). Each button shows only while it
+would change something; core refuses them outside development.
+
 **API ([api](api.md)):** `GET /api/v1/billing?checkout=done`; `POST
 /api/v1/billing/checkout` `{package}` → `{"url"}`; `POST /api/v1/billing/portal` →
 `{"url"}`; `POST /api/v1/billing/simulate` `{status: active | past_due |
-canceled, package}` (dev only). 20 actions per 10 minutes per owner.
+canceled, package}` (dev only); `POST /api/v1/billing/demo` `{step:
+trial_ended | ai_replies_used_up | call_minutes_used_up | payment_fixed |
+cancel_at_period_end | back_to_normal}` (dev only; 409: no failed payment
+to fix, or no live subscription to cancel). 20 actions per 10 minutes per
+owner.
 
 **Settings ([config](config.md)):** USE_STRIPE (exactly "true"), then
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID_PERSONAL,
@@ -60,4 +75,6 @@ STRIPE_PRICE_ID_BUSINESS and STRIPE_PRICE_ID_PRO are required.
 counts; billing never moves between companies; a subscription event before
 any checkout stores nothing, a price that is no package's stores nothing,
 the checkout stores the package, a second live plan never replaces it;
-the page and the simulate buttons).
+the page and the simulate buttons); `demo_test.go` (each demo step, then
+back to normal); `api/billing_test.go` (the demo steps refused outside
+development and to members).

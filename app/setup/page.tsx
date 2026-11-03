@@ -44,7 +44,8 @@ async function SetupContent() {
       <section className="grid gap-3">
         <h2 className="text-lg font-semibold">Company name</h2>
         <p className="text-sm text-muted-foreground">
-          Customers see it in the sender of every email we send for you (&quot;{companyName} via ansa&quot;).
+          Customers see it in the sender of every email we send for you (&quot;{companyName} via ansa&quot;), and ansa uses it when it
+          answers, takes calls and posts for you.
         </p>
         {isOwner ? <CompanyNameForm current={companyName} /> : <p className="text-sm">{companyName}</p>}
       </section>

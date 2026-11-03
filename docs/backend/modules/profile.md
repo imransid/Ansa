@@ -30,6 +30,15 @@ a proposal counts as answered.
 - Values: 1-2,000 characters (UTF-16, as the old code counted; a line
   break counts once, stored as \n), no control characters but line breaks
   and tabs.
+- The business name (`company_name`) is the company's own name too (the
+  sidebar, the sender of customer emails, what the assistant says): Edit,
+  Fill in, Confirm and Edit and confirm rename the company in the same
+  transaction (the company row lock taken first, as every owner setting
+  does), and the API holds it to the company name's rules
+  (`supportsetup.CheckCompanyName`: 2-100 characters, one line; a proposal
+  that breaks them is confirmed only through Edit and confirm). /setup's
+  "Company name" confirms this fact in the owner's name in turn
+  ([documents](documents.md)).
 
 **The interview (`interview.go`, `messages.go`, `reply.go`, `brain.go`):**
 messages encrypted with the old context `onboarding-message:<company>:<message>`
@@ -91,12 +100,15 @@ text"); never an answer, a question, a fact or an error's message.
 fact, Confirm keeps its source, Edit and confirm records the owner; stale
 changes write nothing; members, an owner made a member and other
 companies change nothing; cleaning and cutting as the old code counted);
+`name_test.go` (the business name renames the company; a stale edit,
+another topic or a member renames nothing);
 `interview_test.go` (the opening, the answer and the reply with its
 proposals; without the AI the fixed question; the interview ends only with
 no key topic missing, and opens again when one is missing; the brain reads
 only the newest 12; encryption context; Start over, a lone reply never
 saved, members); `suggestions_test.go` (proposals only, the escaped
 article; what no AI may read is refused without asking; a failed answer and
-a long article); `api/cofounder_profile_test.go`;
+a long article); `api/cofounder_profile_test.go` (also: the business
+name held to the company name's rules, and the company renamed);
 `brain/tests/test_cofounder_profile.py` (escaping, card numbers, emoji
 cuts, strict answers, settings, signed endpoints).
