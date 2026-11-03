@@ -4,19 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strconv"
 	"time"
 
-	"ansa/core/internal/analytics"
 	"ansa/core/internal/brainclient"
 	"ansa/core/internal/commands"
 	"ansa/core/internal/drafts"
-	"ansa/core/internal/files"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/profile"
 	"ansa/core/internal/publishing"
-	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/socialconnect"
 	"ansa/core/internal/strategy"
 	"ansa/core/internal/studio"
@@ -44,7 +40,14 @@ func setUpMarketing(ctx context.Context, w *world, a demoAccount) error {
 	if err := makeDemoPlan(ctx, w, a); err != nil {
 		return err
 	}
-	return writeDemoPosts(ctx, w, a)
+	if err := writeDemoPosts(ctx, w, a); err != nil {
+		return err
+	}
+	return runSteps([]demoStep{
+		{"interview", func() (string, error) { return "saved", addDemoInterview(ctx, w, a) }},
+		{"AI-written draft", func() (string, error) { return "saved", addWrittenDraft(ctx, w, a) }},
+		{"rejected and archived drafts", func() (string, error) { return "saved", addDecidedDrafts(ctx, w, a) }},
+	})
 }
 
 // makeDemoPlan makes version 1 of the plan through core's planner.
@@ -91,26 +94,49 @@ func writeDemoPosts(ctx context.Context, w *world, a demoAccount) error {
 			published = append(published, jobIDs...)
 		}
 	}
-	publisher := &publishing.Runner{Pool: w.pool, Box: w.box, Limiter: ratelimit.New(w.pool, w.cfg.AuthSecret), Log: logging.New(io.Discard),
-		Files: &files.Store{DevFolder: w.cfg.DevFolder}, StandInsAllowed: true, StandInDir: filepath.Join(w.cfg.DevFolder, ".dev-social"),
-		PublishFacebook: publishing.PublishToFacebook}
-	if _, err := publisher.RunDue(ctx, a.company.String()); err != nil {
+	imageJob, err := addImagePost(ctx, w, a, connections["facebook"])
+	if err != nil {
 		return err
 	}
-	// The running core's own publishing round may have taken some first.
-	if err := waitUntilPublished(ctx, w, a, published); err != nil {
+	published = append(published, imageJob)
+	if err := publishNow(ctx, w, a, published); err != nil {
 		return err
 	}
-	for i, jobID := range published {
-		numbers := demoNumbers[i%len(demoNumbers)]
-		if _, refusal, err := analytics.SimulatePostMetrics(ctx, w.pool, jobID, numbers, true); err != nil || refusal != "" {
-			if err != nil {
+	if err := simulateNumbers(ctx, w, published); err != nil {
+		return err
+	}
+	if err := spreadPublishedPosts(ctx, w, a, published); err != nil {
+		return err
+	}
+	fmt.Fprintf(w.out, "Added a marketing plan and %d posts (%d published, with numbers).\n", len(demoPosts)+1, len(published))
+	return nil
+}
+
+// When each published post went out, in the restaurant's time: over the
+// last three weeks, on different days and hours (the Analytics page and a
+// performance review read them), oldest first.
+var publishedAgo = []struct{ days, hour int }{{19, 11}, {15, 13}, {11, 12}, {8, 19}, {5, 16}, {2, 12}}
+
+// spreadPublishedPosts moves the published posts and their numbers back to
+// those times (development only).
+func spreadPublishedPosts(ctx context.Context, w *world, a demoAccount, jobIDs []string) error {
+	dhaka, err := time.LoadLocation("Asia/Dhaka")
+	if err != nil {
+		return err
+	}
+	today := time.Now().In(dhaka)
+	for i, jobID := range jobIDs {
+		when := publishedAgo[i%len(publishedAgo)]
+		at := time.Date(today.Year(), today.Month(), today.Day()-when.days, when.hour, 0, 0, 0, dhaka)
+		for _, statement := range []string{
+			`UPDATE publish_jobs SET scheduled_for = $3, published_at = $3, updated_at = $3 WHERE company_id = $1 AND id = $2`,
+			`UPDATE post_metrics SET collected_at = $3::timestamptz + interval '1 day' WHERE company_id = $1 AND publish_job_id = $2`,
+		} {
+			if _, err := w.pool.Exec(ctx, statement, a.company.String(), jobID, at); err != nil {
 				return err
 			}
-			return commands.Refusal("A demo post's numbers weren't saved: " + refusal)
 		}
 	}
-	fmt.Fprintf(w.out, "Added a marketing plan and %d posts (%d published, with numbers).\n", len(demoPosts), len(published))
 	return nil
 }
 

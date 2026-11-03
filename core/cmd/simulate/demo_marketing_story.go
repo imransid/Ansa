@@ -80,7 +80,7 @@ var demoPosts = []demoPost{
 	{"facebook", "approved", "Friday family lunch", "Family and events",
 		"Fridays are for family. Bring everyone for kacchi, borhani and firni: we keep the family room upstairs ready for you.", "Book a table on WhatsApp", []string{"fridaylunch"}},
 	{"facebook", "draft", "Rui fish curry, home style", "Dish of the day",
-		"Rui Fish Curry the way it's cooked at home: tomato, a little green chilli, and rice on the side.", "Order on WhatsApp", nil},
+		"Rui Fish Curry the way it's cooked at home, the best in Dhaka: tomato, a little green chilli, and rice on the side.", "Order on WhatsApp", nil},
 	{"facebook", "idea", "Behind the scenes with our cooks", "From our kitchen", "", "", nil},
 }
 
@@ -92,4 +92,5 @@ var demoNumbers = [][]string{
 	{"views=1210", "reactions=88", "comments=9", "shares=6"},
 	{"views=2650", "reactions=241", "comments=37", "shares=29"},
 	{"views=1430", "reactions=97", "comments=12", "shares=8"},
+	{"views=2210", "reactions=176", "comments=23", "shares=14"},
 }

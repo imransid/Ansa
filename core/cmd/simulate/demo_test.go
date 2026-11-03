@@ -46,7 +46,12 @@ func TestTheDemoToolMakesTheWholeDemo(t *testing.T) {
 		"three received emails":                {`SELECT count(*) FROM inbound_emails WHERE company_id = $1`, 3},
 		"one to process again":                 {`SELECT count(*) FROM inbound_emails WHERE company_id = $1 AND ignored_reason = 'content_unavailable'`, 1},
 		"a marketing plan":                     {`SELECT count(*) FROM marketing_plans WHERE company_id = $1`, 1},
-		"numbers for five published posts":     {`SELECT count(DISTINCT publish_job_id) FROM post_metrics WHERE company_id = $1`, 5},
+		"numbers for six published posts":      {`SELECT count(DISTINCT publish_job_id) FROM post_metrics WHERE company_id = $1`, 6},
+		"posts over three weeks":               {`SELECT count(DISTINCT published_at::date) FROM publish_jobs WHERE company_id = $1 AND status = 'published'`, 6},
+		"an image post":                        {`SELECT count(*) FROM content_drafts WHERE company_id = $1 AND format = 'image_post' AND media_asset_id IS NOT NULL`, 1},
+		"an interview with proposals waiting":  {`SELECT count(*) FROM business_facts WHERE company_id = $1 AND proposed_value IS NOT NULL`, 3},
+		"a draft the AI wrote, with claims":    {`SELECT count(*) FROM content_drafts WHERE company_id = $1 AND generated_version IS NOT NULL AND jsonb_array_length(claims) = 2`, 1},
+		"a rejected and an archived draft":     {`SELECT count(*) FROM content_drafts WHERE company_id = $1 AND status IN ('rejected', 'archived')`, 2},
 	} {
 		if got := countIn(t, w, business, check[0].(string)); got != check[1].(int) {
 			t.Errorf("%s: %d, want %d", what, got, check[1])
