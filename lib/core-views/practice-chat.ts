@@ -4,23 +4,40 @@ import { callCore } from "@/lib/core-api";
 // The practice chat (step 58, development only): an owner writes as a
 // made-up customer on WhatsApp, Telegram or Messenger through the company's
 // stand-in accounts (core/internal/practicechat), and reads the chat as that
-// customer sees it. ansa answers as it answers any customer.
+// customer sees it. ansa answers as it answers any customer. An owner may
+// also send an email as one, to the company's forwarding address: it
+// becomes a request as a forwarded email does.
 
 export type PracticeChannel = "whatsapp" | "telegram" | "messenger";
-export type PracticeChat = { available: boolean; isOwner: boolean; standIns: Record<PracticeChannel, boolean> };
+// email: the practice email works here (real email is off).
+export type PracticeChat = { available: boolean; isOwner: boolean; standIns: Record<PracticeChannel, boolean>; email: boolean };
 export type PracticeLine = { fromCustomer: boolean; text: string; at: string };
 export type PracticeSent = { ok: true; conversationId: string } | { ok: false; error: string };
+// verified: as Resend reports DKIM or DMARC passed for the sender.
+export type PracticeEmail = { name: string; address: string; subject: string; text: string; verified: boolean };
+// to: the forwarding address the email went to. fields: a problem per field, in core's words.
+export type PracticeEmailSent = { ok: true; to: string } | { ok: false; error: string; fields: Record<string, string> };
 
 const NO_STAND_INS: Record<PracticeChannel, boolean> = { whatsapp: false, telegram: false, messenger: false };
 
-// Whether this person may use it here (an owner, development), and which
-// channels have a stand-in account.
+// Whether this person may use it here (an owner, development), which
+// channels have a stand-in account, and whether the practice email works.
 export async function getPracticeChatFromCore(): Promise<PracticeChat> {
   const answer = await callCore<PracticeChat>("GET", "/api/v1/practice/chat");
   if (!answer.ok) {
-    return { available: false, isOwner: false, standIns: NO_STAND_INS };
+    return { available: false, isOwner: false, standIns: NO_STAND_INS, email: false };
   }
-  return { ...answer.data, standIns: { ...NO_STAND_INS, ...answer.data.standIns } };
+  return { ...answer.data, standIns: { ...NO_STAND_INS, ...answer.data.standIns }, email: answer.data.email === true };
+}
+
+// Sends the made-up customer's email to the company's forwarding address:
+// the address it went to.
+export async function sendPracticeEmailThroughCore(email: PracticeEmail): Promise<PracticeEmailSent> {
+  const answer = await callCore<{ to: string }>("POST", "/api/v1/practice/email", email);
+  if (!answer.ok) {
+    return { ok: false, error: answer.message, fields: answer.fields };
+  }
+  return { ok: true, to: answer.data.to };
 }
 
 // Saves the made-up customer's message: the conversation it joined.

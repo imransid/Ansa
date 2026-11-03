@@ -4,8 +4,10 @@
 // Connections), and reads the chat as that customer sees it. A message is
 // saved as each channel's own code saves a customer's (in the customer's
 // conversation, encrypted, the assistant's reply queued), so replies,
-// orders, requests and alerts work exactly as for a real customer.
-// Development only: the API refuses it in production.
+// orders, requests and alerts work exactly as for a real customer. An
+// owner may also send an email as one (email.go): it arrives at the
+// company's forwarding address as a forwarded email does, and becomes a
+// request. Development only: the API refuses it in production.
 package practicechat
 
 import (

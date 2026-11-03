@@ -121,7 +121,7 @@ func (h *Webhook) handle(ctx context.Context, e event) error {
 		h.Log.Warn("inbound email ignored", logging.Code("several_companies"))
 		return nil
 	}
-	return saveAndQueue(ctx, h.Pool, companies[0], e.Data.EmailID)
+	return SaveAndQueue(ctx, h.Pool, companies[0], e.Data.EmailID)
 }
 
 // recipientList is one list as Resend gives it, never refused (a signed
@@ -195,9 +195,10 @@ func companiesOfTokens(ctx context.Context, pool *database.Pool, tokens []string
 	return found, rows.Err()
 }
 
-// saveAndQueue saves the received email once (Resend's id is unique) and
-// queues its processing in the same transaction.
-func saveAndQueue(ctx context.Context, pool *database.Pool, company tenant.CompanyID, resendEmailID string) error {
+// SaveAndQueue saves the received email once (Resend's id is unique) and
+// queues its processing in the same transaction: the webhook's last step,
+// and the practice email's in development (core/internal/practicechat).
+func SaveAndQueue(ctx context.Context, pool *database.Pool, company tenant.CompanyID, resendEmailID string) error {
 	return database.InTx(ctx, pool, func(tx database.Tx) error {
 		var id string
 		err := tx.QueryRow(ctx, `INSERT INTO inbound_emails (company_id, resend_email_id) VALUES ($1, $2) ON CONFLICT (resend_email_id) DO NOTHING RETURNING id`,

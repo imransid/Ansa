@@ -67,7 +67,8 @@ function ConnectionsSections({ page, practicePhone, messenger, posting }: { page
           <Link href="/settings/channels/practice-chat" className="text-link hover:underline">
             practice chat
           </Link>{" "}
-          (WhatsApp, Telegram or Messenger, through the stand-in accounts below), or call with the practice phone (Phone calls). The
+          (WhatsApp, Telegram or Messenger, through the stand-in accounts below, or an email to your forwarding address), or call with
+          the practice phone (Phone calls). The
           emails ansa writes are in the{" "}
           <Link href="/settings/channels/mailbox" className="text-link hover:underline">
             development mailbox

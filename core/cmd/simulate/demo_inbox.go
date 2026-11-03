@@ -59,7 +59,7 @@ func addDemoCallsAndEmails(ctx context.Context, w *world, a demoAccount) error {
 		content := map[string]any{"from": email.address, "to": []string{forwarding}, "reply_to": []string{}, "subject": email.subject, "text": email.text,
 			"html": nil, "attachments": []any{}, "headers": map[string]string{"from": email.name + " <" + email.address + ">"},
 			"authentication": map[string]string{"spf": "pass", "dkim": "pass", "dmarc": "pass"}}
-		if err := writeDevInbound(w.cfg.DevFolder, emailID, content); err != nil {
+		if err := resend.WriteDevInbound(w.cfg.DevFolder, emailID, content); err != nil {
 			return err
 		}
 		event, _ := json.Marshal(map[string]any{"type": "email.received", "created_at": time.Now().UTC().Format(time.RFC3339),

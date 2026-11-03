@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -55,7 +53,7 @@ func runInboundEmail(ctx context.Context, w *world, args []string) error {
 	emailID := randomHex(16)
 	to, cc := inboundRecipients(variant, forwarding)
 	content := inboundContent(variant, to)
-	if err := writeDevInbound(w.cfg.DevFolder, emailID, content); err != nil {
+	if err := resend.WriteDevInbound(w.cfg.DevFolder, emailID, content); err != nil {
 		return err
 	}
 	event, _ := json.Marshal(map[string]any{"type": "email.received", "created_at": time.Now().UTC().Format(time.RFC3339),
@@ -97,16 +95,6 @@ func emailWebhookRefusal(w *world) error {
 		return commands.Refusal(`Set RESEND_WEBHOOK_SECRET in .env.core first (the value the running core reads; in development any "whsec_" and base64 will do).`)
 	}
 	return nil
-}
-
-// writeDevInbound writes the email where core's stand-in reads it.
-func writeDevInbound(devFolder, emailID string, content map[string]any) error {
-	folder := filepath.Join(devFolder, ".dev-inbound")
-	if err := os.MkdirAll(folder, 0o700); err != nil {
-		return err
-	}
-	raw, _ := json.Marshal(content)
-	return os.WriteFile(filepath.Join(folder, emailID+".json"), raw, 0o600)
 }
 
 func contains(list []string, value string) bool {

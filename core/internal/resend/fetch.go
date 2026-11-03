@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"time"
 )
@@ -59,7 +58,7 @@ func (f *Fetcher) Fetch(ctx context.Context, resendEmailID string) (*Content, st
 		return nil, "bad_id"
 	}
 	if !f.Real {
-		raw, err := os.ReadFile(filepath.Join(f.DevFolder, ".dev-inbound", resendEmailID+".json"))
+		raw, err := os.ReadFile(devInboundFile(f.DevFolder, resendEmailID))
 		if err != nil {
 			return nil, "no_dev_file"
 		}

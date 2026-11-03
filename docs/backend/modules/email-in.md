@@ -15,7 +15,11 @@ every request refused) → the per-IP ceiling (600 a minute) → parse.
   made (`c-<token>@INBOUND_EMAIL_DOMAIN`, read in to, cc, bcc and
   received_for: safe because nobody else can make one), and only when
   exactly ONE company matches; the email is saved once (Resend's id is
-  unique) and its processing job queued in the same transaction.
+  unique) and its processing job queued in the same transaction
+  (`SaveAndQueue`). In development the practice email (Settings →
+  Connections → Practice chat, [practicechat](practicechat.md)) is saved by
+  that same function, its content written where the development fetcher
+  reads it (`WriteDevInbound`, which the simulate tools use too).
 **Processing (the `inbound_email.process` job, `inbound/process.go`):**
 claim in ONE UPDATE (new, or "processing" 15+ minutes: a cut-off run) →
 fetch the content (Resend's Receiving API, three tries on 429, 5xx or no
@@ -59,7 +63,8 @@ request's current solve only, `internal/outbox/undelivered.go`); `POST .../{id}/
 **Settings:** RESEND_WEBHOOK_SECRET; SEND_REAL_EMAIL, RESEND_API_KEY and
 INBOUND_EMAIL_DOMAIN as for email out.
 **Tests:** `resend_test.go` (the signature: changed body, old event, another
-secret; only ansa's forwarding addresses); `inbound_test.go` (live
+secret; only ansa's forwarding addresses; the development fetcher reads what
+`WriteDevInbound` wrote, never an id naming a path); `inbound_test.go` (live
 database, a fake brain: a verified sender becomes the customer and joins
 their conversation, a card number never reaches the subject; a forged sender
 is never filled in; ansa's own mail is a loop even "anyway"; an automatic

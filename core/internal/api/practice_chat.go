@@ -30,10 +30,12 @@ func (s *Server) registerPracticeChat(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/practice/chat", s.withSession(s.withPracticeChat(s.sendPracticeChat)))
 	routes.HandleFunc("GET /api/v1/practice/chat/find", s.withSession(s.withPracticeChat(s.findPracticeChat)))
 	routes.HandleFunc("GET /api/v1/practice/chat/{id}", s.withSession(s.withPracticeChat(s.readPracticeChat)))
+	routes.HandleFunc("POST /api/v1/practice/email", s.withSessionUpTo(practiceEmailBodyBytes, s.withPracticeChat(s.sendPracticeEmail)))
 }
 
 // practiceChat: GET: {available (development, and an owner), isOwner,
-// standIns: {whatsapp, telegram, messenger}}.
+// standIns: {whatsapp, telegram, messenger}, email (the practice email
+// works here: real email is off)}.
 func (s *Server) practiceChat(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	available := s.Development && who.IsOwner()
 	standIns := map[string]bool{}
@@ -44,7 +46,7 @@ func (s *Server) practiceChat(w http.ResponseWriter, r *http.Request, _ []byte, 
 			return
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"available": available, "isOwner": who.IsOwner(), "standIns": standIns})
+	writeJSON(w, http.StatusOK, map[string]any{"available": available, "isOwner": who.IsOwner(), "standIns": standIns, "email": available && s.practiceInbox() != ""})
 }
 
 // withPracticeChat lets only an owner use it, and only in development.

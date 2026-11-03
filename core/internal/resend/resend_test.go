@@ -1,6 +1,7 @@
 package resend
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 	"time"
@@ -24,6 +25,23 @@ func TestOnlyResendsSignatureCounts(t *testing.T) {
 	other := "whsec_" + base64.StdEncoding.EncodeToString([]byte("another-secret-entirely-000"))
 	if IsSigned(Sign(body, "msg_1", other, now), body, secret, now) {
 		t.Fatal("another secret")
+	}
+}
+
+// The development inbox: the fetcher reads what WriteDevInbound wrote, and
+// an id the fetcher would refuse (a path) is never written.
+func TestTheDevelopmentFetcherReadsWhatWasWrittenForIt(t *testing.T) {
+	folder := t.TempDir()
+	content := map[string]any{"from": "ana@shop.example", "subject": "Hi", "authentication": map[string]string{"dkim": "pass"}}
+	if err := WriteDevInbound(folder, "practice-1", content); err != nil {
+		t.Fatal(err)
+	}
+	read, code := (&Fetcher{DevFolder: folder}).Fetch(context.Background(), "practice-1")
+	if read == nil || read.From != "ana@shop.example" || read.Subject != "Hi" || read.Authentication == nil || read.Authentication.DKIM != "pass" {
+		t.Fatalf("read back: %+v %s", read, code)
+	}
+	if WriteDevInbound(folder, "../elsewhere", content) == nil {
+		t.Fatal("an id naming a path")
 	}
 }
 

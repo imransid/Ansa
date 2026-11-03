@@ -152,7 +152,7 @@ func addUnfetchedEmail(ctx context.Context, w *world, a demoAccount, forwarding 
 	content := map[string]any{"from": "imtiaz.hasan@example.com", "to": []string{forwarding}, "reply_to": []string{}, "subject": "Do you have a room for a meeting lunch?",
 		"text": "Hello,\n\nCould we have lunch for 10 people in your family room next Tuesday, with a quiet table for a short meeting?\n\nImtiaz", "html": nil,
 		"attachments": []any{}, "headers": map[string]string{"from": "Imtiaz Hasan <imtiaz.hasan@example.com>"}, "authentication": map[string]string{"spf": "pass", "dkim": "pass", "dmarc": "pass"}}
-	if err := writeDevInbound(w.cfg.DevFolder, emailID, content); err != nil {
+	if err := resend.WriteDevInbound(w.cfg.DevFolder, emailID, content); err != nil {
 		return err
 	}
 	// Standing in for three fetches Resend didn't answer (development only).

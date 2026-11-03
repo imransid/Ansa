@@ -10,8 +10,9 @@ export const metadata: Metadata = { title: "Practice chat - ansa" };
 
 // Settings → Connections → Practice chat (step 58, development only): write
 // as one of your customers on WhatsApp, Telegram or Messenger, through the
-// stand-in accounts, and see what they would see. The messages land in your
-// Inbox like any customer's, so a demo shows both sides on one laptop.
+// stand-in accounts, and see what they would see; or send an email as one,
+// to your forwarding address. The messages land in your Inbox like any
+// customer's, so a demo shows both sides on one laptop.
 export default function PracticeChatPage() {
   return (
     <main className="mx-auto grid w-full max-w-3xl gap-6 p-6">
@@ -22,7 +23,8 @@ export default function PracticeChatPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Practice chat</h1>
         <p className="text-muted-foreground">
           Write as one of your customers. Your message arrives in your Inbox, and ansa answers it as it would on the real app: questions,
-          orders, complaints. Open your Inbox or Orders in another tab to see your side.
+          orders, complaints. An email becomes a request in your Inbox, as a forwarded email does. Open your Inbox or Orders in another
+          tab to see your side.
         </p>
       </div>
       {/* Cache Components rule: the session is only known at request time. */}
@@ -45,5 +47,5 @@ async function Chat() {
       </p>
     );
   }
-  return <PracticeChat standIns={chat.standIns} />;
+  return <PracticeChat standIns={chat.standIns} email={chat.email} />;
 }
