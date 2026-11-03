@@ -30,3 +30,16 @@ func TestHoursAreReadInTheBusinesssOwnZone(t *testing.T) {
 		t.Fatal("a week missing days isn't hours")
 	}
 }
+
+// A day open from 00:00 to midnight is "Open all day", at any hour.
+func TestADayOpenAllDay(t *testing.T) {
+	week := Week{"tue": {{Opens: "00:00", Closes: "24:00"}}}
+	if DescribeDay(week["tue"]) != "Open all day" {
+		t.Fatalf("described: %q", DescribeDay(week["tue"]))
+	}
+	for _, hour := range []int{0, 9, 23} {
+		if open, text := Now(week, time.UTC, time.Date(2026, 11, 3, hour, 30, 0, 0, time.UTC)); !open || text != "Open all day" {
+			t.Fatalf("%d:30: %v %q", hour, open, text)
+		}
+	}
+}

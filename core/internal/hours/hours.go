@@ -44,10 +44,14 @@ func Parse(raw []byte) (Week, bool) {
 	return week, true
 }
 
-// DescribeDay is "12:00 to 15:00 and 18:00 to midnight", or "Closed".
+// DescribeDay is "12:00 to 15:00 and 18:00 to midnight", "Open all day",
+// or "Closed".
 func DescribeDay(ranges []Range) string {
 	if len(ranges) == 0 {
 		return "Closed"
+	}
+	if len(ranges) == 1 && ranges[0].Opens == "00:00" && ranges[0].Closes == "24:00" {
+		return "Open all day"
 	}
 	parts := make([]string, 0, len(ranges))
 	for _, r := range ranges {
@@ -56,7 +60,8 @@ func DescribeDay(ranges []Range) string {
 	return strings.Join(parts, " and ")
 }
 
-// Now says, in the zone: open (and until when), or when it opens, or closed.
+// Now says, in the zone: open all day, open (and until when), or when it
+// opens, or closed (the screens' copy: lib/opening-hours.ts describeHoursNow).
 func Now(week Week, zone *time.Location, at time.Time) (open bool, text string) {
 	local := at.In(zone)
 	day := strings.ToLower(local.Weekday().String())[:3]
@@ -66,6 +71,9 @@ func Now(week Week, zone *time.Location, at time.Time) (open bool, text string) 
 		return false, "Closed today"
 	}
 	for _, r := range today {
+		if r.Opens == "00:00" && r.Closes == "24:00" {
+			return true, "Open all day"
+		}
 		if minutesOf(r.Opens) <= minutes && minutes < minutesOf(r.Closes) {
 			return true, "Open until " + formatTime(r.Closes)
 		}
