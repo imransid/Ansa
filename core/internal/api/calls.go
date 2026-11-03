@@ -66,7 +66,7 @@ func (s *Server) listCalls(w http.ResponseWriter, r *http.Request, _ []byte, who
 }
 
 // callPage: GET /api/v1/calls/{id}: the call, the knowledge the assistant
-// looked up during it, and the categories for "Escalate to a ticket".
+// looked up during it, and the categories for "Open a request for this call".
 func (s *Server) callPage(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	id := strings.ToLower(r.PathValue("id"))
 	if !uuidPattern.MatchString(id) {
@@ -140,7 +140,7 @@ func (s *Server) escalateCall(w http.ResponseWriter, r *http.Request, body []byt
 		return
 	}
 	if over, err := s.Limiter.Over(r.Context(), "ticket-creations", who.UserID, ticketCreations); err != nil || over {
-		problem(w, http.StatusTooManyRequests, "Too many new tickets. Try again in a few minutes.")
+		problem(w, http.StatusTooManyRequests, "Too many new requests. Try again in a few minutes.")
 		return
 	}
 	number, err := calls.Escalate(r.Context(), s.Pool, s.Box, who.CompanyID, who.UserID, id, strings.ToLower(input.CategoryID), note)
@@ -148,7 +148,7 @@ func (s *Server) escalateCall(w http.ResponseWriter, r *http.Request, body []byt
 	case err != nil:
 		s.failed(w, "call escalation", err)
 	case number == 0:
-		problem(w, http.StatusConflict, "Only a call the AI marked solved, without a ticket yet, can be escalated. Someone may have just done it.")
+		problem(w, http.StatusConflict, "Only a call the AI marked solved, without a request yet, can get one here. Someone may have just opened it.")
 	default:
 		writeJSON(w, http.StatusOK, map[string]int{"ticketNumber": number})
 	}

@@ -9,12 +9,12 @@ import { EscalateCallForm } from "./escalate-call-form";
 
 type CallDecisionProps = {
   call: CallDetail;
-  // For "Escalate to a ticket": the company's active categories.
+  // For "Open a request for this call": the company's active categories.
   categories: CategoryChoice[];
 };
 
 // What the call brain decided about this call, and why. A call it marked
-// solved can be escalated to a ticket (step 31).
+// solved can be given a request by a teammate (step 31).
 export function CallDecision({ call, categories }: CallDecisionProps) {
   const { analysis } = call;
 
@@ -49,11 +49,13 @@ export function CallDecision({ call, categories }: CallDecisionProps) {
               </>
             )}
           </dd>
-          <dt className="text-muted-foreground">Reason code</dt>
-          <dd>
-            <code>{analysis.reasonCode}</code>{" "}
-            {analysis.explanation && <>{describeReason(analysis.reasonCode, analysis.errorClass)}</>}
-          </dd>
+          {analysis.explanation && (
+            // The rule's own sentence for the stored code (never the code itself).
+            <>
+              <dt className="text-muted-foreground">Verdict</dt>
+              <dd>{describeReason(analysis.reasonCode, analysis.errorClass)}</dd>
+            </>
+          )}
         </dl>
       )}
 
@@ -65,20 +67,20 @@ export function CallDecision({ call, categories }: CallDecisionProps) {
   );
 }
 
-// The call's ticket, and who escalated it when the AI had said solved.
+// The call's request, and who opened it when the AI had said solved.
 function TicketLine({ call, ticketNumber }: { call: CallDetail; ticketNumber: number }) {
-  const ticketLink = (
+  const requestLink = (
     <Link href={`/tickets/${ticketNumber}`} className="font-medium underline">
-      ticket #{ticketNumber}
+      request #{ticketNumber}
     </Link>
   );
   if (!call.escalation) {
-    return <p className="text-sm">Escalated to {ticketLink}</p>;
+    return <p className="text-sm">It became {requestLink}.</p>;
   }
   return (
     <p className="text-sm">
-      {call.escalation.byName ?? "A teammate"} escalated it to {ticketLink} on{" "}
-      <LocalDateTime iso={call.escalation.at.toISOString()} />. The AI&apos;s verdict stays recorded as solved.
+      {call.escalation.byName ?? "A teammate"} opened {requestLink} for it on <LocalDateTime iso={call.escalation.at.toISOString()} />. The
+      AI&apos;s verdict stays recorded as solved.
     </p>
   );
 }
@@ -86,13 +88,14 @@ function TicketLine({ call, ticketNumber }: { call: CallDetail; ticketNumber: nu
 // Who decided: Claude, or a rule. When Claude was asked but gave no usable
 // answer (an error, a refusal, a malformed or cut-off answer), a rule
 // escalated the call, so it doesn't say "Claude" as if Claude had judged it.
+// The model is named only when it was recorded.
 function describeDecider(analysis: CallDetail["analysis"]): string {
-  const model = analysis.model ?? "unknown model";
+  const claude = analysis.model ? `Claude (${analysis.model})` : "Claude";
   if (analysis.source !== "model") {
     return "A rule (Claude was not asked)";
   }
   if (isModelFailureReason(analysis.reasonCode)) {
-    return `A rule, because Claude (${model}) gave no usable answer`;
+    return `A rule, because ${claude} gave no usable answer`;
   }
-  return `Claude (${model})`;
+  return claude;
 }

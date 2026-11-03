@@ -6,6 +6,7 @@
 // time; and "Try your assistant" shows the question it answers.
 
 import assert from "node:assert/strict";
+import { describeEndedReason } from "@/lib/call-ended-reason";
 import { contactLabel } from "@/lib/inbox";
 import { check } from "./check";
 import { attributeValue, openingTags, read, withoutComments } from "./source-helpers";
@@ -63,6 +64,21 @@ export async function runInboxChecks() {
     assert.ok(banner.indexOf("press Done") > banner.indexOf("if (offersDone(conversation, ticket))"), "Done is named only where it is offered");
     assert.equal(banner.split("press Done").length, 2, "Done is named once");
     assert.match(banner, /conversation\.channel === "phone"\) \{\s*return "[^"]*ansa still answers their calls"/);
+  });
+
+  await check("Calls pages: plain words for the team (how a call ended, never the provider's code, a reason code or an unknown model), 'request' where they said 'ticket', and live calls pointed to the Inbox, also from Home's call numbers", async () => {
+    assert.equal(describeEndedReason("customer-ended-call"), "The caller hung up");
+    assert.equal(describeEndedReason("pipeline-error-openai-llm-failed"), "A technical problem ended it");
+    assert.equal(describeEndedReason("constructor"), "Another reason");
+    assert.equal(describeEndedReason(null), "-");
+    const files = ["app/calls/page.tsx", "app/calls/calls-table.tsx", "app/calls/[callId]/page.tsx", "app/calls/[callId]/call-decision.tsx", "app/calls/[callId]/escalate-call-form.tsx", "app/calls/[callId]/analyze-now-button.tsx"];
+    for (const file of files) {
+      const source = withoutComments(await read(file));
+      assert.doesNotMatch(source, /a ticket|ticket #|Escalate to|Vapi|unknown model|<code>|\{call\.endedReason \?\?/, `${file} shows developer or old words`);
+    }
+    for (const file of ["app/calls/page.tsx", "app/dashboard/business-overview.tsx"]) {
+      assert.match(withoutComments(await read(file)), /Calls ansa answered live [^<]*<Link href="\/inbox"/, `${file} doesn't point live calls to the Inbox`);
+    }
   });
 
   await check("Try your assistant: the answer shows the question it answers, and a refused test puts what was typed back in the box", async () => {
