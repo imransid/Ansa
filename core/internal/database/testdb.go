@@ -79,7 +79,7 @@ func DeleteTestCompany(ctx context.Context, pool *Pool, id string) error {
 // The tables a test company's rows are deleted from, children first. A fixed
 // list in code (never input), so the table name in the statement is safe.
 var cleanupOrder = []string{
-	"core_jobs", "knowledge_lookups", "cofounder_activity", "post_metrics", "publish_jobs", "autopublish_rules", "autopost_slots", "media_assets", "media_generation_jobs", "content_drafts", "marketing_plans", "performance_reviews", "onboarding_messages", "knowledge_chunks", "knowledge_articles", "company_documents", "inbound_addresses", "order_items", "orders", "catalog_items", "phone_calls", "messages", "assistant_activity", "ticket_activity", "outgoing_emails", "inbound_emails", "tickets", "calls", "phone_lines",
+	"core_jobs", "page_comments", "knowledge_lookups", "cofounder_activity", "post_metrics", "publish_jobs", "autopublish_rules", "autopost_slots", "media_assets", "media_generation_jobs", "content_drafts", "marketing_plans", "performance_reviews", "onboarding_messages", "knowledge_chunks", "knowledge_articles", "company_documents", "inbound_addresses", "order_items", "orders", "catalog_items", "phone_calls", "messages", "assistant_activity", "ticket_activity", "outgoing_emails", "inbound_emails", "tickets", "calls", "phone_lines",
 	"user_categories", "categories",
 	"conversations", "contacts", "channel_connections", "whatsapp_numbers", "telegram_link_codes", "assistant_settings", "oauth_states", "social_connections",
 	"away_summary_reads", "business_facts", "invites", "company_billing", "usage_months", "users",

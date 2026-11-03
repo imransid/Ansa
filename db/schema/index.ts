@@ -31,4 +31,5 @@ export * from "./rate-limits";
 export * from "./billing";
 export * from "./orders";
 export * from "./autopost";
+export * from "./page-comments";
 export * from "./core-jobs";

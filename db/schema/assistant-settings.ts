@@ -74,6 +74,9 @@ export const assistantSettings = pgTable(
     autopostMode: text("autopost_mode").$type<AutopostMode>().notNull().default("automatic"),
     autopostEnabledByUserId: text("autopost_enabled_by_user_id"),
     autopostEnabledAt: timestamp("autopost_enabled_at", { withTimezone: true }),
+    // Answering comments on the business's Facebook Page posts
+    // (core/internal/comments): off until an owner switches it on.
+    commentsOn: boolean("comments_on").notNull().default(false),
     updatedByUserId: text("updated_by_user_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

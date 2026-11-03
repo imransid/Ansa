@@ -43,6 +43,9 @@ export type AssistantSettingsView = Omit<
   | "autopostMode"
   | "autopostEnabledByUserId"
   | "autopostEnabledAt"
+  // Answering comments on Facebook posts has its own switch:
+  // core's /api/v1/comments/settings.
+  | "commentsOn"
 > & {
   openingHours: OpeningHours | null;
   awayHours: OpeningHours | null;
