@@ -15,7 +15,11 @@ addresses hidden, the owner's with secret numbers hidden. Each message's
 line is named by its side: "Customer" and "Restaurant", or for a person
 "Sender" and "<their name>'s side" (theirs, and ansa's for them; never
 "Restaurant"). No prompt names one chat: customers write on WhatsApp,
-Messenger and Telegram alike ("in its chats").
+Messenger and Telegram alike ("in its chats"). An order's notes are only
+what the customer asked for, briefly, in their own words and language (ansa
+shows them in the summary it sends the customer): never the AI's comment
+to the restaurant; something it can't promise (an extra or a change not on
+the menu) is asked about or handed over, never written into the notes.
 **Model (`ai.py`):** Anthropic's SDK, one structured JSON answer
 (`output_config.format: json_schema`), effort low, 3,000 tokens, 30 s, one
 retry; the business's own key when core sends one, else ansa's; on an error
@@ -68,7 +72,8 @@ engine; a failure is `{"kind":"failed","reason":...}`.
 **Core's checks (prices, links, refunds) run in core, not here.**
 **Tests:** `tests/test_call_summary.py` (the note's prompt, escaping and
 strict reading); `tests/test_assistant.py` (a fake model): the prompt's contents,
-escaping and hiding; a dish off today by its name only; a person's prompt; each side of the conversation named
+escaping and hiding; a dish off today by its name only; an order's notes
+the customer's own words; a person's prompt; each side of the conversation named
 for whom ansa answers, and no chat named; strict reading; failures; the
 endpoint needs core's signature; Claude Code is refused outside development,
 gets the conversation on stdin only and none of the brain's secrets (a fake

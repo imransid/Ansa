@@ -43,7 +43,7 @@ ANSWER_JSON_SCHEMA: dict[str, Any] = {
                 "fulfilment": {"type": "string", "enum": ["", "delivery", "pickup"]},
                 "address": {"type": "string"},
                 "time": {"type": "string"},
-                "notes": {"type": "string"},
+                "notes": {"type": "string", "description": "Only what the customer asked for themselves, briefly, in their own words and language; shown to them. Empty when they asked for nothing."},
             },
             "required": ["items", "fulfilment", "address", "time", "notes"],
             "additionalProperties": False,

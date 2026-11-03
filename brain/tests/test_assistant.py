@@ -65,6 +65,15 @@ def test_a_dish_off_today_goes_by_its_name_only_and_is_called_off_today():
     assert "not_available_today" not in build_request(request(kind="personal"))[1]
 
 
+def test_an_orders_notes_are_the_customers_own_words_only():
+    # ansa prints the notes to the customer ("Notes: ..."): never the AI's
+    # comment to the restaurant, and never a promise of something off the menu.
+    system, _, schema = build_request(request())
+    assert "Notes are only what the customer asked for themselves, briefly, in their own words and language" in system
+    assert "don't put it in the notes; tell the customer it isn't on the menu" in system
+    assert "in their own words and language" in schema["properties"]["order"]["properties"]["notes"]["description"]
+
+
 def test_a_yes_to_ansas_summary_in_either_language_is_known():
     # Core writes its order summary in the customer's language (orders.SummaryText:
     # English, or Bangla for a customer writing in Bengali script); the AI is
