@@ -11,7 +11,7 @@ func TestTheSetupStepByStep(t *testing.T) {
 	ctx := context.Background()
 	code, answer := w.call("POST", "/api/v1/setup/business?from=setup", `{"kind":"business","companyName":"L","businessType":"spaceship","description":""}`, screensSecret, w.cookie)
 	fields, _ := answer["fields"].(map[string]any)
-	if code != 400 || fields["companyName"] == nil || fields["businessType"] != "Choose what kind of business it is." || fields["description"] != "Say in a sentence what you serve." {
+	if code != 400 || fields["companyName"] == nil || fields["businessType"] != "Choose what kind of business it is." || fields["description"] != "Say in a sentence what you offer." {
 		t.Fatalf("step 1's problems: %d %v", code, answer)
 	}
 	code, answer = w.call("POST", "/api/v1/setup/business?from=setup", `{"kind":"business","companyName":"Luigi's","businessType":"restaurant","description":"Pizza by the slice"}`, screensSecret, w.cookie)

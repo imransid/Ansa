@@ -43,7 +43,7 @@ export function OrdersForm(props: OrdersFormProps) {
               <CheckField
                 name="takesOrders"
                 label="Take orders"
-                hint="ansa takes orders from your menu in the chat, works out the total from your prices, and you accept them on the Orders page."
+                hint="ansa takes orders from your menu or price list in the chat, works out the total from your prices, and you accept them on the Orders page."
                 defaultChecked={ticked("takesOrders", props.takesOrders)}
               />
               <CheckField name="delivery" label="Delivery" hint="You bring orders to the customer." defaultChecked={ticked("delivery", props.delivery)} />

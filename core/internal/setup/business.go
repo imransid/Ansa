@@ -52,7 +52,7 @@ func (b *Business) Check() Fields {
 		fields["businessType"] = "Choose what kind of business it is."
 	}
 	if b.Description == "" && fields["description"] == "" {
-		fields["description"] = "Say in a sentence what you serve."
+		fields["description"] = "Say in a sentence what you offer."
 	}
 	return fields
 }
