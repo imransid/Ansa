@@ -33,6 +33,12 @@ export function WhatWeStore() {
           message&apos;s text); and who on your team took a conversation over.
         </li>
         <li>
+          Comments on your Facebook Page&apos;s posts: the commenter&apos;s name and the comment&apos;s text as Meta gives them,
+          the start of the post it is under, when it came, what ansa made of it (a question, an order, a complaint...), and
+          the answer ansa wrote under it or sent them privately in Messenger, whether that went out, or why ansa left it.
+          When they answer that private message, it becomes a conversation like any other.
+        </li>
+        <li>
           Orders: the items and prices as they were when ordered, the totals ansa worked out, delivery or pickup, the time
           asked for, the delivery address and notes, the order&apos;s number and status, and who on your team moved it on.
         </li>

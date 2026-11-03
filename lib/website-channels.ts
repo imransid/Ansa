@@ -4,8 +4,8 @@
 // "now": someone who signs up today can use it. "soon": not open to
 // everyone yet. Switch one to "now" only once it works for real customers
 // (docs/going-live.md, section 15): WhatsApp Business and Facebook Messenger
-// once Meta has approved ansa's app, phone calls once a phone provider
-// answers ansa's number.
+// (with its Page's comments) once Meta has approved ansa's app, phone calls
+// once a phone provider answers ansa's number.
 export type WebsiteChannel = {
   name: string;
   // How a sentence names it: "phone calls".
@@ -23,7 +23,12 @@ export const WEBSITE_CHANNELS: WebsiteChannel[] = [
     status: "soon",
     note: "Your WhatsApp Business number: keep the app on your phone, ansa answers when you can't.",
   },
-  { name: "Facebook Messenger", inSentence: "Facebook Messenger", status: "soon", note: "Your business's Facebook Page." },
+  {
+    name: "Facebook Messenger",
+    inSentence: "Facebook Messenger",
+    status: "soon",
+    note: "Your business's Facebook Page: its messages, and the comments on its posts.",
+  },
   { name: "Phone calls", inSentence: "phone calls", status: "soon", note: "Calls you don't pick up, answered and written down." },
   { name: "Instagram", inSentence: "Instagram", status: "soon", note: "Business and creator accounts." },
 ];

@@ -20,7 +20,8 @@ export default function TermsPage() {
         {site.name} answers your messages and calls when you can&apos;t, as your AI assistant: from the information and
         instructions you give it, it answers what it can, takes orders, passes the rest on to you as requests, and tells
         you what you missed. It also turns emails you forward into requests and routes them to your team, emails a
-        customer when their request is solved, can write and publish posts on your Facebook Page, and offers tools to
+        customer when their request is solved, can write and publish posts on your Facebook Page and answer the comments
+        on them, and offers tools to
         plan, write and publish social media posts on the accounts your owners connect.
       </p>
 
@@ -42,7 +43,8 @@ export default function TermsPage() {
         <li>Have the right to process the data of the people who contact you.</li>
         <li>
           Connect only accounts and numbers you may use, and follow the rules of each platform you connect (Telegram,
-          Meta&apos;s for Messenger and WhatsApp Business, LinkedIn, X and YouTube), including when a business may reply.
+          Meta&apos;s for Messenger, Page comments and WhatsApp Business, LinkedIn, X and YouTube), including when a business may
+          reply.
         </li>
         <li>Don&apos;t use the service for anything unlawful, for unsolicited messages, calls or email, or to harm others.</li>
         <li>Upload only images and videos you have the right to use and publish.</li>
