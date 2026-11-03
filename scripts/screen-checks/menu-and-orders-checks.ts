@@ -2,11 +2,13 @@
 // the browser runs: prices read as core reads them (the same cases), Read
 // my menu offers the files core reads and says when a Word file was cut, a
 // change the customer wasn't told about stays on the Orders page in words
-// for its channel, the page says when the package has no orders, and the
-// orders form keeps its ticks when a save is refused.
+// for its channel, the page says when the package has no orders, a ready
+// order is worded by how it reaches the customer, the orders form keeps its
+// ticks when a save is refused, and all-day hours are said in words.
 
 import assert from "node:assert/strict";
 import { parsePrice } from "@/lib/menu";
+import { describeDay, describeHoursNow, WEEKDAYS, type OpeningHours } from "@/lib/opening-hours";
 import { orderNotToldText } from "@/lib/order-notices";
 import { orderStatusLabel } from "@/lib/orders";
 import { ordersPageNoticeSchema } from "@/lib/validation/orders";
@@ -78,6 +80,17 @@ export async function runMenuAndOrdersChecks() {
     }
     const [cancel] = openingTags(card, ["ConfirmButton"]);
     assert.equal(attributeValue(cancel, "dismissLabel"), '"Keep it"');
+  });
+
+  await check("opening hours: midnight to midnight is said in words, \"All day\" for a day and \"Open all day, every day\" on the form, as the sidebar says \"Open all day\" (never \"from 12:00 AM to 12:00 AM\")", async () => {
+    const allDay = Object.fromEntries(WEEKDAYS.map(({ key }) => [key, [{ opens: "00:00", closes: "24:00" }]])) as OpeningHours;
+    assert.equal(describeDay(allDay.mon), "All day");
+    assert.equal(describeDay([{ opens: "12:00", closes: "24:00" }]), "12:00 to midnight");
+    assert.equal(describeHoursNow(allDay, "Asia/Dhaka", new Date("2026-11-04T10:00:00Z")).text, "Open all day");
+    const form = withoutComments(await read("components/restaurant-setup/same-every-day.tsx"));
+    assert.match(form, /const allDay = isAllDay\(/);
+    assert.match(form, /"Open all day, every day\."/);
+    assert.match(form, /defaultValue=\{allDay \? "" : from\}/);
   });
 
   await check("orders form: a save refused (no delivery or pickup) keeps the boxes as they were ticked", async () => {

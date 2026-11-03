@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { Input } from "@/components/ui/input";
-import { hoursFieldName, RANGES_PER_DAY, WEEKDAYS, type Weekday } from "@/lib/opening-hours";
+import { hoursFieldName, isAllDay, RANGES_PER_DAY, WEEKDAYS, type Weekday } from "@/lib/opening-hours";
 import { FieldHint } from "./section-form";
 
 type TimeOf = (day: Weekday, range: number, end: "opens" | "closes") => string;
@@ -33,10 +33,16 @@ export function sameEveryDayTimes(timeOf: TimeOf): { from: string; to: string } 
 // "Every day from ... to ...": typing both times fills in every day below
 // (a night across midnight becomes its two times); clearing both empties
 // them. The two boxes have no names: only the days are sent, so the server
-// reads one shape whichever way they were filled.
+// reads one shape whichever way they were filled. Midnight to midnight
+// every day says so in words ("Open all day, every day", as the sidebar
+// says "Open all day"), with empty boxes to change it: "from 12:00 AM to
+// 12:00 AM" read as closed.
 export function SameEveryDay({ which, from, to }: { which: "opening" | "away"; from: string; to: string }) {
   const fromBox = useRef<HTMLInputElement>(null);
   const toBox = useRef<HTMLInputElement>(null);
+  // A closing 00:00 is midnight here (the form shows a saved 24:00 so).
+  const allDay = isAllDay({ opens: from, closes: to === "00:00" ? "24:00" : to });
+  const label = which === "away" ? "Every day, ansa answers from" : "Open every day from";
 
   function fillEveryDay() {
     const form = fromBox.current?.form;
@@ -57,13 +63,14 @@ export function SameEveryDay({ which, from, to }: { which: "opening" | "away"; f
 
   return (
     <div className="grid gap-2">
+      {allDay && <p className="text-sm font-medium">{which === "away" ? "ansa answers all day, every day." : "Open all day, every day."}</p>}
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium">{which === "away" ? "Every day, ansa answers from" : "Open every day from"}</span>
+        <span className="font-medium">{allDay ? "Or every day from" : label}</span>
         <Input
           ref={fromBox}
           type="time"
-          aria-label={which === "away" ? "Every day, ansa answers from" : "Open every day from"}
-          defaultValue={from}
+          aria-label={label}
+          defaultValue={allDay ? "" : from}
           key={`from-${from}`}
           onChange={fillEveryDay}
           aria-describedby="same-every-day-hint"
@@ -74,7 +81,7 @@ export function SameEveryDay({ which, from, to }: { which: "opening" | "away"; f
           ref={toBox}
           type="time"
           aria-label={which === "away" ? "Every day, ansa answers until" : "Open every day until"}
-          defaultValue={to}
+          defaultValue={allDay ? "" : to}
           key={`to-${to}`}
           onChange={fillEveryDay}
           aria-describedby="same-every-day-hint"

@@ -85,10 +85,19 @@ export function formatTime(time: string): string {
   return time === "24:00" ? "midnight" : time;
 }
 
-// One day's hours in words: "12:00 to 15:00 and 18:00 to 23:00", or "Closed".
+// From midnight to midnight: the sidebar's "Open all day".
+export function isAllDay(range: TimeRange): boolean {
+  return range.opens === "00:00" && range.closes === "24:00";
+}
+
+// One day's hours in words: "12:00 to 15:00 and 18:00 to 23:00", "All
+// day", or "Closed".
 export function describeDay(ranges: TimeRange[]): string {
   if (ranges.length === 0) {
     return "Closed";
+  }
+  if (ranges.length === 1 && isAllDay(ranges[0])) {
+    return "All day";
   }
   return ranges.map((range) => `${formatTime(range.opens)} to ${formatTime(range.closes)}`).join(" and ");
 }
@@ -111,7 +120,7 @@ export function describeHoursNow(hours: OpeningHours, timeZone: string, now: Dat
     return { open: false, text: "Closed today" };
   }
   const current = today.find((range) => minutesOf(range.opens) <= minutes && minutes < minutesOf(range.closes));
-  if (current && current.opens === "00:00" && current.closes === "24:00") {
+  if (current && isAllDay(current)) {
     return { open: true, text: "Open all day" };
   }
   if (current) {
