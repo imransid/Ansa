@@ -2,6 +2,6 @@
 // the role buttons on the Team page. Keep it in step with core's owner checks
 // (core/internal/api: billing, support, documents, team, requests).
 export const OWNER_ONLY_CONTROLS =
-  "billing, the company name and Reply-To address, support addresses, documents, categories, invites, the team (removing people, changing roles) and reopening solved tickets";
+  "billing, the company name and Reply-To address, support addresses, documents, categories, invites, the team (removing people, changing roles) and reopening solved requests";
 
-export const MEMBER_ROLE_DESCRIPTION = "Members work on tickets and choose the categories they handle.";
+export const MEMBER_ROLE_DESCRIPTION = "Members work on requests and choose the categories they handle.";

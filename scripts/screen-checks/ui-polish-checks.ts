@@ -123,7 +123,7 @@ export async function runUiPolishChecks() {
     }
   });
 
-  await check("error pages: not-found, error and global-error exist, and none shows an error's message", async () => {
+  await check("error pages: not-found, error and global-error exist, none shows an error's message, and the way back says Home (never \"your tickets\")", async () => {
     for (const file of ["app/not-found.tsx", "app/error.tsx", "app/global-error.tsx", "app/tickets/not-found.tsx", "app/calls/not-found.tsx"]) {
       assert.ok(await exists(file), `${file} is missing`);
     }
@@ -133,6 +133,12 @@ export async function runUiPolishChecks() {
     // global-error replaces the whole document, so it needs its own.
     const globalError = await read("app/global-error.tsx");
     assert.ok(globalError.includes("<html") && globalError.includes("<body") && globalError.includes("globals.css"));
+    // The app calls them requests, and the way back opens Home.
+    for (const file of ["app/not-found.tsx", "components/something-went-wrong.tsx"]) {
+      const source = withoutComments(await read(file));
+      assert.doesNotMatch(source, /\btickets?\b/i, `${file} says "ticket"`);
+      assert.match(source, /<Link href="\/dashboard"[^>]*>\s*Go to Home\s*<\/Link>/, `${file}'s way back doesn't say where it goes`);
+    }
   });
 
   await check("pages: customer-facing pages never tell the team to check a server setting", async () => {

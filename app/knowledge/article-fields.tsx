@@ -95,7 +95,7 @@ export function ArticleAudienceFields({ useForSupport, useForMarketing }: { useF
       <div className="flex items-center gap-2">
         <Checkbox id="useForSupport" name="useForSupport" defaultChecked={useForSupport} />
         <Label htmlFor="useForSupport">
-          Support: shown on matching tickets, and ansa&apos;s assistant may quote it word for word to customers in chats
+          Support: shown on matching requests, and ansa&apos;s assistant may quote it word for word to customers in chats
           and phone calls, prices and links included
         </Label>
       </div>

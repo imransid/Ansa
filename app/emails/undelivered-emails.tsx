@@ -13,13 +13,13 @@ export function UndeliveredCustomerEmails({ emails, total }: { emails: Undeliver
     <section className="grid gap-2 rounded-lg border border-destructive/50 p-4">
       <h2 className="text-lg font-semibold">Customer emails not delivered ({total})</h2>
       <p className="text-sm text-muted-foreground">
-        These customers were not told that their request is solved. Open the ticket to retry, or to check the address.
+        These customers were not told that their request is solved. Open the request to retry, or to check the address.
       </p>
       <ul className="grid gap-1 text-sm">
         {emails.map((email) => (
           <li key={email.emailId}>
             <Link href={`/tickets/${email.ticketNumber}`} className="font-medium underline">
-              Ticket #{email.ticketNumber}
+              Request #{email.ticketNumber}
             </Link>
             : email to {email.toEmail} {describeProblem(email)} (<LocalDateTime iso={email.changedAt.toISOString()} />)
           </li>

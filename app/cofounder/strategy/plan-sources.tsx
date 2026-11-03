@@ -62,7 +62,7 @@ export function PlanSources({ plan }: { plan: ShownPlan }) {
         <p>
           <span className="font-medium">Support trends: </span>
           {plan.usedSupportTrends
-            ? `the number of tickets per category in the ${SUPPORT_TREND_DAYS} days before the plan was made (names and numbers only).`
+            ? `the number of requests per category in the ${SUPPORT_TREND_DAYS} days before the plan was made (names and numbers only).`
             : "not used: the setting was off."}
         </p>
       </div>

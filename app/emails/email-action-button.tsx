@@ -11,7 +11,7 @@ type EmailActionButtonProps = {
   action: "process-again" | "ticket-anyway";
 };
 
-const BUTTON_LABELS = { "process-again": "Process again", "ticket-anyway": "Make a ticket anyway" };
+const BUTTON_LABELS = { "process-again": "Process again", "ticket-anyway": "Make a request anyway" };
 
 // One email's button on the Emails page. Both can ask Claude, so they may
 // take a minute.

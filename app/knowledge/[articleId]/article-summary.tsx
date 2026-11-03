@@ -51,7 +51,7 @@ export function ArticleSummary({ article }: { article: KnowledgeArticlePage }) {
 
 function describeStatus(article: KnowledgeArticlePage): string {
   if (article.status === "draft") {
-    return "Draft: not shown on tickets or given to any AI until an owner approves it.";
+    return "Draft: not shown on requests or given to any AI until an owner approves it.";
   }
   if (article.status === "archived") {
     return "Archived: nobody uses it. An owner can restore it as a draft.";
@@ -71,7 +71,7 @@ function SourceLine({ article }: { article: KnowledgeArticlePage }) {
         <dt className="inline">From </dt>
         <dd className="inline">
           <Link href={`/tickets/${article.sourceTicketNumber}`} className="underline">
-            ticket #{article.sourceTicketNumber}
+            request #{article.sourceTicketNumber}
           </Link>
         </dd>
       </div>

@@ -16,7 +16,7 @@ export function EmailSection({ setup, isOwner }: { setup: SetupOverview; isOwner
       <h2 className="text-lg font-semibold">Customer emails</h2>
       <p className="text-sm text-muted-foreground">
         Forward your support mailbox (for example support@yourcompany.com) to this address. Customer emails that reach
-        it become tickets here (automatic replies and bulk mail are skipped, and listed on the{" "}
+        it become requests here (automatic replies and bulk mail are skipped, and listed on the{" "}
         <Link href="/emails" className="underline">
           Emails page
         </Link>
@@ -27,9 +27,9 @@ export function EmailSection({ setup, isOwner }: { setup: SetupOverview; isOwner
         <CopyButton text={setup.forwardingAddress} label="Copy the forwarding address" />
       </div>
       <p className="text-sm text-muted-foreground">
-        Gmail sends a confirmation email first. It becomes a ticket here: open it and click its link (or enter its code
+        Gmail sends a confirmation email first. It becomes a request here: open it and click its link (or enter its code
         in Gmail). Forwarding starts only then. To test it, send an email to your support address from another address:
-        it should show up below. If nothing arrives, or Gmail&apos;s confirmation did not become a ticket, contact ansa.
+        it should show up below. If nothing arrives, or Gmail&apos;s confirmation did not become a request, contact ansa.
       </p>
       <p className="text-sm text-muted-foreground">
         ansa made this address for your company only; nobody can choose it. If it ever gets spam, ansa can give you a
@@ -39,9 +39,9 @@ export function EmailSection({ setup, isOwner }: { setup: SetupOverview; isOwner
 
       <h3 className="font-medium">Addresses your customers write to</h3>
       <p className="text-sm text-muted-foreground">
-        For your team&apos;s reference. Email sent from these addresses doesn&apos;t become a ticket on its own, so a
-        mailbox can&apos;t loop into ansa: the Emails page lists it, and you can still make it a ticket there. If one of
-        them is a Google Group, the customer emails it passes on still become tickets, as long as the customer&apos;s
+        For your team&apos;s reference. Email sent from these addresses doesn&apos;t become a request on its own, so a
+        mailbox can&apos;t loop into ansa: the Emails page lists it, and you can still make it a request there. If one of
+        them is a Google Group, the customer emails it passes on still become requests, as long as the customer&apos;s
         address is in From or Reply-To. Email only reaches ansa through the forwarding address above.
       </p>
       <SupportAddressList addresses={setup.inboundAddresses} canRemove={isOwner} />
@@ -67,7 +67,7 @@ function WhatHappened({ lastEmail }: { lastEmail: LastEmail }) {
       <>
         It became{" "}
         <Link href={`/tickets/${lastEmail.ticketNumber}`} className="underline">
-          ticket #{lastEmail.ticketNumber}
+          request #{lastEmail.ticketNumber}
         </Link>
         .
       </>
@@ -76,7 +76,7 @@ function WhatHappened({ lastEmail }: { lastEmail: LastEmail }) {
   if (lastEmail.status === "ignored") {
     return (
       <>
-        It did not become a ticket: {describeIgnoredReason(lastEmail.ignoredReason)}.{" "}
+        It did not become a request: {describeIgnoredReason(lastEmail.ignoredReason)}.{" "}
         <Link href="/emails" className="underline">
           See all emails
         </Link>
@@ -96,14 +96,14 @@ function WhatHappened({ lastEmail }: { lastEmail: LastEmail }) {
       </>
     );
   }
-  return <>It is being turned into a ticket.</>;
+  return <>It is being turned into a request.</>;
 }
 
 // Only what the Emails page really offers for this reason: nothing for a mail
 // loop (own_address).
 function WhatCanBeDone({ reason }: { reason: string }) {
   if (TICKET_ANYWAY_REASONS.includes(reason)) {
-    return <>, where you can still make it a ticket</>;
+    return <>, where you can still make it a request</>;
   }
   if (PROCESS_AGAIN_REASONS.includes(reason)) {
     return <>, where you can process it again</>;

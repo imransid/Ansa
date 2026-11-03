@@ -44,7 +44,7 @@ async function TeamContent() {
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Removed</h2>
           <p className="text-sm text-muted-foreground">
-            They can&apos;t log in any more. Their names stay on the tickets they worked on.
+            They can&apos;t log in any more. Their names stay on the requests they worked on.
           </p>
           <RemovedMembersTable members={team.removedMembers} />
         </section>
@@ -54,8 +54,8 @@ async function TeamContent() {
         <section className="grid gap-3">
           <h2 className="text-lg font-semibold">Categories</h2>
           <p className="text-sm text-muted-foreground">
-            A new ticket goes to whoever has the same customer&apos;s other open ticket; otherwise to whoever handles its
-            category and has the fewest open tickets. When someone ticks a category, the open tickets waiting in it
+            A new request goes to whoever has the same customer&apos;s other open request; otherwise to whoever handles its
+            category and has the fewest open requests. When someone ticks a category, the open requests waiting in it
             without anyone are handed out too.
           </p>
           <CategoriesSection categories={teamCategories.categories} />

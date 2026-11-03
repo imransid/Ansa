@@ -55,7 +55,7 @@ export function SupportAddressList({ addresses, canRemove }: SupportAddressListP
               fields={{ value: address }}
               label="Remove"
               accessibleLabel={`Remove ${address}`}
-              question={`Remove ${address}? ansa will no longer recognise it as yours: email from it can become tickets, and if it is a Google Group, the customer emails it passes on will be skipped as bulk mail.`}
+              question={`Remove ${address}? ansa will no longer recognise it as yours: email from it can become requests, and if it is a Google Group, the customer emails it passes on will be skipped as bulk mail.`}
               confirmLabel="Yes, remove"
               pendingLabel="Removing..."
             />
