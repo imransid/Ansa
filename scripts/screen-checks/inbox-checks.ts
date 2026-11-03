@@ -39,6 +39,16 @@ export async function runInboxChecks() {
     assert.equal(attributeValue(openingTags(page, ["RequestBox"])[0], "key"), "{conversation.openTicket.id}");
   });
 
+  await check("live pages: a page that asks the server again starts the next refresh only once the last one is shown (a transition's isPending, never setInterval), so slow refreshes never pile up in front of a button's action", async () => {
+    for (const file of ["components/refresh-every.tsx", "components/refresh-while-pending.tsx"]) {
+      const source = withoutComments(await read(file));
+      assert.doesNotMatch(source, /setInterval\(/, `${file} refreshes on an interval`);
+      assert.match(source, /const \[isRefreshing, startRefresh\] = useTransition\(\);/, `${file} doesn't know when its refresh ends`);
+      assert.match(source, /startRefresh\(\(\) => router\.refresh\(\)\)/, `${file} refreshes outside its transition`);
+      assert.match(source, /if \(isRefreshing\b[^\n]*\) \{\n\s*return;/, `${file} plans a refresh while one runs`);
+    }
+  });
+
   await check("conversation page: the open request shows what it is about as plain text (the AI's summary, a call's note) and the request page's related knowledge; an email entry links the request it became", async () => {
     const box = withoutComments(await read(`${CONVERSATION}/request-box.tsx`));
     assert.match(box, /<p className="[^"]*whitespace-pre-wrap[^"]*">\{ticket\.description\}<\/p>/);
