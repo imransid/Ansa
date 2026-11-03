@@ -69,6 +69,9 @@ func TestABanglaCustomerGetsAnsasOrderTextsInBangla(t *testing.T) {
 	if len(messages) != 1 || !strings.HasSuffix(messages[0][1], "আপনার অর্ডার:\n2 × Margherita: €19.00\nমোট: €19.00\nনিজে এসে নেবেন\nকখন: যত তাড়াতাড়ি সম্ভব\n\nঅর্ডারটি কি নিশ্চিত করব? নিশ্চিত করতে “হ্যাঁ” লিখে পাঠান।") {
 		t.Fatalf("ansa's summary in Bangla: %+v", messages)
 	}
+	if !strings.HasPrefix(messages[0][1], "আমি Luigi's-এর এআই সহকারী।\n") {
+		t.Fatalf("the AI label in Bangla too: %q", messages[0][1])
+	}
 	w.brainAnswer = `{"kind":"order_confirmed"}`
 	yes := w.customerSays("ra", "হ্যাঁ")
 	if got := w.answer(yes); got != OutcomeReplied {

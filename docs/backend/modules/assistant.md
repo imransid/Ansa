@@ -94,7 +94,12 @@ smallest units (ISO 4217 digits: 0 for yen or won, 3 for dinars, 2 for
 most); a minus is no price. See [orders](orders.md), Money.
 **AI label:** "I'm the AI assistant for <business>." / "I'm <name>'s AI
 assistant.", ansa's own first line of the first automated message the
-customer gets (a reply, a holding reply or one of ansa's order texts).
+customer gets (a reply, a holding reply or one of ansa's order texts). In
+the customer's language, chosen as ansa's order texts choose theirs
+(`orders.LanguageOf` on their newest message): for a customer writing
+mostly in Bengali script, "আমি <business>-এর এআই সহকারী।" / "আমি
+<name>-এর এআই সহকারী।" (`AILabelIn`; the name as written). A call's
+greeting keeps the English label.
 **Gate (`gate.go`, the old `gateWithin`'s order):** not found → paused →
 taken over by a person → the message handled already → a request open in the
 conversation → a newer customer message (it gets its own run) → may. Read
@@ -127,7 +132,7 @@ engine goes too: "api_key" with the business's own key decrypted
 (the brain holds it), or "claude_code" (development only, refused by the
 brain in production).
 **Tests:** `checks_test.go` (also Bengali digits, Tk and টাকা, lakhs, and
-the Bangla refund words); `commitments_test.go` (a person's reply naming a
+the Bangla refund words; the AI label in Bangla); `commitments_test.go` (a person's reply naming a
 time, a day or an agreement they never wrote stops, in English and Bangla,
 য় written either way; their own times and days pass, written the other
 way or in the other language; সকাল, কালো, আজব and the name রাজিব don't
@@ -136,8 +141,8 @@ only available dishes, labelled, and today's unavailable ones by name,
 without a price; the fee; "Tuesday 19:30, open until
 midnight"; the decrypted conversation; no id in the request; a price in
 today's dish's description may be quoted; no orders without delivery or
-pickup); `order_test.go` (also a Bangla customer's summary, confirmation
-and status message in Bangla);
+pickup); `order_test.go` (also a Bangla customer's summary, with the AI label,
+confirmation and status message in Bangla);
 `inputs_knowledge_test.go` (live database, a fake brain: a price written
 only in an article's title may be quoted; a follow-up finds the article of
 the question before it; the customer's newest messages, newest first);

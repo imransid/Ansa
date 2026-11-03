@@ -3,6 +3,8 @@ package assistant
 import (
 	"fmt"
 	"testing"
+
+	"ansa/core/internal/orders"
 )
 
 var data = CheckData{Currency: "EUR", MenuPrices: []int64{950, 600}, OwnerTexts: []string{"Delivery costs €2.50 within 3 km.", "Our website is https://luigis.example/menu."}}
@@ -119,13 +121,32 @@ func TestBanglaRefundWordsStopAReply(t *testing.T) {
 }
 
 func TestTheAILabelSaysWhoItWorksFor(t *testing.T) {
-	if got := WithAILabel("Hi!", "Luigi's", "business", true); got != "I'm the AI assistant for Luigi's.\nHi!" {
+	if got := WithAILabel("Hi!", "Luigi's", "business", orders.English, true); got != "I'm the AI assistant for Luigi's.\nHi!" {
 		t.Errorf("business: %q", got)
 	}
 	if got := AILabel("Rafa", "personal"); got != "I'm Rafa's AI assistant." {
 		t.Errorf("personal: %q", got)
 	}
-	if got := WithAILabel("Hi!", "Luigi's", "business", false); got != "Hi!" {
+	if got := WithAILabel("Hi!", "Luigi's", "business", orders.English, false); got != "Hi!" {
 		t.Errorf("only the first message: %q", got)
+	}
+}
+
+// A customer writing in Bangla gets the label in Bangla too, as ansa's
+// order texts are; the name stays as written.
+func TestTheAILabelIsInBanglaForABanglaCustomer(t *testing.T) {
+	cases := map[[2]string]string{
+		{"Shapla Kitchen", "business"}: "আমি Shapla Kitchen-এর এআই সহকারী।",
+		{"Rafa", "personal"}:           "আমি Rafa-এর এআই সহকারী।",
+		{"", "business"}:               "আমি এই ব্যবসার এআই সহকারী।",
+		{"", "personal"}:               "আমি একজন এআই সহকারী।",
+	}
+	for who, want := range cases {
+		if got := AILabelIn(who[0], who[1], orders.Bangla); got != want {
+			t.Errorf("%v: got %q, want %q", who, got, want)
+		}
+	}
+	if got := WithAILabel("ধন্যবাদ!", "Shapla Kitchen", "business", orders.LanguageOf("কাচ্চি আছে?"), true); got != "আমি Shapla Kitchen-এর এআই সহকারী।\nধন্যবাদ!" {
+		t.Errorf("the first message: %q", got)
 	}
 }

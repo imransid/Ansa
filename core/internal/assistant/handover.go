@@ -65,7 +65,7 @@ func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info con
 	if err != nil {
 		return err
 	}
-	holdingText := WithAILabel(inputs.HoldingReply, inputs.Name, inputs.Kind, info.FirstAutomated)
+	holdingText := WithAILabel(inputs.HoldingReply, inputs.Name, inputs.Kind, inputs.Ordering.Language, info.FirstAutomated)
 	var target chat.Target
 	holdingSaved := false
 	err = database.InTx(ctx, r.Pool, func(tx database.Tx) error {

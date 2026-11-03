@@ -5,6 +5,7 @@ package assistant
 
 import (
 	"ansa/core/internal/money"
+	"ansa/core/internal/orders"
 
 	"regexp"
 	"strings"
@@ -117,7 +118,7 @@ func linksAreKnown(text string, ownerTexts []string) bool {
 	return true
 }
 
-// AILabel is ansa's own first line in a conversation (never the AI's).
+// AILabel is ansa's own first line in a conversation (never the AI's), in English.
 func AILabel(name, kind string) string {
 	clean := strings.Join(strings.Fields(name), " ")
 	if kind == "personal" {
@@ -132,10 +133,29 @@ func AILabel(name, kind string) string {
 	return "I'm the AI assistant for " + clean + "."
 }
 
-// WithAILabel puts the label first on the first automated message.
-func WithAILabel(text, name, kind string, first bool) string {
+// AILabelIn is the label in the customer's language, chosen as ansa's
+// order texts choose theirs (orders.LanguageOf on the customer's newest
+// message): Bangla for a customer writing mostly in Bengali script, else
+// English. The name stays as written.
+func AILabelIn(name, kind, language string) string {
+	if language != orders.Bangla {
+		return AILabel(name, kind)
+	}
+	clean := strings.Join(strings.Fields(name), " ")
+	switch {
+	case clean != "":
+		return "আমি " + clean + "-এর এআই সহকারী।"
+	case kind == "personal":
+		return "আমি একজন এআই সহকারী।"
+	}
+	return "আমি এই ব্যবসার এআই সহকারী।"
+}
+
+// WithAILabel puts the label first on the first automated message, in the
+// customer's language.
+func WithAILabel(text, name, kind, language string, first bool) string {
 	if !first {
 		return text
 	}
-	return AILabel(name, kind) + "\n" + text
+	return AILabelIn(name, kind, language) + "\n" + text
 }

@@ -16,7 +16,7 @@ import (
 // everything again, with the order a summary describes. Then it sends. A
 // reply that can't go asks a person (no holding reply: the channel refused one).
 func (r *Runner) sendOrDraft(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, reply string, proposal *orders.Proposal) (string, error) {
-	text := WithAILabel(reply, inputs.Name, inputs.Kind, info.FirstAutomated)
+	text := WithAILabel(reply, inputs.Name, inputs.Kind, inputs.Ordering.Language, info.FirstAutomated)
 	messageID, err := conversations.NewID()
 	if err != nil {
 		return "", err
