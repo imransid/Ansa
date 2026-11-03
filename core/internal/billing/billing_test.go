@@ -66,7 +66,7 @@ func TestAPaidCheckoutIsStoredForItsCompanyAndASecondPlanIsNot(t *testing.T) {
 	companyID := database.TestCompany(t, pool)
 	company, _ := tenant.FromTrustedSource(companyID)
 	ctx := context.Background()
-	stripe := &fakeStripe{answer: Retrieved{Snapshot: Snapshot{CustomerID: "cus_" + companyID, SubscriptionID: "sub_1_" + companyID, Status: "active"}, MetadataCompanyID: companyID}}
+	stripe := &fakeStripe{answer: Retrieved{Snapshot: Snapshot{CustomerID: "cus_" + companyID, SubscriptionID: "sub_1_" + companyID, Status: "active", Package: ""}, MetadataCompanyID: companyID}}
 	limiter := ratelimit.New(pool, "billing-test-secret")
 	hook := &Webhook{Pool: pool, Limiter: limiter, Log: logging.New(io.Discard), Secret: secret, Stripe: stripe}
 	t.Cleanup(func() {
@@ -89,23 +89,28 @@ func TestAPaidCheckoutIsStoredForItsCompanyAndASecondPlanIsNot(t *testing.T) {
 	if code := send(checkout); code != 200 {
 		t.Fatalf("checkout: %d", code)
 	}
-	if stored, _ := Read(ctx, pool, company); stored == nil || stored.Status != "active" {
-		t.Fatalf("stored: %+v", stored)
+	if stored, _ := Read(ctx, pool, company); stored != nil {
+		t.Fatal("a price none of ansa's packages has stores nothing")
+	}
+	stripe.answer.Snapshot.Package = "pro"
+	send(checkout)
+	if stored, _ := Read(ctx, pool, company); stored == nil || stored.Status != "active" || stored.Package != "pro" {
+		t.Fatalf("stored with its package: %+v", stored)
 	}
 	stripe.answer.Snapshot.SubscriptionID = "sub_2_" + companyID
 	send(`{"type":"customer.subscription.created","data":{"object":{"id":"sub_2_` + companyID + `"}}}`)
 	if stored, _ := Read(ctx, pool, company); stored.SubscriptionID != "sub_1_"+companyID {
 		t.Fatal("a second live plan never replaces the first")
 	}
-	view, _ := ReadView(ctx, pool, company, "dev", false)
-	if !view.IsLive || view.OffersCheckout {
+	view, _ := ReadView(ctx, pool, company, "dev", false, time.Now())
+	if !view.IsLive || view.OffersCheckout || view.Package.Key != "pro" || len(view.Packages) != 3 {
 		t.Fatalf("page: %+v", view)
 	}
 	pool.Exec(ctx, `DELETE FROM company_billing WHERE company_id = $1`, companyID)
-	if err := Simulate(ctx, pool, company, "past_due", time.Now()); err != nil {
+	if err := Simulate(ctx, pool, company, "past_due", "personal", time.Now()); err != nil {
 		t.Fatalf("simulate: %v", err)
 	}
-	if view, _ := ReadView(ctx, pool, company, "dev", true); view.Subscription.Status != "past_due" {
-		t.Fatal("simulated")
+	if view, _ := ReadView(ctx, pool, company, "dev", true, time.Now()); view.Subscription.Status != "past_due" || view.Package.Key != "personal" {
+		t.Fatal("simulated: a payment Stripe still retries keeps the package")
 	}
 }

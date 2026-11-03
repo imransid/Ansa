@@ -72,6 +72,8 @@ func (s *Server) savePosts(w http.ResponseWriter, r *http.Request, body []byte, 
 		s.failed(w, "posts save", err)
 	case outcome == "no-time-zone":
 		problem(w, http.StatusConflict, "Set your time zone first (Settings → What it knows → Opening hours).")
+	case outcome == "not-in-package":
+		problem(w, http.StatusConflict, "Your package doesn't include posts this often: Business posts up to 3 times a week, Pro every day. See Billing.")
 	case outcome != settings.Saved:
 		problem(w, http.StatusForbidden, "Only owners change Post for me.")
 	default:

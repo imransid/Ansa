@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ansa/core/internal/database"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/tenant"
 )
 
@@ -22,7 +23,8 @@ const inviteLifetime = 7 * 24 * time.Hour
 // invite made at that instant). Only the token's SHA-256 is stored; the
 // token itself goes only into the link (after "#", which browsers never
 // send to a server). Outcomes: "created" (with the token), "not-allowed",
-// "taken" (the address is someone's on the team, or someone removed).
+// "taken" (the address is someone's on the team, or someone removed),
+// "team-full" (the package's team members, pending invites counted, step 57).
 func CreateInvite(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, email, role string, now time.Time) (token, outcome string, err error) {
 	var taken bool
 	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE company_id = $1 AND email = $2)`, company.String(), email).Scan(&taken); err != nil {
@@ -43,6 +45,11 @@ func CreateInvite(ctx context.Context, pool *database.Pool, company tenant.Compa
 			SELECT id FROM users WHERE company_id = $1 AND id = $2 AND role = 'owner' AND deactivated_at IS NULL FOR SHARE`
 		if err := tx.QueryRow(ctx, lockCreator, company.String(), actorUserID).Scan(&creator); err != nil {
 			return ignoreNoRows(err)
+		}
+		seatLeft, err := packages.TeamSeatLeftWithin(ctx, tx, company, now)
+		if err != nil || !seatLeft {
+			outcome = "team-full"
+			return err
 		}
 		const insert = `
 			INSERT INTO invites (company_id, email, role, token_hash, created_by_user_id, expires_at)

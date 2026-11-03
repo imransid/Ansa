@@ -2192,6 +2192,34 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     changes and the page says the customer wasn't told. Home's "Needs you"
     counts new orders ("N new orders to accept"), and a conversation's page
     lists that customer's orders.
+- Packages and usage limits (step 57, core/internal/packages,
+  docs/backend/modules/packages.md): names, prices and limits in ONE file
+  (packages.go). Free trial: 14 days from signup (companies.trial_ends_at),
+  no card, Business's features with 150 AI replies and 15 call minutes;
+  Personal $10 (300 AI replies, 20 call minutes, 1 person, no Messenger,
+  orders or "Post for me"); Business $29 (1,000, 60, 3 people, orders,
+  posts up to 3 a week); Pro $79 (3,000, 200, 10 people, daily posts).
+  - A company's package: the paid one while its subscription is live
+    (company_billing.package, from the Stripe price: STRIPE_PRICE_ID_
+    PERSONAL / _BUSINESS / _PRO; a price that is none of them stores
+    nothing), else the trial until it ends, else "none".
+  - usage_months (company, month = the 1st UTC, ai_replies, call_seconds):
+    one AI reply counted in ONE statement only while the month has one
+    left (chat replies, emails the AI reads, "Post for me" posts; never
+    the business's own Claude key, "Try your assistant" or call turns);
+    each call's seconds added in the transaction that ends it, a turn
+    checking the finished calls plus the live call so far.
+  - At a limit ansa never goes silent: a chat gets the holding reply and a
+    request (reasons package_used_up, and not_in_package for Messenger on
+    Personal), the AI not asked; a call takes messages with fixed words;
+    an email becomes a request without the AI; a post is skipped
+    ("package"); an order goes to a person where the package has no
+    orders; an invite past the team's seats (pending invites counted) is
+    refused ("team-full"). Home tells owners (the trial's days and end,
+    replies at 80% and used up, no call minutes), Billing shows the
+    package, this month's use and the three packages ("Choose" opens
+    Stripe's page; once paying, Stripe's portal changes package;
+    development: simulate buttons per package).
 - Calls answered live (step 55, core/internal/phone, docs/backend/modules/
   phone.md): someone who couldn't reach the person or the business talks
   with ansa turn by turn, answered by the SAME assistant as chats (details,
@@ -2540,10 +2568,21 @@ this order and is done on the laptop, deploying aside
   service that keeps logs and alerts is open; docs/going-live.md
   (Monitoring) lists the lines to alert on. A stalled pipeline that logs
   nothing (Vapi or Resend no longer calling) only shows as silence.
-- Payments (step 18) record who pays but enforce NOTHING: a company that never
-  paid, or whose payment failed, keeps full access. Deciding what happens then
-  (trial length, lockout, grace period) is open, and so is pricing. No free
-  trial is set up; Stripe can add one on the price or checkout.
+- Packages (step 57): a free trial of 14 days, then a paid package or none;
+  limits are per calendar month (UTC), not per billing period, and nothing
+  is charged for going past one (ansa stops writing with the AI instead:
+  holding replies, messages taken). A payment Stripe still retries
+  (past_due, unpaid, paused) keeps the package. Nothing measures what each
+  company really costs (the limits assume Claude Sonnet 5.5's prices and
+  about $0.10 a call minute). The hidden marketing pages (the Co-Founder's
+  interview, plans, drafts, reviews, menu reading) aren't counted against
+  the package, only their own hourly limits. Two invites at the very same
+  moment can pass the team seats by one. A downgrade keeps what is already
+  there (more people than seats, a Messenger Page, daily posts set): new
+  invites are refused, Messenger messages get holding replies, and posts
+  past the package are skipped. Prices are in US dollars only; taka prices
+  (and a payment provider that works for a company in Bangladesh, where
+  Stripe isn't available) are open.
 - Stripe events for a new customer are ignored until the checkout's own event
   has saved the row. A subscription change made in the instant between that
   event reading the subscription from Stripe and saving it is therefore lost
@@ -3396,7 +3435,12 @@ this order and is done on the laptop, deploying aside
 - Fill in lib/site.ts: registered company name, contact email, governing law.
 - Have a lawyer review app/(marketing)/privacy and terms, then set
   legalPagesReviewed: true (that removes the "draft" notice).
-- Decide pricing; set it on the Stripe price and on app/(marketing)/pricing.
+- Pricing is decided (step 57, core/internal/packages): make the three
+  Stripe prices (docs/going-live.md, section 6) and show the packages on
+  app/(marketing)/pricing (step 58). Choose the payment provider: Stripe
+  isn't available to a company registered in Bangladesh (Paddle or Lemon
+  Squeezy for cards abroad, SSLCommerz or bKash for taka: one door, as for
+  the phone).
 - Name the hosting provider in the privacy policy once chosen.
 - Work through docs/going-live.md.
 
@@ -4303,4 +4347,17 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   WHATSAPP_SIGNUP_CONFIG_ID); no new package. Meta's JavaScript SDK
   (connect.facebook.net) loads only on Settings → Connections, when an
   owner presses Connect WhatsApp.
+- 2026-11-03: Step 57, packages and usage limits (the owner's yes to the
+  proposed packages: a 14-day free trial, Personal $10, Business $29, Pro
+  $79, with the limits in the table of the packages rule). Decisions where
+  the plan left room: limits per calendar month (UTC), counted in core
+  before the AI is asked; at a limit ansa keeps receiving and answers with
+  holding replies and fixed message-taking, never charging extra; a
+  payment Stripe still retries keeps the package; replies written with
+  the business's own Claude key aren't counted; companies that existed
+  before got a fresh 14-day trial; one Stripe price per package (the
+  single STRIPE_PRICE_ID became STRIPE_PRICE_ID_PERSONAL / _BUSINESS /
+  _PRO), a package changed in Stripe's portal. Migration 0051_packages
+  (companies.trial_ends_at, company_billing.package, usage_months, the two
+  handover reasons); no new dependency.
 

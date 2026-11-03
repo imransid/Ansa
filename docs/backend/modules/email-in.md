@@ -70,3 +70,5 @@ for having no valid sender made a request anyway); `brain/tests/test_email.py`
 itself (above). One still stuck shows on the Emails page, with "Process
 again", and on Home. The page's "Customer emails not delivered" list is
 `core/internal/outbox/undelivered.go`.
+
+**Packages (step 57, [packages](packages.md)):** each email the AI reads is one of the package's AI replies this month; with none left (or the free trial over) the email still becomes a request, without the AI ("your package has no AI replies left this month").

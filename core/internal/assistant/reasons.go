@@ -21,6 +21,8 @@ var ReasonText = map[string]string{
 	"order_change":      "They want to change or cancel an order they placed.",
 	"order_unclear":     "ansa couldn't write up their order (a dish it couldn't find on the menu).",
 	"call_message":      "They called and left a message.",
+	"package_used_up":   "Your package has no AI replies left this month (or the free trial ended), so ansa sent your holding reply. See Billing.",
+	"not_in_package":    "Your package doesn't include this channel, so ansa sent your holding reply. See Billing.",
 }
 
 // ChannelLabels name a conversation's channel for people.

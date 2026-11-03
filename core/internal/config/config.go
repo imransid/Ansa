@@ -76,9 +76,11 @@ type Config struct {
 	UseR2                                                   bool
 	R2AccountID, R2AccessKeyID, R2SecretAccessKey, R2Bucket string
 	// Real payments only when USE_STRIPE is exactly "true" (then
-	// STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID are required).
-	UseStripe                                           bool
-	StripeSecretKey, StripeWebhookSecret, StripePriceID string
+	// STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and each package's price,
+	// STRIPE_PRICE_ID_PERSONAL, _BUSINESS and _PRO, are required: step 57).
+	UseStripe                                                bool
+	StripeSecretKey, StripeWebhookSecret                     string
+	StripePricePersonal, StripePriceBusiness, StripePricePro string
 	// Vapi (phone calls): the webhook's signing secret (empty: the webhook
 	// refuses all) and how Vapi signs, as settings so its real format can be
 	// matched without code changes (the old backend's VAPI_* settings).
@@ -138,7 +140,9 @@ func Load(getenv Getenv) (Config, error) {
 		UseStripe:              getenv("USE_STRIPE") == "true",
 		StripeSecretKey:        getenv("STRIPE_SECRET_KEY"),
 		StripeWebhookSecret:    getenv("STRIPE_WEBHOOK_SECRET"),
-		StripePriceID:          getenv("STRIPE_PRICE_ID"),
+		StripePricePersonal:    getenv("STRIPE_PRICE_ID_PERSONAL"),
+		StripePriceBusiness:    getenv("STRIPE_PRICE_ID_BUSINESS"),
+		StripePricePro:         getenv("STRIPE_PRICE_ID_PRO"),
 		SchedulerOff:           getenv("CORE_SCHEDULER") == "off",
 		MediaProvider:          getenv("MEDIA_PROVIDER"),
 	}

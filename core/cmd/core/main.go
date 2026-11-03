@@ -106,7 +106,8 @@ func main() {
 	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
 	// Two AI answers at most per post, each up to 60 s a try with one retry.
 	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.AutopostWait), Log: log}
-	stripe := &billing.Stripe{SecretKey: cfg.StripeSecretKey, PriceID: cfg.StripePriceID}
+	stripe := &billing.Stripe{SecretKey: cfg.StripeSecretKey,
+		Prices: map[string]string{"personal": cfg.StripePricePersonal, "business": cfg.StripePriceBusiness, "pro": cfg.StripePricePro}}
 	routes.Handle("POST /webhooks/stripe", &billing.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.StripeWebhookSecret, Stripe: stripe})
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
 		Sessions:  &session.Reader{Pool: pool, Secret: cfg.AuthSecret},

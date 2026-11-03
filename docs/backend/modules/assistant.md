@@ -116,6 +116,17 @@ open request (its subject too when ansa opened it during this call:
 `tickets.RetitleAfterCallWithin`), or a request opened for it when someone
 has to act.
 
+**Packages (`package_limits.go`, step 57, [packages](packages.md)):** before
+the AI writes a chat reply, the company's package decides: Messenger where
+the package doesn't include it (Personal) hands over (`not_in_package`);
+otherwise one AI reply is counted, unless the business's own Claude key
+writes it, and with none left (or the free trial over) it hands over
+(`package_used_up`): the holding reply and a request, the AI not asked.
+Orders are offered to the brain only where the package includes them. On
+a call, the package's call minutes (the month's finished calls plus the
+live one so far) join the call's limits: past them, fixed words take the
+message.
+
 **Catch-up (`catchup.go`, the old `services/assistant-due.ts`):** every 15 s
 (core's scheduler, see [schedule](schedule.md)) core claims the
 conversations whose "if I haven't answered within N minutes" is due, of every

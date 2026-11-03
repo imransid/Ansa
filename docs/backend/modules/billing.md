@@ -3,19 +3,21 @@
 **What:** Billing (the old `services/billing.ts`, `services/stripe-webhook.ts`,
 `db/billing.ts`, `adapters/stripe.ts`): one subscription per company,
 kept as Stripe has it, written ONLY from Stripe's signed webhooks (or the
-development stand-in), never from what a browser sends. It records who
-pays and enforces nothing yet: packages, limits and what happens when a
-payment fails are the owner's decision (build step 57).
+development stand-in), never from what a browser sends. The subscription's
+Stripe price says the company's package, which sets its limits
+([packages](packages.md), step 57).
 
 **Stripe (`stripe.go`):** its REST API over HTTPS, no SDK: the secret key
 as Basic auth, the old library's API version pinned (`2026-09-30.endive`),
 20 s per call; Stripe's words are never kept or logged. `CheckoutURL` (the
-plan STRIPE_PRICE_ID; the company id put in client_reference_id AND the
+package's price, STRIPE_PRICE_ID_PERSONAL / _BUSINESS / _PRO; the company id put in client_reference_id AND the
 subscription's metadata, both signed back by Stripe; a company that paid
 before keeps its one Stripe customer), `PortalURL` (change card, invoices,
 cancel), `Subscription` (Stripe's state NOW: events can arrive late or out
-of order). Card details never touch ansa: customers type them on Stripe's
-pages.
+of order, with its first item's price turned into the package by
+`PackageOfPrice`). Card details never touch ansa: customers type them on
+Stripe's pages. A package is changed in Stripe's portal (with the three
+prices allowed there): the webhook then stores the new one.
 
 **The webhook (`webhook.go`, `POST /webhooks/stripe`):** the order every
 webhook keeps: at most 256 KB, raw bytes, Stripe's signature (`t=...,v1=...`:
@@ -30,26 +32,32 @@ could name any company); the checkout and the metadata disagreeing stores
 nothing; later events go to the company that owns the customer, never to
 another; a second live subscription for a company that has one is not
 stored (logged: "company already has another live subscription"; a
-person cancels it in Stripe). A different subscription replaces the stored
-one only when that one is no longer live. 500 only when Stripe didn't
-answer (it tries again).
+person cancels it in Stripe). A subscription whose price is none of the
+three packages' stores nothing ("unknown_price", logged). A different
+subscription replaces the stored one only when that one is no longer live.
+500 only when Stripe didn't answer (it tries again).
 
 **The page (`page.go`):** modes "stripe" (USE_STRIPE=true), "dev" (a
 developer's machine: simulate buttons, nothing charged) and "off"
 (production without Stripe: "Billing isn't set up yet", never developer
-wording). Owners only (members get nothing); Subscribe is offered only with
-no live plan and no payment being confirmed (back from Stripe before its
-webhook arrived), so nobody pays twice.
+wording). Owners only (members get nothing). It shows the package the
+company has now (the free trial's days, or that it ended), this month's AI
+replies and call minutes, and the three packages, each with "Choose"
+(Stripe's page) only with no live plan and no payment being confirmed
+(back from Stripe before its webhook arrived), so nobody pays twice;
+otherwise "Manage billing or change package" (Stripe's portal).
 
 **API ([api](api.md)):** `GET /api/v1/billing?checkout=done`; `POST
-/api/v1/billing/checkout` → `{"url"}`; `POST /api/v1/billing/portal` →
+/api/v1/billing/checkout` `{package}` → `{"url"}`; `POST /api/v1/billing/portal` →
 `{"url"}`; `POST /api/v1/billing/simulate` `{status: active | past_due |
-canceled}` (dev only). 20 actions per 10 minutes per owner.
+canceled, package}` (dev only). 20 actions per 10 minutes per owner.
 
 **Settings ([config](config.md)):** USE_STRIPE (exactly "true"), then
-STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and STRIPE_PRICE_ID are required.
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID_PERSONAL,
+STRIPE_PRICE_ID_BUSINESS and STRIPE_PRICE_ID_PRO are required.
 
 **Tests:** `billing_test.go` (only Stripe's fresh signature on these bytes
 counts; billing never moves between companies; a subscription event before
-any checkout stores nothing, the checkout stores the plan, a second live
-plan never replaces it; the page and the simulate buttons).
+any checkout stores nothing, a price that is no package's stores nothing,
+the checkout stores the package, a second live plan never replaces it;
+the page and the simulate buttons).

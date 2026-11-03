@@ -492,11 +492,15 @@ each saying so; "Post for me" skips that post and its page says why.
 
 ## 6. Payments (Stripe, if chosen)
 
-1. In Stripe, create a product with one recurring price. Its id goes in
-   core's `STRIPE_PRICE_ID`. Changing the price later is done in Stripe, not
-   in code.
+1. In Stripe, create one product per package with its monthly price
+   (Personal $10, Business $29, Pro $79: core/internal/packages/packages.go
+   is the one place the names, prices and limits live, keep them equal).
+   Their price ids go in core's `STRIPE_PRICE_ID_PERSONAL`,
+   `STRIPE_PRICE_ID_BUSINESS` and `STRIPE_PRICE_ID_PRO`. A subscription to
+   any other price stores nothing (core's log: "unknown_price").
 2. Turn on the customer portal (Settings > Billing > Customer portal) so owners
-   can change cards, see invoices and cancel.
+   can change cards, see invoices and cancel, and allow switching between
+   the three prices there: that is how an owner changes package.
 3. Add a webhook: `https://<core address>/webhooks/stripe`, with the events
    `checkout.session.completed`, `customer.subscription.created`,
    `customer.subscription.updated` and `customer.subscription.deleted`. Its
@@ -569,7 +573,7 @@ section 8):
 | `VAPI_SIGNATURE_HEADER`, `VAPI_TIMESTAMP_HEADER`, `VAPI_SIGNATURE_ALGORITHM`, `VAPI_SIGNATURE_PAYLOAD`, `VAPI_SIGNATURE_ENCODING`, `VAPI_SIGNATURE_PREFIX`, `VAPI_TIMESTAMP_UNIT`, `VAPI_TIMESTAMP_TOLERANCE_SECONDS` | optional: Vapi's HMAC credential defaults; match the first real call | section 4 |
 | `VAPI_RECORDING_HOSTS` | optional (default `storage.vapi.ai`) | section 4 |
 | `USE_STRIPE` | `true` once payments are on (unset in production: Billing says it isn't set up) | section 6 |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID` | required with `USE_STRIPE=true` | section 6 |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_PERSONAL`, `STRIPE_PRICE_ID_BUSINESS`, `STRIPE_PRICE_ID_PRO` | required with `USE_STRIPE=true` | section 6 |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | all three or none (unset: "Telegram isn't set up by ansa yet") | section 12 |
 | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | the pair, once ansa's Meta app passed review (Facebook Pages and Messenger) | sections 10 and 13 |
 | `MESSENGER_VERIFY_TOKEN` | with Messenger: the word Meta's webhook setup checks once (`openssl rand -hex 32`) | section 13 |

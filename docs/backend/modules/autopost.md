@@ -92,3 +92,5 @@ first leaves a draft for the owner; no AI is said); `api/posts_test.go`;
 `brain/tests/test_posts.py` (the prompt escapes and hides numbers, the
 answer is strict and cleaned, no model = nothing written, an unknown field
 refused).
+
+**Packages (step 57, [packages](packages.md)):** Personal has no "Post for me", Business posts up to 3 times a week, Pro every day (a frequency the package doesn't include is refused when saving, and a post skipped as `package` after a downgrade); each post written with ansa's AI is one of the month's AI replies (the business's own key isn't counted), and with none left the post is skipped.

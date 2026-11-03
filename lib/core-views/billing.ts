@@ -6,8 +6,8 @@ import type { BillingView, RedirectResult, SubscriptionSnapshot } from "@/lib/ty
 // The Billing page through the new backend (core's /api/v1/billing), in the
 // shapes the page and its actions already read.
 
-type CoreSubscription = Pick<SubscriptionSnapshot, "status" | "cancelAtPeriodEnd"> & { currentPeriodEnd: string | null };
-type CoreBillingView = Omit<BillingView, "subscription"> & { subscription: CoreSubscription | null };
+type CoreSubscription = Pick<SubscriptionSnapshot, "status" | "cancelAtPeriodEnd" | "package"> & { currentPeriodEnd: string | null };
+type CoreBillingView = Omit<BillingView, "subscription" | "trialEndsAt"> & { subscription: CoreSubscription | null; trialEndsAt: string };
 
 // Core never sends Stripe's ids to the screens, and the page shows neither,
 // so they stay empty here.
@@ -16,6 +16,7 @@ function toSubscriptionSnapshot(subscription: CoreSubscription): SubscriptionSna
     stripeCustomerId: "",
     stripeSubscriptionId: "",
     status: subscription.status,
+    package: subscription.package,
     currentPeriodEnd: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null,
     cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
   };
@@ -33,18 +34,24 @@ export async function getBillingFromCore(justCheckedOut: boolean): Promise<Billi
   if (!billing) {
     return null;
   }
-  return { ...billing, subscription: billing.subscription ? toSubscriptionSnapshot(billing.subscription) : null };
+  return {
+    ...billing,
+    subscription: billing.subscription ? toSubscriptionSnapshot(billing.subscription) : null,
+    trialEndsAt: new Date(billing.trialEndsAt),
+  };
 }
 
-// The address of Stripe's payment page ("checkout") or billing page ("portal").
-export async function askCoreForStripePage(page: "checkout" | "portal"): Promise<RedirectResult> {
-  const answer = await callCore<{ url: string }>("POST", `/api/v1/billing/${page}`);
+// The address of Stripe's payment page for a package ("checkout") or its
+// billing page ("portal": card, invoices, changing package, cancelling).
+export async function askCoreForStripePage(page: "checkout" | "portal", packageKey = ""): Promise<RedirectResult> {
+  const answer = await callCore<{ url: string }>("POST", `/api/v1/billing/${page}`, page === "checkout" ? { package: packageKey } : undefined);
   return answer.ok ? { ok: true, url: answer.data.url } : { ok: false, errors: { message: answer.message } };
 }
 
-// Development stand-in: pretends Stripe reported this status.
-export async function simulateSubscriptionThroughCore(input: { status: unknown }): Promise<FormResult> {
+// Development stand-in: pretends Stripe reported this status for a package.
+export async function simulateSubscriptionThroughCore(input: { status: unknown; package: unknown }): Promise<FormResult> {
   const status = typeof input.status === "string" ? input.status : "";
-  const answer = await callCore("POST", "/api/v1/billing/simulate", { status });
+  const packageKey = typeof input.package === "string" ? input.package : "";
+  const answer = await callCore("POST", "/api/v1/billing/simulate", { status, package: packageKey });
   return answer.ok ? { ok: true } : { ok: false, errors: { message: answer.message } };
 }

@@ -132,7 +132,7 @@ export const assistantActivity = pgTable(
     ),
     check(
       "assistant_activity_reason_known",
-      sql`${table.reason} IN ('unsure', 'complaint', 'refund', 'asked_for_person', 'order', 'needs_decision', 'important_person', 'price_not_on_menu', 'refund_promise', 'unknown_link', 'unusable_answer', 'model_failed', 'model_unavailable', 'reply_limit', 'send_failed', 'order_change', 'order_unclear', 'call_message')`,
+      sql`${table.reason} IN ('unsure', 'complaint', 'refund', 'asked_for_person', 'order', 'needs_decision', 'important_person', 'price_not_on_menu', 'refund_promise', 'unknown_link', 'unusable_answer', 'model_failed', 'model_unavailable', 'reply_limit', 'send_failed', 'order_change', 'order_unclear', 'call_message', 'package_used_up', 'not_in_package')`,
     ),
     check("assistant_activity_reason_only_on_handover", sql`(${table.reason} IS NOT NULL) = (${table.action} = 'handed_over')`),
   ],

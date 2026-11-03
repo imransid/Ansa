@@ -26,6 +26,10 @@ export const HANDOVER_REASONS = [
   // Step 55: a caller left a message while ansa could only take messages
   // (the assistant paused, a person handling the conversation).
   "call_message",
+  // Step 57: the package's AI replies for the month are used up (or the free
+  // trial ended), or the package doesn't include this channel.
+  "package_used_up",
+  "not_in_package",
 ] as const;
 export type HandoverReason = (typeof HANDOVER_REASONS)[number];
 
@@ -58,4 +62,6 @@ export const HANDOVER_REASON_TEXT: Record<HandoverReason, string> = {
   order_change: "They want to change or cancel an order they placed.",
   order_unclear: "ansa couldn't write up their order (a dish it couldn't find on the menu).",
   call_message: "They called and left a message.",
+  package_used_up: "Your package has no AI replies left this month (or the free trial ended), so ansa sent your holding reply. See Billing.",
+  not_in_package: "Your package doesn't include this channel, so ansa sent your holding reply. See Billing.",
 };

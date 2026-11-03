@@ -6,6 +6,7 @@ import (
 
 	"ansa/core/internal/database"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/publishing"
 	"ansa/core/internal/settings"
 	"ansa/core/internal/tenant"
@@ -25,8 +26,9 @@ type Choices struct {
 // rule on in the owner's name (only an owner's explicit switch turns one
 // on); otherwise that rule goes off. Switched off, the posts not out yet
 // are taken back (archived: out of the queue; one already out stays).
-// Returns "saved", "not-allowed" or "no-time-zone" (it posts in the
-// business's own time, so setup must have chosen one).
+// Returns "saved", "not-allowed", "no-time-zone" (it posts in the
+// business's own time, so setup must have chosen one) or "not-in-package"
+// (the company's package doesn't include posts this often, step 57).
 func Save(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID string, c Choices) (string, error) {
 	view, err := settings.Read(ctx, pool, company)
 	if err != nil {
@@ -34,6 +36,15 @@ func Save(ctx context.Context, pool *database.Pool, company tenant.CompanyID, ac
 	}
 	if c.Enabled && view.TimeZone == nil {
 		return "no-time-zone", nil
+	}
+	if c.Enabled {
+		pkg, err := packages.Of(ctx, pool, company, time.Now())
+		if err != nil {
+			return "", err
+		}
+		if !pkg.AllowsPosting(c.Frequency) {
+			return "not-in-package", nil
+		}
 	}
 	outcome, err := settings.AsOwner(ctx, pool, company, actorUserID, func(tx database.Tx) error {
 		const update = `

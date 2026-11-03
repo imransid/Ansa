@@ -2,15 +2,11 @@ package billing
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -19,8 +15,20 @@ import (
 // card details never touch ansa's servers, customers type them on Stripe's
 // own pages. A test replaces BaseURL.
 type Stripe struct {
-	SecretKey, PriceID string
-	BaseURL            string
+	SecretKey string
+	// Each package's price in Stripe, by package key (STRIPE_PRICE_ID_*).
+	Prices  map[string]string
+	BaseURL string
+}
+
+// PackageOfPrice is the package a Stripe price is ("" = none of ansa's).
+func (s *Stripe) PackageOfPrice(priceID string) string {
+	for key, price := range s.Prices {
+		if price != "" && price == priceID {
+			return key
+		}
+	}
+	return ""
 }
 
 // The API version the old backend's library (stripe 23.0.0) pinned: answers
@@ -64,14 +72,18 @@ func (s *Stripe) call(ctx context.Context, method, path string, form url.Values,
 	return nil
 }
 
-// CheckoutURL is a Stripe page where the owner subscribes to the plan. The
+// CheckoutURL is a Stripe page where the owner subscribes to a package. The
 // company id goes in two places Stripe signs back (client_reference_id and
 // the subscription's metadata): how the webhook knows which company paid.
 // A company that paid before keeps its one Stripe customer.
-func (s *Stripe) CheckoutURL(ctx context.Context, companyID, ownerEmail, customerID, successURL, cancelURL string) (string, error) {
+func (s *Stripe) CheckoutURL(ctx context.Context, companyID, ownerEmail, customerID, packageKey, successURL, cancelURL string) (string, error) {
+	price := s.Prices[packageKey]
+	if price == "" {
+		return "", errStripe
+	}
 	form := url.Values{
 		"mode":                                   {"subscription"},
-		"line_items[0][price]":                   {s.PriceID},
+		"line_items[0][price]":                   {price},
 		"line_items[0][quantity]":                {"1"},
 		"client_reference_id":                    {companyID},
 		"subscription_data[metadata][companyId]": {companyID},
@@ -123,6 +135,9 @@ func (s *Stripe) Subscription(ctx context.Context, subscriptionID string) (Retri
 		Items             struct {
 			Data []struct {
 				CurrentPeriodEnd int64 `json:"current_period_end"`
+				Price            struct {
+					ID string `json:"id"`
+				} `json:"price"`
 			} `json:"data"`
 		} `json:"items"`
 	}
@@ -145,6 +160,10 @@ func (s *Stripe) Subscription(ctx context.Context, subscriptionID string) (Retri
 		end := time.Unix(answer.Items.Data[0].CurrentPeriodEnd, 0).UTC()
 		snapshot.CurrentPeriodEnd = &end
 	}
+	if len(answer.Items.Data) > 0 {
+		// "" = a price that isn't one of ansa's packages: the webhook stores nothing.
+		snapshot.Package = s.PackageOfPrice(answer.Items.Data[0].Price.ID)
+	}
 	return Retrieved{Snapshot: snapshot, MetadataCompanyID: answer.Metadata["companyId"]}, nil
 }
 
@@ -156,39 +175,4 @@ func ourStatus(status string) string {
 		return status
 	}
 	return "incomplete"
-}
-
-// SignedByStripe checks Stripe's signature header ("t=<time>,v1=<hex>,...")
-// on these exact bytes: HMAC-SHA256 of "<t>.<body>" with the webhook's
-// secret, made in the last 5 minutes (the signed time stops replays).
-// Parses nothing else, compared in constant time.
-func SignedByStripe(body []byte, header, secret string, now time.Time) bool {
-	if secret == "" {
-		return false
-	}
-	var timestamp string
-	var signatures []string
-	for _, part := range strings.Split(header, ",") {
-		key, value, _ := strings.Cut(strings.TrimSpace(part), "=")
-		switch key {
-		case "t":
-			timestamp = value
-		case "v1":
-			signatures = append(signatures, value)
-		}
-	}
-	seconds, err := strconv.ParseInt(timestamp, 10, 64)
-	if err != nil || now.Sub(time.Unix(seconds, 0)).Abs() > 5*time.Minute {
-		return false
-	}
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(timestamp + "."))
-	mac.Write(body)
-	expected := hex.EncodeToString(mac.Sum(nil))
-	for _, signature := range signatures {
-		if hmac.Equal([]byte(signature), []byte(expected)) {
-			return true
-		}
-	}
-	return false
 }

@@ -7,6 +7,7 @@ import type { BusinessOverview } from "@/lib/types/business-overview";
 import type { ActivityRow, InboxRow } from "@/lib/types/conversations";
 import type { FirstRunHints } from "@/lib/types/dashboard";
 import type { GettingStartedStep, NeedsYou } from "@/lib/types/home";
+import type { PackageStatus } from "@/lib/types/packages";
 
 // Home through the new backend (core's GET /api/v1/home), in the shapes
 // Home's parts already read, and the owner's switches (core's
@@ -26,6 +27,8 @@ export type HomeData = {
   needsYou: NeedsYou;
   newOrders: number;
   activity: ActivityRow[];
+  // Owners only (step 57): the package, the free trial's end, this month's use.
+  packageStatus: PackageStatus | null;
 };
 
 type CorePresence = Omit<Presence, "availability"> & {
@@ -52,6 +55,7 @@ type CoreHome = {
   needsYou: { rows: CoreInboxRow[]; total: number; hasTeam: boolean };
   newOrders: number;
   activity: CoreActivityRow[];
+  package?: Omit<PackageStatus, "trialEndsAt"> & { trialEndsAt: string };
 };
 
 export async function getHomeFromCore(): Promise<HomeData> {
@@ -72,6 +76,7 @@ export async function getHomeFromCore(): Promise<HomeData> {
     needsYou: { rows: home.needsYou.rows.map(toInboxRow), total: home.needsYou.total, hasTeam: home.needsYou.hasTeam },
     newOrders: home.newOrders,
     activity: home.activity.map((row) => ({ ...row, createdAt: new Date(row.createdAt) })),
+    packageStatus: home.package ? { ...home.package, trialEndsAt: new Date(home.package.trialEndsAt) } : null,
   };
 }
 

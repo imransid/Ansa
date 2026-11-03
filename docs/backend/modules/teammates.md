@@ -70,3 +70,5 @@ removed teammate's request goes to the next expert of its category, their
 logins and categories gone, the expert emailed after commit; an account
 that never confirmed is deleted; restoring a renamed category routes its
 waiting request); `api/team_test.go`.
+
+**Packages (step 57, [packages](packages.md)):** an invite needs a seat in the package (Personal 1, Business and the free trial 3, Pro 10; active people and pending invites counted, read in the invite's transaction): otherwise "team-full", and the Team page says to remove someone, revoke an invite or choose a bigger package.

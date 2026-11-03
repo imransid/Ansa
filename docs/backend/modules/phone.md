@@ -44,6 +44,9 @@ calls, and its name in `phone_calls_line_known`. Nothing else changes.
   on with the next turn. A request is opened (routed, ansa's line, the
   owners' alert) only when none is open in the conversation: one per call at
   most. A request already open doesn't stop the AI either.
+- The package's call minutes (step 57, [packages](packages.md)): each call's
+  length is counted when it ends; with no minutes left this month the
+  greeting takes a message and fixed words take it, no AI.
 - Past a caller's 60 turns an hour (`assistant-call`) or the business's 200
   AI answers an hour, ansa takes messages with fixed words (no AI).
 - When the call ends: a request "A caller left a message" (reason

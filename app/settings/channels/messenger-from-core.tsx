@@ -7,6 +7,17 @@ import type { CoreMessenger } from "@/lib/core-views/channels";
 // Settings → Connections → Facebook Messenger, as core reads it
 // (lib/core-views/channels.ts). Owners connect; members read.
 export function MessengerFromCore({ messenger, canManage, personal }: { messenger: CoreMessenger; canManage: boolean; personal: boolean }) {
+  if (!messenger.inPackage) {
+    // Step 57: Messenger comes with the Business and Pro packages.
+    return (
+      <p className="text-sm text-muted-foreground">
+        Facebook Messenger comes with the Business and Pro packages.{" "}
+        <Link href="/billing" className="text-link hover:underline">
+          See packages
+        </Link>
+      </p>
+    );
+  }
   return (
     <div className="grid gap-3">
       <p className="text-sm text-muted-foreground">

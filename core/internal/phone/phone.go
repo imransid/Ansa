@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"ansa/core/internal/assistant"
@@ -20,6 +21,7 @@ import (
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/plaintext"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/tenant"
@@ -93,11 +95,17 @@ func (s *Service) Start(ctx context.Context, company tenant.CompanyID, caller Ca
 	if err != nil {
 		return Started{}, err
 	}
+	// No call minutes left in the package this month (step 57): ansa only
+	// takes a message, without the AI.
+	timeLeft, err := packages.CallTimeLeft(ctx, s.Pool, company, time.Now(), 0)
+	if err != nil {
+		return Started{}, err
+	}
 	kind, name, err := assistant.ReadCallVoice(ctx, s.Pool, company)
 	if err != nil {
 		return Started{}, err
 	}
-	greeting := Greeting(kind, name, !messageOnly)
+	greeting := Greeting(kind, name, !messageOnly && timeLeft)
 	if err := assistant.SayOnCall(ctx, s.Pool, s.Box, company, conversationID, greeting); err != nil {
 		return Started{}, err
 	}

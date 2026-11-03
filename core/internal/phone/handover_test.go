@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"ansa/core/internal/assistant"
+	"ansa/core/internal/packages"
 )
 
 // Handovers, message-only turns and limits on a call: the AI keeps talking
@@ -106,5 +107,27 @@ func TestPastTheCallLimitAnsaTakesMessagesWithoutTheAI(t *testing.T) {
 	}
 	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND subject = 'A caller left a message'`, w.companyID) != 1 {
 		t.Fatal("the message gets its request")
+	}
+}
+
+// Step 57: each call's length counts against the package's call minutes;
+// with none left, the greeting takes a message and the AI isn't asked.
+func TestCallMinutesComeFromThePackage(t *testing.T) {
+	w := newCallWorld(t, `{"kind":"reply","text":"Yes, until 23:00."}`)
+	call := w.start()
+	w.exec(`UPDATE phone_calls SET started_at = now() - interval '90 seconds' WHERE company_id = $1 AND id = $2`, w.companyID, call.CallID)
+	if err := w.phone.End(context.Background(), w.company, call.CallID); err != nil {
+		t.Fatal(err)
+	}
+	if w.count(`SELECT count(*) FROM usage_months WHERE company_id = $1 AND call_seconds BETWEEN 89 AND 95`, w.companyID) != 1 {
+		t.Fatal("the call's minute and a half counted once")
+	}
+	w.exec(`UPDATE usage_months SET call_seconds = $2 WHERE company_id = $1`, w.companyID, packages.Trial.CallMinutes*60)
+	again := w.start()
+	if !strings.Contains(again.Words[0], "please tell me your message") {
+		t.Fatalf("no minutes left: the greeting takes a message: %q", again.Words)
+	}
+	if words := w.say(again.CallID, "Are you open tonight?"); words[0] != assistant.MessageTakenText("business", "Luigi's") || w.brainCalls != 0 {
+		t.Fatalf("no AI: %q (%d brain calls)", words, w.brainCalls)
 	}
 }

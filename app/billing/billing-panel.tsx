@@ -1,43 +1,44 @@
 "use client";
 
 import { useActionState } from "react";
-import { openBillingPortalAction, simulateSubscriptionAction, startCheckoutAction } from "@/app/actions/billing";
+import { openBillingPortalAction, simulateSubscriptionAction } from "@/app/actions/billing";
 import { LocalDateTime } from "@/components/local-date-time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BillingView, SubscriptionSnapshot } from "@/lib/types/billing";
+import { PackageCards } from "./package-cards";
+import { UsageThisMonth } from "./usage-this-month";
 
-// What the Billing page shows in each mode (Mode in core/internal/billing).
+// What the Billing page shows in each mode (Mode in core/internal/billing):
+// the package the company has now and this month's use, then the packages
+// to choose from (step 57).
 export function BillingPanel({ billing }: { billing: BillingView }) {
-  // Production with Stripe off: owners can't change that, so no developer
-  // wording and no buttons that would always fail.
-  if (billing.mode === "off") {
-    return (
-      <p className="max-w-xl text-sm">
-        Billing isn&apos;t set up yet. There is nothing to pay or manage here for now.
-      </p>
-    );
-  }
   return (
-    <div className="grid max-w-xl gap-4">
-      {billing.mode === "dev" && (
-        <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-          Payments are off on this development server (USE_STRIPE is not true). Nothing can be charged; use the buttons
-          below to try each state.
-        </p>
+    <div className="grid gap-6">
+      <UsageThisMonth billing={billing} />
+      {billing.mode === "off" ? (
+        <p className="max-w-xl text-sm">Payments aren&apos;t set up yet. There is nothing to pay or manage here for now.</p>
+      ) : (
+        <div className="grid max-w-xl gap-4">
+          {billing.mode === "dev" && (
+            <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+              Payments are off on this development server (USE_STRIPE is not true). Nothing can be charged; the buttons pretend Stripe
+              answered.
+            </p>
+          )}
+          {billing.confirmingPayment && <p className="text-sm">Thanks! Stripe is confirming your payment. Reload this page in a few seconds.</p>}
+          <SubscriptionStatus subscription={billing.subscription} />
+          {billing.mode === "stripe" ? <ManageBilling billing={billing} /> : <SimulateStates subscription={billing.subscription} />}
+        </div>
       )}
-      {billing.confirmingPayment && (
-        <p className="text-sm">Thanks! Stripe is confirming your payment. Reload this page in a few seconds.</p>
-      )}
-      <SubscriptionStatus subscription={billing.subscription} />
-      {billing.mode === "stripe" ? <StripeButtons billing={billing} /> : <SimulateButtons />}
+      <PackageCards billing={billing} />
     </div>
   );
 }
 
 function SubscriptionStatus({ subscription }: { subscription: SubscriptionSnapshot | null }) {
   if (!subscription) {
-    return <p className="text-sm">No subscription yet.</p>;
+    return null;
   }
   const periodEnd = subscription.currentPeriodEnd ? <LocalDateTime iso={subscription.currentPeriodEnd.toISOString()} /> : null;
   return (
@@ -45,7 +46,7 @@ function SubscriptionStatus({ subscription }: { subscription: SubscriptionSnapsh
       <p className="flex items-center gap-2">
         Subscription <Badge variant={subscription.status === "active" ? "default" : "outline"}>{statusLabel(subscription.status)}</Badge>
       </p>
-      {subscription.status === "past_due" && <p>The last payment failed. Update your card to keep your plan.</p>}
+      {subscription.status === "past_due" && <p>The last payment failed. Update your card to keep your package.</p>}
       {periodEnd && subscription.status !== "canceled" && (
         <p className="text-muted-foreground">
           {subscription.cancelAtPeriodEnd ? "Ends on " : "Renews on "}
@@ -56,39 +57,33 @@ function SubscriptionStatus({ subscription }: { subscription: SubscriptionSnapsh
   );
 }
 
-function StripeButtons({ billing }: { billing: BillingView }) {
-  const [checkoutErrors, checkoutAction, isStarting] = useActionState(startCheckoutAction, undefined);
-  const [portalErrors, portalAction, isOpening] = useActionState(openBillingPortalAction, undefined);
-  const message = checkoutErrors?.message ?? portalErrors?.message;
+// Stripe's own page: change card or package, see invoices, cancel.
+function ManageBilling({ billing }: { billing: BillingView }) {
+  const [errors, action, isOpening] = useActionState(openBillingPortalAction, undefined);
+  if (!billing.subscription) {
+    return null;
+  }
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {billing.offersCheckout && (
-        <form action={checkoutAction}>
-          <Button type="submit" disabled={isStarting}>
-            {isStarting ? "Opening Stripe..." : "Subscribe"}
-          </Button>
-        </form>
-      )}
-      {billing.subscription && (
-        <form action={portalAction}>
-          <Button type="submit" variant="outline" disabled={isOpening}>
-            {isOpening ? "Opening Stripe..." : "Manage billing"}
-          </Button>
-        </form>
-      )}
-      {message && (
-        <p role="alert" className="w-full text-sm text-destructive">
-          {message}
+    <form action={action} className="grid justify-items-start gap-2">
+      <Button type="submit" variant="outline" disabled={isOpening}>
+        {isOpening ? "Opening Stripe..." : "Manage billing or change package"}
+      </Button>
+      {errors?.message && (
+        <p role="alert" className="text-sm text-destructive">
+          {errors.message}
         </p>
       )}
-    </div>
+    </form>
   );
 }
 
-function SimulateButtons() {
+// Development: what Stripe could report about the package being paid.
+function SimulateStates({ subscription }: { subscription: SubscriptionSnapshot | null }) {
   const [errors, action, isSaving] = useActionState(simulateSubscriptionAction, undefined);
+  if (!subscription || subscription.status === "canceled") {
+    return null;
+  }
   const options = [
-    { status: "active", label: "Simulate: subscribed" },
     { status: "past_due", label: "Simulate: payment failed" },
     { status: "canceled", label: "Simulate: canceled" },
   ];
@@ -97,6 +92,7 @@ function SimulateButtons() {
       {options.map((option) => (
         <form key={option.status} action={action}>
           <input type="hidden" name="status" value={option.status} />
+          <input type="hidden" name="package" value={subscription.package} />
           <Button type="submit" variant="outline" size="sm" disabled={isSaving}>
             {option.label}
           </Button>

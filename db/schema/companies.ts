@@ -38,6 +38,13 @@ export const companies = pgTable(
     businessType: text("business_type").$type<BusinessType>(),
     setupProgress: smallint("setup_progress").notNull().default(0),
     setupFinishedAt: timestamp("setup_finished_at", { withTimezone: true }),
+    // The free trial's end (step 57: 14 days from signup; companies that
+    // existed before got 14 days from that step). After it, without a paid
+    // package, ansa sends holding replies and writes nothing with the AI
+    // (core/internal/packages).
+    trialEndsAt: timestamp("trial_ends_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '14 days'`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

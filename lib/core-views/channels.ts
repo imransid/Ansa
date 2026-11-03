@@ -50,6 +50,8 @@ export type ConnectionsPage = {
 // come to ansa).
 export type CoreMessenger = {
   mode: "real" | "stand-in" | "not-set-up";
+  // The company's package includes Messenger (step 57).
+  inPackage: boolean;
   pages: { id: string; displayName: string; status: string; isStandIn: boolean; canMessage: boolean }[];
 };
 
@@ -67,6 +69,7 @@ type CoreChannels = {
   facebookMode: CoreMessenger["mode"];
   whatsappMode: TelegramModeKind;
   whatsappSignup: WhatsAppSignup | null;
+  messengerInPackage: boolean;
 };
 
 function dateOrNull(iso: string | null): Date | null {
@@ -103,7 +106,7 @@ export async function getConnectionsFromCore(): Promise<ConnectionsPage & { mess
     forwardingAddress: page.forwardingAddress,
     lastEmailAt: dateOrNull(page.lastEmailAt),
     phoneLines: page.phoneLines.map((line) => ({ id: line.id, lastCallAt: dateOrNull(line.lastCallAt) })),
-    messenger: { mode: channels.data.facebookMode, pages: page.facebookPages },
+    messenger: { mode: channels.data.facebookMode, inPackage: channels.data.messengerInPackage, pages: page.facebookPages },
   };
 }
 

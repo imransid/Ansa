@@ -11,6 +11,7 @@ import (
 	"ansa/core/internal/knowledge"
 	"ansa/core/internal/money"
 	"ansa/core/internal/orders"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/secure"
 	"ansa/core/internal/tenant"
 )
@@ -33,6 +34,10 @@ type Inputs struct {
 	// The business saved its own key and it can't be read: ansa's key is
 	// never used in its place (nobody pays unaware), so no AI answers.
 	KeyUnreadable bool
+	// The business's own Claude key answers (its replies aren't counted
+	// against its package), and the package it has now (step 57).
+	OwnKey  bool
+	Package packages.Package
 	// This answer is a live call's (onACall): spoken, never a draft.
 	Spoken bool
 }
@@ -89,7 +94,12 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		return nil, err
 	}
 	name := firstNonEmpty(facts["company_name"], companyName)
-	takesOrders := kind == "business" && settings.TakesOrders
+	pkg, err := packages.Of(ctx, pool, company, now)
+	if err != nil {
+		return nil, fmt.Errorf("package: %w", err)
+	}
+	// Orders come with the packages that include them (step 57).
+	takesOrders := kind == "business" && settings.TakesOrders && pkg.Orders
 	fee := int64(0)
 	if settings.Delivery {
 		fee = settings.DeliveryFeeCents
@@ -139,6 +149,8 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 	}
 	return &Inputs{
 		KeyUnreadable: keyUnreadable,
+		OwnKey:        request.APIKey != nil,
+		Package:       pkg,
 		Request:       request,
 		Checks:        CheckData{Currency: settings.Currency, MenuPrices: prices, OwnerTexts: []string{settings.Instructions, settings.DeliveryNote, settings.PaymentNote, facts["description"]}},
 		Name:          name,

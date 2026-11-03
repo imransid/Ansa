@@ -85,6 +85,12 @@ func (w *Writer) WritePostFor(ctx context.Context, company Company, postAt time.
 	if details.keyUnreadable {
 		return w.skip(ctx, company.ID, slotID, "no_ai", 0)
 	}
+	if allowed, err := w.packageAllows(ctx, company, details); err != nil || !allowed {
+		if err != nil {
+			return WriteOutcome{}, err
+		}
+		return w.skip(ctx, company.ID, slotID, "package", 0)
+	}
 	request := details.request
 	var post *Post
 	failure := "checks_failed"
@@ -159,8 +165,10 @@ type details struct {
 	history       []PastPost
 	pages         []string
 	keyUnreadable bool
-	request       map[string]any
-	checks        CheckData
+	// The business's own Claude key writes (its posts aren't counted against its package).
+	ownKey  bool
+	request map[string]any
+	checks  CheckData
 }
 
 // readDetails reads the business's own details: what it is, its offers
@@ -198,6 +206,7 @@ func (w *Writer) readDetails(ctx context.Context, company tenant.CompanyID) (*de
 		return nil, err
 	}
 	d.keyUnreadable = unreadable
+	d.ownKey = apiKey != nil
 	currency := "EUR"
 	if view.Currency != nil {
 		currency = *view.Currency

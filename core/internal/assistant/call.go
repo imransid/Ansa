@@ -110,13 +110,19 @@ func isOrderStep(kind string) bool {
 }
 
 // overCallLimits counts this turn against the caller's and the business's
-// hourly AI answers; past either, ansa only takes messages (no AI).
+// hourly AI answers, and checks the package's call minutes this month (step
+// 57); past any, ansa only takes messages (no AI).
 func (r *Runner) overCallLimits(ctx context.Context, turn conversations.Turn) (bool, error) {
 	over, err := r.Limiter.Over(ctx, "assistant-call", turn.ConversationID, callTurnLimit)
 	if err != nil || over {
 		return over, err
 	}
-	return r.Limiter.Over(ctx, "assistant-replies", turn.CompanyID.String(), companyReplyLimit)
+	over, err = r.Limiter.Over(ctx, "assistant-replies", turn.CompanyID.String(), companyReplyLimit)
+	if err != nil || over {
+		return over, err
+	}
+	left, err := r.callTimeLeft(ctx, turn)
+	return !left, err
 }
 
 // takeMessageWithoutAI: ansa's fixed "I'll pass that on" (past the limits).

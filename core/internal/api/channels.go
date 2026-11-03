@@ -2,9 +2,11 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"ansa/core/internal/channels"
 	"ansa/core/internal/conversations"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/session"
 	"ansa/core/internal/settings"
 )
@@ -40,8 +42,14 @@ func (s *Server) channelsPage(w http.ResponseWriter, r *http.Request, _ []byte, 
 	if s.Social != nil {
 		facebookMode = s.Social.Mode("facebook")
 	}
+	// Step 57: Facebook Messenger comes with some packages only.
+	pkg, err := packages.Of(r.Context(), s.Pool, who.CompanyID, time.Now())
+	if err != nil {
+		s.failed(w, "channels", err)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"page": page, "canManage": who.IsOwner(), "telegramMode": s.telegramMode(), "facebookMode": facebookMode,
-		"whatsappMode": s.whatsappMode(), "whatsappSignup": s.whatsappSignup()})
+		"whatsappMode": s.whatsappMode(), "whatsappSignup": s.whatsappSignup(), "messengerInPackage": pkg.Messenger})
 }
 
 // telegramLink: a one-time link to ansa's bot ({"link"}), 10 minutes.

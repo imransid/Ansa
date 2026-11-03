@@ -157,3 +157,21 @@ func TestSomeoneWhoNeverConfirmedIsDeletedAndRestoringRoutesWaitingRequests(t *t
 		t.Fatalf("restoring routes the waiting request (renamed with it): %s %s", assignee, category)
 	}
 }
+
+// Step 57: an invite needs a seat in the package (people and pending
+// invites counted): the free trial has 3.
+func TestAnInviteNeedsASeatInThePackage(t *testing.T) {
+	w := newTeamWorld(t)
+	ctx := context.Background()
+	for _, address := range []string{"one@core-test.example", "two@core-test.example"} {
+		if _, outcome, err := CreateInvite(ctx, w.pool, w.company, w.ownerA, address, "member", time.Now()); err != nil || outcome != "created" {
+			t.Fatalf("%s: %q %v", address, outcome, err)
+		}
+	}
+	if _, outcome, err := CreateInvite(ctx, w.pool, w.company, w.ownerA, "three@core-test.example", "member", time.Now()); err != nil || outcome != "team-full" {
+		t.Fatalf("the owner and two invites fill the trial's 3 seats: %q %v", outcome, err)
+	}
+	if w.count(`SELECT count(*) FROM invites WHERE company_id = $1`) != 2 {
+		t.Fatal("nothing saved past the seats")
+	}
+}

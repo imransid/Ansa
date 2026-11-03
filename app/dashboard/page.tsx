@@ -11,6 +11,7 @@ import { AwaySummaryCard } from "./away-panel";
 import { BusinessOverviewPanel } from "./business-overview";
 import { FirstRunNotices } from "./first-run-notices";
 import { GettingStarted } from "./getting-started";
+import { PackageNotice } from "./package-notice";
 import { countWaiting, NeedsYou } from "./needs-you";
 import { StatusCard } from "./status-card";
 
@@ -42,7 +43,7 @@ async function HomeContent() {
     redirect("/welcome");
   }
   const home = await getHomeFromCore();
-  const { undeliveredEmails, hints, overview, activity, presence, awaySummary, gettingStarted, needsYou, newOrders } = home;
+  const { undeliveredEmails, hints, overview, activity, presence, awaySummary, gettingStarted, needsYou, newOrders, packageStatus } = home;
   const personal = presence.kind === "personal";
 
   return (
@@ -54,6 +55,7 @@ async function HomeContent() {
           An owner is still setting ansa up. Everything else works meanwhile.
         </p>
       )}
+      <PackageNotice status={packageStatus} />
       <GettingStarted steps={gettingStarted} />
       {/* Only while ansa answers when you're away: answering always, "What ansa did" says it. */}
       {presence.availability.answerWhen === "when_away" && <AwaySummaryCard summary={awaySummary} />}

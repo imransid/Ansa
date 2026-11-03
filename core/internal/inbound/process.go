@@ -12,6 +12,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/jobs"
 	"ansa/core/internal/logging"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/plaintext"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/resend"
@@ -155,6 +156,14 @@ func (p *Processor) triage(ctx context.Context, company tenant.CompanyID, email 
 	}
 	if over {
 		return withoutAI(email.Subject, "more than "+strconv.Itoa(triageLimit.MaxAttempts)+" emails reached your company this hour, so the AI skipped this one"), nil
+	}
+	// An email ansa's AI reads is one of the package's AI replies (step 57).
+	taken, err := packages.TakeAIReply(ctx, p.Pool, company, time.Now())
+	if err != nil {
+		return request{}, err
+	}
+	if !taken {
+		return withoutAI(email.Subject, "your package has no AI replies left this month"), nil
 	}
 	categories, err := activeCategories(ctx, p.Pool, company)
 	if err != nil {

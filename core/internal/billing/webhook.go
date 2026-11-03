@@ -128,6 +128,11 @@ func (h *Webhook) saveForItsCompany(ctx context.Context, checkoutCompany string,
 	if err != nil {
 		return err
 	}
+	if retrieved.Snapshot.Package == "" {
+		// A price none of ansa's packages has (one changed in Stripe's dashboard).
+		h.Log.Error("stripe webhook ignored: the subscription's price is no package's", logging.Code("unknown_price"))
+		return nil
+	}
 	saved, err := Save(ctx, h.Pool, company, retrieved.Snapshot)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && (pgErr.Code == "23503" || pgErr.Code == "23505") {

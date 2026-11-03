@@ -117,6 +117,12 @@ func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfter
 	if over {
 		return OutcomeHandedOver, r.handOver(ctx, turn, info, inputs, Handover{Reason: "reply_limit", SendHoldingReply: true})
 	}
+	if refusal, err := r.packageRefusal(ctx, turn, info, inputs); err != nil || refusal != "" {
+		if err != nil {
+			return "", err
+		}
+		return OutcomeHandedOver, r.handOver(ctx, turn, info, inputs, Handover{Reason: refusal, SendHoldingReply: true})
+	}
 	decision := r.decide(ctx, inputs)
 	switch decision.Kind {
 	case "no_reply":

@@ -77,6 +77,8 @@ func (s *Server) createInvite(w http.ResponseWriter, r *http.Request, body []byt
 		s.failed(w, "invite", err)
 	case outcome == "taken":
 		fieldProblems(w, map[string]string{"email": "This address already belongs to someone on your team, or to someone removed from it."})
+	case outcome == "team-full":
+		problem(w, http.StatusConflict, "Your package's team is full (pending invites count too). Remove someone, revoke an invite, or choose a bigger package on Billing.")
 	case outcome != "created":
 		problem(w, http.StatusForbidden, "Only owners can manage invites.")
 	default:

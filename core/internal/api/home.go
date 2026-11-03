@@ -67,6 +67,9 @@ func (s *Server) homePage(w http.ResponseWriter, r *http.Request, _ []byte, who 
 	if err == nil {
 		err = s.addNumbers(r, who, page)
 	}
+	if err == nil && who.IsOwner() {
+		page["package"], err = home.ReadPackageStatus(ctx, s.Pool, who.CompanyID, time.Now())
+	}
 	if err != nil {
 		s.failed(w, "home", err)
 		return

@@ -120,6 +120,9 @@ func TestAutomaticWritesTheNextPostOnceAndQueuesItUnderTheOwnersRule(t *testing.
 func TestAMadeUpPriceIsTriedOnceMoreThenSkipped(t *testing.T) {
 	w := newPostWorld(t)
 	ctx := context.Background()
+	// Daily posts come with Pro (step 57).
+	w.pool.Exec(ctx, `INSERT INTO company_billing (company_id, stripe_customer_id, stripe_subscription_id, status, package) VALUES ($1, $2, $3, 'active', 'pro')`,
+		w.company.String(), "cus_"+w.company.String(), "sub_"+w.company.String())
 	Save(ctx, w.pool, w.company, w.owner, Choices{Enabled: true, Frequency: FrequencyDaily, Clock: "11:00", Mode: "automatic"})
 	madeUp := `{"kind":"ok","body":"Margherita for only €5 today!","call_to_action":"","hashtags":[]}`
 	w.answers = []string{madeUp, madeUp}

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/database"
 	"ansa/core/internal/jobs"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/team"
 	"ansa/core/internal/tenant"
 )
@@ -68,14 +70,19 @@ func endCall(ctx context.Context, pool *database.Pool, company tenant.CompanyID,
 		const end = `
 			UPDATE phone_calls SET ended_at = now()
 			WHERE company_id = $1 AND id = $2 AND ended_at IS NULL
-			RETURNING conversation_id, messages_taken`
+			RETURNING conversation_id, messages_taken, started_at, ended_at`
 		var conversationID string
 		var messagesTaken int
-		err := tx.QueryRow(ctx, end, company.String(), callID).Scan(&conversationID, &messagesTaken)
+		var started, ended time.Time
+		err := tx.QueryRow(ctx, end, company.String(), callID).Scan(&conversationID, &messagesTaken, &started, &ended)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
 		if err != nil {
+			return err
+		}
+		// The call's minutes count against the package (step 57), once: only the live call ends.
+		if err := packages.AddCallSecondsWithin(ctx, tx, company, started, int(ended.Sub(started).Seconds())); err != nil {
 			return err
 		}
 		// Queued once: only the live call is ended.

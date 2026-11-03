@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"ansa/core/internal/billing"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 )
@@ -40,7 +41,7 @@ func (s *Server) billingPage(w http.ResponseWriter, r *http.Request, _ []byte, w
 		writeJSON(w, http.StatusOK, map[string]any{"billing": nil})
 		return
 	}
-	view, err := billing.ReadView(r.Context(), s.Pool, who.CompanyID, s.BillingMode, r.URL.Query().Get("checkout") == "done")
+	view, err := billing.ReadView(r.Context(), s.Pool, who.CompanyID, s.BillingMode, r.URL.Query().Get("checkout") == "done", time.Now())
 	if err != nil {
 		s.failed(w, "billing", err)
 		return
@@ -48,8 +49,21 @@ func (s *Server) billingPage(w http.ResponseWriter, r *http.Request, _ []byte, w
 	writeJSON(w, http.StatusOK, map[string]any{"billing": view})
 }
 
-// checkout: {"url"} of Stripe's payment page, never while a plan is live.
-func (s *Server) checkout(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+// checkout: POST {package}: {"url"} of Stripe's payment page for that
+// package, never while a plan is live (a live one changes package in
+// Stripe's billing page).
+func (s *Server) checkout(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
+	var input struct {
+		Package string `json:"package"`
+	}
+	if !readJSON(body, &input) {
+		problem(w, http.StatusBadRequest, "Choose a package.")
+		return
+	}
+	if _, known := packages.ByKey(input.Package); !known {
+		problem(w, http.StatusBadRequest, "Choose a package.")
+		return
+	}
 	// Up to two Stripe requests (20 s each).
 	allowLongAnswer(w, 60*time.Second)
 	switch s.BillingMode {
@@ -73,7 +87,7 @@ func (s *Server) checkout(w http.ResponseWriter, r *http.Request, _ []byte, who 
 	if current != nil {
 		customer = current.CustomerID
 	}
-	url, err := s.Stripe.CheckoutURL(r.Context(), who.CompanyID.String(), who.Email, customer, s.AppURL+"/billing?checkout=done", s.AppURL+"/billing")
+	url, err := s.Stripe.CheckoutURL(r.Context(), who.CompanyID.String(), who.Email, customer, input.Package, s.AppURL+"/billing?checkout=done", s.AppURL+"/billing")
 	if err != nil {
 		problem(w, http.StatusServiceUnavailable, "Stripe could not open the payment page right now. Try again in a few minutes.")
 		return
@@ -102,10 +116,12 @@ func (s *Server) billingPortal(w http.ResponseWriter, r *http.Request, _ []byte,
 	writeJSON(w, http.StatusOK, map[string]string{"url": url})
 }
 
-// simulateBilling: {status: active | past_due | canceled}, development only.
+// simulateBilling: {status: active | past_due | canceled, package},
+// development only.
 func (s *Server) simulateBilling(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
 	var input struct {
-		Status string `json:"status"`
+		Status  string `json:"status"`
+		Package string `json:"package"`
 	}
 	if s.BillingMode != "dev" {
 		problem(w, http.StatusConflict, "Simulating payments is only possible in development.")
@@ -115,7 +131,11 @@ func (s *Server) simulateBilling(w http.ResponseWriter, r *http.Request, body []
 		problem(w, http.StatusBadRequest, "Unknown status.")
 		return
 	}
-	if err := billing.Simulate(r.Context(), s.Pool, who.CompanyID, input.Status, time.Now()); err != nil {
+	if _, known := packages.ByKey(input.Package); !known {
+		problem(w, http.StatusBadRequest, "Unknown package.")
+		return
+	}
+	if err := billing.Simulate(r.Context(), s.Pool, who.CompanyID, input.Status, input.Package, time.Now()); err != nil {
 		s.failed(w, "simulate billing", err)
 		return
 	}

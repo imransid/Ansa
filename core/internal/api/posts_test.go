@@ -22,6 +22,10 @@ func TestPostForMeThroughCoresAPI(t *testing.T) {
 		t.Fatalf("no time zone yet: %d", code)
 	}
 	w.must(`INSERT INTO assistant_settings (company_id, currency, time_zone, opening_hours) VALUES ($1, 'EUR', 'Europe/Rome', '{"mon":[],"tue":[],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}')`, w.company.String())
+	if code, answer := w.call("POST", "/api/v1/settings/posts", understood, screensSecret, w.cookie); code != 409 || !strings.Contains(answer["error"].(string), "Pro every day") {
+		t.Fatalf("daily posts come with Pro (step 57; this is the free trial): %d %v", code, answer)
+	}
+	understood = strings.Replace(understood, `"daily"`, `"three_a_week"`, 1)
 	if code, _ := w.call("POST", "/api/v1/settings/posts", understood, screensSecret, w.cookie); code != 200 {
 		t.Fatalf("saved: %d", code)
 	}
