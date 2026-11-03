@@ -42,6 +42,9 @@ func TestTheDevelopmentMailboxShowsOnlyTheCompanysEmails(t *testing.T) {
 	if _, none := w.call("POST", "/api/v1/dev/mailbox/newest", `{"email":"nobody@else.example","clientIp":"dev-mailbox-test"}`, screensSecret, ""); none["email"] != nil {
 		t.Fatalf("no email to that address: %v", none)
 	}
+	if code, _ := w.call("POST", "/api/v1/dev/mailbox/newest", `{"email":"someone@gmail.com","clientIp":"dev-mailbox-test"}`, screensSecret, ""); code != 403 {
+		t.Fatalf("never a real inbox's email without a login: %d", code)
+	}
 	w.must(`UPDATE users SET role = 'member' WHERE company_id = $1`, w.company.String())
 	if _, member := w.call("GET", "/api/v1/dev/mailbox", "", screensSecret, w.cookie); member["available"] != false {
 		t.Fatal("owners only")

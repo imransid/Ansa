@@ -5,9 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/commands"
 	"ansa/core/internal/conversations"
@@ -123,13 +126,19 @@ func bounceDemoEmail(ctx context.Context, w *world, a demoAccount, ticketID stri
 	if err := w.pool.QueryRow(ctx, `SELECT id::text FROM outgoing_emails WHERE company_id = $1 AND ticket_id = $2`, a.company.String(), ticketID).Scan(&emailID); err != nil {
 		return err
 	}
+	// Delivered here: its queued delivery job goes (the running core may
+	// have taken it already, and then delivers it itself).
+	if _, err := w.pool.Exec(ctx, `DELETE FROM core_jobs WHERE company_id = $1 AND kind = $2 AND status = 'queued' AND payload->>'emailId' = $3`,
+		a.company.String(), tickets.DeliverJobKind, emailID); err != nil {
+		return err
+	}
 	limiter := ratelimit.New(w.pool, w.cfg.AuthSecret)
 	deliverer := &outbox.Deliverer{Pool: w.pool, Limiter: limiter, Email: &email.Sender{DevFolder: w.cfg.DevFolder}, ForwardingDomain: w.cfg.ForwardingDomain()}
-	if outcome, err := deliverer.Deliver(ctx, a.company, emailID, false); err != nil || outcome != outbox.Sent {
-		return refusedStep(err, "delivered", outcome)
+	if _, err := deliverer.Deliver(ctx, a.company, emailID, false); err != nil {
+		return err
 	}
-	var providerID string
-	if err := w.pool.QueryRow(ctx, `SELECT provider_message_id FROM outgoing_emails WHERE company_id = $1 AND id = $2`, a.company.String(), emailID).Scan(&providerID); err != nil {
+	providerID, err := sentEmailID(ctx, w, a, emailID)
+	if err != nil {
 		return err
 	}
 	secret, err := webhookSecret()
@@ -142,6 +151,24 @@ func bounceDemoEmail(ctx context.Context, w *world, a demoAccount, ticketID stri
 		return commands.Refusal("The demo's bounce wasn't saved by core's webhook.")
 	}
 	return nil
+}
+
+// sentEmailID waits (up to 15 seconds) until the email went out, whoever
+// sent it; the id its provider gave it.
+func sentEmailID(ctx context.Context, w *world, a demoAccount, emailID string) (string, error) {
+	for try := 0; try < 150; try++ {
+		var providerID *string
+		err := w.pool.QueryRow(ctx, `SELECT provider_message_id FROM outgoing_emails WHERE company_id = $1 AND id = $2 AND status = 'sent'`,
+			a.company.String(), emailID).Scan(&providerID)
+		if err == nil && providerID != nil {
+			return *providerID, nil
+		}
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return "", commands.Refusal("The demo's solved email didn't go out in time.")
 }
 
 // addUnfetchedEmail adds an email whose content couldn't be fetched from

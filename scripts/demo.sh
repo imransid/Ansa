@@ -27,6 +27,8 @@ if [ -z "$claude_code" ] || [ ! -x "$claude_code" ]; then
 fi
 if [ -z "$claude_code" ]; then
   echo "pnpm demo: no claude program (CLAUDE_CODE_PATH in .env.local, or claude on PATH): ansa can't answer with the AI, only with holding replies." >&2
+elif ! "$claude_code" --version >/dev/null 2>&1; then
+  echo "pnpm demo: the claude program ($claude_code) doesn't run: ansa can't answer with the AI, only with holding replies." >&2
 fi
 for port in 3000 8080 8090; do
   if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
@@ -49,38 +51,69 @@ add_development_secret RESEND_WEBHOOK_SECRET "whsec_$(openssl rand -base64 32)"
 if ! docker info >/dev/null 2>&1; then
   echo "Starting Docker Desktop..."
   open -a Docker
-  until docker info >/dev/null 2>&1; do sleep 2; done
+  for _ in $(seq 60); do
+    docker info >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker info >/dev/null 2>&1 || fail "Docker Desktop didn't start: open it, accept its screen if it shows one, then pnpm demo again."
 fi
 pnpm --silent db:up
-until docker compose --env-file .env.local exec -T postgres pg_isready -q 2>/dev/null; do sleep 1; done
+for _ in $(seq 60); do
+  docker compose --env-file .env.local exec -T postgres pg_isready -q 2>/dev/null && break
+  sleep 1
+done
 pnpm --silent db:migrate >/dev/null
 
 # Each part runs in its own process group (set -m), so stopping it stops
 # every program it started; its lines carry its name.
 set -m
 groups=()
+# stop_all stops every part; Ctrl+C is a normal stop (0), a failure keeps
+# its code.
 stop_all() {
+  local code=$1
   trap - EXIT INT TERM
   for group in "${groups[@]}"; do
     kill -TERM -- "-$group" 2>/dev/null || true
   done
   wait 2>/dev/null || true
   echo "ansa stopped."
-  exit 0
+  exit "$code"
 }
-trap stop_all EXIT INT TERM
+trap 'stop_all $?' EXIT
+trap 'stop_all 0' INT TERM
 start() {
   local name=$1
   shift
-  ("$@" 2>&1 | sed -u "s/^/[$name] /") &
+  # The name filter ignores Ctrl+C's stop and ends when the program closes
+  # its output, so a program still logging while it stops (core's 20-second
+  # drain) never writes into a closed pipe.
+  ("$@" 2>&1 | (trap '' TERM INT; exec sed -u "s/^/[$name] /")) &
   groups+=("$!")
+}
+
+# wait_for waits (up to 3 minutes) until a part answers at its address,
+# and stops everything when that part's programs ended instead.
+wait_for() {
+  local name=$1 group=$2 address=$3
+  for _ in $(seq 180); do
+    curl -fs -o /dev/null "$address" && return 0
+    kill -0 -- "-$group" 2>/dev/null || fail "the $name stopped while starting: read its [$name] lines above."
+    sleep 1
+  done
+  fail "the $name didn't start within 3 minutes: read its [$name] lines above."
 }
 start brain bash -c "cd brain && set -a && . ../.env.core && set +a && export ANSA_ENV=development CLAUDE_CODE_PATH='$claude_code' && exec .venv/bin/uvicorn brain.app:create_app --factory --host 127.0.0.1 --port 8090"
 start core bash -c "cd core && set -a && . ../.env.core && set +a && export ANSA_ENV=development && exec go run ./cmd/core"
 start screens pnpm dev
 
-until curl -fs -o /dev/null http://127.0.0.1:8080/health; do sleep 1; done
-(cd core && ANSA_ENV=development go run ./cmd/simulate demo if-missing)
+echo "Building and starting core (the first time takes a minute or two)..."
+wait_for brain "${groups[0]}" http://127.0.0.1:8090/health
+wait_for core "${groups[1]}" http://127.0.0.1:8080/health
+wait_for screens "${groups[2]}" http://localhost:3000/login
+if ! (cd core && ANSA_ENV=development go run ./cmd/simulate demo if-missing); then
+  echo "pnpm demo: the demo accounts couldn't be made (see above). ansa runs: try pnpm demo:reset in a second terminal." >&2
+fi
 echo
 echo "ansa is running: open http://localhost:3000 (Ctrl+C here stops everything)."
 wait

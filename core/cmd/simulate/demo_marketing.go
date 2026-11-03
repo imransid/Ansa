@@ -193,5 +193,5 @@ func refusedStep(err error, step, outcome string) error {
 	if err != nil {
 		return err
 	}
-	return commands.Refusal("The demo's marketing step wasn't " + step + " (" + strconv.Quote(outcome) + ").")
+	return commands.Refusal("A step of the demo wasn't " + step + " (" + strconv.Quote(outcome) + ").")
 }

@@ -15,8 +15,14 @@ export async function getDevMailboxFromCore(): Promise<{ available: boolean; ema
 }
 
 // The newest email to an address, before a login (after signing up, or
-// asking for a reset). null: none, or no development mailbox here.
-export async function newestDevMailFromCore(email: string): Promise<DevMail | null> {
+// asking for a reset): null when there is none, or why core won't show it
+// (a real address, too many looks, no development mailbox here).
+export type NewestDevMail = { email: DevMail | null; problem: string | null };
+
+export async function newestDevMailFromCore(email: string): Promise<NewestDevMail> {
   const answer = await callCore<{ email: DevMail | null }>("POST", "/api/v1/dev/mailbox/newest", { email, ...(await describeBrowser()) });
-  return answer.ok ? answer.data.email : null;
+  if (!answer.ok) {
+    return { email: null, problem: answer.fields.email ?? answer.message };
+  }
+  return { email: answer.data.email, problem: null };
 }

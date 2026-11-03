@@ -88,11 +88,14 @@ func printDemoLogins(w *world) {
 	fmt.Fprintf(w.out, "Be the customer at %s/settings/channels/practice-chat, and call at %s/settings/channels/practice-call.\n", w.cfg.AppURL, w.cfg.AppURL)
 }
 
-// demoAccountsThere: whether both demo accounts exist.
+// demoAccountsThere: whether both demo accounts exist, with more than a
+// day of their free trial left (after it, ansa would only send holding
+// replies: the demo is made again instead).
 func demoAccountsThere(ctx context.Context, w *world) (bool, error) {
 	const statement = `
 		-- cross-company: the demo tool looks for its own demo accounts by their fixed addresses (development only).
-		SELECT count(*) FROM users WHERE email = ANY($1) AND company_id IS NOT NULL`
+		SELECT count(*) FROM users JOIN companies ON companies.id = users.company_id
+		WHERE users.email = ANY($1) AND companies.trial_ends_at > now() + interval '1 day'`
 	var count int
 	err := w.pool.QueryRow(ctx, statement, []string{demoBusinessEmail, demoPersonEmail}).Scan(&count)
 	return count == 2, err

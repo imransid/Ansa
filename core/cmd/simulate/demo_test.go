@@ -43,6 +43,13 @@ func TestTheDemoToolMakesTheWholeDemo(t *testing.T) {
 		"a solved email and a bounced one":     {`SELECT count(*) FROM outgoing_emails WHERE company_id = $1`, 2},
 		"the bounce":                           {`SELECT count(*) FROM outgoing_emails WHERE company_id = $1 AND delivery_problem = 'bounced'`, 1},
 		"two finished calls":                   {`SELECT count(*) FROM calls WHERE company_id = $1`, 2},
+		"one call solved, one for a person":    {`SELECT count(DISTINCT ai_outcome) FROM calls WHERE company_id = $1 AND analysis_status = 'decided'`, 2},
+		"two emails read into requests":        {`SELECT count(*) FROM inbound_emails WHERE company_id = $1 AND status = 'ticketed'`, 2},
+		"no AI work left for the running core": {`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND status = 'queued' AND kind IN ('call.analyze', 'inbound_email.process')`, 0},
+		"five ideas on the calendar":           {`SELECT count(*) FROM content_drafts WHERE company_id = $1 AND status = 'idea' AND planned_for IS NOT NULL`, 5},
+		"a dish not available today":           {`SELECT count(*) FROM catalog_items WHERE company_id = $1 AND unavailable_until > now()`, 1},
+		"a saved answer waiting for approval":  {`SELECT count(*) FROM knowledge_articles WHERE company_id = $1 AND status = 'draft'`, 1},
+		"four social accounts":                 {`SELECT count(DISTINCT platform) FROM social_connections WHERE company_id = $1 AND status = 'connected'`, 4},
 		"three received emails":                {`SELECT count(*) FROM inbound_emails WHERE company_id = $1`, 3},
 		"one to process again":                 {`SELECT count(*) FROM inbound_emails WHERE company_id = $1 AND ignored_reason = 'content_unavailable'`, 1},
 		"a marketing plan":                     {`SELECT count(*) FROM marketing_plans WHERE company_id = $1`, 1},
@@ -62,8 +69,9 @@ func TestTheDemoToolMakesTheWholeDemo(t *testing.T) {
 	}
 	person := companyOf(t, w, demoPersonEmail)
 	if countIn(t, w, person, `SELECT count(*) FROM assistant_settings WHERE company_id = $1 AND away_since IS NOT NULL`) != 1 ||
-		countIn(t, w, person, `SELECT count(*) FROM contacts WHERE company_id = $1 AND important`) != 1 {
-		t.Error("Rafa is away, with one important person")
+		countIn(t, w, person, `SELECT count(*) FROM contacts WHERE company_id = $1 AND important`) != 1 ||
+		countIn(t, w, person, `SELECT count(*) FROM inbound_emails WHERE company_id = $1 AND status = 'ticketed'`) != 1 {
+		t.Error("Rafa is away, with one important person and an email noted")
 	}
 }
 

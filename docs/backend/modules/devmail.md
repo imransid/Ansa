@@ -19,9 +19,12 @@ emails can be opened in the app instead of the folder.
   ids), never show, even to the same address.
 - Before a login (the "check your email" and "forgot password" pages), the
   newest email to an address the visitor types (`ToAddress`): the pages a
-  rehearsal's signup or reset needs. No login, so it is limited (60 looks
-  per 10 minutes per IP) and only ever on a development server, whose
-  screens listen on this computer only (`pnpm dev` binds 127.0.0.1).
+  rehearsal's signup or reset needs. No login, so only for made-up
+  addresses no real inbox has (`@demo.ansa.test`, any `.test`, `.example`,
+  `.invalid` or `.localhost` domain, `example.com/.net/.org`: a real
+  account's reset link is never shown this way), limited (60 looks per 10
+  minutes per IP), and only ever on a development server, whose screens
+  listen on this computer only (`pnpm dev` binds 127.0.0.1).
 - Production, or real email on: the API has no folder and refuses
   (`DevMailFolder` is "", `cmd/core/wiring.go`).
 
@@ -37,4 +40,5 @@ to this computer in an email's text are clickable.
 **Tests:** `internal/devmail/devmail_test.go` (newest first, read as
 written, only the emails kept, a key's ids), `internal/api/dev_mailbox_test.go`
 (an owner sees their company's emails only, not an earlier reset's to the
-same address; the newest before a login; members and real email refused).
+same address; the newest before a login, never to a real inbox's address;
+members and real email refused).

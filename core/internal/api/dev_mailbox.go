@@ -22,6 +22,25 @@ var devMailPeeks = ratelimit.Rule{MaxAttempts: 60, Window: 10 * time.Minute}
 
 const devMailOnly = "The development mailbox is for trying ansa on this computer: real emails go to real inboxes."
 
+const devMailMadeUpOnly = "Without a login, the development mailbox shows only emails to made-up addresses (like name@demo.ansa.test)."
+
+// madeUpAddress: an address no real inbox can have (the demo's domain,
+// reserved test and example names). The look needs no login, so an email to
+// a real address (its reset link) is never shown this way, even here.
+func madeUpAddress(address string) bool {
+	domain := address[strings.LastIndex(address, "@")+1:]
+	for _, reserved := range []string{".test", ".example", ".invalid", ".localhost"} {
+		if strings.HasSuffix(domain, reserved) {
+			return true
+		}
+	}
+	switch domain {
+	case "example.com", "example.net", "example.org":
+		return true
+	}
+	return false
+}
+
 func (s *Server) registerDevMailbox(routes *http.ServeMux) {
 	routes.HandleFunc("GET /api/v1/dev/mailbox", s.withSession(s.devMailbox))
 	routes.HandleFunc("POST /api/v1/dev/mailbox/newest", s.withScreens(s.newestDevMail))
@@ -65,6 +84,10 @@ func (s *Server) newestDevMail(w http.ResponseWriter, r *http.Request, body []by
 	address := strings.ToLower(strings.TrimSpace(input.Email))
 	if !strings.Contains(address, "@") || utf8.RuneCountInString(address) > 254 {
 		fieldProblems(w, map[string]string{"email": "Write the email address you used."})
+		return
+	}
+	if !madeUpAddress(address) {
+		problem(w, http.StatusForbidden, devMailMadeUpOnly)
 		return
 	}
 	if over, err := s.Limiter.Over(r.Context(), "dev-mailbox", cutText(input.ClientIP, 100), devMailPeeks); err != nil || over {

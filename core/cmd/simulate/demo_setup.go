@@ -86,7 +86,10 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 	if err := addTypedInRequests(ctx, w, a); err != nil {
 		return err
 	}
-	if err := addDemoCallsAndEmails(ctx, w, a); err != nil {
+	if err := addDemoCalls(ctx, w, a); err != nil {
+		return err
+	}
+	if err := addDemoEmails(ctx, w, a, demoEmails); err != nil {
 		return err
 	}
 	if err := addDemoRecording(ctx, w, a); err != nil {
@@ -99,7 +102,10 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 	if err := addUnfetchedEmail(ctx, w, a, forwarding); err != nil {
 		return err
 	}
-	return setUpMarketing(ctx, w, a)
+	if err := setUpMarketing(ctx, w, a); err != nil {
+		return err
+	}
+	return addDemoExtras(ctx, w, a)
 }
 
 // setUpPerson sets up one person (a freelance designer) away from their
@@ -130,6 +136,9 @@ func setUpPerson(ctx context.Context, w *world, a demoAccount) error {
 	}
 	chats, err := playDemoChats(ctx, w, a, personHistory)
 	if err != nil {
+		return err
+	}
+	if err := addDemoEmails(ctx, w, a, personEmails); err != nil {
 		return err
 	}
 	return spreadOverTheDay(ctx, w, a, chats, personNight)
