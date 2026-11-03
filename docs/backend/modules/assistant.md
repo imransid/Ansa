@@ -82,7 +82,7 @@ it), worded "They want to place an order or book a table."
   wrote never counts (the AI could agree to a made-up price): the brain is
   told never to repeat one, and a reply that does is stopped, its request
   naming the amount as the reply wrote it (`StoppedAmount`: "The
-  assistant's reply named 250 taka, which isn't on your menu, ...");
+  assistant's reply named the price 250 taka, which isn't on your menu, ...");
 - no refund, compensation or voucher words in English, Italian, Spanish,
   French, German or Bangla (রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার; never a
   bare ফেরত, "back": ফেরত কল is a call back) (`refund_promise`);

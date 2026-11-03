@@ -154,7 +154,7 @@ func TestAMadeUpPriceIsNeverSentAndAPersonIsAsked(t *testing.T) {
 	}
 	var subject, description string
 	w.pool.QueryRow(context.Background(), `SELECT subject, description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&subject, &description)
-	if subject != "Reply stopped: a price not on your menu" || description != "The assistant's reply named €5, which isn't on your menu, so ansa didn't send it." {
+	if subject != "Reply stopped: a price not on your menu" || description != "The assistant's reply named the price €5, which isn't on your menu, so ansa didn't send it." {
 		t.Fatalf("request: %q / %q", subject, description)
 	}
 	if w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'price_not_on_menu'`, w.companyID) != 1 {
@@ -327,7 +327,7 @@ func TestAPersonsStoppedAmountIsWordedForThem(t *testing.T) {
 	}
 	var subject, description string
 	w.pool.QueryRow(context.Background(), `SELECT subject, description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&subject, &description)
-	if subject != "Reply stopped: an amount not in your notes" || description != "The assistant's reply named BDT 10,000, which isn't in your own notes or saved answers, so ansa didn't send it." {
+	if subject != "Reply stopped: an amount not in your notes" || description != "The assistant's reply named the amount BDT 10,000, which isn't in your own notes or saved answers, so ansa didn't send it." {
 		t.Fatalf("a person's words: %q / %q", subject, description)
 	}
 }

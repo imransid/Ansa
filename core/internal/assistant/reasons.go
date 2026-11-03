@@ -74,11 +74,10 @@ func reasonWords(reason, stoppedAmount, kind string) string {
 	if reason != ReasonPriceNotOnMenu || stoppedAmount == "" {
 		return ReasonTextFor(reason, kind)
 	}
-	where := "on your menu"
 	if kind == "personal" {
-		where = "in your own notes or saved answers"
+		return "The assistant's reply named the amount " + stoppedAmount + ", which isn't in your own notes or saved answers, so ansa didn't send it."
 	}
-	return "The assistant's reply named " + stoppedAmount + ", which isn't " + where + ", so ansa didn't send it."
+	return "The assistant's reply named the price " + stoppedAmount + ", which isn't on your menu, so ansa didn't send it."
 }
 
 // ChannelLabels name a conversation's channel for people.

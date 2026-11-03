@@ -135,7 +135,7 @@ func TestTheStoppedAmountIsNamedAsWritten(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
-	if got := reasonWords(ReasonPriceNotOnMenu, "250 taka", "business"); got != "The assistant's reply named 250 taka, which isn't on your menu, so ansa didn't send it." {
+	if got := reasonWords(ReasonPriceNotOnMenu, "250 taka", "business"); got != "The assistant's reply named the price 250 taka, which isn't on your menu, so ansa didn't send it." {
 		t.Errorf("a business: %q", got)
 	}
 	if got := reasonWords(ReasonPriceNotOnMenu, "", "personal"); got != personalReasonText[ReasonPriceNotOnMenu] {
