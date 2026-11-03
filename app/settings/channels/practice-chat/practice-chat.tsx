@@ -15,6 +15,10 @@ import { PracticeEmail } from "./practice-email";
 // (an order accepted on the Orders page, a teammate's reply).
 const LOOK_EVERY_MS = 2000;
 
+// When the server can't be reached (a dropped connection on a very busy
+// laptop): the message may have arrived anyway, and the chat shows it if so.
+const COULD_NOT_REACH = "ansa couldn't be reached just now. If your message doesn't show in the chat, send it again.";
+
 // The customer's side: which app they write on (or an email), their name
 // (each name is one customer, with their own conversation), and the chat
 // itself. personal: one person's account, written to by people, not customers.
@@ -56,10 +60,11 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
     }
     let stopped = false;
     const timer = setTimeout(async () => {
-      const found = await findPracticeChatAction({ channel, name });
+      // null also when the server couldn't be reached: the next look finds it.
+      const found = await findPracticeChatAction({ channel, name }).catch(() => null);
       if (!stopped && found) {
         setConversationId(found);
-        const read = await readPracticeChatAction({ conversationId: found });
+        const read = await readPracticeChatAction({ conversationId: found }).catch(() => null);
         if (!stopped && read) {
           setLines(read);
         }
@@ -77,7 +82,8 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
     }
     let stopped = false;
     const look = async () => {
-      const read = await readPracticeChatAction({ conversationId });
+      // A look that failed (null) changes nothing: the next one tries again.
+      const read = await readPracticeChatAction({ conversationId }).catch(() => null);
       if (!stopped && read) {
         setLines(read);
       }
@@ -96,7 +102,13 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
       return;
     }
     startSending(async () => {
-      const sent = await sendPracticeMessageAction({ channel, name, text: message, asBusiness });
+      const sent = await sendPracticeMessageAction({ channel, name, text: message, asBusiness }).catch(() => null);
+      if (!sent) {
+        // Said on the page, not an error screen: the typed message stays in the box.
+        setError(COULD_NOT_REACH);
+        await showChatIfThere();
+        return;
+      }
       if (!sent.ok) {
         setError(sent.error);
         return;
@@ -104,11 +116,20 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
       setError("");
       setText("");
       setConversationId(sent.conversationId);
-      const read = await readPracticeChatAction({ conversationId: sent.conversationId });
+      const read = await readPracticeChatAction({ conversationId: sent.conversationId }).catch(() => null);
       if (read) {
         setLines(read);
       }
     });
+  }
+
+  // After a send whose answer never came back: the message may have arrived
+  // anyway, and then its chat shows (and keeps looking for ansa's answer).
+  async function showChatIfThere() {
+    const found = await findPracticeChatAction({ channel, name }).catch(() => null);
+    if (found) {
+      setConversationId(found);
+    }
   }
 
   return (

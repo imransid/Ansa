@@ -16,6 +16,10 @@ import { WhoIsCalling } from "./who-is-calling";
 // the server renders the page).
 const subscribeToNothing = () => () => {};
 
+// When the server can't be reached (a dropped connection on a very busy
+// laptop): said on the page instead of an error screen.
+const COULD_NOT_REACH = "ansa couldn't be reached just now. Try again in a moment.";
+
 // The practice phone (step 55): pretend to be a caller, talk (or type) in
 // English or Bangla, and hear ansa answer with the browser's voice. The
 // buttons call the actions inside a transition, so nothing typed is lost to
@@ -54,7 +58,11 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
   function pickUp() {
     setError("");
     startWaiting(async () => {
-      const started = await startPracticeCallAction({ callerName, callerNumber });
+      const started = await startPracticeCallAction({ callerName, callerNumber }).catch(() => null);
+      if (!started) {
+        setError(COULD_NOT_REACH);
+        return;
+      }
       if (!started.ok) {
         setError(started.error);
         return;
@@ -77,9 +85,14 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
     }
     setError("");
     startWaiting(async () => {
-      const answer = await practiceCallTurnAction({ callId: calling.id, ...said });
+      const answer = await practiceCallTurnAction({ callId: calling.id, ...said }).catch(() => null);
       if (liveCall.current()?.id !== calling.id) {
         // Hung up while ansa was thinking: its answer is never heard.
+        return;
+      }
+      if (!answer) {
+        // The caller can say it again: the call is still on.
+        setError(COULD_NOT_REACH);
         return;
       }
       if (!answer.ok) {
@@ -110,7 +123,9 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
     window.speechSynthesis?.cancel();
     setCall(null);
     startWaiting(async () => {
-      await endPracticeCallAction({ callId: ending.id });
+      // Not told (the server couldn't be reached), ansa ends this call when
+      // the same caller calls again, as hanging up does.
+      await endPracticeCallAction({ callId: ending.id }).catch(() => null);
       setEndedCall(ending);
     });
   }
