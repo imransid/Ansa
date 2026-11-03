@@ -21,7 +21,7 @@ var restaurantHistory = []demoChat{
 	// hours of the customer's last message, so its page says so instead of a
 	// reply box.
 	{channel: "whatsapp", name: "Shirin", turns: []demoTurn{
-		{"Do you have a table for 8 on Friday?", reply("Yes! For 8 people we keep the family room ready on Friday. See you then!")},
+		{"Do you have a table for 8 on Friday?", reply("We have a family room upstairs that fits 8. ansa can't book tables: to book it for Friday, please call us on +880 1700 000000.")},
 	}},
 	{channel: "whatsapp", name: "Rahim", turns: []demoTurn{
 		{"Hi! What time do you open on Friday?", reply("We're open every day, all day, Friday too. Kacchi and biryani are ready from 12:00.")},
@@ -39,7 +39,7 @@ var restaurantHistory = []demoChat{
 	}},
 	{channel: "telegram", name: "Nusrat", turns: []demoTurn{
 		{"Do you do catering? We need food for about 150 guests at a wedding on 20 December.",
-			needsPerson("asked_for_person", "Wedding catering for 150 guests", "Nusrat asks for catering for about 150 guests at a wedding on 20 December.", "Catering")},
+			needsPerson("order", "Wedding catering for 150 guests", "Nusrat asks for catering for about 150 guests at a wedding on 20 December.", "Catering")},
 	}},
 	{channel: "whatsapp", name: "Shakil", turns: []demoTurn{
 		{"2 Kacchi Biryani and 1 Mango Lassi, delivered to House 7, Road 12, Dhanmondi please", orderSummary("delivery", "House 7, Road 12, Dhanmondi", "", "", "M1", 2, "M8", 1)},
