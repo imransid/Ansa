@@ -139,11 +139,13 @@ func saveCallNote(ctx context.Context, pool *database.Pool, company tenant.Compa
 		}
 		var requestID string
 		var openedDuringCall bool
+		// Opened during this call means before it ended too: the caller's next
+		// call may open a request before this note is written.
 		const newestOpen = `
-			SELECT id, created_at >= $3 FROM tickets
+			SELECT id, created_at BETWEEN $3 AND $4 FROM tickets
 			WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'
 			ORDER BY created_at DESC LIMIT 1 FOR NO KEY UPDATE`
-		err := tx.QueryRow(ctx, newestOpen, company.String(), conversationID, call.StartedAt).Scan(&requestID, &openedDuringCall)
+		err := tx.QueryRow(ctx, newestOpen, company.String(), conversationID, call.StartedAt, call.EndedAt).Scan(&requestID, &openedDuringCall)
 		switch {
 		case err == nil:
 			return addNoteToRequestWithin(ctx, tx, company, requestID, openedDuringCall, note.Subject, summary)
@@ -153,13 +155,13 @@ func saveCallNote(ctx context.Context, pool *database.Pool, company tenant.Compa
 			// No request open and nothing waits for a person: nothing to add.
 			return nil
 		}
-		name, err := callerNameWithin(ctx, tx, company, conversationID)
+		name, number, err := callerWithin(ctx, tx, company, conversationID)
 		if err != nil {
 			return err
 		}
 		// Its own alert: the one for the messages ansa took (CallMessagesLeftWithin) may still wait.
 		turn := conversations.Turn{CompanyID: company, ConversationID: conversationID, TriggerMessageID: "note-" + call.ID}
-		info := conversationInfo{ConversationID: conversationID, Channel: conversations.ChannelPhone, ContactName: name}
+		info := conversationInfo{ConversationID: conversationID, Channel: conversations.ChannelPhone, ContactName: name, CallerNumber: number}
 		fields, err := requestFields(ctx, tx, turn, info, Handover{Reason: "call_message", Subject: note.Subject, Summary: summary})
 		if err != nil {
 			return err

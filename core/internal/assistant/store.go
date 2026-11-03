@@ -12,6 +12,8 @@ type conversationInfo struct {
 	ConversationID string
 	Channel        string
 	ContactName    *string
+	// The caller's number in a phone conversation (its contact's digits), "" elsewhere.
+	CallerNumber string
 	// Someone the owner marked important: always handed to them.
 	Important bool
 	// Nothing automated reached the customer yet (sent, being sent, or maybe
@@ -35,11 +37,12 @@ func (r *Runner) readGate(ctx context.Context, turn conversations.Turn, options 
 				NOT EXISTS (
 					SELECT 1 FROM messages
 					WHERE messages.company_id = $1 AND messages.conversation_id = $2 AND messages.author = 'assistant'
-						AND messages.send_status IN ('sending', 'sent', 'unclear'))
+						AND messages.send_status IN ('sending', 'sent', 'unclear')),
+				CASE WHEN contacts.channel = 'phone' THEN contacts.external_id ELSE '' END
 			FROM conversations
 			JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 			WHERE conversations.company_id = $1 AND conversations.id = $2`
-		return tx.QueryRow(ctx, statement, turn.CompanyID.String(), turn.ConversationID).Scan(&info.Channel, &info.ContactName, &info.Important, &info.FirstAutomated)
+		return tx.QueryRow(ctx, statement, turn.CompanyID.String(), turn.ConversationID).Scan(&info.Channel, &info.ContactName, &info.Important, &info.FirstAutomated, &info.CallerNumber)
 	})
 	return gate, info, err
 }

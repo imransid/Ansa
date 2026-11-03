@@ -78,21 +78,11 @@ func CreateManual(ctx context.Context, pool *database.Pool, company tenant.Compa
 // can take requests goes first (its "routed" row names no category), else
 // routing by category. Whoever gets it is emailed (not its own creator).
 func routeNewWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, ticketID, actorUserID string, r NewRequest) error {
-	expert, err := sameCustomerAssignee(ctx, tx, company, ticketID, CustomerPhoneDigits(r.Phone), strings.ToLower(r.CustomerEmail))
+	expert, err := routeToSameCustomerWithin(ctx, tx, company, ticketID, CustomerPhoneDigits(r.Phone), strings.ToLower(r.CustomerEmail))
 	if err != nil {
 		return err
 	}
-	if expert != "" {
-		const assign = `
-			UPDATE tickets SET assigned_to_user_id = $3, assigned_automatically = true, routed_to_user_id = COALESCE(routed_to_user_id, $3)
-			WHERE company_id = $1 AND id = $2 AND assigned_to_user_id IS NULL`
-		if _, err := tx.Exec(ctx, assign, company.String(), ticketID, expert); err != nil {
-			return err
-		}
-		if err := recordChangeWithin(ctx, tx, company, ticketID, "routed", "", expert, nil); err != nil {
-			return err
-		}
-	} else {
+	if expert == "" {
 		var category *string
 		if err := tx.QueryRow(ctx, `SELECT category FROM tickets WHERE company_id = $1 AND id = $2`, company.String(), ticketID).Scan(&category); err != nil || category == nil {
 			return err
@@ -105,26 +95,6 @@ func routeNewWithin(ctx context.Context, tx database.Tx, company tenant.CompanyI
 		return nil
 	}
 	return QueueAssignedEmailWithin(ctx, tx, company, ticketID, expert)
-}
-
-// sameCustomerAssignee is who has this customer's newest other open request
-// (the same phone digits or the same email), if they can take requests.
-func sameCustomerAssignee(ctx context.Context, tx database.Tx, company tenant.CompanyID, ticketID, digits, email string) (string, error) {
-	if digits == "" && email == "" {
-		return "", nil
-	}
-	const statement = `
-		SELECT users.id FROM tickets
-		JOIN users ON users.id = tickets.assigned_to_user_id AND users.company_id = tickets.company_id
-		WHERE tickets.company_id = $1 AND tickets.id <> $2 AND tickets.status = 'open' AND users.email_verified AND users.deactivated_at IS NULL
-			AND (($3 <> '' AND regexp_replace(tickets.customer_phone, '[^0-9]', '', 'g') = $3) OR ($4 <> '' AND lower(tickets.customer_email) = $4))
-		ORDER BY tickets.ticket_number DESC LIMIT 1`
-	var expert string
-	err := tx.QueryRow(ctx, statement, company.String(), ticketID, digits, email).Scan(&expert)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", nil
-	}
-	return expert, err
 }
 
 // NewEmailRequest is a request made from a received email. The category

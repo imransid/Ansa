@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLoading } from "@/components/page-loading";
 import { getPracticePhoneFromCore } from "@/lib/core-views/phone";
+import { madeUpCallerNumber } from "@/lib/practice-phone/caller";
 import { requireSessionContext } from "@/lib/session";
 import { PracticePhone } from "./practice-phone";
 
@@ -49,5 +50,7 @@ async function PracticeCall() {
       </p>
     );
   }
-  return <PracticePhone />;
+  // A made-up caller of its own for each visit: made after the session was
+  // read, as Cache Components require of a random value (one per request).
+  return <PracticePhone firstNumber={madeUpCallerNumber()} />;
 }

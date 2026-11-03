@@ -40,6 +40,14 @@ export function useCallerVoice(
     return () => window.clearInterval(timer);
   });
 
+  // Leaving the page stops listening, so the microphone is let go.
+  useEffect(() => {
+    return () => {
+      listener.current?.abort();
+      recorder.current?.stop();
+    };
+  }, []);
+
   function stopped() {
     listener.current = null;
     setTalking(false);

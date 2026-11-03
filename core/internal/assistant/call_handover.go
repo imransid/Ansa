@@ -81,7 +81,7 @@ func CallMessagesLeftWithin(ctx context.Context, tx database.Tx, company tenant.
 	if err != nil || open {
 		return err
 	}
-	name, err := callerNameWithin(ctx, tx, company, conversationID)
+	name, number, err := callerWithin(ctx, tx, company, conversationID)
 	if err != nil {
 		return err
 	}
@@ -90,6 +90,7 @@ func CallMessagesLeftWithin(ctx context.Context, tx database.Tx, company tenant.
 		Subject:        "A caller left a message",
 		Description:    ReasonText["call_message"] + " Their words are in the conversation.",
 		CustomerName:   name,
+		CustomerPhone:  requestPhone(number),
 		ConversationID: conversationID,
 	}
 	if _, err := tickets.CreateChatTicketWithin(ctx, tx, company, fields); err != nil {
@@ -103,16 +104,18 @@ func CallMessagesLeftWithin(ctx context.Context, tx database.Tx, company tenant.
 	return enqueueAlert(ctx, tx, turn, "call_message", false, "")
 }
 
-// callerNameWithin is the caller's name as the line gave it (nil = unknown).
-func callerNameWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID string) (*string, error) {
+// callerWithin is the caller as the line gave them: their name (nil =
+// unknown) and number (the phone contact's digits; "" for another channel).
+func callerWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID string) (*string, string, error) {
 	const statement = `
-		SELECT contacts.display_name
+		SELECT contacts.display_name, CASE WHEN contacts.channel = 'phone' THEN contacts.external_id ELSE '' END
 		FROM conversations
 		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 		WHERE conversations.company_id = $1 AND conversations.id = $2`
 	var name *string
-	err := tx.QueryRow(ctx, statement, company.String(), conversationID).Scan(&name)
-	return name, err
+	var number string
+	err := tx.QueryRow(ctx, statement, company.String(), conversationID).Scan(&name, &number)
+	return name, number, err
 }
 
 // openRequestWithin: is a request open in the conversation?

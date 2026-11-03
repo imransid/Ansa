@@ -25,6 +25,8 @@ type NewChatTicket struct {
 	CategoryID     string
 	CustomerName   *string
 	ConversationID string
+	// The caller's number on a request from a call ("" = none).
+	CustomerPhone string
 }
 
 // Created is the new ticket and who routing gave it to ("" for nobody).
@@ -34,9 +36,11 @@ type Created struct {
 	AssigneeID string
 }
 
-// CreateChatTicketWithin numbers, saves and routes a chat request. The
-// category is followed by its id (renamed meanwhile = the new name; archived
-// or another company's = none).
+// CreateChatTicketWithin numbers, saves and routes a chat request: a
+// caller's number goes to whoever has that caller's other open request
+// first, as every new request does, else by category. The category is
+// followed by its id (renamed meanwhile = the new name; archived or another
+// company's = none).
 func CreateChatTicketWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, input NewChatTicket) (Created, error) {
 	var number int
 	if err := tx.QueryRow(ctx, `UPDATE companies SET last_ticket_number = last_ticket_number + 1 WHERE id = $1 RETURNING last_ticket_number`, company.String()).Scan(&number); err != nil {
@@ -47,23 +51,28 @@ func CreateChatTicketWithin(ctx context.Context, tx database.Tx, company tenant.
 		return Created{}, err
 	}
 	const insert = `
-		INSERT INTO tickets (company_id, ticket_number, subject, description, channel, category, customer_name, conversation_id)
-		VALUES ($1, $2, $3, $4, $8::ticket_channel, $5, $6, $7)
+		INSERT INTO tickets (company_id, ticket_number, subject, description, channel, category, customer_name, conversation_id, customer_phone)
+		VALUES ($1, $2, $3, $4, $8::ticket_channel, $5, $6, $7, NULLIF($9, ''))
 		RETURNING id`
 	channel := "chat"
 	if input.Channel == "phone" {
 		channel = "phone"
 	}
 	var id string
-	if err := tx.QueryRow(ctx, insert, company.String(), number, input.Subject, input.Description, category, input.CustomerName, input.ConversationID, channel).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, insert, company.String(), number, input.Subject, input.Description, category, input.CustomerName, input.ConversationID, channel, input.CustomerPhone).Scan(&id); err != nil {
 		return Created{}, err
 	}
 	created := Created{ID: id, Number: number}
-	if category == nil {
-		return created, nil
-	}
-	if created.AssigneeID, err = routeByCategory(ctx, tx, company, id, *category); err != nil || created.AssigneeID == "" {
+	if created.AssigneeID, err = routeToSameCustomerWithin(ctx, tx, company, id, CustomerPhoneDigits(input.CustomerPhone), ""); err != nil {
 		return created, err
+	}
+	if created.AssigneeID == "" && category != nil {
+		if created.AssigneeID, err = routeByCategory(ctx, tx, company, id, *category); err != nil {
+			return created, err
+		}
+	}
+	if created.AssigneeID == "" {
+		return created, nil
 	}
 	return created, QueueAssignedEmailWithin(ctx, tx, company, id, created.AssigneeID)
 }

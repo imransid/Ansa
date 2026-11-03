@@ -133,9 +133,10 @@ func enqueueAlert(ctx context.Context, tx database.Tx, turn conversations.Turn, 
 }
 
 // requestFields is the request a person sees: the AI's subject and summary
-// when it wrote them, fixed words otherwise; always the reason first. The
-// ticket rules apply (one plain line of 1-200): a subject they refuse falls
-// back to the fixed one, a name they refuse is left out.
+// when it wrote them, fixed words otherwise; always the reason first, and a
+// caller's number. The ticket rules apply (one plain line of 1-200): a
+// subject they refuse falls back to the fixed one, a name they refuse is
+// left out.
 func requestFields(ctx context.Context, tx database.Tx, turn conversations.Turn, info conversationInfo, h Handover) (tickets.NewChatTicket, error) {
 	subject := plaintext.SingleLine(h.Subject)
 	if subject == "" || utf8.RuneCountInString(subject) > 200 {
@@ -152,7 +153,17 @@ func requestFields(ctx context.Context, tx database.Tx, turn conversations.Turn,
 		}
 	}
 	categoryID, err := activeCategoryID(ctx, tx, turn, h.CategoryName)
-	return tickets.NewChatTicket{Channel: info.Channel, Subject: subject, Description: description, CategoryID: categoryID, CustomerName: name, ConversationID: info.ConversationID}, err
+	return tickets.NewChatTicket{Channel: info.Channel, Subject: subject, Description: description, CategoryID: categoryID, CustomerName: name,
+		CustomerPhone: requestPhone(info.CallerNumber), ConversationID: info.ConversationID}, err
+}
+
+// requestPhone is a caller's number as a request holds it: left out when
+// the ticket rules refuse it (more than 40 characters).
+func requestPhone(number string) string {
+	if utf8.RuneCountInString(number) > 40 {
+		return ""
+	}
+	return number
 }
 
 // activeCategoryID is the id of the company's active category with this

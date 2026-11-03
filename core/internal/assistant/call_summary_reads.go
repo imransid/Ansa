@@ -15,11 +15,11 @@ import (
 
 // The reads behind a call's note (call_summary.go): the finished call's words.
 
-// finishedCall is an ended call: its conversation, when it started, and
-// its lines in order (ansa's greeting first).
+// finishedCall is an ended call: its conversation, when it started and
+// ended, and its lines in order (ansa's greeting first).
 type finishedCall struct {
 	ID, ConversationID string
-	StartedAt          time.Time
+	StartedAt, EndedAt time.Time
 	Lines              []Line
 }
 
@@ -27,9 +27,8 @@ type finishedCall struct {
 // caller said nothing. A line that can't be decrypted is left out.
 func readFinishedCall(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, callID string) (*finishedCall, error) {
 	call := &finishedCall{ID: callID}
-	var ended time.Time
 	const statement = `SELECT conversation_id, started_at, ended_at FROM phone_calls WHERE company_id = $1 AND id = $2 AND ended_at IS NOT NULL`
-	err := pool.QueryRow(ctx, statement, company.String(), callID).Scan(&call.ConversationID, &call.StartedAt, &ended)
+	err := pool.QueryRow(ctx, statement, company.String(), callID).Scan(&call.ConversationID, &call.StartedAt, &call.EndedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -41,7 +40,7 @@ func readFinishedCall(ctx context.Context, pool *database.Pool, box *secure.Box,
 		WHERE company_id = $1 AND conversation_id = $2 AND body_encrypted IS NOT NULL
 			AND created_at >= $3 AND created_at <= $4 AND (direction = 'in' OR send_status IN ('sending', 'sent'))
 		ORDER BY created_at`
-	rows, err := pool.Query(ctx, words, company.String(), call.ConversationID, call.StartedAt, ended)
+	rows, err := pool.Query(ctx, words, company.String(), call.ConversationID, call.StartedAt, call.EndedAt)
 	if err != nil {
 		return nil, err
 	}

@@ -70,10 +70,10 @@ type Started struct {
 }
 
 // Start picks up a call: the caller's phone conversation (made on their first
-// call), a live call in it (ending one left live before), and ansa's
-// greeting, which says who it is and whether it can help or only take a
-// message (the assistant paused, a person handling the conversation, or a
-// caller marked important).
+// call), a live call in it (one left live before is ended as hanging up
+// would end it), and ansa's greeting, which says who it is and whether it
+// can help or only take a message (the assistant paused, a person handling
+// the conversation, or a caller marked important).
 func (s *Service) Start(ctx context.Context, company tenant.CompanyID, caller Caller) (Started, error) {
 	digits := tickets.CustomerPhoneDigits(caller.Number)
 	if digits == "" {

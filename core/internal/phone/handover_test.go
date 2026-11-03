@@ -22,9 +22,9 @@ func TestAfterAHandoverTheCallGoesOnWithTheAI(t *testing.T) {
 	if len(words) != 1 || words[0] != "I'm so sorry. I'll pass this on to the team: what's your name?" {
 		t.Fatalf("the AI's own words, spoken: %q", words)
 	}
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND subject = 'Cold pizza' AND status = 'open'`, w.companyID) != 1 ||
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND subject = 'Cold pizza' AND status = 'open' AND customer_phone = '393331234567'`, w.companyID) != 1 ||
 		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert' AND payload->>'holdingMessageId' = ''`, w.companyID) != 1 {
-		t.Fatal("a request from the call, marked as a phone request, and the owners alerted")
+		t.Fatal("a request from the call, marked as a phone request with the caller's number, and the owners alerted")
 	}
 	w.brainAnswer = `{"kind":"reply","text":"Thank you, Lena. Anything else for the team?"}`
 	if words := w.say(call.CallID, "It's Lena."); len(words) != 1 || words[0] != "Thank you, Lena. Anything else for the team?" || w.modes[len(w.modes)-1] != "answer" {
@@ -81,10 +81,10 @@ func TestWhilePausedTheAIOnlyTakesAMessage(t *testing.T) {
 	if err := w.phone.End(ctx, w.company, call.CallID); err != nil {
 		t.Fatal(err)
 	}
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND status = 'open'`, w.companyID) != 1 ||
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND status = 'open' AND customer_phone = '393331234567'`, w.companyID) != 1 ||
 		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over'`, w.companyID) != 1 ||
 		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert'`, w.companyID) != 1 {
-		t.Fatal("one request for the message, ansa's line and the owners' alert")
+		t.Fatal("one request for the message, with the caller's number, ansa's line and the owners' alert")
 	}
 	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND description LIKE '%party of twenty%'`, w.companyID) != 0 {
 		t.Fatal("the caller's own words stay in the (encrypted) conversation, never on the request")

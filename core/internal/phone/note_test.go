@@ -33,10 +33,10 @@ func TestTheCallsNoteReachesThePerson(t *testing.T) {
 	w.hangUp(call.CallID)
 	w.brainAnswer = `{"kind":"ok","subject":"Party of twenty","summary":"Lena wants a call back about a party of twenty.","needs_person":true}`
 	w.runNote(call.CallID)
-	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND status = 'open' AND subject = 'Party of twenty' AND description LIKE '%Lena wants a call back%'`, w.companyID) != 1 ||
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND channel = 'phone' AND status = 'open' AND subject = 'Party of twenty' AND description LIKE '%Lena wants a call back%' AND customer_phone = '393331234567'`, w.companyID) != 1 ||
 		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'call_message'`, w.companyID) != 1 ||
 		w.count(`SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert'`, w.companyID) != 1 {
-		t.Fatal("a request with the note, ansa's line and the owners' alert")
+		t.Fatal("a request with the note and the caller's number, ansa's line and the owners' alert")
 	}
 	if !strings.Contains(w.lastBody, `"sender":"customer","text":"It's Lena: please call me back about a party of twenty"`) ||
 		!strings.Contains(w.lastBody, `"name":"Luigi's"`) || strings.Contains(w.lastBody, call.ConversationID) || strings.Contains(w.lastBody, w.companyID) {

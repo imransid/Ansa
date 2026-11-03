@@ -90,3 +90,50 @@ func TestAReturningCustomerGoesToTheirExpertAndHiddenCallersNever(t *testing.T) 
 		t.Fatal("the same digits go to the expert who has their open request")
 	}
 }
+
+// A request from a call carries the caller's number: it goes first to
+// whoever has that caller's other open request (same-customer routing, as
+// every new request), whatever its category, and they are emailed.
+func TestACallersRequestGoesToTheExpertOfTheirOtherOpenRequest(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	theirs := database.TestOwner(t, pool, companyID)
+	ordersExpert := database.TestOwner(t, pool, companyID)
+	var categoryID string
+	pool.QueryRow(ctx, `INSERT INTO categories (company_id, name) VALUES ($1, 'Orders') RETURNING id`, companyID).Scan(&categoryID)
+	exec(t, pool, `INSERT INTO user_categories (company_id, user_id, category_id) VALUES ($1, $2, $3)`, companyID, ordersExpert, categoryID)
+	exec(t, pool, `INSERT INTO tickets (company_id, ticket_number, subject, description, channel, customer_phone, assigned_to_user_id, assigned_automatically)
+		VALUES ($1, 70, 'typed in', 'x', 'manual', '+39 333 123 4567', $2, false)`, companyID, theirs)
+	exec(t, pool, `UPDATE companies SET last_ticket_number = 70 WHERE id = $1`, companyID)
+	conversationID, err := conversations.ConversationFor(ctx, pool, company, conversations.ContactKey{Channel: conversations.ChannelPhone, ExternalID: "393331234567"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var created Created
+	err = database.InTx(ctx, pool, func(tx database.Tx) error {
+		if err := team.LockCompanyWithin(ctx, tx, company); err != nil {
+			return err
+		}
+		var err error
+		created, err = CreateChatTicketWithin(ctx, tx, company, NewChatTicket{Channel: "phone", Subject: "Called again", Description: "x", CategoryID: categoryID,
+			CustomerPhone: "393331234567", ConversationID: conversationID})
+		return err
+	})
+	if err != nil || created.AssigneeID != theirs {
+		t.Fatalf("their expert, whatever the category: %+v %v", created, err)
+	}
+	var phone, kind string
+	var category *string
+	pool.QueryRow(ctx, `SELECT customer_phone FROM tickets WHERE company_id = $1 AND id = $2`, companyID, created.ID).Scan(&phone)
+	pool.QueryRow(ctx, `SELECT kind, category FROM ticket_activity WHERE company_id = $1 AND ticket_id = $2`, companyID, created.ID).Scan(&kind, &category)
+	if phone != "393331234567" || kind != "routed" || category != nil {
+		t.Fatalf("the caller's number on the request; routed as the same customer's (no category): %q %q %v", phone, kind, category)
+	}
+	var emails int
+	pool.QueryRow(ctx, `SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'ticket.assigned' AND payload->>'ticketId' = $2`, companyID, created.ID).Scan(&emails)
+	if emails != 1 {
+		t.Fatalf("whoever it lands on is emailed: %d", emails)
+	}
+}

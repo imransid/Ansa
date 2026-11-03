@@ -12,13 +12,20 @@ assistant opens when it hands a conversation to a person.
 - Routing by category: the expert who handles it, can take tickets
   (confirmed address, not removed), with the fewest open tickets (ties: who
   joined first); assigned automatically, `routed_to_user_id` kept as
-  routing's first pick, and a `routed` history row with the category. A chat
-  request has no phone or email, so same-customer routing never applies to it.
+  routing's first pick, and a `routed` history row with the category.
+- A request from a live call carries the caller's number
+  (`NewChatTicket.CustomerPhone`), so same-customer routing comes first for
+  it, as for every new request (`routeToSameCustomerWithin`): whoever has
+  that caller's other open request (the same digits) gets it, whatever its
+  category, with a `routed` row naming no category; and later requests with
+  that number follow it. A chat request has no phone or email, so it goes by
+  category only.
 - Whoever routing picks is emailed: `QueueAssignedEmailWithin` queues the
   `ticket.assigned` job in the same transaction (see
   [assignments](assignments.md)).
 **Tests:** `tickets_test.go` (live database): the least busy confirmed expert
-gets it; no category = unassigned; numbers follow; the history row.
+gets it; no category = unassigned; numbers follow; the history row; a
+caller's request goes to the expert of their other open request, emailed.
 `assignments_test.go` covers the email the routing queues.
 **People's work on requests:** see [requests](requests.md).
 **Typed-in tickets, solving with the customer's email:** [requests](requests.md);

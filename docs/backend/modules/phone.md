@@ -67,7 +67,15 @@ calls, and its name in `phone_calls_line_known`. Nothing else changes.
   else (a person's reply, an order's status message), and the chat door's
   phone target only marks the words spoken (`chat.go`).
 - One live call per conversation: a new call ends one left live (a page
-  closed without hanging up). Requests from a call are marked `phone`.
+  closed or left without hanging up) as hanging up would (`endCallWithin`,
+  in the new call's transaction, which takes the company row lock first):
+  its minutes counted, its note queued, a request for the messages it took.
+  A note gives its subject only to a request opened during its own call
+  (by the time it ended), never to one the caller's next call opened.
+- Requests from a call are marked `phone` and carry the caller's number
+  (their phone contact's digits, `tickets.NewChatTicket.CustomerPhone`): the
+  request page shows it, a search by number finds it, and same-customer
+  routing follows it, as for every new request ([tickets](tickets.md)).
 
 **Table `phone_calls`** (migration 0049): company, conversation (same-company
 foreign key), line (a CHECK), started_at, ended_at (empty = live; one live
@@ -75,8 +83,14 @@ per conversation, a partial unique index), messages_taken.
 
 **The practice phone (development only, owners):** Settings → Connections →
 Practice phone (`/settings/channels/practice-call`). Pretend to be a caller
-(any name and number), pick the language you'll speak (English or Bangla)
-and how ansa hears you, talk (or type), and hear ansa answer:
+(any name and number: each visit starts with a made-up Bangladeshi mobile
+number, `lib/practice-phone/caller.ts`, and "New caller" makes up another
+and clears the name, since the number is who is calling), pick the
+language you'll speak (English or Bangla) and how ansa hears you, talk (or
+type), and hear ansa answer. Hang up works while ansa is thinking (its
+late answer is dropped, never spoken), and leaving the page hangs up
+(`use-live-call.ts`: always for another page of ansa, at best for a reload
+or a closed tab):
 - Hearing: "This browser's speech service" (the default where the browser
   has one; Chrome's is Google's, so the voice goes to Google; it hears
   Bangla well) sends the words it heard; "Whisper on this computer" keeps
@@ -103,11 +117,17 @@ words are said and the AI goes on, one request for the whole call, a refund
 promise never said; no words of the AI's = the holding reply; paused = the
 AI only takes a message (no order) and hanging up opens one request (never
 the caller's words on it); past the call limit = fixed words; a person's
-greeting; refusals. `note_test.go`: the note opens a request when someone
-has to act, joins the open one, gives a request opened during the call its
-subject (never one from before), a call fully helped needs nobody, a failed
-note changes nothing; an important caller gets message-only and the request
-says why. `internal/api/phone_test.go`: owners on a development server only,
-a language the brain doesn't hear refused. Brain: `tests/test_voice.py`
+greeting; refusals; every request from a call carries the caller's number.
+`note_test.go`: the note opens a request when someone has to act, joins the
+open one, gives a request opened during the call its subject (never one from
+before), a call fully helped needs nobody, a failed note changes nothing; an
+important caller gets message-only and the request says why.
+`left_live_test.go`: a call left live is ended by the same caller's next
+call with its minutes, note and message request, and its note never gives
+its subject to the next call's request. `internal/api/phone_test.go`:
+owners on a development server only, a language the brain doesn't hear
+refused. Screens: `scripts/screen-checks/practice-phone-checks.ts` (the
+made-up numbers, New caller, late answers dropped, hanging up when the page
+is left). Brain: `tests/test_voice.py`
 (whisper locked down, development only, the language passed on),
 `tests/test_call_summary.py` (the note's prompt, escaping and strict reading).

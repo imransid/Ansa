@@ -1,6 +1,6 @@
 "use client";
 
-import { PhoneCall } from "lucide-react";
+import { PhoneCall, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,16 +10,24 @@ type Props = {
   onName: (name: string) => void;
   number: string;
   onNumber: (number: string) => void;
+  onNewCaller: () => void;
   onCall: () => void;
   waiting: boolean;
 };
 
 // Before a practice call: the made-up caller's name and number (each number
-// is one caller, with their own conversation), and the button that calls.
-export function WhoIsCalling({ name, onName, number, onNumber, onCall, waiting }: Props) {
+// is one caller, with their own conversation), "New caller" for someone
+// else, and the button that calls.
+export function WhoIsCalling({ name, onName, number, onNumber, onNewCaller, onCall, waiting }: Props) {
   return (
     <div className="grid gap-3 rounded-2xl border bg-card p-5">
-      <h2 className="text-lg font-semibold">Who is calling?</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">Who is calling?</h2>
+        <Button type="button" variant="outline" size="sm" onClick={onNewCaller} disabled={waiting}>
+          <UserPlus aria-hidden />
+          New caller
+        </Button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor="caller-name">Caller&apos;s name</Label>
@@ -30,7 +38,10 @@ export function WhoIsCalling({ name, onName, number, onNumber, onCall, waiting }
           <Input id="caller-number" value={number} maxLength={40} inputMode="tel" onChange={(event) => onNumber(event.target.value)} />
         </div>
       </div>
-      <p className="text-sm text-muted-foreground">Any made-up name and number: each number is one caller, with their own conversation in your Inbox.</p>
+      <p className="text-sm text-muted-foreground">
+        Any made-up name and number: each number is one caller, with their own conversation in your Inbox, and keeps the name it first called
+        with. To call as someone else, press New caller.
+      </p>
       <Button type="button" onClick={onCall} disabled={waiting} className="justify-self-start">
         <PhoneCall aria-hidden />
         {waiting ? "Calling..." : "Call ansa"}
