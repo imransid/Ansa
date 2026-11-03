@@ -103,3 +103,20 @@ func TestANewOrderAlertNamesTheNumberAndTotalOnly(t *testing.T) {
 		t.Fatal("number, who, where and the total; never the address")
 	}
 }
+
+// An important person who writes again while their request is open: the
+// alert says so, and that no second holding reply went.
+func TestAnImportantPersonWritingAgainIsSaidSo(t *testing.T) {
+	name := "Dad"
+	alert := NeedsYou{CustomerName: &name, ChannelLabel: "Telegram", Reason: "important_person", WroteAgain: true, Link: "http://localhost:3000/inbox/x"}
+	rendered := alert.Email("Rafa")
+	if rendered.Subject != "Dad wrote again on Telegram" {
+		t.Fatalf("subject: %q", rendered.Subject)
+	}
+	if !strings.Contains(rendered.Text, "They're one of your important people.") || !strings.Contains(rendered.Text, "They wrote again while their request is still open, so ansa didn't reply again.") {
+		t.Fatalf("text: %q", rendered.Text)
+	}
+	if note := alert.TelegramNote(); !strings.Contains(note, "They wrote again.") {
+		t.Fatalf("note: %q", note)
+	}
+}

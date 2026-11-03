@@ -12,8 +12,12 @@ conversation needs them (the old `services/owner-alerts.ts`).
   makes each email's idempotency key, so a retried job never emails twice;
 - a note from ansa's bot in the business's own Telegram, when a real bot is
   set up and a real account is connected.
+An important person who writes again while their request is still open
+(`wroteAgain`, queued at once: no holding reply to wait for) is alerted
+again: "<name> wrote again on <channel>", saying that ansa didn't reply
+again.
 Never the customer's messages. Best effort: a send that fails is logged as a
 code and never undoes the handover.
 **Tests:** `alerts_test.go` (live database): one email, to the confirmed owner
 only, with who, where, why and the link, never the message; none while
-"alert by email" is off.
+"alert by email" is off; an important person writing again is said so.

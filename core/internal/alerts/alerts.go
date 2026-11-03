@@ -59,6 +59,7 @@ func (a *Alerter) HandleJob(ctx context.Context, job *jobs.Job) error {
 		Reason:           payload.Reason,
 		HoldingReplySent: details.HoldingReplySent,
 		OnACall:          details.Channel == "phone",
+		WroteAgain:       payload.WroteAgain,
 		Link:             a.AppURL + "/inbox/" + payload.ConversationID,
 	}
 	if details.AlertByEmail {

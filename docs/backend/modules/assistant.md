@@ -6,7 +6,13 @@ passes, and sending, drafting or handing over to a person), as the old
 `services/assistant-reply.ts` and `assistant-handover.ts`.
 
 **One run (`reply.go`, `Runner.Answer`), in this order:**
-1. The gate (below), read before anything else: not "may" = quiet.
+1. The gate (below), read before anything else: not "may" = quiet, with
+   one exception: an important person writing again while their request is
+   still open (`important.go`, `tellAgainAboutImportant`) is passed on
+   anyway: a "handed_over" line (`important_person`) and the owners' alert
+   again, at once (`wroteAgain`), for their newest message only (a burst
+   tells you once), with no second holding reply or request and no AI
+   (outcome "told-again").
 2. An important person goes to a person at once (`important_person`: the
    holding reply, a request and the alert), no AI, whatever the away
    settings say (also while you're available and ansa would leave the
@@ -138,7 +144,9 @@ is asked (holding reply, request, line, alert queued) and the assistant then
 stays quiet; the AI's own request keeps its cleaned subject and category;
 paused is quiet without asking the brain; Ask me first saves a draft; an
 important person is handed over without the brain, also at once while you're
-available (holding reply, request, alert); "when away" waits, then the
+available (holding reply, request, alert), and writing again while their
+request is open is passed on again (a line and the alert at once, no second
+holding reply or request, once for a burst; anyone else waits quietly); "when away" waits, then the
 catch-up's run answers; a person's reply that would commit them is never
 sent (their holding reply, a `needs_decision` request); the brain down =
 the holding reply; an own key that can't be read is never replaced by ansa's. `drafts_test.go` (Ask me

@@ -251,6 +251,49 @@ func TestAnImportantPersonComesToYouAtOnceWhileYoureAvailable(t *testing.T) {
 	}
 }
 
+// An open request keeps ansa quiet (one holding reply until a person
+// answers), but someone marked important who writes again still reaches
+// you: the owners' alert again, at once, and a line in the conversation,
+// with no second holding reply or request, no AI, and once for a burst.
+func TestAnImportantPersonWritingAgainWhileTheirRequestIsOpenIsPassedOn(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"They'll be back soon."}`)
+	first := w.customerSays("dad", "Are you home this weekend?")
+	mustExec(t, w.pool, `UPDATE contacts SET important = true WHERE company_id = $1 AND external_id = 'dad'`, w.companyID)
+	if got := w.answer(first); got != OutcomeHandedOver {
+		t.Fatalf("the first message: %s", got)
+	}
+	again := w.customerSays("dad", "Call me when you're free")
+	if got := w.answer(again); got != OutcomeToldAgain || w.brainCalls != 0 {
+		t.Fatalf("writing again: %s, %d brain calls", got, w.brainCalls)
+	}
+	if messages := w.assistantMessages(again); len(messages) != 1 {
+		t.Fatalf("one holding reply only: %+v", messages)
+	}
+	alertsAgain := `SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert' AND payload->>'reason' = 'important_person' AND payload->>'wroteAgain' = 'true' AND run_after < now() + interval '10 seconds'`
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND conversation_id = $2`, w.companyID, again.ConversationID) != 1 ||
+		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND conversation_id = $2 AND reason = 'important_person'`, w.companyID, again.ConversationID) != 2 ||
+		w.count(alertsAgain, w.companyID) != 1 {
+		t.Fatal("the same request, a second line and the owners' alert again, at once")
+	}
+	if got := w.answer(again); got != OutcomeQuiet || w.count(alertsAgain, w.companyID) != 1 {
+		t.Fatalf("a message is passed on once: %s", got)
+	}
+	burstFirst := w.customerSays("dad", "Hello?")
+	burstLast := w.customerSays("dad", "It's urgent")
+	if got := w.answer(burstFirst); got != OutcomeQuiet {
+		t.Fatalf("an older message of a burst: %s", got)
+	}
+	if got := w.answer(burstLast); got != OutcomeToldAgain || w.count(alertsAgain, w.companyID) != 2 {
+		t.Fatalf("a burst tells you once: %s", got)
+	}
+	someone := w.customerSays("sam", "Can I book a table?")
+	w.brainAnswer = `{"kind":"needs_person","reason":"order"}`
+	w.answer(someone)
+	if got := w.answer(w.customerSays("sam", "Hello?")); got != OutcomeQuiet {
+		t.Fatalf("anyone else waits for the person quietly: %s", got)
+	}
+}
+
 // For one person a reply that would commit them is never sent: their
 // holding reply goes, and a note "It needs your decision" waits for them.
 func TestAPersonsReplyThatWouldCommitThemIsNeverSent(t *testing.T) {

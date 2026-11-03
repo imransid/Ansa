@@ -27,6 +27,9 @@ const (
 	OutcomeHandedOver = "handed-over"
 	OutcomeQuiet      = "quiet"
 	OutcomeWaiting    = "waiting"
+	// An important person wrote again while their request is open: you
+	// were told again (no second holding reply).
+	OutcomeToldAgain = "told-again"
 )
 
 // The hourly limits (the old RATE_LIMITS, the same counters): per customer
@@ -81,8 +84,16 @@ func (r *Runner) HandleJob(ctx context.Context, job *jobs.Job) error {
 // the gate makes sure a message is never answered twice.
 func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfterNoReply bool) (string, error) {
 	gate, info, err := r.readGate(ctx, turn, GateOptions{RequireNewest: true})
-	if err != nil || gate != GateMay {
+	if err != nil {
 		return OutcomeQuiet, err
+	}
+	// An open request keeps ansa quiet (one holding reply until a person
+	// answers), but someone you marked important still reaches you.
+	if gate == GateNeedsPerson && info.Important {
+		return r.tellAgainAboutImportant(ctx, turn)
+	}
+	if gate != GateMay {
+		return OutcomeQuiet, nil
 	}
 	// Someone you marked important always comes to you at once, whatever
 	// your away settings say: no AI answer at all.

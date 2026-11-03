@@ -17,7 +17,9 @@ type NeedsYou struct {
 	HoldingReplySent bool
 	// They called (step 55): ansa spoke to them on the call.
 	OnACall bool
-	Link    string
+	// An important person wrote again while their request is still open.
+	WroteAgain bool
+	Link       string
 }
 
 // Rendered is an email's subject and both bodies.
@@ -44,6 +46,9 @@ func (n NeedsYou) Email(ownerName string) Rendered {
 	customer := n.customer()
 	why := assistant.ReasonText[n.Reason]
 	subject := []rune(customer + " needs you on " + n.ChannelLabel)
+	if n.WroteAgain {
+		subject = []rune(customer + " wrote again on " + n.ChannelLabel)
+	}
 	if len(subject) > 150 {
 		subject = subject[:150]
 	}
@@ -64,6 +69,8 @@ func (n NeedsYou) Email(ownerName string) Rendered {
 // whatTheyHeard: what reached the customer before a person does.
 func (n NeedsYou) whatTheyHeard() string {
 	switch {
+	case n.WroteAgain:
+		return "They wrote again while their request is still open, so ansa didn't reply again."
 	case n.OnACall && n.Reason == "call_message":
 		return "ansa took their message on the call."
 	case n.OnACall && n.HoldingReplySent:
@@ -78,5 +85,9 @@ func (n NeedsYou) whatTheyHeard() string {
 
 // TelegramNote is the same alert as one short message from ansa's bot.
 func (n NeedsYou) TelegramNote() string {
-	return n.customer() + " needs you on " + n.ChannelLabel + ". " + assistant.ReasonText[n.Reason] + " Open: " + n.Link
+	again := ""
+	if n.WroteAgain {
+		again = " They wrote again."
+	}
+	return n.customer() + " needs you on " + n.ChannelLabel + ". " + assistant.ReasonText[n.Reason] + again + " Open: " + n.Link
 }

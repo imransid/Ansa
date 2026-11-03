@@ -43,6 +43,9 @@ type AlertPayload struct {
 	Reason         string `json:"reason"`
 	// The holding reply's message ("" = none was sent).
 	HoldingMessageID string `json:"holdingMessageId"`
+	// They wrote again while their request is still open (an important
+	// person): no holding reply went this time.
+	WroteAgain bool `json:"wroteAgain,omitempty"`
 }
 
 // handOver hands the conversation to a person (the old
@@ -105,16 +108,6 @@ func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info con
 	return chat.RecordDelivery(ctx, r.Pool, turn.CompanyID, holdingID, r.Chat.Send(ctx, target, holdingID, holdingText))
 }
 
-// handOverImportant hands an important person's message to you: the
-// holding reply, a request and the owners' alert, without the AI.
-func (r *Runner) handOverImportant(ctx context.Context, turn conversations.Turn, info conversationInfo) error {
-	inputs, err := GatherInputs(ctx, r.Pool, r.Box, turn.CompanyID, turn.ConversationID, r.now())
-	if err != nil {
-		return err
-	}
-	return r.handOver(ctx, turn, info, inputs, Handover{Reason: "important_person", SendHoldingReply: true})
-}
-
 // saveHoldingReply saves the holding reply "sending" when the channel can
 // take a message now; it reports whether it saved one, and where it goes.
 func (r *Runner) saveHoldingReply(ctx context.Context, tx database.Tx, turn conversations.Turn, inputs *Inputs, id, text string) (bool, chat.Target, error) {
@@ -134,7 +127,13 @@ func enqueueAlert(ctx context.Context, tx database.Tx, turn conversations.Turn, 
 	if holdingSaved {
 		payload.HoldingMessageID = holdingID
 	}
-	job := jobs.NewJob{Kind: AlertJobKind, Payload: payload, RunAfter: time.Now().Add(alertDelay), DedupeKey: "alert:" + turn.TriggerMessageID + ":" + reason}
+	return queueAlertJob(ctx, tx, turn, payload, time.Now().Add(alertDelay))
+}
+
+// queueAlertJob queues the owners' alert about this message, once (a
+// retried run finds it queued already).
+func queueAlertJob(ctx context.Context, tx database.Tx, turn conversations.Turn, payload AlertPayload, runAfter time.Time) error {
+	job := jobs.NewJob{Kind: AlertJobKind, Payload: payload, RunAfter: runAfter, DedupeKey: "alert:" + turn.TriggerMessageID + ":" + payload.Reason}
 	_, err := jobs.EnqueueWithin(ctx, tx, turn.CompanyID, job)
 	if errors.Is(err, jobs.ErrDuplicate) {
 		return nil

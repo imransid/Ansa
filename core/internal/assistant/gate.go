@@ -71,19 +71,29 @@ func GateWithin(ctx context.Context, tx database.Tx, turn conversations.Turn, op
 		return GateNeedsPerson, nil
 	}
 	if options.RequireNewest {
-		const newest = `
-			SELECT id FROM messages
-			WHERE company_id = $1 AND conversation_id = $2 AND direction = 'in' AND body_encrypted IS NOT NULL
-			ORDER BY created_at DESC LIMIT 1`
-		var newestID string
-		if err := tx.QueryRow(ctx, newest, company, turn.ConversationID).Scan(&newestID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		newest, err := isNewestCustomerMessageWithin(ctx, tx, turn)
+		if err != nil {
 			return "", err
 		}
-		if newestID != turn.TriggerMessageID {
+		if !newest {
 			return GateNotNewest, nil
 		}
 	}
 	return GateMay, nil
+}
+
+// isNewestCustomerMessageWithin: the turn's message is the customer's newest
+// in its conversation (a newer one gets its own run).
+func isNewestCustomerMessageWithin(ctx context.Context, tx database.Tx, turn conversations.Turn) (bool, error) {
+	const newest = `
+		SELECT id FROM messages
+		WHERE company_id = $1 AND conversation_id = $2 AND direction = 'in' AND body_encrypted IS NOT NULL
+		ORDER BY created_at DESC LIMIT 1`
+	var newestID string
+	if err := tx.QueryRow(ctx, newest, turn.CompanyID.String(), turn.ConversationID).Scan(&newestID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
+	return newestID == turn.TriggerMessageID, nil
 }
 
 // MarkHandledWithin records that the assistant answered (or decided about)
