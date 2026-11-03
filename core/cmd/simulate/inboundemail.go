@@ -90,7 +90,8 @@ func forwardingAddressOf(ctx context.Context, w *world, given string) (string, e
 	return commands.ForwardingAddress(ctx, w.pool, company.ID, domain)
 }
 
-// emailWebhookRefusal: Resend's webhook needs its signing secret in .env.core.
+// emailWebhookRefusal: Resend's webhook needs its signing secret in .env.core
+// (one core couldn't check events with is refused by config.Load, before any tool runs).
 func emailWebhookRefusal(w *world) error {
 	if w.cfg.ResendWebhookSecret == "" {
 		return commands.Refusal(`Set RESEND_WEBHOOK_SECRET in .env.core first (the value the running core reads; in development any "whsec_" and base64 will do).`)

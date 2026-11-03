@@ -1,8 +1,12 @@
 package config
 
 import (
+	"encoding/base64"
 	"strings"
 	"testing"
+	"time"
+
+	"ansa/core/internal/resend"
 )
 
 func settings(values map[string]string) Getenv {
@@ -71,5 +75,34 @@ func TestEmailSettingsGoTogether(t *testing.T) {
 	_, err = Load(settings(values))
 	if err == nil || !strings.Contains(err.Error(), "SEND_REAL_EMAIL") || !strings.Contains(err.Error(), "APP_URL") {
 		t.Fatalf("production needs real email and an https address: %v", err)
+	}
+}
+
+// Core starts only with a Resend signing secret it can check events with:
+// one it can't would answer every event 401 while looking set up.
+func TestTheResendSecretIsOneEventsCanBeCheckedWith(t *testing.T) {
+	body, now := []byte(`{"type":"email.received"}`), time.Now()
+	secrets := []string{"whsec_", "whsec_not-base64!", "whsec_demo-secret-for-the-laptop", "whsec_YWI", "whsec_YWJj",
+		"whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw", "whsec_" + base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32)))}
+	for _, secret := range secrets {
+		values := map[string]string{"RESEND_WEBHOOK_SECRET": secret}
+		for name, value := range good {
+			values[name] = value
+		}
+		_, err := Load(settings(values))
+		checked := resend.IsSigned(resend.Sign(body, "msg_1", secret, now), body, secret, now)
+		if (err == nil) != checked {
+			t.Fatalf("%q: loads %v, events checked %v (%v)", secret, err == nil, checked, err)
+		}
+		if err != nil && (!strings.Contains(err.Error(), "RESEND_WEBHOOK_SECRET") || strings.Contains(err.Error(), "demo-secret")) {
+			t.Fatalf("named, never shown: %v", err)
+		}
+	}
+	values := map[string]string{"RESEND_WEBHOOK_SECRET": "MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"}
+	for name, value := range good {
+		values[name] = value
+	}
+	if _, err := Load(settings(values)); err == nil {
+		t.Fatal(`a secret without "whsec_" isn't Resend's`)
 	}
 }

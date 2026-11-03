@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"net/url"
 	"regexp"
 	"strings"
@@ -21,13 +22,21 @@ func emailAndLinkProblems(cfg Config) []string {
 	if cfg.SendRealEmail && (!strings.Contains(cfg.EmailFrom, "@") || cfg.ResendAPIKey == "" || cfg.InboundEmailDomain == "") {
 		problems = append(problems, "SEND_REAL_EMAIL needs EMAIL_FROM (an address), RESEND_API_KEY and INBOUND_EMAIL_DOMAIN")
 	}
-	if cfg.ResendWebhookSecret != "" && !strings.HasPrefix(cfg.ResendWebhookSecret, "whsec_") {
-		problems = append(problems, `RESEND_WEBHOOK_SECRET must be Resend's signing secret (it starts with "whsec_")`)
+	if cfg.ResendWebhookSecret != "" && !isResendSigningSecret(cfg.ResendWebhookSecret) {
+		problems = append(problems, `RESEND_WEBHOOK_SECRET must be Resend's signing secret: "whsec_" followed by base64`)
 	}
 	if cfg.InboundEmailDomain != "" && !domainPattern.MatchString(cfg.InboundEmailDomain) {
 		problems = append(problems, "INBOUND_EMAIL_DOMAIN must be a domain name like inbound.yourdomain.com")
 	}
 	return problems
+}
+
+// isResendSigningSecret: "whsec_" and a key in standard base64, decoded as
+// resend.IsSigned decodes it (it refuses every event when it can't).
+func isResendSigningSecret(secret string) bool {
+	encoded, found := strings.CutPrefix(secret, "whsec_")
+	key, err := base64.StdEncoding.DecodeString(encoded)
+	return found && err == nil && len(key) > 0
 }
 
 var domainPattern = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)

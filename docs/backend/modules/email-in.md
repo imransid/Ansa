@@ -42,8 +42,9 @@ forged From never joins a real customer's.
 **Content (`inbound/content.go`, `htmltext.go`):** subject up to 1,000,
 body up to 100,000 (the cut marked); text made from HTML when there is no
 plain part (a forward-only scanner: hostile HTML takes time in proportion to
-its length); attachments counted and named, never stored; pictures the HTML
-shows inside counted apart.
+its length; tags are read in a copy lower-cased once, A-Z only, as browsers
+read tag names, so every position is the document's); attachments counted
+and named, never stored; pictures the HTML shows inside counted apart.
 **The brain's triage (`POST /v1/email/triage`):** only what the customer
 wrote this time (quoted replies, Outlook headers, forwards and the "-- "
 signature cut, in several languages; a bare forward kept whole), card and
@@ -64,7 +65,9 @@ their conversation, a card number never reaches the subject; a forged sender
 is never filled in; ansa's own mail is a loop even "anyway"; an automatic
 reply is skipped, then made a request anyway; content unavailable; HTML read
 as text; a run cut off is tried again by its job; an older email skipped
-for having no valid sender made a request anyway); `brain/tests/test_email.py`
+for having no valid sender made a request anyway); `htmltext_test.go` (2 MB
+of skipped elements read in well under a second; a title stays out whatever
+letters it holds); `brain/tests/test_email.py`
 (the customer's own words; secrets and tags hidden; the answer strict).
 **Stuck emails:** no scheduled sweep is needed: the job tries again by
 itself (above). One still stuck shows on the Emails page, with "Process

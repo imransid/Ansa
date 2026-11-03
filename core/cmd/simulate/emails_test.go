@@ -39,6 +39,12 @@ func TestInboundEmailReachesTheRunningCoreThroughTheForwardingAddress(t *testing
 	}
 	address := w.runningEmailCore()
 	received := `SELECT count(*) FROM inbound_emails WHERE company_id = $1`
+	checkable := w.settings["RESEND_WEBHOOK_SECRET"]
+	w.settings["RESEND_WEBHOOK_SECRET"] = "whsec_not-base64!"
+	if _, err := w.run("inbound-email", w.owner, "--core", address); err == nil || !strings.Contains(err.Error(), "RESEND_WEBHOOK_SECRET") || w.count(received) != 0 {
+		t.Fatalf("a secret core can't check events with is refused before sending: %v", err)
+	}
+	w.settings["RESEND_WEBHOOK_SECRET"] = checkable
 	out, err := w.run("inbound-email", w.owner, "--core", address)
 	if err != nil || !strings.Contains(out, "valid: got 200 (expected 200). Sent to c-") || w.count(received) != 1 {
 		t.Fatalf("valid: %q %v", out, err)

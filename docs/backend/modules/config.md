@@ -21,7 +21,9 @@ WHATSAPP_SIGNUP_CONFIG_ID (the digits of the Facebook Login for Business
 configuration made for WhatsApp Embedded Signup; needs FACEBOOK_APP_ID and
 FACEBOOK_APP_SECRET), SCREENS_SHARED_SECRET (signs the screens' requests to core's API, at
 least 32 characters), INBOUND_EMAIL_DOMAIN (forwarding addresses' domain;
-required with real email), RESEND_WEBHOOK_SECRET (Resend's "whsec_..." signing secret),
+required with real email), RESEND_WEBHOOK_SECRET (Resend's signing secret:
+"whsec_" and standard base64, decoded as the webhook decodes it; one it
+couldn't check events with stops core rather than refusing every event),
 USE_R2_STORAGE (exactly "true" keeps private files in Cloudflare R2, then
 needs R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET;
 production requires it; otherwise `<ANSA_DEV_FOLDER>/.dev-files/`), USE_STRIPE (exactly
@@ -48,6 +50,7 @@ file's local database ([commands](commands.md)). The service itself
 (`make run`) reads the environment only.
 **Tests:** `config_test.go`: good settings load with defaults; bad ones are
 named, never shown; real email needs its sender; production needs real email
-and an https address; `social_test.go`: half a social app's pair stops the
-server, named never shown; `file_test.go`: the file never overrides the
+and an https address; core starts with exactly the Resend secrets
+`resend.IsSigned` can check an event with; `social_test.go`: half a social
+app's pair stops the server, named never shown; `file_test.go`: the file never overrides the
 environment; quotes and comments; a bad line sets nothing.

@@ -24,6 +24,7 @@ var spaces = regexp.MustCompile(`\s+`)
 // scanner that only moves forward, so even hostile HTML takes time in
 // proportion to its length; it stops past maxCharacters. Shown as text, never as HTML.
 func HTMLToText(document string, maxCharacters int) string {
+	lowered := lowerASCII(document)
 	var out strings.Builder
 	position := 0
 	for position < len(document) && out.Len() <= maxCharacters {
@@ -36,43 +37,58 @@ func HTMLToText(document string, maxCharacters int) string {
 		if start < 0 {
 			break
 		}
-		position = skipTag(document, end, &out)
+		position = skipTag(lowered, end, &out)
 	}
 	return tidyLines(out.String())
 }
 
+// lowerASCII lower-cases A-Z only, as browsers read tag names. Every byte
+// keeps its place, so a position in the copy is the same in the document
+// (strings.ToLower makes some letters shorter: İ becomes i).
+func lowerASCII(document string) string {
+	lowered := []byte(document)
+	for i, b := range lowered {
+		if b >= 'A' && b <= 'Z' {
+			lowered[i] = b + 32
+		}
+	}
+	return string(lowered)
+}
+
 // skipTag moves past the tag (or comment) at start, adding a line break or a
-// cell's tab where the element makes one.
-func skipTag(document string, start int, out *strings.Builder) int {
-	if strings.HasPrefix(document[start:], "<!--") {
-		if end := strings.Index(document[start+4:], "-->"); end >= 0 {
+// cell's tab where the element makes one. It reads the document lower-cased
+// once by lowerASCII: lower-casing the rest of it for every skipped element
+// took time growing with the square of its length.
+func skipTag(lowered string, start int, out *strings.Builder) int {
+	if strings.HasPrefix(lowered[start:], "<!--") {
+		if end := strings.Index(lowered[start+4:], "-->"); end >= 0 {
 			return start + 4 + end + 3
 		}
-		return len(document)
+		return len(lowered)
 	}
-	end := strings.IndexByte(document[start+1:], '>')
+	end := strings.IndexByte(lowered[start+1:], '>')
 	if end < 0 {
-		return len(document)
+		return len(lowered)
 	}
 	end += start + 1
-	closing := start+1 < len(document) && document[start+1] == '/'
-	content := document[start+1 : end]
+	closing := start+1 < len(lowered) && lowered[start+1] == '/'
+	content := lowered[start+1 : end]
 	if closing {
 		content = content[1:]
 	}
 	if len(content) > 30 {
 		content = content[:30]
 	}
-	name := tagName.FindString(strings.ToLower(content))
+	name := tagName.FindString(content)
 	switch {
 	case skipped[name] && !closing:
-		closingTag := strings.Index(strings.ToLower(document[end+1:]), "</"+name)
+		closingTag := strings.Index(lowered[end+1:], "</"+name)
 		if closingTag < 0 {
-			return len(document)
+			return len(lowered)
 		}
-		after := strings.IndexByte(document[end+1+closingTag:], '>')
+		after := strings.IndexByte(lowered[end+1+closingTag:], '>')
 		if after < 0 {
-			return len(document)
+			return len(lowered)
 		}
 		return end + 1 + closingTag + after + 1
 	case lineBreaking[name]:

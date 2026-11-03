@@ -62,7 +62,10 @@ to email; "failed" only over "sending", "sent" also over "failed". 300 a day
 per company (a held-back email says so, and Retry works later). The email is
 fixed text with the request number and the company's name only, never the
 customer's name or the subject; replies come back to the company (its
-reply-to, else its forwarding address).
+reply-to, else its forwarding address). A business's says its team solved
+it ("<Company> Support"); one person's says they took care of it and is
+signed "<name>'s AI assistant" (no team, no support desk, never signed as
+them).
 `POST .../{id}/emails/{email}/retry {"confirmPossibleDuplicate"}`: anyone;
 from 23 hours after the first try it needs the person's "send it again
 anyway?". The page reads the newest email (`latestEmail`: its status, why it
@@ -90,4 +93,6 @@ job; the fixed email names the number, never the subject, with the
 forwarding address as Reply-To; Retry after it went refused; only the
 changed field is written; a new request needs its address confirmed);
 `tickets_test.go` (hidden callers and repeats are nobody; the same digits
-go to the expert who has the customer's open request).
+go to the expert who has the customer's open request); `outbox/outbox_test.go`
+(a business's "solved" email word for word as before, one person's in their
+own words; never the subject or the customer's name).

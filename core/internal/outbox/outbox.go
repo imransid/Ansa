@@ -60,22 +60,24 @@ const canStart = `(outgoing_emails.status IN ('pending', 'failed')
 
 type toDeliver struct {
 	to, companyName, inboundToken string
-	replyTo                       *string
-	number                        int
-	mayHaveArrived                bool
+	// "business" or "personal" (one person): the email's words differ.
+	companyKind    string
+	replyTo        *string
+	number         int
+	mayHaveArrived bool
 }
 
 // Deliver delivers one queued email and records the outcome.
 func (d *Deliverer) Deliver(ctx context.Context, company tenant.CompanyID, emailID string, confirmedDuplicate bool) (string, error) {
 	statement := `
-		SELECT outgoing_emails.to_email, tickets.ticket_number, companies.name, companies.reply_to_email, companies.inbound_token,
+		SELECT outgoing_emails.to_email, tickets.ticket_number, companies.name, companies.kind, companies.reply_to_email, companies.inbound_token,
 			NOT (outgoing_emails.first_attempt_at IS NULL OR outgoing_emails.first_attempt_at > now() - interval '23 hours')
 		FROM outgoing_emails
 		JOIN tickets ON tickets.id = outgoing_emails.ticket_id AND tickets.company_id = outgoing_emails.company_id
 		JOIN companies ON companies.id = outgoing_emails.company_id
 		WHERE outgoing_emails.company_id = $1 AND outgoing_emails.id = $2 AND ` + canStart
 	var e toDeliver
-	err := d.Pool.QueryRow(ctx, statement, company.String(), emailID).Scan(&e.to, &e.number, &e.companyName, &e.replyTo, &e.inboundToken, &e.mayHaveArrived)
+	err := d.Pool.QueryRow(ctx, statement, company.String(), emailID).Scan(&e.to, &e.number, &e.companyName, &e.companyKind, &e.replyTo, &e.inboundToken, &e.mayHaveArrived)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return NotDeliverable, nil
 	}
@@ -131,17 +133,31 @@ func (d *Deliverer) solvedEmail(e toDeliver, emailID string) email.Message {
 	if e.replyTo != nil && *e.replyTo != "" {
 		replyTo = *e.replyTo
 	}
-	text := strings.Join([]string{"Hello,", "", "Good news: your request #" + number + " has been solved by the " + company + " team.", "",
-		"If you still need help, just get in touch with us again.", "", company + " Support"}, "\n")
+	solved, getInTouch, signature := solvedLines(e.companyKind, company, number)
+	text := strings.Join([]string{"Hello,", "", solved, "", getInTouch, "", signature}, "\n")
 	page := `<!doctype html>
 <html>
   <body style="font-family: sans-serif; line-height: 1.5; color: #111;">
     <p>Hello,</p>
-    <p>Good news: your request #` + number + ` has been solved by the ` + html.EscapeString(company) + ` team.</p>
-    <p>If you still need help, just get in touch with us again.</p>
-    <p>` + html.EscapeString(company) + ` Support</p>
+    <p>` + html.EscapeString(solved) + `</p>
+    <p>` + html.EscapeString(getInTouch) + `</p>
+    <p>` + html.EscapeString(signature) + `</p>
   </body>
 </html>`
 	return email.Message{From: d.Email.FromHeader(e.companyName), To: e.to, ReplyTo: replyTo, Subject: "Your request #" + number + " has been solved",
 		HTML: page, Text: text, IdempotencyKey: "ticket-solved-" + emailID}
+}
+
+// solvedLines are the email's own words: a business's team solved it, or one
+// person took care of it, signed by their AI assistant (ansa never signs as
+// the person, and a person has no team or support desk).
+func solvedLines(kind, name, number string) (solved, getInTouch, signature string) {
+	if kind == "personal" {
+		solved = name + " has taken care of your request #" + number + "."
+		getInTouch = "If you still need help, just get in touch with " + name + " again."
+		return solved, getInTouch, name + "'s AI assistant"
+	}
+	solved = "Good news: your request #" + number + " has been solved by the " + name + " team."
+	getInTouch = "If you still need help, just get in touch with us again."
+	return solved, getInTouch, name + " Support"
 }
