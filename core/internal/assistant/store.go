@@ -14,7 +14,9 @@ type conversationInfo struct {
 	ContactName    *string
 	// Someone the owner marked important: always handed to them.
 	Important bool
-	// Nothing automated was sent or waits here yet: the next message gets the AI label.
+	// Nothing automated reached the customer yet (sent, being sent, or maybe
+	// arrived): the next message gets the AI label. A waiting reply doesn't
+	// count: it may be replaced, discarded or held back by a newer message.
 	FirstAutomated bool
 }
 
@@ -33,7 +35,7 @@ func (r *Runner) readGate(ctx context.Context, turn conversations.Turn, options 
 				NOT EXISTS (
 					SELECT 1 FROM messages
 					WHERE messages.company_id = $1 AND messages.conversation_id = $2 AND messages.author = 'assistant'
-						AND messages.send_status IN ('draft', 'sending', 'sent', 'unclear'))
+						AND messages.send_status IN ('sending', 'sent', 'unclear'))
 			FROM conversations
 			JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 			WHERE conversations.company_id = $1 AND conversations.id = $2`
@@ -60,7 +62,9 @@ func insertOutgoing(ctx context.Context, tx database.Tx, turn conversations.Turn
 	return err
 }
 
-// discardWaitingDraftsWithin: one waiting reply at a time (a newer one replaces it).
+// discardWaitingDraftsWithin: one waiting reply at a time, for the newest
+// message only (whatever ansa says next replaces it: a newer reply, its own
+// order text, a holding reply).
 func discardWaitingDraftsWithin(ctx context.Context, tx database.Tx, turn conversations.Turn) error {
 	const statement = `
 		UPDATE messages SET send_status = 'discarded'

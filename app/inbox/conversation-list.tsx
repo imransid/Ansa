@@ -5,8 +5,9 @@ import { CHANNEL_LABELS } from "@/lib/conversations";
 import { contactLabel, isUnverifiedSender } from "@/lib/inbox";
 import type { InboxRow } from "@/lib/types/conversations";
 
-// The Inbox's rows (step 47): who, on which channel, the newest entry, when,
-// and what waits (an open request) or who has it (a person took it over).
+// The Inbox's rows (step 47): who, on which channel, the newest entry the
+// customer got or wrote, when, and what waits (an open request, or ansa's
+// reply for you to send) or who has it (a person took it over).
 export function ConversationList({ rows }: { rows: InboxRow[] }) {
   return (
     <ul className="divide-y border-y">
@@ -24,6 +25,7 @@ export function ConversationList({ rows }: { rows: InboxRow[] }) {
               <span className="truncate text-sm text-muted-foreground">{row.preview || "No messages yet"}</span>
               <span className="flex flex-wrap gap-x-4 gap-y-1">
                 {row.openTicket && <StatusDot tone="attention">{`Needs you: ${row.openTicket.subject}`}</StatusDot>}
+                {row.draftWaiting && <StatusDot tone="attention">ansa wrote a reply: it waits for you to send it.</StatusDot>}
                 {row.handledBy === "person" && <StatusDot tone="info">A person is handling it</StatusDot>}
               </span>
             </span>

@@ -41,8 +41,10 @@ func CleanReply(text string) (string, string) {
 // Reply saves a person's reply "sending" (encrypted), then sends it and
 // records what became of it. Replying takes the conversation over from ansa,
 // and ends ansa's wait to step in. replacesDraftID: the assistant's waiting
-// reply this one replaces (an edit), discarded in the same transaction. A
-// reply that can't go now (a chat refusal) saves nothing: the outcome says why.
+// reply this one replaces (an edit), discarded in the same transaction; any
+// other reply of ansa's still waiting is discarded too (as the person's
+// Discard). A reply that can't go now (a chat refusal) saves nothing: the
+// outcome says why.
 func (r *Replies) Reply(ctx context.Context, company tenant.CompanyID, actorUserID, conversationID, text, replacesDraftID string) (string, error) {
 	messageID, err := conversations.NewID()
 	if err != nil {
@@ -79,7 +81,8 @@ func (r *Replies) Reply(ctx context.Context, company tenant.CompanyID, actorUser
 }
 
 // savePersonReplyWithin: ansa's wait ends, the conversation is taken over
-// when ansa had it, and the reply is saved to be sent.
+// when ansa had it, ansa's waiting reply is discarded (the person answered
+// instead), and the reply is saved to be sent.
 func savePersonReplyWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, actorUserID, conversationID, messageID, body string) error {
 	const takeOver = `
 		UPDATE conversations SET handled_by = 'person', taken_over_by_user_id = $3, taken_over_at = now(), assistant_due_at = NULL
@@ -93,6 +96,9 @@ func savePersonReplyWithin(ctx context.Context, tx database.Tx, company tenant.C
 			return err
 		}
 	} else if _, err := tx.Exec(ctx, `UPDATE conversations SET assistant_due_at = NULL WHERE company_id = $1 AND id = $2`, company.String(), conversationID); err != nil {
+		return err
+	}
+	if err := discardWaitingRepliesWithin(ctx, tx, company, conversationID, actorUserID); err != nil {
 		return err
 	}
 	const insert = `

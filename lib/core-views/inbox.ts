@@ -139,6 +139,7 @@ function toInboxRow(row: CoreRow): InboxRow {
     lastActivityAt: new Date(row.lastActivityAt),
     preview: row.preview,
     openTicket: row.openTicket ? { ticketNumber: row.openTicket.number, subject: row.openTicket.subject } : null,
+    draftWaiting: row.draftWaiting,
   };
 }
 

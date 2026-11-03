@@ -17,7 +17,8 @@ const (
 	NotWaiting = "not-waiting"
 )
 
-// TakeOver: a person takes the conversation over from ansa.
+// TakeOver: a person takes the conversation over from ansa (its waiting
+// reply, if any, is discarded: ansa no longer answers here).
 func TakeOver(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, conversationID string) (string, error) {
 	return switchHandler(ctx, pool, company, actorUserID, conversationID, true)
 }
@@ -55,7 +56,10 @@ func switchHandler(ctx context.Context, pool *database.Pool, company tenant.Comp
 			outcome, err = existsOr(ctx, tx, company, conversationID, Unchanged)
 			return err
 		}
-		return recordPersonActivity(ctx, tx, company, conversationID, action, actorUserID)
+		if err := recordPersonActivity(ctx, tx, company, conversationID, action, actorUserID); err != nil || !takeOver {
+			return err
+		}
+		return discardWaitingRepliesWithin(ctx, tx, company, conversationID, actorUserID)
 	})
 	return outcome, err
 }
@@ -96,4 +100,20 @@ func recordPersonActivity(ctx context.Context, tx database.Tx, company tenant.Co
 	const insert = `INSERT INTO assistant_activity (company_id, conversation_id, action, actor_user_id) VALUES ($1, $2, $3, $4)`
 	_, err := tx.Exec(ctx, insert, company.String(), conversationID, action, actorUserID)
 	return err
+}
+
+// discardWaitingRepliesWithin: once a person answers the customer or takes
+// the conversation over, ansa's waiting reply answers a message they handle
+// now, and must never go after theirs. Recorded as their Discard. The
+// caller locked the conversation row first, so a reply ansa was saving at
+// that moment is seen (and discarded) here.
+func discardWaitingRepliesWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID, actorUserID string) error {
+	const statement = `
+		UPDATE messages SET send_status = 'discarded'
+		WHERE company_id = $1 AND conversation_id = $2 AND author = 'assistant' AND send_status = 'draft'`
+	tag, err := tx.Exec(ctx, statement, company.String(), conversationID)
+	if err != nil || tag.RowsAffected() == 0 {
+		return err
+	}
+	return recordPersonActivity(ctx, tx, company, conversationID, "draft_discarded", actorUserID)
 }

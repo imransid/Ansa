@@ -27,7 +27,9 @@ deletes the proposal. The brain reads this conversation's order being
 written up and its newest 3 placed ones, each line with its menu label.
 **In the assistant (`assistant/order.go`):** a question or summary goes out
 like a reply (waiting in Ask me first); the confirmation and "No problem:
-nothing was ordered." are sent at once (never wait), each in ONE
+nothing was ordered." are sent at once (never wait; the AI label first when
+nothing automated reached the customer yet, and a reply still waiting is
+discarded, as a newer reply discards it), each in ONE
 transaction that checks the conversation again; placing also queues the
 `order.alert` job (see [alerts](alerts.md): number, who, where and ansa's
 total, a link to /orders; never the dishes or the address) and writes the

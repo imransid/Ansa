@@ -11,8 +11,10 @@ in the company works conversations, as they work tickets.
   assistant waiting for a person (Home counts with the same condition);
   newest activity first; each with a one-line preview of its newest entry
   (a customer's words, "ansa: ...", "You: ...", "Phone call", "Email";
-  decrypted, one plain line, 120 characters) and its newest open request.
-  `Counts` per view.
+  decrypted, one plain line, 120 characters; never a reply of ansa's that
+  waits or was discarded: the customer hasn't got it), its newest open
+  request, and whether a reply of ansa's waits for a person
+  (`draftWaiting`). `Counts` per view.
 - `ReadPage`: the conversation and its contact (important or not, who took
   it over), its newest 200 entries oldest first (chat messages decrypted;
   calls and emails as links, an email's subject decrypted), its open
@@ -31,6 +33,12 @@ in the company works conversations, as they work tickets.
   had it and ends ansa's wait to step in; an edit of the assistant's waiting
   reply discards it in the same transaction. A reply that can't go now
   (not a chat, not connected, not allowed, past 24 hours) saves nothing.
+- A person's reply and a take over also discard any reply of ansa's still
+  waiting, in the same transaction, recorded as that person's Discard
+  ("draft_discarded"): it answered a message the person handles now, and
+  must never go after theirs (the conversation row is locked first, so a
+  reply ansa saves at that moment is discarded too, or ansa finds the
+  conversation taken over).
 - `Replies.SendDraft` (as the assistant wrote it; the conversation isn't
   taken over) and `DiscardDraft` (kept as "discarded"): only while it still
   waits.
@@ -40,9 +48,13 @@ in the company works conversations, as they work tickets.
 `.../drafts/{message}/send`, `.../drafts/{message}/discard` (120 changes per
 10 minutes per person, the old counter).
 **Tests:** `api/inbox_test.go` (live database): a waiting reply is "Needs
-you" with ansa's preview; the page decrypted and replyable; Send then
-Discard (already sent = 409); an empty reply refused with its words; a
-reply goes out and takes the conversation over; hand back; important;
-another company's conversation = 404; what ansa did.
+you" and flagged, never the preview (the customer's words are), until it is
+sent; the page decrypted and replyable; Send then Discard (already sent =
+409); an empty reply refused with its words; a reply goes out and takes the
+conversation over; hand back; important; another company's conversation =
+404; what ansa did. A person's reply, and a take over, discard ansa's
+waiting reply (it can't be sent after; one "draft_discarded" line each,
+naming the person; nothing left under Needs you), and a discarded reply is
+never the preview.
 **The request on the page:** its actions (assign, Done, notes) are
 [requests](requests.md)'s.

@@ -24,17 +24,22 @@ passes, and sending, drafting or handing over to a person), as the old
 7. A reply that passes is saved in ONE transaction that checks the gate
    again with the conversation locked: "sending" (Automatic) or a "draft"
    (Ask me first; a waiting draft is discarded), the AI label on the first
-   automated message, the "replied" / "drafted" line, the message marked
-   handled. Then it is sent (`chat.Sender`) and its result recorded. A
-   reply the channel refuses or fails asks a person (`send_failed`, no
-   holding reply: the channel can't take one).
+   automated message to reach the customer (sending, sent or unclear: a
+   reply waiting, discarded or failed never did, so a draft that replaces a
+   waiting one keeps the label), the "replied" / "drafted" line, the
+   message marked handled. Then it is sent (`chat.Sender`) and its result
+   recorded. A reply the channel refuses or fails asks a person
+   (`send_failed`, no holding reply: the channel can't take one).
 The same message is never answered twice: a retried job finds it handled.
 Channels queue the job 1.5 s after the message, so a burst gets one answer.
 
 **Handover (`handover.go`):** ONE transaction, the company row lock first
-(as every routing), the gate again: the business's holding reply (never the
-AI's text; with the AI label when first) saved "sending" when the channel
-can take it, a request (`tickets.CreateChatTicketWithin`: the AI's subject
+(as every routing), the gate again: a reply of ansa's still waiting (Ask me
+first) discarded (it answered an earlier message; the request covers the
+conversation now, and nothing may go after the holding reply), the
+business's holding reply (never the AI's text; with the AI label when
+first) saved "sending" when the channel can take it, a request
+(`tickets.CreateChatTicketWithin`: the AI's subject
 cleaned to one plain line, else "<Channel> conversation needs you"; the
 reason's words, then the AI's summary; its category only when it names an
 active one exactly; routed, and whoever routing picks is emailed by the
@@ -63,7 +68,8 @@ their words: `reasons.go`.
 "1 200" read in the currency's smallest units (ISO 4217 digits: 0 for yen or
 won, 3 for dinars, 2 for most); a minus is no price.
 **AI label:** "I'm the AI assistant for <business>." / "I'm <name>'s AI
-assistant.", ansa's own first line of the first automated message.
+assistant.", ansa's own first line of the first automated message the
+customer gets (a reply, a holding reply or one of ansa's order texts).
 **Gate (`gate.go`, the old `gateWithin`'s order):** not found → paused →
 taken over by a person → the message handled already → a request open in the
 conversation → a newer customer message (it gets its own run) → may. Read
@@ -103,7 +109,11 @@ stays quiet; the AI's own request keeps its cleaned subject and category;
 paused is quiet without asking the brain; Ask me first saves a draft; an
 important person is handed over without the brain; "when away" waits, then
 the catch-up's run answers; the brain down = the holding reply; an own key
-that can't be read is never replaced by ansa's.
+that can't be read is never replaced by ansa's. `drafts_test.go` (Ask me
+first and the AI label): a draft that replaces a waiting one keeps the
+label, and the next one after a reply reached the customer has none; a
+handover while a draft waits discards it and labels the holding reply; an
+order text sent while the summary waits discards it and has the label.
 
 **Calls (`call.go`, `call_handover.go`, `call_summary.go`, step 55,
 [phone](phone.md)):** `AnswerCall` answers a live call's turn (the caller's

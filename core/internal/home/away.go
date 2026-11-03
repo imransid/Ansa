@@ -12,14 +12,16 @@ import (
 // AwaySummary is "While you were away": what ansa did since this person
 // last pressed "Got it" (or in the last day, before the first time).
 type AwaySummary struct {
-	Since         time.Time  `json:"since"`
-	Replies       int        `json:"replies"`
-	Notes         int        `json:"notes"`
+	Since   time.Time `json:"since"`
+	Replies int       `json:"replies"`
+	Notes   int       `json:"notes"`
+	// The replies ansa wrote since then that still wait for a person to send them.
 	Waiting       int        `json:"waiting"`
 	Conversations []AwayLine `json:"conversations"`
 }
 
-// AwayLine is one conversation's newest line (each conversation once).
+// AwayLine is one conversation's newest line (each conversation once). A
+// "drafted" line is listed only while that conversation's reply still waits.
 type AwayLine struct {
 	ConversationID string    `json:"conversationId"`
 	ContactName    *string   `json:"contactName"`
@@ -30,7 +32,9 @@ type AwayLine struct {
 }
 
 // ReadAwaySummary counts ansa's newest 200 lines since then and lists the
-// newest 8 conversations.
+// newest 8 conversations. What waits is read from the replies themselves,
+// not from the "drafted" lines: a reply replaced by a newer one, sent,
+// edited or discarded since no longer waits, and its line is left out.
 func ReadAwaySummary(ctx context.Context, pool *database.Pool, company tenant.CompanyID, userID string) (AwaySummary, error) {
 	summary := AwaySummary{Conversations: []AwayLine{}}
 	const since = `
@@ -38,9 +42,17 @@ func ReadAwaySummary(ctx context.Context, pool *database.Pool, company tenant.Co
 	if err := pool.QueryRow(ctx, since, company.String(), userID).Scan(&summary.Since); err != nil {
 		return summary, err
 	}
+	const waiting = `
+		SELECT count(*) FROM messages
+		WHERE company_id = $1 AND author = 'assistant' AND send_status = 'draft' AND created_at > $2`
+	if err := pool.QueryRow(ctx, waiting, company.String(), summary.Since).Scan(&summary.Waiting); err != nil {
+		return summary, err
+	}
 	const lines = `
 		SELECT assistant_activity.conversation_id, contacts.display_name, contacts.channel, assistant_activity.action,
-			assistant_activity.reason, assistant_activity.created_at
+			assistant_activity.reason, assistant_activity.created_at,
+			EXISTS (SELECT 1 FROM messages WHERE messages.company_id = assistant_activity.company_id
+				AND messages.conversation_id = assistant_activity.conversation_id AND messages.author = 'assistant' AND messages.send_status = 'draft')
 		FROM assistant_activity
 		JOIN conversations ON conversations.id = assistant_activity.conversation_id AND conversations.company_id = assistant_activity.company_id
 		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
@@ -54,16 +66,17 @@ func ReadAwaySummary(ctx context.Context, pool *database.Pool, company tenant.Co
 	seen := map[string]bool{}
 	for rows.Next() {
 		var line AwayLine
-		if err := rows.Scan(&line.ConversationID, &line.ContactName, &line.Channel, &line.Action, &line.Reason, &line.CreatedAt); err != nil {
+		var replyWaits bool
+		if err := rows.Scan(&line.ConversationID, &line.ContactName, &line.Channel, &line.Action, &line.Reason, &line.CreatedAt, &replyWaits); err != nil {
 			return summary, err
 		}
-		switch line.Action {
-		case "replied":
+		switch {
+		case line.Action == "drafted" && !replyWaits:
+			continue
+		case line.Action == "replied":
 			summary.Replies++
-		case "handed_over":
+		case line.Action == "handed_over":
 			summary.Notes++
-		case "drafted":
-			summary.Waiting++
 		}
 		if !seen[line.ConversationID] && len(summary.Conversations) < 8 {
 			seen[line.ConversationID] = true

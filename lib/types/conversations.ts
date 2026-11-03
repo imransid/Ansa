@@ -16,8 +16,11 @@ export type ConversationListRow = {
 
 export type InboxRow = ConversationListRow & {
   // One line about the newest entry: a message's start, or "Phone call".
+  // Never a reply of ansa's that waits or was discarded: the customer hasn't got it.
   preview: string;
   openTicket: { ticketNumber: number; subject: string } | null;
+  // A reply of ansa's waits for a person to send it ("Ask me first").
+  draftWaiting: boolean;
 };
 
 // One conversation of the company with its contact.

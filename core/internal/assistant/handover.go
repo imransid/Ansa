@@ -50,7 +50,9 @@ type AlertPayload struct {
 // AI's text), a request opened and routed like every new one, the activity
 // line and the owners' alert, in ONE transaction that takes the company row
 // lock first (as every routing does) and checks the conversation again. A
-// newer message meanwhile doesn't stop it: the customer still waits. On a
+// reply of ansa's still waiting ("Ask me first") is discarded there: it
+// answered an earlier message, and the request now covers the conversation.
+// A newer message meanwhile doesn't stop it: the customer still waits. On a
 // live call the caller is still on the line: callHandOver.
 func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, h Handover) error {
 	if inputs.Spoken {
@@ -69,6 +71,9 @@ func (r *Runner) handOver(ctx context.Context, turn conversations.Turn, info con
 		}
 		gate, err := GateWithin(ctx, tx, turn, GateOptions{Lock: true, AllowHandled: h.Reason == "send_failed"})
 		if err != nil || gate != GateMay {
+			return err
+		}
+		if err := discardWaitingDraftsWithin(ctx, tx, turn); err != nil {
 			return err
 		}
 		if h.SendHoldingReply {

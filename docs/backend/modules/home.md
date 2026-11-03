@@ -17,6 +17,10 @@
 - `awaySummary` (only in "Only when I'm away"): ansa's replied / drafted /
   handed-over lines since this person last pressed "Got it" (or the last
   day): counts of the newest 200 and the newest 8 conversations, each once.
+  What waits comes from the replies themselves, not the lines: `waiting` is
+  the replies written since then still "draft", and a drafted line whose
+  reply no longer waits (replaced by a newer one, sent, edited or
+  discarded) is left out.
 - `needsYou` (the newest 5 conversations that need a person, how many, and
   whether more than one person takes requests), `newOrders`, `activity`
   ("What ansa did", newest 6).
@@ -70,6 +74,8 @@ no_reply, text (with the AI label), why}`. Nothing is saved, sent or alerted.
 **Tests:** `api/home_test.go` (live database): the page and the checklist;
 pause, "only when I'm away" and "I'm away" change what the card says and
 show the summary; "Got it"; a member can't pause and gets no checklist.
+`home/away_test.go`: a reply replaced by a newer one counts once, and one a
+teammate sent is neither waiting nor listed.
 `api/assistant_settings_test.go`: defaults; an empty holding reply refused
 with its words; saved; an own key stored encrypted and shown by its last
 four; Claude Code refused without the brain's say-so; Claude Code standing

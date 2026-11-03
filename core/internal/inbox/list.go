@@ -47,6 +47,8 @@ type Row struct {
 	LastActivityAt time.Time   `json:"lastActivityAt"`
 	Preview        string      `json:"preview"`
 	OpenTicket     *TicketLine `json:"openTicket"`
+	// A reply of ansa's waits for a person to send it ("Ask me first").
+	DraftWaiting bool `json:"draftWaiting"`
 }
 
 // TicketLine names a request.
@@ -57,7 +59,8 @@ type TicketLine struct {
 }
 
 // List is one page of a view, the latest activity first, with each
-// conversation's newest entry as a preview and its newest open request.
+// conversation's newest entry as a preview, its newest open request, and
+// whether a reply of ansa's waits for a person.
 func List(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, view string, page int) ([]Row, error) {
 	where := `conversations.company_id = $1`
 	if view == ViewNeedsYou {
@@ -65,7 +68,9 @@ func List(ctx context.Context, pool *database.Pool, box *secure.Box, company ten
 	}
 	// where is built from the fixed text above, never input.
 	statement := `
-		SELECT conversations.id, contacts.channel, contacts.display_name, contacts.external_id, conversations.handled_by, conversations.last_activity_at
+		SELECT conversations.id, contacts.channel, contacts.display_name, contacts.external_id, conversations.handled_by, conversations.last_activity_at,
+			EXISTS (SELECT 1 FROM messages WHERE messages.company_id = conversations.company_id AND messages.conversation_id = conversations.id
+				AND messages.author = 'assistant' AND messages.send_status = 'draft')
 		FROM conversations
 		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
 		WHERE ` + where + `
@@ -78,7 +83,7 @@ func List(ctx context.Context, pool *database.Pool, box *secure.Box, company ten
 	list := []Row{}
 	for rows.Next() {
 		var r Row
-		if err := rows.Scan(&r.ID, &r.Channel, &r.DisplayName, &r.ExternalID, &r.HandledBy, &r.LastActivityAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.Channel, &r.DisplayName, &r.ExternalID, &r.HandledBy, &r.LastActivityAt, &r.DraftWaiting); err != nil {
 			return nil, err
 		}
 		list = append(list, r)
@@ -110,11 +115,13 @@ func clampPage(page int) int {
 }
 
 // preview is one line about the newest entry: a message's start ("ansa: ..."
-// or "You: ..." for the business's side), or "Phone call" / "Email".
+// or "You: ..." for the business's side), or "Phone call" / "Email". A reply
+// of ansa's waiting or discarded is never one: the customer hasn't got it
+// (the row's DraftWaiting says one waits).
 func preview(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) (string, error) {
 	const statement = `
 		SELECT id, author, body_encrypted, call_id IS NOT NULL, inbound_email_id IS NOT NULL FROM messages
-		WHERE company_id = $1 AND conversation_id = $2
+		WHERE company_id = $1 AND conversation_id = $2 AND (send_status IS NULL OR send_status NOT IN ('draft', 'discarded'))
 		ORDER BY created_at DESC LIMIT 1`
 	var id, author string
 	var body *string

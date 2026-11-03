@@ -106,10 +106,12 @@ func (r *Runner) place(ctx context.Context, turn conversations.Turn, info conver
 const outcomeNothingToDo = "nothing-to-save"
 
 // saveFixedAndSend saves one of ansa's fixed order messages ("sending":
-// they never wait for a person) with the step's own writes, in ONE
-// transaction that checks the conversation again (placing takes the
-// company row lock first). `write` returns the text and the activity line,
-// or "" when there is nothing to do. Then the message is sent.
+// they never wait for a person; the AI label first when nothing automated
+// reached the customer yet; a reply waiting before is discarded, as a newer
+// reply discards it) with the step's own writes, in ONE transaction that
+// checks the conversation again (placing takes the company row lock
+// first). `write` returns the text and the activity line, or "" when there
+// is nothing to do. Then the message is sent.
 func (r *Runner) saveFixedAndSend(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs, lockCompany bool,
 	write func(tx database.Tx, messageID string) (text, activity string, err error)) (string, error) {
 	messageID, err := conversations.NewID()
@@ -139,8 +141,12 @@ func (r *Runner) saveFixedAndSend(ctx context.Context, turn conversations.Turn, 
 			outcome = outcomeNothingToDo
 			return err
 		}
+		text = WithAILabel(text, inputs.Name, inputs.Kind, info.FirstAutomated)
 		body, err := r.Box.Encrypt(text, conversations.MessageContext(turn.CompanyID, messageID))
 		if err != nil {
+			return err
+		}
+		if err := discardWaitingDraftsWithin(ctx, tx, turn); err != nil {
 			return err
 		}
 		if err := insertOutgoing(ctx, tx, turn, messageID, body, "sending"); err != nil {
