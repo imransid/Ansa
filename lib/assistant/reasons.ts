@@ -45,8 +45,10 @@ export const HANDOVER_REASON_TEXT: Record<HandoverReason, string> = {
   complaint: "They complained.",
   refund: "They asked for a refund or compensation.",
   asked_for_person: "They asked to talk to a person.",
-  // A restaurant that doesn't take orders through ansa (step 52: one that does lets ansa take them).
-  order: "They want to place an order.",
+  // A restaurant that doesn't take orders through ansa (step 52: one that
+  // does lets ansa take them), and every table booking (the AI hands those
+  // over with this reason: the activity log's CHECK has no reason of their own).
+  order: "They want to place an order or book a table.",
   // A person's assistant (step 50): a meeting, a time, money or a promise.
   needs_decision: "It needs your decision.",
   // Step 51: someone you marked important always comes to you.

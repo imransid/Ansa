@@ -63,6 +63,14 @@ export async function runInboxChecks() {
     assert.match(withoutComments(await read("app/actions/assistant.ts")), /withTypedValues\(result\.errors, formData, \["text"\]\)/);
   });
 
+  await check("handover reasons: the screens word each reason as core words it on the request and the alert (a table booking is handed over as an order, and says so)", async () => {
+    const core = await read("core/internal/assistant/reasons.go");
+    for (const [reason, text] of Object.entries(HANDOVER_REASON_TEXT)) {
+      assert.ok(core.includes(`"${reason}":`) && core.includes(JSON.stringify(text)), `core words ${reason} differently`);
+    }
+    assert.match(HANDOVER_REASON_TEXT.order, /book a table/);
+  });
+
   await check("handover reasons: a person (no menu) reads a stopped amount in their own words, as core writes it on the request and the alert; a business keeps its menu", async () => {
     const personal = handoverReasonText("price_not_on_menu", true);
     assert.doesNotMatch(personal, /menu/);

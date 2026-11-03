@@ -7,7 +7,7 @@ var ReasonText = map[string]string{
 	"complaint":         "They complained.",
 	"refund":            "They asked for a refund or compensation.",
 	"asked_for_person":  "They asked to talk to a person.",
-	"order":             "They want to place an order.",
+	"order":             "They want to place an order or book a table.",
 	"needs_decision":    "It needs your decision.",
 	"important_person":  "They're one of your important people.",
 	"price_not_on_menu": "The assistant's reply named a price that isn't on your menu, so ansa didn't send it.",

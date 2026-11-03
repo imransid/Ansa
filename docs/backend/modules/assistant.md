@@ -62,7 +62,9 @@ is sent. While the request is open the assistant stays quiet. Reasons and
 their words: `reasons.go`, worded for the account's kind (`ReasonTextFor`:
 a person has no menu, so a stopped amount is "an amount that isn't in your
 own notes or saved answers"; the screens' `lib/assistant/reasons.ts` says
-the same on Home and the conversation page).
+the same on Home and the conversation page). A table booking is handed
+over as `order` (the activity log's CHECK has no reason of its own for
+it), worded "They want to place an order or book a table."
 **Checks (`checks.go`, the same rules as the old `lib/assistant/reply-checks.ts`):**
 - every amount written with a currency mark (symbols, ISO codes, the words
   for the common ones, and taka as Bangladesh writes it: "Tk 450", "Tk.
