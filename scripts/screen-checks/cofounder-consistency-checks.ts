@@ -8,6 +8,7 @@
 import assert from "node:assert/strict";
 import { access, readdir } from "node:fs/promises";
 import path from "node:path";
+import { shortDateOf } from "@/lib/publishing/schedule-time";
 import { check } from "./check";
 import { read, withoutComments } from "./source-helpers";
 
@@ -83,6 +84,13 @@ export async function runCofounderConsistencyChecks() {
       localTimes += (source.match(/<LocalDateTime\b/g) ?? []).length;
     }
     assert.ok(localTimes >= 20, `only ${localTimes} times shown through LocalDateTime`);
+  });
+
+  await check("calendar: each day shows as a short date read at a glance (\"Wednesday 4 Nov\"), never broken across lines, not as 2026-11-04", async () => {
+    assert.equal(shortDateOf("2026-11-04"), "4 Nov");
+    assert.equal(shortDateOf("2027-01-02"), "2 Jan");
+    const days = withoutComments(await read("app/cofounder/calendar/calendar-days.tsx"));
+    assert.match(days, /<time dateTime=\{day\} className="whitespace-nowrap[^"]*">\s*\{shortDateOf\(day\)\}\s*<\/time>/);
   });
 
   await check("draft's Publish section: an unapproved draft is offered the auto-publish rule's form only when it breaks no rule and needs no owner's claims check, else one sentence says why (core would refuse it after the press)", async () => {
