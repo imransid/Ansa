@@ -24,8 +24,8 @@ ones you signed up while rehearsing) and makes the demo again, with a day of
 history (it takes a few seconds, and logs every window out). Chats can only
 be answered within 24 hours of the customer's last message, so reset on
 the demo day. Then open each page once (Home, Inbox, a conversation,
-Orders, the practice chat and phone) so they are ready before the audience
-is.
+Comments, Orders, the practice chat and phone) so they are ready before the
+audience is.
 
 ## The accounts
 
@@ -63,6 +63,10 @@ Shapla Kitchen's day, before you start:
   person), with a recording you can play.
 - **Emails**: two forwarded emails that became requests, and one whose
   content couldn't be fetched ("Process again").
+- **Comments** (Inbox → Comments): three comments on a published Facebook
+  post: a question ansa answered under the comment, a Bangla price question
+  ("দাম কত?") answered with a short public reply and the prices in a
+  private Messenger message, and praise ansa left alone.
 - **Saved answers**: allergens, catering, seating and parking (each in
   English and Bangla), and the restaurant's story (for posts).
 - **Social media posts**: a marketing plan, posts at every step (an idea, a
@@ -105,7 +109,7 @@ already in the Inbox continues that customer's chat.
    total and confirmation come in Bangla too.
 7. **A complaint.** As **Tania** on Messenger: "My food was cold!" ansa
    doesn't argue or promise money: it sends your polite holding reply and
-   puts it under **Needs you**, and emails you (see 13).
+   puts it under **Needs you**, and emails you (see 14).
 8. **Needs you**: open Rupa (Send the waiting reply), Jamal and Sumi (what
    ansa stopped), then Tania: answer her yourself or press Done.
    In the practice chat, tick "Answer as the business, from its own app"
@@ -122,19 +126,29 @@ already in the Inbox continues that customer's chat.
 10. **An email.** Practice chat → **Email**: write as a customer, for
     example a catering request. It becomes a request with the AI's summary
     in a few seconds (Inbox, and the Emails page).
-11. **Requests and the team.** Inbox → All requests: the views (Open, Mine,
+11. **A comment on Facebook.** Practice chat → **Facebook comment**: pick
+    the post and comment as **Mitu**: "Are you open on Friday night?" ansa
+    answers under the comment in a few seconds, from the restaurant's own
+    details. Then as **Farhana**: "দাম কত?" ansa posts a short public reply
+    (the details are in Messenger) and sends her a private message with the
+    menu's prices: press **Open Farhana's Messenger chat** to see it, and
+    answer as her there (an order goes on as in step 3). Inbox →
+    **Comments** shows every comment and what ansa did. A complaint in a
+    comment gets a short sorry, a private message and a request under
+    **Needs you**; praise and spam get nothing.
+12. **Requests and the team.** Inbox → All requests: the views (Open, Mine,
     Unassigned, Solved), Kamal's two requests (same customer, same person),
     notes and history. Solve one with an email.
-12. **Karim's view.** Log in as `karim@demo.ansa.test` in a private window:
+13. **Karim's view.** Log in as `karim@demo.ansa.test` in a private window:
     a member sees his requests and the Inbox, reads Settings without
     changing them, and has no Billing.
-13. **The development mailbox.** Settings → Connections → Development
+14. **The development mailbox.** Settings → Connections → Development
     mailbox: every email ansa wrote (alerts to you, "request #N is yours"
     to Karim, the solved email to the customer).
-14. **Post for me.** Settings → Posts for me → **Post one now**: ansa
+15. **Post for me.** Settings → Posts for me → **Post one now**: ansa
     writes a post from the restaurant's own details and it goes out on the
     (stand-in) Facebook Page.
-15. **Billing**: the free trial (its days and end date), this month's use,
+16. **Billing**: the free trial (its days and end date), this month's use,
     the three packages. "Demo payments: nothing is charged": the demo
     steps show what happens when the trial ends or the AI replies are used
     up (ansa still answers every customer, with the holding reply), and
@@ -143,13 +157,13 @@ already in the Inbox continues that customer's chat.
 
 **One person** (log out, log in as `rafa@demo.ansa.test`):
 
-16. **Home**: "You're away. ansa is answering for you", and **While you
+17. **Home**: "You're away. ansa is answering for you", and **While you
     were away**: what ansa did last night. Press Got it.
-17. In the practice chat, as **Nabil** on WhatsApp: "How much do you charge
+18. In the practice chat, as **Nabil** on WhatsApp: "How much do you charge
     for a logo?" ansa answers from Rafa's own notes. Then: "Can we meet
     tomorrow at 3 pm?" ansa never agrees to a meeting, money or a decision
     for Rafa: it takes a note (Needs you).
-18. **I'm back** on Home: now ansa leaves messages to Rafa (or waits the
+19. **I'm back** on Home: now ansa leaves messages to Rafa (or waits the
     minutes set in Settings → Assistant before stepping in: the
     conversation says when ansa answers, and "Answer now" skips the wait
     in development). **I'm away** again: ansa takes back every chat Rafa
@@ -172,6 +186,12 @@ already in the Inbox continues that customer's chat.
   conversation in the Inbox, as the page says.
 - **Emails page** (Inbox → Emails): "Process again" on Imtiaz's email, and
   the bounced email under "Customer emails not delivered".
+- **Comments page** (Inbox → Comments): the post's three comments and what
+  ansa did with each (answered under it, wrote privately in Messenger with
+  a link to that chat, or left it and why). With **Ask me first** (Settings
+  → Assistant), ansa's own answer to a new comment waits there for Send or
+  Discard; its fixed words (the "see Messenger" reply) never wait. Settings
+  → Connections → Facebook Page switches answering comments on or off.
 - **Menu**: Settings → Menu and prices → "Not available today" on a dish
   (ansa stops offering it and tells customers it's not available today:
   ask about Shorshe Ilish, which the demo marks so), and **Read my menu**: a photo of a menu, a
@@ -194,14 +214,16 @@ already in the Inbox continues that customer's chat.
   packages and limits.
 - **Stand-ins**: the customers' apps (the practice chat), email (files in
   `.dev-emails/`, shown in the development mailbox), the Facebook Page and
-  other social accounts (posts are files in `.dev-social/`), images (the
+  other social accounts (posts are files in `.dev-social/`; comments on the
+  Page's posts come from the practice chat), images (the
   development stand-in draws them), post numbers (simulated, and marked so),
   payments (the Simulate buttons) and phone calls (the practice phone).
 - **The website** says WhatsApp, Messenger and phone calls are "Coming
   soon": they are built and work here, and open to customers after Meta's
   approval and a phone provider.
 - **For real customers** each channel needs its own account: Meta's
-  approval for WhatsApp, Messenger and Facebook posts, a phone provider
+  approval for WhatsApp, Messenger, Facebook posts and answering their
+  comments (two more permissions), a phone provider
   for calls, and ansa's Telegram bot (free to make). Whether Telegram still
   needs Premium for a business chatbot is unclear (sources disagree). If
   your own Telegram can add a chatbot (Settings → Telegram Business →

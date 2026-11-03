@@ -11,7 +11,8 @@ export function WhoHelps() {
           menu or price list that are available today, your instructions, up to three of your saved answers that match,
           the names of your request categories, and the newest 20 messages of that one conversation (card numbers, social
           security numbers and email addresses in your customers&apos; words hidden); on a call, what was said so far, and
-          after it, the call, to write its note. It also reads forwarded emails, to sum them up and route them; for calls
+          after it, the call, to write its note. It reads a comment on your Facebook Page&apos;s posts and the start of its
+          post, to answer it. It also reads forwarded emails, to sum them up and route them; for calls
           answered through Vapi, an excerpt of the transcript, to decide whether the call needs you; a menu photo or
           document you ask it to read; your business&apos;s details, to write &ldquo;Post for me&rdquo; posts; and, for the
           marketing planner, your business facts, the interview, the saved answers your owners pick, your plans, and your
@@ -21,7 +22,8 @@ export function WhoHelps() {
         <li>Telegram: carries messages between the people who write to your Telegram account and ansa, and ansa&apos;s notes to you.</li>
         <li>
           Meta (Facebook and WhatsApp): carries Facebook Messenger messages to your Page and WhatsApp messages to your
-          WhatsApp Business number, publishes your Page&apos;s posts, and tells us their numbers. Connecting WhatsApp
+          WhatsApp Business number, brings us the comments on your Page&apos;s posts and publishes ansa&apos;s answers under
+          them, publishes your Page&apos;s posts, and tells us their numbers. Connecting WhatsApp
           Business opens Meta&apos;s own sign-up window, under Meta&apos;s terms.
         </li>
         <li>

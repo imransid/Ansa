@@ -48,6 +48,15 @@ async function InboxContent({ searchParams }: Pick<PageProps<"/inbox">, "searchP
               all requests
             </Link>
             ,{" "}
+            {/* Comments on a business's Facebook Page posts. */}
+            {!personal && (
+              <>
+                <Link href="/inbox/comments" className="underline hover:text-foreground">
+                  comments on your Facebook posts
+                </Link>
+                ,{" "}
+              </>
+            )}
             <Link href="/calls" className="underline hover:text-foreground">
               calls
             </Link>{" "}

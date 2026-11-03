@@ -49,6 +49,14 @@ async function RequestsContent({ searchParams }: Pick<PageProps<"/inbox/requests
           <h1 className="text-2xl font-semibold tracking-tight">All requests</h1>
           <p className="text-sm text-muted-foreground">
             Requests that need a person, from calls, emails and your team. Also see{" "}
+            {kind !== "personal" && (
+              <>
+                <Link href="/inbox/comments" className="underline hover:text-foreground">
+                  comments on your Facebook posts
+                </Link>
+                ,{" "}
+              </>
+            )}
             <Link href="/calls" className="underline hover:text-foreground">
               calls
             </Link>{" "}
