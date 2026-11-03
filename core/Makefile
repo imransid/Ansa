@@ -1,6 +1,6 @@
 # The commands to work on core. Run them from the core/ folder.
 
-.PHONY: test check run \
+.PHONY: test check run website-packages \
 	link-phone-line unlink-phone-line show-forwarding-address replace-forwarding-address telegram-webhook \
 	simulate simulate-message simulate-post-metrics simulate-vapi-call simulate-vapi-tool-call simulate-solved-call \
 	try-brain simulate-inbound-email simulate-email-bounce simulate-telegram telegram-poll simulate-messenger simulate-whatsapp seed-tickets
@@ -22,6 +22,12 @@ check:
 # Starts core with the settings in ../.env.core (never committed).
 run:
 	set -a && . ../.env.core && set +a && go run ./cmd/core
+
+# Writes internal/packages/website.json, which the website's Pricing page
+# reads, from packages.go: run it after changing a package (make check fails
+# until then).
+website-packages:
+	go test ./internal/packages -run TestTheWebsiteFileListsThePackages -count=1 -args -update
 
 # ---------------------------------------------------------------------------
 # ansa's operator (docs/backend/modules/commands.md). The commands read the

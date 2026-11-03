@@ -8,10 +8,7 @@ import { AwayCard } from "./away-card";
 // for you or for your whole business). One promise, one button, who it is
 // for, and the signature: a late-night chat answered for you, and the "While
 // you were away" note you wake up to, hanging over the hero's edge. Both
-// are examples, and say so.
-//
-// LAUNCH CHECK (step 58): answering on Telegram (steps 48-51) works; a
-// phone call taken as a note needs calls live (step 55) before this goes public.
+// are examples, and say so: a Telegram chat, which works today.
 const FOR_WHOM = ["Freelancers", "Consultants", "Agents", "Clinics", "Shops", "Restaurants", "Busy teams"];
 
 export function Hero() {

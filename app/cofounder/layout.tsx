@@ -1,9 +1,9 @@
 import { AppFrame } from "@/components/app-frame";
 
-// Every page under /cofounder sits in the app frame, under Settings: the
-// social media posts (studio, media library, accounts) are listed there for
-// businesses, and the older pages (Overview, Interview, Profile, Strategy,
-// Calendar, Queue, Analytics) under "Older pages" until step 58.
+// Every page under /cofounder sits in the app frame, under Settings, which
+// links Social media posts (the studio) and the accounts for businesses; the
+// studio links the media library, the scheduled posts and the Marketing
+// planner (/cofounder), which lists every page (step 58).
 export default function CoFounderLayout({ children }: LayoutProps<"/cofounder">) {
   return <AppFrame section="settings">{children}</AppFrame>;
 }

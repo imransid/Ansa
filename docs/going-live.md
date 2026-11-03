@@ -1134,6 +1134,33 @@ personal WhatsApp number can never be connected.
 What stays unconfirmed until then: listed at the end of
 docs/backend/modules/whatsapp.md.
 
+## 15. The public website
+
+The website (`app/(marketing)`: the home page, Pricing, Privacy and Terms)
+is fully static and built with the screens. Before it goes public:
+
+1. Fill in `lib/site.ts`: the registered company name, the contact email,
+   and the country whose laws govern the terms.
+2. Have a lawyer read the privacy policy and the terms. They describe what
+   the code does today; then set `legalPagesReviewed: true` in
+   `lib/site.ts` (that removes the "draft" notice).
+3. Name the hosting provider in the privacy policy's "Who helps us run the
+   service" (`app/(marketing)/privacy/who-helps.tsx`), and change it with
+   the phone provider (it names Vapi, the only one in the code) and the
+   payment provider (Pricing, the privacy policy and the terms name Stripe).
+4. Where ansa answers is one list, `lib/website-channels.ts`. Switch a
+   channel to `"now"` only once someone who signs up today can use it; the
+   home page and Pricing follow the list:
+   - WhatsApp Business: after Meta's App Review of ansa's app (section 14).
+   - Facebook Messenger: after Meta's App Review (section 13).
+   - Phone calls: once a phone provider answers ansa's number.
+   - Instagram: not built.
+5. Prices and limits come from core: `core/internal/packages/website.json`,
+   written from `packages.go` by `make website-packages` (from `core/`).
+   After a change to a package, core's tests and `pnpm check:screens` fail
+   until it is written again.
+6. `robots.txt` and `sitemap.xml` use the running server's `APP_URL`.
+
 ## Errors
 
 No part logs an error's message, because it can contain customer data

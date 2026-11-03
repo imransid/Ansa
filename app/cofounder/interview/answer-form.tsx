@@ -78,7 +78,7 @@ function SendingAnswer({ text }: { text: string }) {
   return (
     <>
       <p className="max-w-[85%] justify-self-end rounded-lg border bg-muted p-3 text-sm whitespace-pre-wrap wrap-anywhere">{text}</p>
-      <p className="text-sm text-muted-foreground">The Co-Founder is reading your answer. This can take up to a minute.</p>
+      <p className="text-sm text-muted-foreground">ansa is reading your answer. This can take up to a minute.</p>
     </>
   );
 }

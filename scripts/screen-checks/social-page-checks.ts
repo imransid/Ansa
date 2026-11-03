@@ -1,6 +1,6 @@
 // Social account page checks (step 40), on the code itself, as
-// ui-polish-checks.ts does: the Accounts page is in the Co-Founder's row of
-// links, sends logged-out visitors back to itself, asks before Disconnect,
+// ui-polish-checks.ts does: the Accounts page is in the marketing pages'
+// list (lib/cofounder/pages.ts), sends logged-out visitors back to itself, asks before Disconnect,
 // shows its buttons to owners only and reads no token; its result message
 // takes only known codes and goes once an action changes the page; only
 // two services decrypt a token; the callback route stays thin and runs on
@@ -23,8 +23,8 @@ const PAGE_FILES = [
 ];
 
 export async function runSocialPageChecks() {
-  await check("accounts page: in the Co-Founder's page list, logging in brings people back to it, Disconnect asks first, its buttons show for owners only, and nothing on it reads a token", async () => {
-    assert.ok(COFOUNDER_PAGES.some((page) => page.segment === "accounts" && page.href === "/cofounder/accounts" && page.label === "Accounts"));
+  await check("accounts page: in the marketing pages' list, logging in brings people back to it, Disconnect asks first, its buttons show for owners only, and nothing on it reads a token", async () => {
+    assert.ok(COFOUNDER_PAGES.some((page) => page.segment === "accounts" && page.href === "/cofounder/accounts" && page.label === "Social media accounts"));
     const page = await read("app/cofounder/accounts/page.tsx");
     assert.match(page, /requireSessionContext\("\/cofounder\/accounts"\)/);
     assert.match(page, /<h1/);

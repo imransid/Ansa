@@ -83,7 +83,7 @@ func (s *Server) noCurrentPlan(w http.ResponseWriter, err error) {
 		s.failed(w, "calendar plan", err)
 		return
 	}
-	problem(w, http.StatusConflict, "There is no marketing plan yet: make one on the Strategy page first. The calendar is planned from its content pillars and how often to post.")
+	problem(w, http.StatusConflict, "There is no marketing plan yet: make one on the Marketing plan page first. The calendar is planned from its content pillars and how often to post.")
 }
 
 // Why nothing was planned, in plain words: never a setting or an error's text.

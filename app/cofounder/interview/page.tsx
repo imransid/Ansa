@@ -8,7 +8,7 @@ import { requireSessionContext } from "@/lib/session";
 import { AnswerForm } from "./answer-form";
 import { Conversation } from "./conversation";
 
-export const metadata: Metadata = { title: "Interview - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Interview - ansa" };
 
 // Every answer asks Claude inside this page's server action (up to 2 tries of
 // 40 s): the host's default time limit can be as short as 10 seconds.
@@ -54,7 +54,7 @@ async function InterviewContent() {
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          The Co-Founder asks one question at a time, about what it still needs to know. What it reads from an answer
+          ansa asks one question at a time, about what it still needs to know. What it reads from an answer
           becomes a proposed fact on the{" "}
           <Link href="/cofounder/profile" className="underline">
             Profile page

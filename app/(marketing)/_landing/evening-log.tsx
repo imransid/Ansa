@@ -3,14 +3,12 @@ import { StatusDot, type StatusTone } from "@/components/status-dot";
 // "A day with ansa" (rewritten 2026-11-01): one example person's day, set
 // like a log: what came in, on which channel, and what ansa did. The notes
 // are part of the story on purpose: knowing what needs you is the product.
-// An example, and labelled so: no real person or numbers.
-//
-// LAUNCH CHECK (step 58): the missed call taken as a note needs phone calls
-// live (step 55); everything else here works on Telegram today.
+// An example, and labelled so: no real person or numbers. Every line is
+// something ansa does today (Telegram, email forwarding, Home).
 const DAY: { time: string; channel: string; asked: string; did: string; tone: StatusTone; outcome: string }[] = [
   { time: "09:12", channel: "Telegram", asked: "“Are you free for a new project in March?”", did: "Said Maya is in workshops today, and noted the dates.", tone: "attention", outcome: "Note for Maya" },
   { time: "11:40", channel: "Telegram", asked: "“What are your rates for a logo?”", did: "Answered from the price list Maya gave it.", tone: "success", outcome: "Answered" },
-  { time: "13:05", channel: "Phone", asked: "A missed call from an unknown number.", did: "Answered, listened, and wrote down what they wanted.", tone: "attention", outcome: "Note for Maya" },
+  { time: "13:05", channel: "Email", asked: "An email about last month's invoice.", did: "Kept it as a note, with what the client asked.", tone: "attention", outcome: "Note for Maya" },
   { time: "18:20", channel: "Telegram", asked: "“Where is your studio?”", did: "Gave the address from Maya's details.", tone: "success", outcome: "Answered" },
   { time: "23:47", channel: "Telegram", asked: "“Sorry it's late! Can we meet on Tuesday?”", did: "Booked nothing. Said Maya will confirm, and noted it.", tone: "attention", outcome: "Note for Maya" },
   { time: "08:00", channel: "Home", asked: "Good morning.", did: "“While you were away: 6 answered, 3 need you.”", tone: "info", outcome: "Summary" },

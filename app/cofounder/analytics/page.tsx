@@ -17,7 +17,7 @@ import { PlatformTotalsList } from "./platform-totals";
 import { PostTable } from "./post-table";
 import { ReviewForm } from "./review-form";
 
-export const metadata: Metadata = { title: "Analytics - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "How posts did - ansa" };
 
 // "Review performance" asks Claude inside this page's server action (two
 // tries of up to 2 minutes): the host's default time limit can be as short
@@ -49,7 +49,7 @@ async function AnalyticsContent({ searchParams }: Pick<PageProps<"/cofounder/ana
   return (
     <>
       <section className="grid gap-3">
-        <h1 className="text-xl font-semibold">Analytics</h1>
+        <h1 className="text-xl font-semibold">How posts did</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           How the posts that went out through the{" "}
           <Link href="/cofounder/queue" className="underline">

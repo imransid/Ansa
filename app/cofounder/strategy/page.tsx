@@ -10,7 +10,7 @@ import { PlanVersions } from "./plan-versions";
 import { PlanView } from "./plan-view";
 import { SupportTrendsSetting } from "./support-trends-setting";
 
-export const metadata: Metadata = { title: "Strategy - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Marketing plan - ansa" };
 
 // "Make a new plan" asks Claude inside this page's server action (one try
 // of up to 4.5 minutes): the host's default time limit can be as short as
@@ -39,9 +39,9 @@ async function StrategyContent() {
   return (
     <>
       <section className="grid gap-3">
-        <h1 className="text-xl font-semibold">Marketing strategy</h1>
+        <h1 className="text-xl font-semibold">Marketing plan</h1>
         <p className="text-sm text-muted-foreground">
-          The Co-Founder writes a marketing plan for your business from the facts confirmed on the{" "}
+          ansa writes a marketing plan for your business from the facts confirmed on the{" "}
           <Link href="/cofounder/profile" className="underline">
             Profile page
           </Link>

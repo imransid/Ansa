@@ -9,7 +9,7 @@ import { ActivityList } from "../publishing/activity-list";
 import { JobList } from "../publishing/job-list";
 import { AutopublishRules } from "./autopublish-rules";
 
-export const metadata: Metadata = { title: "Queue - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Scheduled posts - ansa" };
 
 // "Publish now" and "Try again now" send the post right after the action's
 // answer, and a video's upload can take minutes: the host's default time
@@ -40,7 +40,7 @@ async function QueueContent() {
     <>
       <RefreshWhilePending isPending={queue.isBusy} />
       <section className="grid gap-3">
-        <h1 className="text-xl font-semibold">Publishing queue</h1>
+        <h1 className="text-xl font-semibold">Scheduled posts</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           Every post on its way to a social account, and what became of it. A post goes out at its time only while its
           draft is still the version an owner approved (or one an auto-publish rule covers), its account is connected and

@@ -98,7 +98,7 @@ export function ArticleAudienceFields({ useForSupport, useForMarketing }: { useF
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="useForMarketing" name="useForMarketing" defaultChecked={useForMarketing} />
-        <Label htmlFor="useForMarketing">Marketing: the AI Co-Founder&apos;s posts (not available yet)</Label>
+        <Label htmlFor="useForMarketing">Marketing: social media posts and plans written with the AI</Label>
       </div>
     </fieldset>
   );

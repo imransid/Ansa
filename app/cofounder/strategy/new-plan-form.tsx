@@ -64,7 +64,7 @@ export function NewPlanForm({ hasPlan }: { hasPlan: boolean }) {
       )}
       {/* Always in the page, so screen readers announce what is put in it. */}
       <div role="status" className="text-sm">
-        {isWriting && <p className="text-muted-foreground">The Co-Founder is writing the plan. This can take a few minutes.</p>}
+        {isWriting && <p className="text-muted-foreground">ansa is writing the plan. This can take a few minutes.</p>}
         {!isWriting && result?.ok && (
           <p className="rounded-lg border p-3">
             Version {result.version} is ready: it is now the{" "}

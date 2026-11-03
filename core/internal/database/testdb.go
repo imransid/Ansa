@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 )
@@ -33,28 +34,38 @@ func TestCompany(t *testing.T, pool *Pool) string {
 		t.Fatalf("making a test company: %v", err)
 	}
 	t.Cleanup(func() {
-		// Drafts point at media, media at the jobs that made them, and jobs
-		// at media and drafts: those links go first (as the old cleanup did).
-		for _, unlink := range []string{
-			`UPDATE content_drafts SET media_asset_id = NULL WHERE company_id = $1`,
-			`UPDATE media_generation_jobs SET asset_id = NULL, asset_deleted_at = now() WHERE company_id = $1 AND asset_id IS NOT NULL`,
-		} {
-			if _, err := pool.Exec(ctx, unlink, id); err != nil {
-				t.Errorf("unlinking media: %v", err)
-			}
-		}
-		// Children before parents (foreign keys), then the company. A table
-		// missing from the list shows here, not as rows left behind.
-		for _, table := range cleanupOrder {
-			if _, err := pool.Exec(ctx, `DELETE FROM `+table+` WHERE company_id = $1`, id); err != nil {
-				t.Errorf("cleaning %s: %v", table, err)
-			}
-		}
-		if _, err := pool.Exec(ctx, `DELETE FROM companies WHERE id = $1`, id); err != nil {
-			t.Errorf("cleaning the company (a table missing from cleanupOrder?): %v", err)
+		if err := DeleteTestCompany(ctx, pool, id); err != nil {
+			t.Errorf("cleaning the test company: %v", err)
 		}
 	})
 	return id
+}
+
+// DeleteTestCompany deletes a company a test made (TestCompany's, or one a
+// test signed up through core's API) with the rows the test made in core's
+// tables. Tests only: it deletes everything of that company.
+func DeleteTestCompany(ctx context.Context, pool *Pool, id string) error {
+	// Drafts point at media, media at the jobs that made them, and jobs at
+	// media and drafts: those links go first (as the old cleanup did).
+	for _, unlink := range []string{
+		`UPDATE content_drafts SET media_asset_id = NULL WHERE company_id = $1`,
+		`UPDATE media_generation_jobs SET asset_id = NULL, asset_deleted_at = now() WHERE company_id = $1 AND asset_id IS NOT NULL`,
+	} {
+		if _, err := pool.Exec(ctx, unlink, id); err != nil {
+			return fmt.Errorf("unlinking media: %w", err)
+		}
+	}
+	// Children before parents (foreign keys), then the company. A table
+	// missing from the list shows here, not as rows left behind.
+	for _, table := range cleanupOrder {
+		if _, err := pool.Exec(ctx, `DELETE FROM `+table+` WHERE company_id = $1`, id); err != nil {
+			return fmt.Errorf("cleaning %s: %w", table, err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `DELETE FROM companies WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("cleaning the company (a table missing from cleanupOrder?): %w", err)
+	}
+	return nil
 }
 
 // The tables a test company's rows are deleted from, children first. A fixed

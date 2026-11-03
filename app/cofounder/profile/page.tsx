@@ -7,7 +7,7 @@ import { ProfileCompletionSummary } from "../profile-completion";
 import { SuggestFromKnowledge } from "./suggest-from-knowledge";
 import { TopicCard } from "./topic-card";
 
-export const metadata: Metadata = { title: "Business profile - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Business profile - ansa" };
 
 // "Suggest facts from knowledge" asks Claude inside this page's server action
 // (up to 2 tries of 45 s): the host's default time limit can be as short as
@@ -39,7 +39,7 @@ async function ProfileContent() {
       <section className="grid gap-3">
         <h1 className="text-xl font-semibold">Business profile</h1>
         <p className="text-sm text-muted-foreground">
-          What the Co-Founder knows about your business, topic by topic. Key facts are the ones it needs before it can
+          What ansa knows about your business, topic by topic. Key facts are the ones it needs before it can
           help with your marketing; &ldquo;none&rdquo; or &ldquo;doesn&apos;t apply&rdquo; is a fine answer to many of them.
           Facts are your company&apos;s own information and are stored as plain text, like knowledge articles. The{" "}
           <Link href="/cofounder/interview" className="underline">

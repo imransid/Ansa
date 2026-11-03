@@ -7,7 +7,7 @@ import { requireSessionContext } from "@/lib/session";
 import { MissingFacts } from "../../missing-facts";
 import { NewDraftForm } from "./new-draft-form";
 
-export const metadata: Metadata = { title: "New draft - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "New draft - ansa" };
 
 // "Write it with the AI" asks Claude inside this page's server action (up
 // to about 4 minutes): the host's default time limit can be as short as 10
@@ -37,7 +37,7 @@ async function NewDraftContent() {
   return (
     <>
       <Link href="/cofounder/studio" className="text-sm hover:underline">
-        &larr; Content studio
+        &larr; Social media posts
       </Link>
       <section className="grid gap-2">
         <h1 className="text-xl font-semibold">New draft</h1>

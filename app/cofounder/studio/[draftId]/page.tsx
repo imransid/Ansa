@@ -79,7 +79,7 @@ async function DraftContent({ params }: Pick<PageProps<"/cofounder/studio/[draft
     <>
       <div className="grid gap-4">
         <Link href="/cofounder/studio" className="text-sm hover:underline">
-          &larr; Content studio
+          &larr; Social media posts
         </Link>
         <DraftSummary draft={draft} />
       </div>

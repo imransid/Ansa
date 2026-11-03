@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 
 // The website's home page (built ahead of step 58; rewritten on 2026-11-01
 // around the owner's core: ansa answers for you when you can't, for one
-// person or a business). Fully static. Every sentence about something not
-// built yet is marked "LAUNCH CHECK" in its section: step 58 checks each
-// before the site goes public.
+// person or a business). Fully static. It says only what works for someone
+// who signs up today: which channels do is one list
+// (lib/website-channels.ts), and the price comes from core's packages.
 export default function LandingPage() {
   return (
     <>

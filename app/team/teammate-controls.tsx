@@ -21,7 +21,7 @@ type RemoveTeammateButtonProps = {
 // Removing is destructive, so it uses the app's one confirm step.
 export function RemoveTeammateButton({ userId, name, emailConfirmed }: RemoveTeammateButtonProps) {
   const question = emailConfirmed
-    ? `Remove ${name}? Their open tickets go back to routing, LinkedIn profiles they connected for the Co-Founder are disconnected, and they lose access now.`
+    ? `Remove ${name}? Their open tickets go back to routing, LinkedIn profiles they connected for posts are disconnected, and they lose access now.`
     : `Remove ${name}? They never confirmed their email, so their account is deleted and the address can be invited again.`;
   return (
     <ConfirmButton
@@ -51,7 +51,7 @@ export function TeammateRoleButton({ userId, name, role }: TeammateRoleButtonPro
   const question =
     newRole === "owner"
       ? `Make ${name} an owner? Owners control ${OWNER_ONLY_CONTROLS}.`
-      : `Make ${name} a member? They will no longer control ${OWNER_ONLY_CONTROLS}. Invite links they created that nobody has used yet stop working, and LinkedIn profiles they connected for the Co-Founder are disconnected (posts there go out as them).`;
+      : `Make ${name} a member? They will no longer control ${OWNER_ONLY_CONTROLS}. Invite links they created that nobody has used yet stop working, and LinkedIn profiles they connected for posts are disconnected (posts there go out as them).`;
 
   if (!isConfirming) {
     return (

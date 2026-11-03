@@ -44,13 +44,16 @@ export function packageNotice(status: PackageStatus, now: Date): { tone: "attent
   return null;
 }
 
-// What a package includes, line by line, for the Billing page.
-export function packageLines(pkg: AnsaPackage): string[] {
+// What a package includes, line by line, for the Billing page ("app") and
+// the website's Pricing page ("website", step 58). The website names no
+// channel here: some aren't open to everyone yet, and its channel list
+// (lib/website-channels.ts) says which.
+export function packageLines(pkg: AnsaPackage, where: "app" | "website"): string[] {
   const lines = [
     `${pkg.aiReplies.toLocaleString("en")} AI replies a month`,
     `${pkg.callMinutes} minutes of calls a month`,
     pkg.teamMembers === 1 ? "1 person" : `Up to ${pkg.teamMembers} team members`,
-    pkg.messenger ? "WhatsApp, Telegram, Messenger and email" : "WhatsApp, Telegram and email",
+    where === "website" ? websiteChannelLine(pkg) : appChannelLine(pkg),
   ];
   if (pkg.orders) {
     lines.push("Orders with totals worked out by ansa");
@@ -61,4 +64,12 @@ export function packageLines(pkg: AnsaPackage): string[] {
     lines.push("\"Post for me\" up to 3 times a week");
   }
   return lines;
+}
+
+function appChannelLine(pkg: AnsaPackage): string {
+  return pkg.messenger ? "WhatsApp, Telegram, Messenger and email" : "WhatsApp, Telegram and email";
+}
+
+function websiteChannelLine(pkg: AnsaPackage): string {
+  return pkg.messenger ? "Every channel ansa answers on" : "Every channel but Facebook Messenger";
 }

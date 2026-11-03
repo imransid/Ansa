@@ -21,7 +21,7 @@ func (s *Server) registerCofounderStrategy(routes *http.ServeMux) {
 	routes.HandleFunc("GET /api/v1/cofounder/strategy", s.withSession(s.strategyPage))
 	routes.HandleFunc("GET /api/v1/cofounder/strategy/versions/{version}", s.withSession(s.strategyVersion))
 	routes.HandleFunc("POST /api/v1/cofounder/strategy/plan", s.withSession(s.makePlan))
-	routes.HandleFunc("POST /api/v1/cofounder/strategy/support-trends", s.withSession(s.ownersOnly("Only owners can change what the Co-Founder reads.", s.setSupportTrends)))
+	routes.HandleFunc("POST /api/v1/cofounder/strategy/support-trends", s.withSession(s.ownersOnly("Only owners can change what the marketing planner reads.", s.setSupportTrends)))
 }
 
 // strategyPage: GET, the current plan, the newest 50 versions, what a new
@@ -139,7 +139,7 @@ func (s *Server) setSupportTrends(w http.ResponseWriter, r *http.Request, body [
 	case err != nil:
 		s.failed(w, "support trends setting", err)
 	case outcome == profile.NotAllowed:
-		problem(w, http.StatusForbidden, "Only owners can change what the Co-Founder reads.")
+		problem(w, http.StatusForbidden, "Only owners can change what the marketing planner reads.")
 	default:
 		writeJSON(w, http.StatusOK, map[string]string{"outcome": outcome})
 	}

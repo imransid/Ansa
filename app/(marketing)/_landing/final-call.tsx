@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { ConciergeBell } from "lucide-react";
+import { WEBSITE_PACKAGES } from "@/lib/website-packages";
 
-// The last word: one line, one button (the same as the hero's).
-//
-// LAUNCH CHECK (step 58): "No card needed" holds while signup asks for none;
-// packages and limits (step 57) may change that.
+// The last word: one line, one button (the same as the hero's). The free
+// trial asks for no card (step 57).
 export function FinalCall() {
   return (
     <section className="bg-background">
@@ -20,7 +19,7 @@ export function FinalCall() {
         >
           Get started
         </Link>
-        <p className="text-sm text-muted-foreground">About five minutes. No card needed to look around.</p>
+        <p className="text-sm text-muted-foreground">Ready in about five minutes. {WEBSITE_PACKAGES.trialDays} days free, no card needed.</p>
       </div>
     </section>
   );

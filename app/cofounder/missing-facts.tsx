@@ -13,14 +13,14 @@ type MissingFactsProps = {
   children?: ReactNode;
 };
 
-// What the Co-Founder still needs before it can write a plan or a draft:
+// What ansa still needs before it can write a plan or a draft:
 // each missing fact, linked to its topic on the Profile page. Until they are
 // confirmed the AI is never asked: it could only guess.
 export function MissingFacts({ missing, isOwner, writes, children }: MissingFactsProps) {
   return (
     <div className="grid gap-2 rounded-lg border p-3 text-sm">
       <p>
-        {isOwner ? `Before the Co-Founder can write ${writes}, confirm` : `Before the Co-Founder can write ${writes}, an owner needs to confirm`}{" "}
+        {isOwner ? `Before ansa can write ${writes}, confirm` : `Before ansa can write ${writes}, an owner needs to confirm`}{" "}
         {missing.length === 1 ? "this fact" : "these facts"}:
       </p>
       <ul className="grid list-disc gap-1 pl-5">

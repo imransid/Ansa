@@ -1,0 +1,49 @@
+{
+  "trialDays": 14,
+  "trial": {
+    "key": "trial",
+    "name": "Free trial",
+    "priceUsd": 0,
+    "aiReplies": 150,
+    "callMinutes": 15,
+    "teamMembers": 3,
+    "orders": true,
+    "messenger": true,
+    "postForMe": "three_a_week"
+  },
+  "paid": [
+    {
+      "key": "personal",
+      "name": "Personal",
+      "priceUsd": 10,
+      "aiReplies": 300,
+      "callMinutes": 20,
+      "teamMembers": 1,
+      "orders": false,
+      "messenger": false,
+      "postForMe": "none"
+    },
+    {
+      "key": "business",
+      "name": "Business",
+      "priceUsd": 29,
+      "aiReplies": 1000,
+      "callMinutes": 60,
+      "teamMembers": 3,
+      "orders": true,
+      "messenger": true,
+      "postForMe": "three_a_week"
+    },
+    {
+      "key": "pro",
+      "name": "Pro",
+      "priceUsd": 79,
+      "aiReplies": 3000,
+      "callMinutes": 200,
+      "teamMembers": 10,
+      "orders": true,
+      "messenger": true,
+      "postForMe": "daily"
+    }
+  ]
+}

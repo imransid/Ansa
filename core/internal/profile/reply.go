@@ -3,7 +3,7 @@ package profile
 // What the interview says next (the old lib/cofounder/interview-reply.ts),
 // decided in code from the AI's turn and the profile. Pure.
 
-const introduction = "Hi! I'm your AI Co-Founder. To help with your marketing I first need to know your business, so I'll ask you some questions, one at a time. What you tell me becomes proposed facts, and nothing counts until an owner confirms it on the Profile page."
+const introduction = "Hi! I'm ansa's marketing planner. To help with your marketing I first need to know your business, so I'll ask you some questions, one at a time. What you tell me becomes proposed facts, and nothing counts until an owner confirms it on the Profile page."
 
 const openingWhenComplete = "Your profile already has every key fact. Is there anything about the business you'd like to add or change?"
 

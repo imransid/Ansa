@@ -11,7 +11,7 @@ export default function ContentDraftNotFound() {
         Your company has no draft at that address. The link may be mistyped or out of date.
       </p>
       <Link href="/cofounder/studio" className="text-sm underline">
-        &larr; Content studio
+        &larr; Social media posts
       </Link>
     </main>
   );

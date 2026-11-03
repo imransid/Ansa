@@ -6,7 +6,7 @@ import { getPlanVersionFromCore } from "@/lib/core-views/cofounder-strategy";
 import { requireSessionContext } from "@/lib/session";
 import { PlanView } from "../plan-view";
 
-export const metadata: Metadata = { title: "Plan version - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Plan version - ansa" };
 
 export default function PlanVersionPage({ params }: PageProps<"/cofounder/strategy/[version]">) {
   return (
@@ -53,7 +53,7 @@ async function PlanVersionContent({ params }: Pick<PageProps<"/cofounder/strateg
         </span>
       </nav>
       {/* As on the Strategy page: the page's heading, then the plan's own (an h2). */}
-      <h1 className="text-xl font-semibold">Marketing strategy</h1>
+      <h1 className="text-xl font-semibold">Marketing plan</h1>
       <p className="rounded-lg border p-3 text-sm">
         {isCurrent ? (
           "This is the current plan."

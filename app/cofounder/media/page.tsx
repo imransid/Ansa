@@ -13,7 +13,7 @@ import { MediaGrid } from "./media-grid";
 import { MediaUploadForm } from "./media-upload-form";
 import { RefreshWhilePending } from "@/components/refresh-while-pending";
 
-export const metadata: Metadata = { title: "Media - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Media library - ansa" };
 
 // An image is made right after the answer of this page's "Make it" (Next's
 // after()), within this page's time limit: the host's default can be as
@@ -46,9 +46,9 @@ async function MediaContent({ searchParams }: Pick<PageProps<"/cofounder/media">
         <h1 className="text-xl font-semibold">Media library</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           Images and videos for your posts, uploaded by your team or made by an AI image service. Attach them to drafts
-          in the{" "}
+          in{" "}
           <Link href="/cofounder/studio" className="underline">
-            content studio
+            Social media posts
           </Link>
           . Everything here is private to your company: files open only for people logged in to it.
         </p>

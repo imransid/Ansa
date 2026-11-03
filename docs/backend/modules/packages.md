@@ -48,6 +48,12 @@ tells owners (the free trial's days and end, replies at 80% and used up,
 no call minutes left), and Billing shows the package, this month's use and
 the packages to choose.
 
+**The website (step 58):** the public Pricing page is static and can't run
+Go, so it reads `website.json` (`website.go`: the trial's days, the trial
+and the paid packages). `website_test.go` fails when the file differs from
+`packages.go`; `make website-packages` writes it again. The screens' checks
+compare the page's packages with it too (`scripts/screen-checks/website-checks.ts`).
+
 **Tests:** `packages_test.go` (the trial, then nothing until a package is
 paid, kept while Stripe retries; AI replies stop at the limit, a new month
 starts again; call minutes count finished calls and the live one; team

@@ -1,10 +1,13 @@
+import { channelsInWords } from "@/lib/website-channels";
+import { lowestMonthlyPrice, WEBSITE_PACKAGES } from "@/lib/website-packages";
+
 // A few honest answers to what people ask before they hand their messages
 // to an assistant (rewritten 2026-11-01 for a person or a business), each
-// opening on its own (no script needed). The price isn't decided yet
-// (step 57), so the answer says only what is true today.
-//
-// LAUNCH CHECK (step 58): the channels (steps 53 and 55) and the price
-// (step 57) must be settled first.
+// opening on its own (no script needed). The channels come from the
+// website's one list (lib/website-channels.ts), the price from core's
+// packages (lib/website-packages.ts).
+const soonChannels = channelsInWords("soon");
+
 const QUESTIONS = [
   {
     question: "Will people think they're talking to me?",
@@ -26,11 +29,13 @@ const QUESTIONS = [
   },
   {
     question: "Which channels does it answer?",
-    answer:
-      "Telegram today, and email as notes. Calls, Facebook Messenger, WhatsApp Business and Instagram are next. A personal WhatsApp number or Facebook profile can’t be connected: WhatsApp and Meta don’t allow it.",
+    answer: `Today: ${channelsInWords("now")}.${soonChannels ? ` Coming soon: ${soonChannels}.` : ""} A personal WhatsApp number or Facebook profile can’t be connected: WhatsApp and Meta don’t allow it.`,
   },
   { question: "Is it only for businesses?", answer: "No. Choose “Just me” when you sign up, and it works as your personal assistant." },
-  { question: "What does it cost?", answer: "You see the price before you pay anything, and you can cancel at any time." },
+  {
+    question: "What does it cost?",
+    answer: `${WEBSITE_PACKAGES.trialDays} days free, with no card. Then from $${lowestMonthlyPrice()} a month: see Pricing. You can cancel at any time.`,
+  },
 ];
 
 export function Questions() {

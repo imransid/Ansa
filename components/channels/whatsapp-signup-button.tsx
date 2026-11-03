@@ -60,7 +60,9 @@ function loadSDK(appId: string): Promise<FacebookSDK> {
   }
   sdkLoading = new Promise((resolve, reject) => {
     scope.fbAsyncInit = () => {
-      scope.FB?.init({ appId, autoLogAppEvents: true, xfbml: true, version: GRAPH_VERSION });
+      // No automatic app events: the sign-up doesn't need them, and ansa sends
+      // Meta nothing it doesn't need (step 58, the privacy policy).
+      scope.FB?.init({ appId, autoLogAppEvents: false, xfbml: true, version: GRAPH_VERSION });
       if (scope.FB) {
         resolve(scope.FB);
       }

@@ -4,9 +4,7 @@ import { Building2, Check, UserRound } from "lucide-react";
 // "One assistant, two ways to use it" (2026-11-01): ansa for one person (a
 // shadow while they're away) and for a business (a front desk that never
 // closes), side by side, so every visitor finds themselves in one of them.
-//
-// LAUNCH CHECK (step 58): taking orders works in chats (step 52); the
-// channels named (steps 53 and 55) must work before this goes public.
+// Every point works today; the channels are named only in "Where it answers".
 const WAYS = [
   {
     icon: UserRound,
@@ -30,7 +28,7 @@ const WAYS = [
       "Takes orders, with every total worked out by ansa, never by the AI.",
       "Complaints and refunds go straight to you, with a polite reply meanwhile.",
       "Hands each request to the right person on your team.",
-      "One inbox for chats, calls and emails.",
+      "One inbox for every conversation, request and order.",
     ],
     cta: "Set up ansa for my business",
   },

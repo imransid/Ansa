@@ -7,7 +7,7 @@ import { accountsPageResultSchema } from "@/lib/validation/social";
 import { ConnectResultMessage } from "./connect-result-message";
 import { PlatformSection } from "./platform-section";
 
-export const metadata: Metadata = { title: "Accounts - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Social media accounts - ansa" };
 
 export default function AccountsPage({ searchParams }: PageProps<"/cofounder/accounts">) {
   return (
@@ -34,11 +34,12 @@ async function AccountsContent({ searchParams }: Pick<PageProps<"/cofounder/acco
   return (
     <>
       <section className="grid gap-2">
-        <h1 className="text-xl font-semibold">Social accounts</h1>
+        <h1 className="text-xl font-semibold">Social media accounts</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          The accounts the Co-Founder will publish your posts to. It only ever publishes drafts an owner approved in the{" "}
+          The accounts ansa publishes your posts to. It publishes only what an owner approved, or let ansa post on its
+          own, in{" "}
           <Link href="/cofounder/studio" className="underline">
-            content studio
+            Social media posts
           </Link>
           . Connecting opens the platform&apos;s own page, where you say what ansa may do; the access it gives is stored
           encrypted and never shown to anyone.

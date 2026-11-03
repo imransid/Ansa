@@ -8,9 +8,10 @@ import { getCoFounderOverviewFromCore } from "@/lib/core-views/cofounder-overvie
 import { requireSessionContext } from "@/lib/session";
 import type { CoFounderNextStep, CoFounderOverview } from "@/lib/types/cofounder-overview";
 import { GettingStartedChecklist } from "./getting-started";
+import { PlannerPages } from "./planner-pages";
 import { ProfileCompletionSummary } from "./profile-completion";
 
-export const metadata: Metadata = { title: "Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Marketing planner - ansa" };
 
 export default function CoFounderPage() {
   return (
@@ -24,8 +25,9 @@ export default function CoFounderPage() {
   );
 }
 
-// What the Co-Founder does, how complete the business profile is, and what
-// to do next (step 36). Real counts only.
+// The Marketing planner (the Co-Founder's Overview of step 36, renamed in
+// step 58): what it does, how complete the business profile is, what to do
+// next, and every marketing page. Real counts only.
 async function OverviewContent() {
   const session = await requireSessionContext("/cofounder");
   const overview = await getCoFounderOverviewFromCore();
@@ -37,14 +39,16 @@ async function OverviewContent() {
   return (
     <>
       <section className="grid gap-3">
-        <h1 className="text-xl font-semibold">Co-Founder</h1>
+        <h1 className="text-xl font-semibold">Marketing planner</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Your AI Co-Founder is here to help with your marketing, and it starts with what it needs most: the facts about
-          your business. Answer its interview one question at a time, or fill in the profile yourself. What the AI reads
-          from an answer or a knowledge article is only a proposal until an owner confirms it; only confirmed facts
-          count, and the marketing plan is made from them.
+          ansa helps you plan your marketing, and it starts with what it needs most: the facts about your business.
+          Answer its interview one question at a time, or fill in the profile yourself. What the AI reads from an answer
+          or a saved answer is only a proposal until an owner confirms it; only confirmed facts count, and the marketing
+          plan and the posts are made from them.
         </p>
       </section>
+
+      <PlannerPages />
 
       <section className="grid gap-3">
         <h2 className="text-lg font-semibold">Getting started</h2>
@@ -84,7 +88,7 @@ async function OverviewContent() {
   );
 }
 
-// Where the marketing plan stands (step 37), with the way to the Strategy page.
+// Where the marketing plan stands (step 37), with the way to the Marketing plan page.
 function StrategyStatus({ strategy, canMakePlans }: { strategy: CoFounderOverview["strategy"]; canMakePlans: boolean }) {
   const { currentPlan, missingForPlan } = strategy;
   if (currentPlan) {
@@ -104,7 +108,7 @@ function StrategyStatus({ strategy, canMakePlans }: { strategy: CoFounderOvervie
       <p className="text-sm text-muted-foreground">
         No plan yet. A plan needs these facts confirmed first: {missingForPlan.map((fact) => fact.label).join(", ")}. See{" "}
         <Link href="/cofounder/strategy" className="underline">
-          the Strategy page
+          the Marketing plan page
         </Link>
         .
       </p>
@@ -116,7 +120,7 @@ function StrategyStatus({ strategy, canMakePlans }: { strategy: CoFounderOvervie
         No plan yet: the profile has what a plan needs.{canMakePlans ? "" : " An owner can make the first one."}
       </p>
       <Link href={canMakePlans ? "/cofounder/strategy#new-plan" : "/cofounder/strategy"} className={buttonVariants({ size: "sm", variant: "outline" })}>
-        {canMakePlans ? "Make the first plan" : "Open the Strategy page"}
+        {canMakePlans ? "Make the first plan" : "Open the Marketing plan page"}
       </Link>
     </div>
   );

@@ -9,6 +9,6 @@ export const site = {
   contactEmail: "[contact email]",
   // The country (or state) whose laws govern the terms.
   governingLaw: "[country]",
-  legalPagesUpdatedOn: "17 October 2026",
+  legalPagesUpdatedOn: "3 November 2026",
   legalPagesReviewed: false,
 };

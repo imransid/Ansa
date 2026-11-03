@@ -6,7 +6,7 @@ import { requireSessionContext } from "@/lib/session";
 import { CalendarDays } from "./calendar-days";
 import { PlanWeeksForm } from "./plan-weeks-form";
 
-export const metadata: Metadata = { title: "Calendar - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Calendar - ansa" };
 
 // "Plan the next 2 weeks" asks Claude inside this page's server action (up
 // to about 3 minutes): the host's default time limit can be as short as 10

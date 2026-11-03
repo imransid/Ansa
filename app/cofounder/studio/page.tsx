@@ -10,9 +10,10 @@ import { requireSessionContext } from "@/lib/session";
 import { parseContentDraftListQuery, type ContentDraftListQuery } from "@/lib/validation/list-queries";
 import { DraftTable } from "./draft-table";
 import { StudioFilters } from "./studio-filters";
+import { StudioLinks } from "./studio-links";
 import { StudioListEmpty } from "./studio-list-empty";
 
-export const metadata: Metadata = { title: "Studio - Co-Founder - ansa" };
+export const metadata: Metadata = { title: "Social media posts - ansa" };
 
 export default function StudioPage({ searchParams }: PageProps<"/cofounder/studio">) {
   return (
@@ -41,21 +42,21 @@ async function StudioContent({ searchParams }: Pick<PageProps<"/cofounder/studio
   return (
     <section className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Content studio</h1>
+        <h1 className="text-xl font-semibold">Social media posts</h1>
         <Link href="/cofounder/studio/new" className={buttonVariants({ size: "sm" })}>
           New draft
         </Link>
       </div>
+      <StudioLinks />
       <p className="max-w-3xl text-sm text-muted-foreground">
         Posts for LinkedIn, Facebook, X and YouTube, each written for its platform by the AI from your confirmed facts, or
         by your team. Every draft is checked against the platform&apos;s rules and your words to avoid, and lists the
         claims it makes about your business.{" "}
-        {canReviewContentDrafts(session.role)
-          ? "Nothing is published without an owner's approval."
-          : "Nothing is published without an owner's approval: owners approve or reject drafts."}{" "}
-        An approved draft is scheduled from its page, and goes out through the{" "}
+        {canReviewContentDrafts(session.role) ? "You approve" : "Owners approve"} each draft before it is scheduled from its
+        page, unless an owner lets ansa post on its own (&ldquo;Posts for me&rdquo;, or an auto-publish rule). Scheduled
+        posts go out from{" "}
         <Link href="/cofounder/queue" className="underline">
-          queue
+          Scheduled posts
         </Link>
         .
       </p>

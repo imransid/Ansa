@@ -27,6 +27,14 @@ From `core/`: `make check` (formatting, `go vet`, every test; one folder:
 local database of its own (`ansa_test`), never the one a running core uses;
 `.env.core.example` says how to make it. The tests that answer for Telegram
 with a fake refuse to run while TELEGRAM_BOT_TOKEN is set.
+`cmd/core/journey_test.go` drives core as `main` puts it together
+(`assemble`): one business from signup to its first order and post, a fake
+brain and a fake Telegram API, and a second business that finds none of it.
+
+After changing a package's name, price or limits
+(`internal/packages/packages.go`), run `make website-packages`: it writes
+`internal/packages/website.json`, which the website's Pricing page reads
+(the tests fail until then).
 
 ## Commands
 Run from `core/` (`make <target>`, or `go run ./cmd/operator ...` /

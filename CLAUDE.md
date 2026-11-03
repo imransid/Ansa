@@ -1648,16 +1648,20 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   lists by kind: a business's "Your assistant" (Assistant, Channels, What
   it knows, Menu and prices), "More tools" (Social media posts and
   accounts, Saved answers = Knowledge, Phone, email and documents), "Team
-  and account", Log out, and the older marketing pages folded in a
-  <details>; a person's "Your assistant" (Assistant, Channels, About you,
+  and account" and Log out; a person's "Your assistant" (Assistant, Channels, About you,
   Saved answers, Email forwarding) and "Account" only. Only the sidebar's foot
   ("who you are": company, address, Account, Log out) reads the session,
   inside <Suspense>, at one fixed height (names cut short with "..."), the
   same as its placeholder, so nothing moves when the session arrives. A
   phone has no sidebar: Settings lists Account and Log out, Billing
-  (owners), and every page the sidebar doesn't link (the Co-Founder's other
-  pages under "Older pages" until step 58; a person's account doesn't list
-  the marketing pages); the Inbox links Calls and Emails. An error boundary sits beside the sidebar
+  (owners), and every page the sidebar doesn't link (a person's account
+  doesn't list the marketing pages); the Inbox links Calls and Emails, and
+  (step 58) Social media posts links its Media library, Scheduled posts and
+  the Marketing planner (/cofounder), which lists every marketing page with
+  a line each (lib/cofounder/pages.ts, app/cofounder/planner-pages.tsx).
+  The Co-Founder's pages are called by what they do on screen (Marketing
+  planner, Business profile, Marketing plan, Scheduled posts, How posts
+  did, Social media accounts), never "Co-Founder". An error boundary sits beside the sidebar
   (components/page-error-boundary.tsx, Next's catchError), so it stays
   when a page or a server action fails. Pages never render the navigation,
   and each has its own h1 (the sidebar has none; a check reads every
@@ -2287,6 +2291,20 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     language en / bn / auto, development only, locked down like Claude
     Code: WHISPER_MODEL_PATH, WHISPER_CLI_PATH). 30 calls and 300 turns an
     hour per company.
+- The public website (step 58, app/(marketing)): fully static, and it says
+  only what works for someone who signs up today. Prices and limits come
+  from core: core/internal/packages/website.json, which core's test keeps
+  equal to packages.go (after changing a package: make website-packages
+  from core/, then check the Pricing page) and the screens' checks read
+  (lib/website-packages.ts); never type a price into a page. Which channels
+  work is ONE list, lib/website-channels.ts ("now" or "soon"), read by the
+  home page's "Where it answers", "How it works", its questions and
+  Pricing; a channel becomes "now" only once real customers can use it
+  (docs/going-live.md, section 15). The privacy policy and the terms
+  describe what the code does: a new outside service or kind of data
+  changes them in the same change (app/(marketing)/privacy/who-helps.tsx
+  names every service, and a check reads it). No "LAUNCH CHECK" notes (a
+  check refuses them).
 - A GET route handler that reads no params is prerendered at BUILD time unless it
   calls `await connection()` first; lib/core-api.ts does that for every call
   to core, so nothing that asks core is built ahead. Check the build output:
@@ -3391,9 +3409,9 @@ this order and is done on the laptop, deploying aside
 - Navigation (step 44; three sections since the "easy to use" pass): the
   sidebar links Home, Inbox and Settings only (and Orders for a business
   that takes orders). Calls and Emails are reached from the Inbox, and the
-  Co-Founder's Overview, Interview, Profile, Strategy, Calendar, Queue and
-  Analytics from Settings → "Older pages" (folded), until step 58 moves or
-  removes them. A bookmark of the old ticket list (/dashboard?view=...)
+  marketing pages (step 58) from Settings → Social media posts → Marketing
+  planner: three taps on a phone, kept on purpose (the owner chose to keep
+  them, not to put them in front). A bookmark of the old ticket list (/dashboard?view=...)
   opens Home, which ignores the view. On a phone there is no logo or
   company name on screen (the bottom bar has only the sections).
 - Business overview (step 43): a count stops at "10,000+" (the list it
@@ -3424,24 +3442,35 @@ this order and is done on the laptop, deploying aside
   export. Removing a company or a person's data on request is done by hand
   in the database.
 - The end-to-end journey check (step 43, journey-checks.ts) was deleted with
-  the old backend's checks (Phase 8): core's and the brain's tests prove
-  each module on its own (a fake brain, the stand-in account, simulated
-  numbers), and nothing walks one company from signup to a checked review
-  any more. None of them proves Anthropic's answers, a platform's API or a
-  real phone call (each BLOCKED on its account, IMPLEMENTATION_PLAN.md's
-  acceptance checklist).
+  the old backend's checks (Phase 8); since step 58 core's
+  cmd/core/journey_test.go walks one business through core as the server
+  runs it (assemble, the same wiring as main): signup and the emailed link,
+  setup, Telegram connected by a code, a question answered, an order priced
+  by ansa, confirmed, accepted, sent and done, and a "Post for me" post
+  published on a stand-in Page; a second business finds none of it and
+  can't take the first one's Telegram account. Its brain and Telegram are
+  fakes: it proves core, not Anthropic's answers, Telegram, Meta or a real
+  phone call (each BLOCKED on its account, IMPLEMENTATION_PLAN.md's
+  acceptance checklist). The marketing planner's interview, plans and
+  reviews, calls, email and WhatsApp aren't on its path (each module's own
+  tests prove them).
 
 ## Before launch (not code)
 - Fill in lib/site.ts: registered company name, contact email, governing law.
 - Have a lawyer review app/(marketing)/privacy and terms, then set
   legalPagesReviewed: true (that removes the "draft" notice).
-- Pricing is decided (step 57, core/internal/packages): make the three
-  Stripe prices (docs/going-live.md, section 6) and show the packages on
-  app/(marketing)/pricing (step 58). Choose the payment provider: Stripe
+- Pricing is decided (step 57, core/internal/packages) and the website's
+  Pricing page shows it (step 58): make the three Stripe prices
+  (docs/going-live.md, section 6). Choose the payment provider: Stripe
   isn't available to a company registered in Bangladesh (Paddle or Lemon
   Squeezy for cards abroad, SSLCommerz or bKash for taka: one door, as for
-  the phone).
-- Name the hosting provider in the privacy policy once chosen.
+  the phone); Pricing, the privacy policy and the terms name Stripe, so
+  change them with it.
+- Name the hosting provider in the privacy policy once chosen, and the
+  phone provider once chosen (it names Vapi, the only one in the code).
+- Switch each channel to "now" in lib/website-channels.ts only once it works
+  for real customers (WhatsApp Business and Messenger after Meta's review,
+  phone calls with a phone provider): docs/going-live.md, section 15.
 - Work through docs/going-live.md.
 
 For the Co-Founder (docs/going-live.md, sections 5, 7, 8, 10 and 11):
@@ -4360,4 +4389,24 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   _PRO), a package changed in Stripe's portal. Migration 0051_packages
   (companies.trial_ends_at, company_billing.package, usage_months, the two
   handover reasons); no new dependency.
-
+- 2026-11-03: Step 58, the website, the hidden pages and final checks (the
+  owner's yes, with the old marketing pages kept). The website's Pricing
+  page shows the free trial and the three packages from core's own numbers
+  (core/internal/packages/website.json, kept equal to packages.go by core's
+  test, make website-packages), and every page of the website says only
+  what works today: which channels do is one list
+  (lib/website-channels.ts: Telegram and email now; WhatsApp Business,
+  Messenger, phone calls and Instagram soon, until Meta's review and a
+  phone provider), and the LAUNCH CHECK notes are gone (a check refuses
+  them). The privacy policy and the terms were rewritten for ansa as it is
+  (chats, orders, calls, posts, packages, every outside service); Meta's
+  sign-up script no longer logs app events (autoLogAppEvents false). The
+  "Older pages" fold is gone: Social media posts (the studio) links its
+  Media library, Scheduled posts and the Marketing planner (the old
+  Co-Founder Overview), which lists every marketing page; no screen says
+  "Co-Founder" any more (the interview introduces itself as ansa's
+  marketing planner). Core's start-up became one function, assemble
+  (cmd/core/assemble.go), so a journey test (cmd/core/journey_test.go)
+  runs the same wiring: one business from signup to its first order and
+  post, a second finding none of it. No migration, no new setting or
+  package.

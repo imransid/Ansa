@@ -18,6 +18,7 @@ and change it safely.
   ```
   core/
     cmd/core/main.go           starts the service
+    cmd/core/assemble.go       puts its parts together (main and the journey test)
     internal/<module>/         one folder per module
       <module>.go              the module's main functions
       <module>_test.go         its tests

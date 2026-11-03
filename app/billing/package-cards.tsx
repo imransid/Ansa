@@ -32,7 +32,7 @@ export function PackageCards({ billing }: { billing: BillingView }) {
               </p>
             </div>
             <ul className="grid gap-1 text-sm">
-              {packageLines(pkg).map((line) => (
+              {packageLines(pkg, "app").map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>

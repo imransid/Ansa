@@ -5,7 +5,6 @@ import { ChevronRight, LogOut } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
-import { COFOUNDER_PAGES } from "@/lib/cofounder/pages";
 import { getSetupStateFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
 
@@ -31,7 +30,9 @@ const PERSONAL_ASSISTANT_LINKS: SettingsLink[] = [
   { href: "/setup", label: "Email forwarding", description: "Forward your email to ansa: each email becomes a note in your inbox." },
 ];
 
-// The rest of a business's tools, one click further.
+// The rest of a business's tools, one click further. Social media posts
+// leads on to the media library, the scheduled posts and the Marketing
+// planner (step 58: the pages "Older pages" held until then).
 const MORE_LINKS: SettingsLink[] = [
   { href: "/cofounder/studio", label: "Social media posts", description: "Posts for Facebook, LinkedIn, X and YouTube, written with ansa and approved by you." },
   { href: "/cofounder/accounts", label: "Social media accounts", description: "The accounts your posts go to." },
@@ -44,13 +45,6 @@ const ACCOUNT_LINK: SettingsLink = { href: "/account", label: "Your account", de
 
 // Only owners see billing: core refuses members anyway.
 const BILLING_LINK: SettingsLink = { href: "/billing", label: "Billing", description: "Your subscription and payments." };
-
-// The Co-Founder's pages the sidebar no longer links (step 44): everything
-// but the studio and media library and the accounts (above). Step 58
-// removes them or gives them a place; until then they wait, folded away.
-const OLDER_LINKS: SettingsLink[] = COFOUNDER_PAGES.filter((page) => !["studio", "media", "accounts"].includes(page.segment ?? "")).map(
-  (page) => ({ href: page.href, label: page.label, description: "Marketing helper, from before the redesign." }),
-);
 
 // Settings (step 44): a short list of the pages that set ansa up. Log out is
 // here too, because a phone has no sidebar.
@@ -85,12 +79,6 @@ async function SettingsLists() {
       <SettingsGroup title="More tools" links={MORE_LINKS} />
       <SettingsGroup title="Team and account" links={[TEAM_LINK, ACCOUNT_LINK, ...billing]} />
       <LogOutButton />
-      <details className="group grid gap-2">
-        <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">Older pages</summary>
-        <div className="mt-2">
-          <SettingsGroup title="Marketing helper" links={OLDER_LINKS} />
-        </div>
-      </details>
     </>
   );
 }

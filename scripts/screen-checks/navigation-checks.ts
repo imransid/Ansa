@@ -37,7 +37,7 @@ const SECTION_OF_FOLDER: Record<string, string> = {
 const FRAMELESS_FOLDERS = ["welcome"];
 
 export async function runNavigationChecks() {
-  await check("navigation: the sidebar and the phone's bar list Home, Inbox and Settings in that order, each needing a login; every signed-in section's layout names its section; Settings and the Inbox link every page the sidebar doesn't", async () => {
+  await check("navigation: the sidebar and the phone's bar list Home, Inbox and Settings in that order, each needing a login; every signed-in section's layout names its section; Settings and the Inbox link every page the sidebar doesn't, and the marketing pages are linked from Social media posts and the Marketing planner", async () => {
     const links = withoutComments(await read("components/section-links.tsx"));
     const sections = links.slice(links.indexOf("export const APP_SECTIONS"), links.indexOf("];", links.indexOf("export const APP_SECTIONS")));
     assert.deepEqual(fieldIn(sections, "label"), ["Home", "Inbox", "Settings"]);
@@ -60,8 +60,19 @@ export async function runNavigationChecks() {
     for (const href of ["/setup", "/knowledge", "/cofounder/studio", "/cofounder/accounts", "/team", "/account", "/billing"]) {
       assert.ok(settings.includes(`href: "${href}"`), `Settings doesn't link ${href}`);
     }
-    assert.match(settings, /COFOUNDER_PAGES\.filter\(\(page\) => !\["studio", "media", "accounts"\]\.includes\(page\.segment \?\? ""\)\)/);
-    assert.ok(COFOUNDER_PAGES.some((page) => page.segment === "studio") && COFOUNDER_PAGES.some((page) => page.segment === "media"));
+    // Step 58: no "Older pages". Social media posts links its media library,
+    // its scheduled posts and the Marketing planner, which lists every
+    // marketing page: each one is reachable on a phone.
+    assert.ok(!settings.includes("Older pages") && !settings.includes("COFOUNDER_PAGES"), "Settings still folds the older pages away");
+    const studioLinks = withoutComments(await read("app/cofounder/studio/studio-links.tsx"));
+    assert.match(studioLinks, /const NEXT_SEGMENTS: \(string \| null\)\[\] = \["media", "queue", null\];/);
+    assert.match(withoutComments(await read("app/cofounder/studio/page.tsx")), /<StudioLinks \/>/);
+    const plannerPages = withoutComments(await read("app/cofounder/planner-pages.tsx"));
+    assert.match(plannerPages, /const PAGES = COFOUNDER_PAGES\.filter\(\(page\) => page\.segment !== null\);/);
+    assert.match(withoutComments(await read("app/cofounder/page.tsx")), /<PlannerPages \/>/);
+    for (const segment of ["interview", "profile", "strategy", "studio", "media", "calendar", "queue", "analytics", "accounts"]) {
+      assert.ok(COFOUNDER_PAGES.some((page) => page.segment === segment && page.href === `/cofounder/${segment}` && page.description.length > 0), `the planner doesn't list ${segment}`);
+    }
     const inbox = withoutComments(await read("app/inbox/page.tsx"));
     for (const href of ["/calls", "/emails", "/tickets/new"]) {
       assert.ok(inbox.includes(`href="${href}"`), `the Inbox doesn't link ${href}`);

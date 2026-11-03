@@ -1,14 +1,19 @@
+import { channelsInWords } from "@/lib/website-channels";
+
 // "How it works": three steps on paper, numbered in the display serif, under
-// a brass rule (rewritten 2026-11-01 for a person or a business).
-//
-// LAUNCH CHECK (step 58): the channels named in step 2 must work (Telegram
-// does; email replies, calls and Messenger: steps 53 and 55).
+// a brass rule (rewritten 2026-11-01 for a person or a business). Step 2
+// names the channels from the website's one list (lib/website-channels.ts).
+const soonChannels = channelsInWords("soon");
+
 const STEPS = [
   {
     title: "Tell ansa who you are",
     text: "Your details, your prices or menu, and what it may say for you. About five minutes, and a photo of a menu is enough.",
   },
-  { title: "Connect where people reach you", text: "Telegram today, with the account people already write to. Email, calls and Messenger next." },
+  {
+    title: "Connect where people reach you",
+    text: `${capitalized(channelsInWords("now"))} today, with the accounts people already write to.${soonChannels ? ` ${capitalized(soonChannels)} soon.` : ""}`,
+  },
   {
     title: "It answers when you can't",
     text: "On its own or asking you first, always or only while you're away. Anything it isn't sure of comes straight to you.",
@@ -32,4 +37,8 @@ export function HowItWorks() {
       </div>
     </section>
   );
+}
+
+function capitalized(words: string): string {
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

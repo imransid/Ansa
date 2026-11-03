@@ -12,6 +12,7 @@ import { runNavigationChecks } from "./screen-checks/navigation-checks";
 import { runPageHeadingChecks } from "./screen-checks/page-heading-checks";
 import { runSocialPageChecks } from "./screen-checks/social-page-checks";
 import { runUiPolishChecks } from "./screen-checks/ui-polish-checks";
+import { runWebsiteChecks } from "./screen-checks/website-checks";
 
 async function main() {
   await runPageHeadingChecks();
@@ -23,6 +24,7 @@ async function main() {
   await runSocialPageChecks();
   await runContentRulesChecks();
   await runContentRulesVectorChecks();
+  await runWebsiteChecks();
   const failures = getFailureCount();
   console.log(failures === 0 ? "\nAll screen checks passed." : `\n${failures} screen check(s) failed.`);
   process.exit(failures === 0 ? 0 : 1);

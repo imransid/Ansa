@@ -123,7 +123,7 @@ export function NewDraftForm({ planChoices, aiCanWrite }: NewDraftFormProps) {
       </div>
       {planChoices.planVersion === null ? (
         <p className="text-sm text-muted-foreground">
-          No marketing plan yet: once there is one on the Strategy page, a draft can follow one of its content pillars
+          No marketing plan yet: once there is one on the Marketing plan page, a draft can follow one of its content pillars
           and campaigns.
         </p>
       ) : (

@@ -5,7 +5,7 @@ import type { InterviewMessage } from "@/lib/types/onboarding-turn";
 import { cn } from "@/lib/utils";
 
 // The interview so far (step 36), oldest first and the newest at the bottom,
-// like a chat: the Co-Founder's questions on the left, the owners' answers
+// like a chat: ansa's questions on the left, the owners' answers
 // on the right. Before the first answer it shows the opening question, which
 // is saved together with that answer.
 export function Conversation({ interview }: { interview: Interview }) {
@@ -23,7 +23,7 @@ export function Conversation({ interview }: { interview: Interview }) {
         ))}
         {interview.opening && (
           <li className={bubbleClass(false)}>
-            <p className="text-xs font-medium">Co-Founder</p>
+            <p className="text-xs font-medium">ansa</p>
             <p className="whitespace-pre-wrap wrap-anywhere">{interview.opening.text}</p>
           </li>
         )}
@@ -43,7 +43,7 @@ function MessageItem({ message }: { message: InterviewMessage }) {
   return (
     <li className={bubbleClass(fromOwner)}>
       <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{fromOwner ? (message.authorName ?? "An owner") : "Co-Founder"}</span>
+        <span className="font-medium text-foreground">{fromOwner ? (message.authorName ?? "An owner") : "ansa"}</span>
         <LocalDateTime iso={message.createdAt.toISOString()} />
       </p>
       {message.unreadable ? (

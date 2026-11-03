@@ -1,9 +1,7 @@
 // "It knows when to call you" (forest; rewritten 2026-11-01 for a person or
 // a business): what ansa will not do on its own, which is what anyone fears
 // most about an AI talking to the people in their life or their customers.
-//
-// LAUNCH CHECK (step 58): every promise here works in chats today (steps
-// 49-52: totals worked out by ansa since step 52).
+// Every promise here is what ansa does in chats today (steps 49 to 52).
 const PROMISES = [
   { title: "It says it’s an AI.", text: "Its first message says it is your AI assistant. It never pretends to be you." },
   { title: "It never speaks out of turn.", text: "No meetings, money, promises or decisions for you. Those become notes." },

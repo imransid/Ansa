@@ -45,7 +45,7 @@ func TestTheFirstAnswerSavesTheOpeningTheAnswerAndTheReplyWithItsProposals(t *te
 	for _, message := range interview.Messages {
 		texts = append(texts, message.Author+": "+*message.Text)
 	}
-	if len(texts) != 3 || !strings.HasPrefix(texts[0], "assistant: Hi! I'm your AI Co-Founder.") || !strings.HasSuffix(texts[0], Topics[0].Question) ||
+	if len(texts) != 3 || !strings.HasPrefix(texts[0], "assistant: Hi! I'm ansa's marketing planner.") || !strings.HasSuffix(texts[0], Topics[0].Question) ||
 		texts[1] != "owner: We are Luigi's." || texts[2] != "assistant: What do you sell?" || interview.Opening != nil || interview.Finished {
 		t.Fatalf("messages: %v", texts)
 	}
