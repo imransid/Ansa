@@ -8,7 +8,6 @@ import (
 
 	"regexp"
 	"strings"
-	"unicode"
 )
 
 // Why a proposed reply is stopped (then the holding reply goes out instead).
@@ -29,12 +28,14 @@ type CheckData struct {
 // The same marks, amounts and words as the old lib/assistant/reply-checks.ts,
 // and taka as Bangladesh writes it: "Tk 450", "Tk. 450", "450 Tk" and
 // "৪৫০ টাকা". টাকা goes without \b, which knows only ASCII letters, and
-// keeps its endings ("৩০০ টাকায়": for 300 taka).
+// keeps its endings ("৩০০ টাকায়": for 300 taka). An amount may be grouped
+// the South Asian way ("1,50,000", tried first: in groups of three it would
+// be read as "1,50") or in thousands ("15,000", "1 200", "1.040,50").
 const (
 	symbols = "€$£¥₹৳₺₽₩₪₫฿₱₦₴₸₭"
 	codes   = "EUR|USD|GBP|CHF|JPY|INR|BDT|TRY|RUB|KRW|ILS|VND|THB|PHP|NGN|UAH|KZT|SEK|NOK|DKK|PLN|BRL|CAD|AUD|NZD|MXN|AED|SAR|ZAR|CNY|HKD|SGD|MYR|IDR|PKR|EGP|CZK|HUF|RON"
 	words   = "euros?|dollars?|pounds?|taka|rupees?|francs?|yen|lira|kr|zł|złoty"
-	amount  = `\d{1,3}(?:[ .,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?`
+	amount  = `\d{1,2}(?:[ .,]\d{2})+[ .,]\d{3}(?:[.,]\d{1,2})?|\d{1,3}(?:[ .,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?`
 )
 
 var (
@@ -64,13 +65,16 @@ func CheckReply(text string, data CheckData) string {
 }
 
 // MoneyAmounts lists the amounts written with a currency mark, in smallest
-// units; -1 for one that can't be read as a price of this currency.
+// units; -1 for one that can't be read as a price of this currency. Each is
+// read as the menu's own prices are (money.ParsePrice: "15,000" is fifteen
+// thousand, "1,50,000" a hundred and fifty thousand), so a price the owner
+// wrote reads the same in a reply.
 func MoneyAmounts(text, currency string) []int64 {
-	text = WithASCIIDigits(text)
+	text = money.WithASCIIDigits(text)
 	var amounts []int64
 	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
 		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
-			amounts = append(amounts, money.ParsePrice(withoutThousandsSeparators(match[1]), currency))
+			amounts = append(amounts, money.ParsePrice(match[1], currency))
 		}
 	}
 	return amounts
@@ -106,41 +110,6 @@ func linksAreKnown(text string, ownerTexts []string) bool {
 		}
 	}
 	return true
-}
-
-// WithASCIIDigits writes every script's decimal digits as 0-9 ("৳৩০০" is
-// "৳300"): RE2's \d and money.ParsePrice read 0-9 only, so a price written
-// in Bengali digits passed the checks unread. Unicode keeps each script's
-// digits in a row from 0 to 9, so a digit's value is how far it sits from
-// its row's zero (modulo 10: some rows follow each other, like the five of
-// mathematical digits).
-func WithASCIIDigits(text string) string {
-	return strings.Map(func(r rune) rune {
-		if !unicode.IsDigit(r) {
-			return r
-		}
-		zero := r
-		for unicode.IsDigit(zero - 1) {
-			zero--
-		}
-		return '0' + (r-zero)%10
-	}, text)
-}
-
-// groupedAmount is an amount written in groups of three digits ("15,000",
-// "1 200", "1.040,50", "1,040.00"), with its decimals apart.
-var groupedAmount = regexp.MustCompile(`^(\d{1,3}(?:[ .,]\d{3})+)([.,]\d{1,2})?$`)
-
-// withoutThousandsSeparators writes a grouped amount as one number
-// ("15,000" is 15000, "1.040,50" is 1040,50), so a price over a thousand
-// reads as itself: "15,000" read as 15 with three decimals was no price at
-// all, and stopped every reply naming one (found in step 58's demo).
-func withoutThousandsSeparators(written string) string {
-	parts := groupedAmount.FindStringSubmatch(written)
-	if parts == nil {
-		return written
-	}
-	return strings.NewReplacer(" ", "", ".", "", ",", "").Replace(parts[1]) + parts[2]
 }
 
 // AILabel is ansa's own first line in a conversation (never the AI's).

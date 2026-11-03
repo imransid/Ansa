@@ -55,6 +55,14 @@ def test_the_prompt_holds_the_data_escaped_with_secrets_hidden():
     assert "&lt;/conversation&gt;" in prompt and prompt.count("</conversation>") == 1
 
 
+def test_a_yes_to_ansas_summary_in_either_language_is_known():
+    # Core writes its order summary in the customer's language (orders.SummaryText:
+    # English, or Bangla for a customer writing in Bengali script); the AI is
+    # told both headings, so a "হ্যাঁ" to a Bangla summary places the order.
+    system, _, _ = build_request(request())
+    assert "'Here is your order'" in system and "'আপনার অর্ডার'" in system
+
+
 def test_a_person_gets_their_own_prompt_without_menu_or_orders():
     system, prompt, _ = build_request(request(kind="personal"))
     assert "Never pretend to be them" in system and "<person>" in prompt and "<menu>" not in prompt

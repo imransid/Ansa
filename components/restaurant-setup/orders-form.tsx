@@ -34,6 +34,9 @@ export function OrdersForm(props: OrdersFormProps) {
         const errors = state?.errors?.fieldErrors;
         const typed = state?.errors?.values;
         const chosenCurrency = typed?.currency ?? props.currency ?? "";
+        // After a refused save (core's "Choose delivery, pickup or both"), the
+        // boxes as they were ticked: a ticked box sends "on", an unticked none.
+        const ticked = (name: string, saved: boolean) => (typed ? typed[name] === "on" : saved);
         return (
           <>
             <div className="grid gap-4">
@@ -41,10 +44,10 @@ export function OrdersForm(props: OrdersFormProps) {
                 name="takesOrders"
                 label="Take orders"
                 hint="ansa takes orders from your menu in the chat, works out the total from your prices, and you accept them on the Orders page."
-                defaultChecked={props.takesOrders}
+                defaultChecked={ticked("takesOrders", props.takesOrders)}
               />
-              <CheckField name="delivery" label="Delivery" hint="You bring orders to the customer." defaultChecked={props.delivery} />
-              <CheckField name="pickup" label="Pickup" hint="Customers collect their order." defaultChecked={props.pickup} />
+              <CheckField name="delivery" label="Delivery" hint="You bring orders to the customer." defaultChecked={ticked("delivery", props.delivery)} />
+              <CheckField name="pickup" label="Pickup" hint="Customers collect their order." defaultChecked={ticked("pickup", props.pickup)} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="deliveryFee">Delivery fee (optional)</Label>

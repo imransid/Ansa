@@ -120,6 +120,17 @@ func conversationLines(ctx context.Context, pool *database.Pool, box *secure.Box
 	return lines, rows.Err()
 }
 
+// newestCustomerText is the customer's newest message among the lines (""
+// when there is none): ansa's order texts are in its language.
+func newestCustomerText(lines []Line) string {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if lines[i].Sender == "customer" {
+			return lines[i].Text
+		}
+	}
+	return ""
+}
+
 func activeCategories(ctx context.Context, pool *database.Pool, company tenant.CompanyID) ([]string, error) {
 	rows, err := pool.Query(ctx, `SELECT name FROM categories WHERE company_id = $1 AND archived_at IS NULL ORDER BY name`, company.String())
 	if err != nil {

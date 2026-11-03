@@ -51,6 +51,22 @@ func TestThousandsWrittenWithACommaOrADotAreOneAmount(t *testing.T) {
 	}
 }
 
+// Lakhs are grouped the South Asian way, two digits before the last three:
+// "1,50,000" is one amount of 150,000, not 1.50 (money.ParsePrice's rule).
+func TestAmountsGroupedTheSouthAsianWayAreOneAmount(t *testing.T) {
+	amounts := MoneyAmounts("Tk 1,50,000 for a wedding, 1,50,000 taka or ১,৫০,০০০ টাকা; a sign ৳12,34,567", "BDT")
+	if fmt.Sprint(amounts) != "[15000000 -1 15000000 15000000]" {
+		t.Fatalf("amounts: %v", amounts)
+	}
+	catering := CheckData{Currency: "BDT", OwnerTexts: []string{"বিয়ের ক্যাটারিং ১,৫০,০০০ টাকা থেকে।"}}
+	if got := CheckReply("Wedding catering starts at Tk 1,50,000.", catering); got != "" {
+		t.Fatalf("the owner's own amount: %q", got)
+	}
+	if got := CheckReply("Wedding catering starts at Tk 1,40,000.", catering); got != ReasonPriceNotOnMenu {
+		t.Fatalf("an amount the owner never wrote: %q", got)
+	}
+}
+
 // Prices in Bengali digits, or written with Tk or টাকা, are amounts too:
 // they passed unread, as RE2's \d is 0-9 only.
 func TestBengaliDigitsTkAndTakaAreReadAsPrices(t *testing.T) {

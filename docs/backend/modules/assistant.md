@@ -55,18 +55,21 @@ their words: `reasons.go`.
   price or an amount in the business's own texts; one that can't be read
   as a price of the currency stops the reply (`price_not_on_menu`). Every
   script's digits are read as 0-9 first, in the reply and in the
-  business's texts (`WithASCIIDigits`: "৳৩০০" is "৳300"; RE2's `\d` is 0-9
-  only, so a price in Bengali digits passed unread). Thousands in groups
-  of three are one amount, whatever the separator ("15,000", "1 200",
-  "1.040,50": step 58; "15,000" was read as no price and stopped every
-  reply naming one);
+  business's texts (`money.WithASCIIDigits`: "৳৩০০" is "৳300"; RE2's `\d`
+  is 0-9 only, so a price in Bengali digits passed unread). Each amount is
+  read as the menu's own prices are (`money.ParsePrice`): thousands in
+  groups of three are one amount, whatever the separator ("15,000",
+  "1 200", "1.040,50": step 58; "15,000" was read as no price and stopped
+  every reply naming one), and so are lakhs grouped the South Asian way
+  ("1,50,000" and "১,৫০,০০০" are 150,000, not 1.50);
 - no refund, compensation or voucher words in English, Italian, Spanish,
   French, German or Bangla (রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার; never a
   bare ফেরত, "back": ফেরত কল is a call back) (`refund_promise`);
 - every link must appear in the business's own texts (`unknown_link`).
 **Prices (`ParsePrice`, `MinorUnitDigits`):** "9.50", "9,50", "€ 12",
-"1 200" read in the currency's smallest units (ISO 4217 digits: 0 for yen or
-won, 3 for dinars, 2 for most); a minus is no price.
+"1 200", "1,200", "1.200,50", "1,50,000", "৪৫০" read in the currency's
+smallest units (ISO 4217 digits: 0 for yen or won, 3 for dinars, 2 for
+most); a minus is no price. See [orders](orders.md), Money.
 **AI label:** "I'm the AI assistant for <business>." / "I'm <name>'s AI
 assistant.", ansa's own first line of the first automated message the
 customer gets (a reply, a holding reply or one of ansa's order texts).
@@ -79,12 +82,16 @@ again, with the conversation row locked, inside the transaction that saves.
 company's slice for the brain (`request.go`'s `BrainRequest`): its name,
 what it offers, address, phone; hours with "now" in its own zone (a person:
 their away hours and whether they said they're away); delivery, pickup,
-payment, whether it takes orders and the delivery fee; the dishes available
+payment, whether it takes orders (only with delivery or pickup to get them)
+and the delivery fee; the dishes available
 now, labelled M1..., with prices as the menu shows them (`money.go`); the
 owner's instructions; active category names; the newest 20 messages of this
 one conversation, decrypted (drafts, discarded and failed ones never reached
 the customer). Never an id. Also what core checks the reply against (menu
-prices plus the delivery fee, the owner's own texts). The best 3 approved
+prices plus the delivery fee, the owner's own texts, today's dishes'
+descriptions among them: "extra raita BDT 30" is the owner's price), and
+the language of ansa's order texts (the customer's newest message's:
+`orders.LanguageOf`, Bangla or English). The best 3 approved
 support articles matching the customer's newest 3 messages, their words
 in turns, newest first (`knowledge.CombineSearchTexts`: a follow-up like
 "And for 50?" keeps the article of the question before it), within 3,000
@@ -95,10 +102,13 @@ engine goes too: "api_key" with the business's own key decrypted
 (`KeyContext`: `assistant-anthropic-key:<company>`) or nil for ansa's own
 (the brain holds it), or "claude_code" (development only, refused by the
 brain in production).
-**Tests:** `checks_test.go` (also Bengali digits, Tk and টাকা, and the
-Bangla refund words); `gate_test.go`; `inputs_test.go` (live database:
+**Tests:** `checks_test.go` (also Bengali digits, Tk and টাকা, lakhs, and
+the Bangla refund words); `gate_test.go`; `inputs_test.go` (live database:
 only available dishes, labelled; the fee; "Tuesday 19:30, open until
-midnight"; the decrypted conversation; no id in the request);
+midnight"; the decrypted conversation; no id in the request; a price in
+today's dish's description may be quoted; no orders without delivery or
+pickup); `order_test.go` (also a Bangla customer's summary, confirmation
+and status message in Bangla);
 `inputs_knowledge_test.go` (live database, a fake brain: a price written
 only in an article's title may be quoted; a follow-up finds the article of
 the question before it; the customer's newest messages, newest first);

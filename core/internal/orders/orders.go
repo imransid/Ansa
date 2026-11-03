@@ -2,14 +2,13 @@
 // assistant and written up by ansa (the old lib/orders.ts and
 // lib/order-steps.ts). The AI only names dishes by their menu labels and how
 // many; every price, line and total is ansa's own, from today's menu. The
-// pricing, the texts and the step plan are pure; store.go saves the rows.
+// pricing, the texts (texts.go) and the step plan are pure; store.go saves
+// the rows.
 package orders
 
 import (
-	"strconv"
+	"math"
 	"strings"
-
-	"ansa/core/internal/money"
 )
 
 // Limits, as the database's CHECKs repeat them.
@@ -17,6 +16,12 @@ const (
 	QuantityMax = 50
 	LinesMax    = 30
 )
+
+// amountMax is the most an order's line, subtotal or total may be: the
+// database holds them as 32-bit integers. A bigger order goes to a person,
+// as a dish ansa can't place does (an INSERT that failed left the customer
+// without an answer).
+const amountMax = math.MaxInt32
 
 // Request is what the AI says the customer wants, by menu label (M1, M2...).
 type Request struct {
@@ -61,6 +66,10 @@ type Priced struct {
 	SubtotalCents, DeliveryFeeCents, TotalCents int64
 }
 
+// The wanted time when the customer didn't say (the Orders page shows it;
+// a Bangla summary says it in Bangla).
+const asSoonAsPossible = "As soon as possible"
+
 // Why ansa can't write up the order yet: a fixed question each, or a person
 // for a dish it can't place.
 const (
@@ -84,7 +93,8 @@ func Price(request Request, menu []MenuChoice, options Options) (Priced, string)
 	if len(lines) == 0 {
 		return Priced{}, GapNoItems
 	}
-	if len(lines) > LinesMax {
+	subtotal, fits := subtotalOf(lines)
+	if len(lines) > LinesMax || !fits {
 		return Priced{}, GapUnknownItem
 	}
 	fulfilment := ""
@@ -106,13 +116,26 @@ func Price(request Request, menu []MenuChoice, options Options) (Priced, string)
 		order.DeliveryFeeCents = options.DeliveryFeeCents
 	}
 	if order.Time == "" {
-		order.Time = "As soon as possible"
+		order.Time = asSoonAsPossible
 	}
-	for _, line := range lines {
-		order.SubtotalCents += line.LineTotalCents
-	}
+	order.SubtotalCents = subtotal
 	order.TotalCents = order.SubtotalCents + order.DeliveryFeeCents
+	if order.TotalCents > amountMax {
+		return Priced{}, GapUnknownItem
+	}
 	return order, ""
+}
+
+// subtotalOf adds the lines up; false when a line or the sum is past amountMax.
+func subtotalOf(lines []Line) (int64, bool) {
+	subtotal := int64(0)
+	for _, line := range lines {
+		if line.LineTotalCents > amountMax {
+			return 0, false
+		}
+		subtotal += line.LineTotalCents
+	}
+	return subtotal, subtotal <= amountMax
 }
 
 func addLine(lines []Line, dish MenuChoice, quantity int) []Line {
@@ -124,113 +147,4 @@ func addLine(lines []Line, dish MenuChoice, quantity int) []Line {
 		}
 	}
 	return append(lines, Line{Name: dish.Name, Quantity: quantity, UnitPriceCents: dish.PriceCents, LineTotalCents: int64(quantity) * dish.PriceCents})
-}
-
-// Question is ansa's question for what is missing (never the AI's words).
-func Question(gap string, options Options) string {
-	switch {
-	case gap == GapNoItems:
-		return "What would you like to order?"
-	case gap == GapAddress:
-		return "Where should we deliver it? Please send the full address."
-	case options.Delivery && options.Pickup:
-		return "Would you like it delivered, or will you pick it up?"
-	case options.Delivery:
-		return "We deliver: where should we bring it? Please send the full address."
-	}
-	return "We don't deliver, but you can pick it up. Is pickup all right?"
-}
-
-// SpokenQuestion is Question for a live call: the caller tells, never sends.
-func SpokenQuestion(gap string, options Options) string {
-	return strings.Replace(Question(gap, options), "Please send the full address.", "Please tell me the full address.", 1)
-}
-
-// SummaryText is what the customer says yes to: every line, the fee, the
-// total, how and when, written by ansa from the priced order.
-func SummaryText(order Priced) string {
-	price := func(cents int64) string { return money.Format(cents, order.Currency) }
-	lines := []string{"Here is your order:"}
-	for _, line := range order.Lines {
-		lines = append(lines, strconv.Itoa(line.Quantity)+" × "+line.Name+": "+price(line.LineTotalCents))
-	}
-	if order.DeliveryFeeCents > 0 {
-		lines = append(lines, "Delivery: "+price(order.DeliveryFeeCents))
-	}
-	lines = append(lines, "Total: "+price(order.TotalCents))
-	if order.Fulfilment == "delivery" {
-		lines = append(lines, "Delivery to: "+order.Address)
-	} else {
-		lines = append(lines, "Pickup")
-	}
-	lines = append(lines, "When: "+order.Time)
-	if order.Notes != "" {
-		lines = append(lines, "Notes: "+order.Notes)
-	}
-	return strings.Join(append(lines, "", "Shall I place the order? Reply “yes” to confirm."), "\n")
-}
-
-// SpokenSummaryText is SummaryText for a live call: the same lines as
-// sentences a voice reads well ("2 Margherita, €17.00."), and "say yes",
-// since a caller doesn't reply in writing. It keeps "Here is your order",
-// which the assistant looks for to know what a yes answers.
-func SpokenSummaryText(order Priced) string {
-	price := func(cents int64) string { return money.Format(cents, order.Currency) }
-	parts := []string{"Here is your order:"}
-	for _, line := range order.Lines {
-		parts = append(parts, strconv.Itoa(line.Quantity)+" "+line.Name+", "+price(line.LineTotalCents)+".")
-	}
-	if order.DeliveryFeeCents > 0 {
-		parts = append(parts, "Delivery, "+price(order.DeliveryFeeCents)+".")
-	}
-	parts = append(parts, "Total, "+price(order.TotalCents)+".")
-	if order.Fulfilment == "delivery" {
-		parts = append(parts, "Delivered to "+order.Address+".")
-	} else {
-		parts = append(parts, "For pickup.")
-	}
-	parts = append(parts, "When: "+order.Time+".")
-	if order.Notes != "" {
-		parts = append(parts, "Notes: "+order.Notes+".")
-	}
-	return strings.Join(append(parts, "Shall I place the order? Please say yes to confirm."), " ")
-}
-
-// PlacedText confirms a placed order (sent at once, never waits).
-func PlacedText(number int) string {
-	return "Thank you! Your order #" + strconv.Itoa(number) + " is placed. We'll message you as soon as it's accepted."
-}
-
-// SpokenPlacedText confirms an order placed on a call: nobody can message a
-// caller afterwards, so it promises nothing more.
-func SpokenPlacedText(number int) string {
-	return "Thank you! Your order number " + strconv.Itoa(number) + " is placed."
-}
-
-// WithdrawnText answers a customer who doesn't want the order after all.
-const WithdrawnText = "No problem: nothing was ordered."
-
-// ClosedText: closed now by the business's own hours ("Opens at 18:00").
-func ClosedText(hoursNow string) string {
-	return "Sorry, we can't take orders right now (" + strings.ToLower(hoursNow) + ")."
-}
-
-// StatusText is the short message a person's button sends the customer.
-func StatusText(change string, number int, fulfilment string, wasNew bool) string {
-	n := "#" + strconv.Itoa(number)
-	switch change {
-	case "accept":
-		return "Your order " + n + " is accepted. We're getting it ready."
-	case "ready":
-		if fulfilment == "delivery" {
-			return "Your order " + n + " is on its way."
-		}
-		return "Your order " + n + " is ready to pick up."
-	case "done":
-		return "Thank you for your order " + n + "!"
-	}
-	if wasNew {
-		return "Sorry, we can't take your order " + n + ". Write to us here if you have any questions."
-	}
-	return "Sorry, your order " + n + " was cancelled. Write to us here if you have any questions."
 }

@@ -132,7 +132,7 @@ func TestOnlyTheScreensWithALoggedInPersonGetIn(t *testing.T) {
 func TestAcceptingTellsTheCustomerOnceAndASecondPressFindsItChanged(t *testing.T) {
 	w := newAPIWorld(t)
 	path := "/api/v1/orders/" + w.orderID + "/status"
-	if code, answer := w.call("POST", path, `{"change":"accept"}`, screensSecret, w.cookie); code != 200 || answer["notice"] != "" {
+	if code, answer := w.call("POST", path, `{"change":"accept"}`, screensSecret, w.cookie); code != 200 || answer["notTold"] != "" || answer["number"] != 1.0 || answer["channel"] != "stand_in" {
 		t.Fatalf("accepted: %d %v", code, answer)
 	}
 	files, _ := os.ReadDir(w.outbox)
@@ -148,6 +148,40 @@ func TestAcceptingTellsTheCustomerOnceAndASecondPressFindsItChanged(t *testing.T
 	}
 	if code, _ := w.call("POST", path, `{"change":"accept","companyId":"x"}`, screensSecret, w.cookie); code != 404 {
 		t.Fatal("an unknown field is refused: the company only ever comes from the session")
+	}
+}
+
+// A change the customer can't be told about still changes the order, and
+// core says why with the order's number and the customer's channel: the
+// pressed button is gone once the order moves on, so the page shows it in
+// its own words (per channel: a WhatsApp chat is no Telegram one).
+func TestAChangeTheCustomerIsntToldAboutSaysWhyAndWhere(t *testing.T) {
+	w := newAPIWorld(t)
+	ctx := context.Background()
+	turn, _ := conversations.InsertCustomerMessage(ctx, w.pool, w.company, conversations.ContactKey{Channel: conversations.ChannelWhatsApp, ExternalID: "1234567890:US.1349"},
+		conversations.IncomingMessage{ID: "77777777-7777-4777-8777-777777777777", BodyEncrypted: "v1:x:y:z", ChannelMessageID: "w1"})
+	orderID, _ := conversations.NewID()
+	w.must(`INSERT INTO orders (id, company_id, conversation_id, status, fulfilment, wanted_time, currency, subtotal_cents, delivery_fee_cents, total_cents, order_number, placed_at)
+		VALUES ($1, $2, $3, 'new', 'pickup', 'now', 'EUR', 950, 0, 950, 2, now())`, orderID, w.company.String(), turn.ConversationID)
+	code, answer := w.call("POST", "/api/v1/orders/"+orderID+"/status", `{"change":"cancel"}`, screensSecret, w.cookie)
+	if code != 200 || answer["notTold"] != "not-connected" || answer["number"] != 2.0 || answer["channel"] != "whatsapp" {
+		t.Fatalf("not told, and why: %d %v", code, answer)
+	}
+	if w.count(`SELECT count(*) FROM orders WHERE company_id = $1 AND status = 'cancelled'`) != 1 {
+		t.Fatal("the order is cancelled all the same")
+	}
+}
+
+// The Orders page says when the package has no orders: after the free
+// trial (or on Personal) every order goes to a person as a request.
+func TestTheOrdersPageSaysWhetherThePackageHasOrders(t *testing.T) {
+	w := newAPIWorld(t)
+	if _, answer := w.call("GET", "/api/v1/orders", "", screensSecret, w.cookie); answer["packageIncludesOrders"] != true {
+		t.Fatalf("the free trial has orders: %v", answer)
+	}
+	w.must(`UPDATE companies SET trial_ends_at = now() - interval '1 day' WHERE id = $1`, w.company.String())
+	if _, answer := w.call("GET", "/api/v1/orders", "", screensSecret, w.cookie); answer["packageIncludesOrders"] != false {
+		t.Fatalf("no package, no orders: %v", answer)
 	}
 }
 

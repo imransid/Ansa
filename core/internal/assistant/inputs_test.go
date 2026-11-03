@@ -58,6 +58,49 @@ func TestTheBrainGetsOneCompanysSliceOnly(t *testing.T) {
 	}
 }
 
+// A price the owner wrote in a dish's description is theirs: the AI may
+// repeat it. Only today's dishes count (one not available today isn't read).
+func TestADishsDescriptionIsTheOwnersOwnWords(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	owner := database.TestOwner(t, pool, companyID)
+	company, _ := tenant.FromTrustedSource(companyID)
+	box, _ := secure.NewBox("BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")
+	mustExec(t, pool, `INSERT INTO assistant_settings (company_id, currency, updated_by_user_id) VALUES ($1, 'BDT', $2)`, companyID, owner)
+	mustExec(t, pool, `INSERT INTO catalog_items (company_id, name, description, price_cents, position) VALUES ($1, 'Kacchi Biryani', 'With borhani; extra raita BDT 30', 45000, 1)`, companyID)
+	mustExec(t, pool, `INSERT INTO catalog_items (company_id, name, description, price_cents, position, unavailable_until) VALUES ($1, 'Firni', 'A second bowl BDT 99', 9000, 2, now() + interval '1 hour')`, companyID)
+	inputs, err := GatherInputs(context.Background(), pool, box, company, "", time.Now())
+	if err != nil {
+		t.Fatalf("GatherInputs: %v", err)
+	}
+	if got := CheckReply("Yes! Extra raita is BDT 30.", inputs.Checks); got != "" {
+		t.Fatalf("a price in today's dish's description: %q", got)
+	}
+	if got := CheckReply("A second bowl of firni is BDT 99.", inputs.Checks); got != ReasonPriceNotOnMenu {
+		t.Fatalf("a dish not available today isn't read: %q", got)
+	}
+}
+
+// "Take orders" with neither delivery nor pickup (saved before setup refused
+// it): the brain hears the business takes no orders here, so it hands the
+// customer to a person instead of collecting an order nobody can bring.
+func TestNoWayToGetAnOrderMeansNoOrders(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	owner := database.TestOwner(t, pool, companyID)
+	company, _ := tenant.FromTrustedSource(companyID)
+	box, _ := secure.NewBox("BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")
+	mustExec(t, pool, `UPDATE companies SET kind = 'business' WHERE id = $1`, companyID)
+	mustExec(t, pool, `INSERT INTO assistant_settings (company_id, currency, takes_orders, delivery, pickup, updated_by_user_id) VALUES ($1, 'EUR', true, false, false, $2)`, companyID, owner)
+	inputs, err := GatherInputs(context.Background(), pool, box, company, "", time.Now())
+	if err != nil {
+		t.Fatalf("GatherInputs: %v", err)
+	}
+	if inputs.Request.Orders.TakesOrders || inputs.Ordering.TakesOrders {
+		t.Fatalf("no orders without a way to get them: %+v", inputs.Request.Orders)
+	}
+}
+
 func mustExec(t *testing.T, pool *database.Pool, statement string, args ...any) {
 	t.Helper()
 	if _, err := pool.Exec(context.Background(), statement, args...); err != nil {

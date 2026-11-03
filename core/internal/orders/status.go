@@ -41,10 +41,13 @@ const (
 
 // ChangeResult is the outcome and, when the status changed, why the
 // customer wasn't told: "" (told), a chat refusal ("window-closed",
-// "not-connected", ...) or "send-failed".
+// "not-connected", ...) or "send-failed"; with the order's number and the
+// customer's channel, which the Orders page words the reason by.
 type ChangeResult struct {
 	Outcome    string
 	NotToldWhy string
+	Number     int
+	Channel    string
 }
 
 // StatusChange is one person moving one order on.
@@ -62,11 +65,15 @@ type StatusChange struct {
 // their chat may take one now.
 func (c *StatusChange) Change(ctx context.Context, company tenant.CompanyID, actorUserID, orderID, change string) (ChangeResult, error) {
 	step := nextStatus[change]
-	number, fulfilment, status, found, err := readPlaced(ctx, c.Pool, company, orderID)
+	order, found, err := readPlaced(ctx, c.Pool, company, orderID)
 	if err != nil || !found {
 		return ChangeResult{Outcome: ChangeNotFound}, err
 	}
-	text := StatusText(change, number, fulfilment, status == "new")
+	language, err := customerLanguage(ctx, c.Pool, c.Box, company, order.conversationID)
+	if err != nil {
+		return ChangeResult{}, err
+	}
+	text := StatusText(change, order.number, order.fulfilment, order.status == "new", language)
 	messageID, err := conversations.NewID()
 	if err != nil {
 		return ChangeResult{}, err
@@ -113,30 +120,67 @@ func (c *StatusChange) Change(ctx context.Context, company tenant.CompanyID, act
 	if err != nil || outcome != ChangeDone {
 		return ChangeResult{Outcome: outcome}, err
 	}
+	changed := ChangeResult{Outcome: ChangeDone, Number: order.number, Channel: order.channel}
 	if refusal != "" {
-		return ChangeResult{Outcome: ChangeDone, NotToldWhy: refusal}, nil
+		changed.NotToldWhy = refusal
+		return changed, nil
 	}
 	result := c.Sender.Send(ctx, target, messageID, text)
 	if err := chat.RecordDelivery(ctx, c.Pool, company, messageID, result); err != nil {
 		return ChangeResult{}, err
 	}
 	if result.Status == "failed" {
-		return ChangeResult{Outcome: ChangeDone, NotToldWhy: "send-failed"}, nil
+		changed.NotToldWhy = "send-failed"
 	}
-	return ChangeResult{Outcome: ChangeDone}, nil
+	return changed, nil
 }
 
-// readPlaced reads what the message needs (a number and a way of delivery
-// never change once an order is placed).
-func readPlaced(ctx context.Context, pool *database.Pool, company tenant.CompanyID, orderID string) (int, string, string, bool, error) {
+// placedOrder is what the message and the page need of an order (its
+// number, way and customer never change once it is placed).
+type placedOrder struct {
+	number                                      int
+	fulfilment, status, channel, conversationID string
+}
+
+// readPlaced reads a placed order of the company; false when there is none.
+func readPlaced(ctx context.Context, pool *database.Pool, company tenant.CompanyID, orderID string) (placedOrder, bool, error) {
+	const statement = `
+		SELECT orders.order_number, orders.fulfilment, orders.status, contacts.channel, orders.conversation_id FROM orders
+		JOIN conversations ON conversations.id = orders.conversation_id AND conversations.company_id = orders.company_id
+		JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
+		WHERE orders.company_id = $1 AND orders.id = $2`
 	var number *int
-	var fulfilment, status string
-	err := pool.QueryRow(ctx, `SELECT order_number, fulfilment, status FROM orders WHERE company_id = $1 AND id = $2`, company.String(), orderID).Scan(&number, &fulfilment, &status)
+	var order placedOrder
+	err := pool.QueryRow(ctx, statement, company.String(), orderID).Scan(&number, &order.fulfilment, &order.status, &order.channel, &order.conversationID)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && number == nil) {
-		return 0, "", "", false, nil
+		return placedOrder{}, false, nil
 	}
 	if err != nil {
-		return 0, "", "", false, err
+		return placedOrder{}, false, err
 	}
-	return *number, fulfilment, status, true, nil
+	order.number = *number
+	return order, true, nil
+}
+
+// customerLanguage is the language of ansa's texts for the order's
+// customer: their newest message's (LanguageOf). None, or one that can't
+// be read, is English.
+func customerLanguage(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) (string, error) {
+	const statement = `
+		SELECT id, body_encrypted FROM messages
+		WHERE company_id = $1 AND conversation_id = $2 AND author = 'customer' AND body_encrypted IS NOT NULL
+		ORDER BY created_at DESC LIMIT 1`
+	var id, body string
+	err := pool.QueryRow(ctx, statement, company.String(), conversationID).Scan(&id, &body)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return English, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	text, err := box.Decrypt(body, conversations.MessageContext(company, id))
+	if err != nil {
+		return English, nil
+	}
+	return LanguageOf(text), nil
 }

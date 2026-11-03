@@ -226,7 +226,7 @@ func (s *Server) readMenuWithAI(w http.ResponseWriter, r *http.Request, body []b
 		return
 	}
 	allowLongAnswer(w, 5*time.Minute)
-	result, problemText := menureading.Read(r.Context(), s.MenuBrain, source, currency)
+	result, problemText := menureading.Read(r.Context(), s.MenuBrain, s.Log, source, currency)
 	if problemText != "" {
 		problem(w, http.StatusBadRequest, problemText)
 		return

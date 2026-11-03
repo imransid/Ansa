@@ -26,23 +26,28 @@ type Ordering struct {
 	ClosedNow string
 	Menu      []MenuChoice
 	Options   Options
+	// The language of ansa's texts: the customer's newest message's (LanguageOf; "" is English).
+	Language string
 }
 
 // PlanStep plans the answer `kind` (order_summary, order_confirmed,
 // order_withdrawn) for a business or a person ("personal").
 func PlanStep(kind string, request *Request, ordering Ordering, companyKind string) Step {
-	// A person's account, or a business that takes no orders here: a person does.
-	if companyKind != "business" || !ordering.TakesOrders {
+	// A person's account, a business that takes no orders here, or one that
+	// offers neither delivery nor pickup (no way to promise): a person does.
+	offersAWay := ordering.Options.Delivery || ordering.Options.Pickup
+	if companyKind != "business" || !ordering.TakesOrders || !offersAWay {
 		return Step{Kind: StepHandover, Reason: "order"}
 	}
+	language := ordering.Language
 	switch kind {
 	case "order_confirmed":
 		return Step{Kind: StepPlace}
 	case "order_withdrawn":
-		return Step{Kind: StepWithdraw, Text: WithdrawnText}
+		return Step{Kind: StepWithdraw, Text: WithdrawnText(language)}
 	}
 	if ordering.ClosedNow != "" {
-		return Step{Kind: StepAsk, Text: ClosedText(ordering.ClosedNow)}
+		return Step{Kind: StepAsk, Text: ClosedText(ordering.ClosedNow, language)}
 	}
 	if request == nil {
 		return Step{Kind: StepHandover, Reason: "order_unclear"}
@@ -51,14 +56,14 @@ func PlanStep(kind string, request *Request, ordering Ordering, companyKind stri
 	switch gap {
 	case "":
 		if ordering.Spoken {
-			return Step{Kind: StepPropose, Order: priced, Text: SpokenSummaryText(priced)}
+			return Step{Kind: StepPropose, Order: priced, Text: SpokenSummaryText(priced, language)}
 		}
-		return Step{Kind: StepPropose, Order: priced, Text: SummaryText(priced)}
+		return Step{Kind: StepPropose, Order: priced, Text: SummaryText(priced, language)}
 	case GapUnknownItem:
 		return Step{Kind: StepHandover, Reason: "order_unclear"}
 	}
 	if ordering.Spoken {
-		return Step{Kind: StepAsk, Text: SpokenQuestion(gap, ordering.Options)}
+		return Step{Kind: StepAsk, Text: SpokenQuestion(gap, ordering.Options, language)}
 	}
-	return Step{Kind: StepAsk, Text: Question(gap, ordering.Options)}
+	return Step{Kind: StepAsk, Text: Question(gap, ordering.Options, language)}
 }

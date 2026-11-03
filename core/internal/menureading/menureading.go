@@ -14,9 +14,14 @@ import (
 	"unicode/utf8"
 
 	"ansa/core/internal/brainclient"
+	"ansa/core/internal/logging"
 	"ansa/core/internal/menu"
 	"ansa/core/internal/plaintext"
 )
+
+// TextMax is the most text the brain reads of one menu: pasted, or taken
+// from a Word file (the brain's MenuReadRequest refuses more).
+const TextMax = 20_000
 
 // Source is what the owner gave: a file (its bytes and name) or pasted text.
 type Source struct {
@@ -25,23 +30,27 @@ type Source struct {
 	Text     string
 }
 
-// Result is the dishes read, how many rows were left out, and whether it is
-// the development sample (no AI key).
+// Result is the dishes read, how many rows were left out, whether it is
+// the development sample (no AI key), and whether a Word file's text was
+// cut to TextMax (the rest was not read).
 type Result struct {
 	Items   []menu.Fields `json:"items"`
 	Dropped int           `json:"dropped"`
 	StandIn bool          `json:"standIn"`
+	TextCut bool          `json:"textCut"`
 }
 
 // What went wrong, in words for people.
 const (
-	WrongFile    = "Upload a photo (JPEG, PNG or WebP), a PDF or a Word file of your menu."
+	WrongFile    = "Upload a photo (JPEG, PNG, WebP or GIF), a PDF or a Word file of your menu."
 	TooBig       = "This file is over 4 MB. Upload a smaller photo, or paste the text."
 	NoText       = "No text could be read from this file. Upload a photo of the menu instead."
 	NothingGiven = "Upload a photo or a file of your menu, or paste its text."
 	Unreadable   = "ansa couldn't read this menu. Try again, with a sharper photo, or paste the text."
 	NoDishes     = "No dishes with prices were found. Try a sharper photo of the page with the prices, or paste the text."
 	Unavailable  = "Reading a menu with the AI isn't available yet. Add your dishes by hand on the Menu page."
+	// The brain is stopped, restarting or too slow: the menu is not to blame.
+	ReadingUnavailableNow = "Reading menus isn't available right now. Try again in a minute."
 )
 
 type brainFile struct {
@@ -53,6 +62,8 @@ type brainRequest struct {
 	Currency string     `json:"currency"`
 	File     *brainFile `json:"file"`
 	Text     *string    `json:"text"`
+	// Not sent: a Word file's text was cut to TextMax.
+	textCut bool
 }
 
 type brainAnswer struct {
@@ -70,11 +81,11 @@ func request(source Source, currency string) (brainRequest, string) {
 		}
 		switch kind := MediaType(source.File); {
 		case kind == "application/zip" && strings.HasSuffix(strings.ToLower(source.FileName), ".docx"):
-			text := DocxText(source.File)
+			text, cut := cutAfterALine(DocxText(source.File), TextMax)
 			if text == "" {
 				return r, NoText
 			}
-			r.Text = &text
+			r.Text, r.textCut = &text, cut
 		case kind == "" || kind == "application/zip":
 			return r, WrongFile
 		default:
@@ -82,7 +93,7 @@ func request(source Source, currency string) (brainRequest, string) {
 		}
 		return r, ""
 	}
-	text, problem := plaintext.Note(source.Text, 20_000)
+	text, problem := plaintext.Note(source.Text, TextMax)
 	if problem != "" {
 		return r, strings.Replace(problem, "At most 20,000 characters.", "Paste at most 20,000 characters at a time.", 1)
 	}
@@ -94,14 +105,16 @@ func request(source Source, currency string) (brainRequest, string) {
 }
 
 // Read reads the menu into dishes priced in the currency, or says why not.
-func Read(ctx context.Context, brain *brainclient.Client, source Source, currency string) (Result, string) {
+func Read(ctx context.Context, brain *brainclient.Client, log *logging.Logger, source Source, currency string) (Result, string) {
 	req, problem := request(source, currency)
 	if problem != "" {
 		return Result{}, problem
 	}
 	var answer brainAnswer
 	if err := brain.Call(ctx, "/v1/menu/read", req, &answer); err != nil {
-		return Result{}, Unreadable
+		// The error's type only: never the menu or what is in it.
+		log.Warn("menureading: the brain couldn't read a menu", logging.ErrorType(err))
+		return Result{}, ReadingUnavailableNow
 	}
 	switch answer.Kind {
 	case "ok", "stand_in":
@@ -113,7 +126,7 @@ func Read(ctx context.Context, brain *brainclient.Client, source Source, currenc
 	default:
 		return Result{}, Unreadable
 	}
-	result := Result{Items: []menu.Fields{}, StandIn: answer.Kind == "stand_in"}
+	result := Result{Items: []menu.Fields{}, StandIn: answer.Kind == "stand_in", TextCut: req.textCut}
 	for _, row := range answer.Rows {
 		item, problems := cutToLimits(row).Check(currency)
 		if len(problems) > 0 || len(result.Items) >= menu.ItemsPerReadingMax {
@@ -136,6 +149,27 @@ func cutToLimits(row menu.Typed) menu.Typed {
 	row.Name = cutRunes(plaintext.SingleLine(row.Name), 120)
 	row.Description = cutRunes(plaintext.SingleLine(row.Description), 500)
 	return row
+}
+
+// cutAfterALine keeps at most max characters of a Word file's text, cut
+// after its last whole line that fits (else its last space), so no dish is
+// read with half its price; true when something was left out.
+func cutAfterALine(text string, max int) (string, bool) {
+	runes := []rune(text)
+	if len(runes) <= max {
+		return text, false
+	}
+	kept := string(runes[:max])
+	if runes[max] == '\n' {
+		return kept, true
+	}
+	if end := strings.LastIndex(kept, "\n"); end > 0 {
+		return strings.TrimRight(kept[:end], " \t\n"), true
+	}
+	if end := strings.LastIndexAny(kept, " \t"); end > 0 {
+		return kept[:end], true
+	}
+	return kept, true
 }
 
 func cutRunes(text string, max int) string {

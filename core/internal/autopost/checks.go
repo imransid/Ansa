@@ -6,6 +6,7 @@ import (
 
 	"ansa/core/internal/assistant"
 	"ansa/core/internal/contentrules"
+	"ansa/core/internal/money"
 )
 
 // Post is the text the brain wrote.
@@ -39,8 +40,8 @@ func CheckText(post Post, data CheckData) bool {
 	}
 	// Any script's digits are read as 0-9 ("৫০%" is "50%"), the owner's
 	// too: RE2's \d is 0-9 only, so a made-up offer in Bengali digits passed.
-	owners := strings.ToLower(assistant.WithASCIIDigits(strings.Join(data.OwnerTexts, "\n")))
-	for _, found := range percentage.FindAllString(assistant.WithASCIIDigits(text), -1) {
+	owners := strings.ToLower(money.WithASCIIDigits(strings.Join(data.OwnerTexts, "\n")))
+	for _, found := range percentage.FindAllString(money.WithASCIIDigits(text), -1) {
 		if !strings.Contains(owners, strings.ReplaceAll(found, " ", "")) && !strings.Contains(owners, found) {
 			return false
 		}

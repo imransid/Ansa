@@ -29,6 +29,7 @@ func (r *Runner) Try(ctx context.Context, company tenant.CompanyID, text string)
 		return TryResult{}, err
 	}
 	inputs.Request.Conversation = []Line{{Sender: "customer", Text: text}}
+	inputs.Ordering.Language = orders.LanguageOf(text)
 	if err := inputs.AddKnowledge(ctx, r.Pool, company); err != nil {
 		return TryResult{}, err
 	}

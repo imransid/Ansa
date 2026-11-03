@@ -13,10 +13,13 @@ read strictly, and an unknown field (a "companyId") is refused.
 **Answers:** JSON; an error is `{"error": "<words for people>"}` with 400,
 401, 403, 404, 409 (changed meanwhile) or 429 (a limit).
 **Endpoints today:**
-- `GET /api/v1/orders`: the Orders page ({open, finished}; see [orders](orders.md)).
+- `GET /api/v1/orders`: the Orders page ({open, finished,
+  packageIncludesOrders}; see [orders](orders.md)).
 - `POST /api/v1/orders/{id}/status` `{"change": "accept" | "ready" | "done" | "cancel"}`:
   anyone in the company (120 changes per 10 minutes per person, the old
-  counter); answers `{"notice": ""}` or why the customer wasn't messaged.
+  counter); answers `{"notTold", "number", "channel"}`: notTold is "" when
+  the customer was messaged, else why not (the chat's refusal code or
+  "send-failed"), which the page words for the order's channel.
 - The Inbox: see [inbox](inbox.md).
 - Settings → Posts for me: see [autopost](autopost.md).
 - Social accounts (Facebook Pages, LinkedIn, X, YouTube) and the Accounts

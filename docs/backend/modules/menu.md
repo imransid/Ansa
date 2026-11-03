@@ -6,9 +6,12 @@ the company marks a dish "Not available today" (whoever is working knows
 first). Every write reads the person again; adding and moving take the
 company row lock first (the 500-dish cap, the positions).
 **Rules:** a category up to 60, a name 1-120, a description up to 500 (one
-plain line each); a price typed as text and read in the menu's currency
-(`money.ParsePrice`: "9,5" = 9.50, whole smallest units). No menu before a
-currency (setup's orders step). "Not available today" lasts until the
+plain line each); "Other dishes" typed as a category, in any case, is no
+category (the page shows a dish without one under that name, and Up and
+Down never crossed between the two); a price typed as text and read in the
+menu's currency (`money.ParsePrice`: "9,5" = 9.50, "1,200" and "১,২০০" =
+1,200.00 in taka, "1,50,000" a lakh and a half; whole smallest units). No
+menu before a currency (setup's orders step). "Not available today" lasts until the
 business's next midnight in its own time zone (UTC before setup chose one;
 Go's own rules handle a clock change that night) and then ends by itself.
 **API:** `GET /api/v1/menu` ({items, currency, canEdit}); owners:
@@ -29,7 +32,9 @@ longer answer time: the AI may take two minutes). A file is known by its own
 first bytes, never its name: a photo (JPEG, PNG, WebP, GIF) or a PDF goes to
 the model as itself (no PDF parser runs on our servers, and a scanned PDF
 reads too); a Word file (a zip named .docx) has only its text part unpacked
-by Go's standard library, never more than 50 MB whatever its headers claim;
+by Go's standard library, never more than 50 MB whatever its headers claim,
+and its text cut after the last whole line within 20,000 characters (the
+brain's limit; `textCut` tells the page, which says to paste the rest);
 pasted text up to 20,000 characters. The brain answers rows; core reads each
 row itself (cut to the menu's limits, a name, a price `money.ParsePrice` can
 read; at most 150; how many were left out). Without an AI key, a
@@ -39,11 +44,16 @@ stream-json message), a PDF as its own text (the brain's PDF reader: a
 scanned one has none, so nothing to read); without Claude Code either, the
 development brain answers a labelled sample, which the page shows under its
 banner and never offers to add ("Looks right" is only for a menu ansa read);
-production says reading isn't available. NOTHING is saved by reading:
-"Looks right" adds the checked list.
-**Tests:** `menureading_test.go` (a Word file's text; a bomb stops at its
-cap; files known by their bytes, a fake .jpg and a zip not named .docx
-refused; core prices every row itself and cuts long names);
+production says reading isn't available. A brain that is stopped,
+restarting or too slow says "Reading menus isn't available right now. Try
+again in a minute." (logged with the error's type only), never that the
+menu couldn't be read. NOTHING is saved by reading: "Looks right" adds the
+checked list.
+**Tests:** `menu_test.go` ("Other dishes" is no category);
+`menureading_test.go` (a Word file's text; a bomb stops at its
+cap; a long one cut after a line and said; files known by their bytes, a
+fake .jpg and a zip not named .docx refused; core prices every row itself
+and cuts long names; a brain that can't answer now);
 `brain/tests/test_menu.py` (text escaped in `<menu>`; a photo and a PDF sent
 as themselves; rows read strictly; ansa's own key; the sample only in
 development; without a key, Claude Code reads a PDF's own text and a photo

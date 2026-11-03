@@ -20,9 +20,12 @@ is for starts the later steps again.
   phone customers may call (digits, spaces and + ( ) - only, up to 40).
 - hours / away: each day as the old form read it (`hours.ReadDay`), a time
   zone this server knows; away also the minutes ansa waits (5, 10, 15, 30, 60, or none).
-- orders: takes orders, delivery and its note, the fee typed as a price in
-  the currency ("2,5" = 2.50; empty = free), pickup, the payment note, an
-  ISO 4217 currency (`golang.org/x/text/currency`).
+- orders (`orders.go`): takes orders, delivery and its note, the fee typed
+  as a price in the currency ("2,5" = 2.50; empty = free), pickup, the
+  payment note, an ISO 4217 currency (`golang.org/x/text/currency`). Taking
+  orders needs delivery, pickup or both ("Choose delivery, pickup or both to
+  take orders.", the whole form's problem): with neither, ansa's question
+  promised a pickup never offered (`orders_test.go`).
 - assistant: what ansa may say (0-2,000) and the holding reply (1-500).
 - connect saves nothing; `Finish` ("Open ansa") only once every step was saved.
 The name, description and address are the owner's confirmed business facts

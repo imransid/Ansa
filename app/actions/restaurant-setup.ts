@@ -38,7 +38,7 @@ export async function saveHoursSectionAction(_previous: SaveState | undefined, f
 }
 
 export async function saveOrdersSectionAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {
-  return saveSection("orders", formData, ["deliveryNote", "deliveryFee", "paymentNote", "currency"]);
+  return saveSection("orders", formData, ["takesOrders", "delivery", "pickup", "deliveryNote", "deliveryFee", "paymentNote", "currency"]);
 }
 
 export async function saveAssistantSectionAction(_previous: SaveState | undefined, formData: FormData): Promise<SaveState> {

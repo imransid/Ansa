@@ -73,7 +73,7 @@ func (r *Runner) encryptedProposal(turn conversations.Turn, order orders.Priced)
 func (r *Runner) withdraw(ctx context.Context, turn conversations.Turn, info conversationInfo, inputs *Inputs) (string, error) {
 	return r.saveFixedAndSend(ctx, turn, info, inputs, false, func(tx database.Tx, messageID string) (string, string, error) {
 		err := orders.DeleteProposalWithin(ctx, tx, turn.CompanyID, turn.ConversationID)
-		return orders.WithdrawnText, "replied", err
+		return orders.WithdrawnText(inputs.Ordering.Language), "replied", err
 	})
 }
 
@@ -92,9 +92,9 @@ func (r *Runner) place(ctx context.Context, turn conversations.Turn, info conver
 			return "", "", err
 		}
 		if inputs.Spoken {
-			return orders.SpokenPlacedText(placed.Number), "order_placed", nil
+			return orders.SpokenPlacedText(placed.Number, inputs.Ordering.Language), "order_placed", nil
 		}
-		return orders.PlacedText(placed.Number), "order_placed", nil
+		return orders.PlacedText(placed.Number, inputs.Ordering.Language), "order_placed", nil
 	})
 	if err == nil && outcome == outcomeNothingToDo {
 		return OutcomeHandedOver, r.handOver(ctx, turn, info, inputs, Handover{Reason: "order_unclear", SendHoldingReply: true})

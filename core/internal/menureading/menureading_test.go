@@ -11,8 +11,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"ansa/core/internal/brainclient"
+	"ansa/core/internal/logging"
 )
 
 func docx(t *testing.T, documentXML string) []byte {
@@ -50,6 +52,75 @@ func TestFilesAreKnownByTheirOwnBytes(t *testing.T) {
 	}
 }
 
+// fakeBrain answers every request with status and body, and keeps what it
+// was sent (a stopped one answers nothing at all). Never the real brain.
+func fakeBrain(t *testing.T, status int, body string, stopped bool) (*brainclient.Client, *map[string]any) {
+	sent := map[string]any{}
+	brain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		request, _ := io.ReadAll(r.Body)
+		json.Unmarshal(request, &sent)
+		w.WriteHeader(status)
+		io.WriteString(w, body)
+	}))
+	t.Cleanup(brain.Close)
+	if stopped {
+		brain.Close()
+	}
+	return brainclient.New(brain.URL, strings.Repeat("s", 40), 5*time.Second), &sent
+}
+
+// A Word menu with more text than the brain reads (20,000 characters, as
+// pasted text) is cut after a whole line, and the owner is told the rest
+// was left out: it was refused whole before, "ansa couldn't read this menu".
+func TestALongWordMenuIsCutAfterALineAndSaysSo(t *testing.T) {
+	client, sent := fakeBrain(t, http.StatusOK, `{"kind":"ok","rows":[{"category":"","name":"Kacchi","description":"","price":"450"}]}`, false)
+	dish := "কাচ্চি বিরিয়ানি, হাফ প্লেট 450"
+	long := `<w:document xmlns:w="x"><w:body>` + strings.Repeat(`<w:p><w:r><w:t>`+dish+`</w:t></w:r></w:p>`, 1_000) + `</w:body></w:document>`
+	result, problem := Read(context.Background(), client, logging.New(io.Discard), Source{File: docx(t, long), FileName: "menu.docx"}, "BDT")
+	text, _ := (*sent)["text"].(string)
+	if problem != "" || !result.TextCut || utf8.RuneCountInString(text) > 20_000 || utf8.RuneCountInString(text) < 19_950 {
+		t.Fatalf("cut to the brain's 20,000 characters: %q %+v, %d characters", problem, result, utf8.RuneCountInString(text))
+	}
+	if lines := strings.Split(text, "\n"); lines[len(lines)-1] != dish {
+		t.Fatalf("cut after a whole line: %q", lines[len(lines)-1])
+	}
+	short, _ := Read(context.Background(), client, logging.New(io.Discard), Source{File: docx(t, `<w:document xmlns:w="x"><w:body><w:p><w:r><w:t>`+dish+`</w:t></w:r></w:p></w:body></w:document>`), FileName: "menu.docx"}, "BDT")
+	if short.TextCut || (*sent)["text"] != dish {
+		t.Fatalf("a short file whole: %+v %v", short, (*sent)["text"])
+	}
+}
+
+// A brain that is stopped, restarting or too slow says nothing about the
+// menu: the owner is told to try again in a minute, not that the menu
+// couldn't be read, and the log says why with the error's type only.
+func TestAMenuTheBrainCantReadRightNowIsNotCalledUnreadable(t *testing.T) {
+	stopped, _ := fakeBrain(t, http.StatusOK, "", true)
+	restarting, _ := fakeBrain(t, http.StatusServiceUnavailable, "", false)
+	failed, _ := fakeBrain(t, http.StatusOK, `{"kind":"failed","reason":"unreadable"}`, false)
+	cases := map[string]struct {
+		brain  *brainclient.Client
+		want   string
+		logged bool
+	}{
+		"stopped":    {stopped, ReadingUnavailableNow, true},
+		"restarting": {restarting, ReadingUnavailableNow, true},
+		"unreadable": {failed, Unreadable, false},
+	}
+	for name, c := range cases {
+		var out bytes.Buffer
+		if _, problem := Read(context.Background(), c.brain, logging.New(&out), Source{Text: "Kacchi biryani 450 taka"}, "BDT"); problem != c.want {
+			t.Errorf("%s: got %q", name, problem)
+		}
+		line := out.String()
+		if c.logged != strings.Contains(line, `"error_type":`) || strings.Contains(line, "Kacchi") {
+			t.Errorf("%s: logged %q", name, line)
+		}
+	}
+	if ReadingUnavailableNow != "Reading menus isn't available right now. Try again in a minute." {
+		t.Errorf("words: %q", ReadingUnavailableNow)
+	}
+}
+
 func TestCoreReadsEveryPriceItself(t *testing.T) {
 	var sent map[string]any
 	brain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +134,7 @@ func TestCoreReadsEveryPriceItself(t *testing.T) {
 	}))
 	defer brain.Close()
 	client := brainclient.New(brain.URL, strings.Repeat("s", 40), 5*time.Second)
-	result, problem := Read(context.Background(), client, Source{Text: "Margherita 9,50"}, "EUR")
+	result, problem := Read(context.Background(), client, logging.New(io.Discard), Source{Text: "Margherita 9,50"}, "EUR")
 	if problem != "" || len(result.Items) != 2 || result.Dropped != 2 || result.Items[0].PriceCents != 950 || len([]rune(result.Items[1].Name)) != 120 {
 		t.Fatalf("result: %+v %q", result, problem)
 	}

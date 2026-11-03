@@ -18,7 +18,7 @@ type Row = { key: number; category: string; name: string; description: string; p
 // a <form action> runs.
 export function MenuReader({ currency }: { currency: string }) {
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [notes, setNotes] = useState<{ dropped: number; standIn: boolean }>({ dropped: 0, standIn: false });
+  const [notes, setNotes] = useState<{ dropped: number; standIn: boolean; textCut: boolean }>({ dropped: 0, standIn: false, textCut: false });
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -31,7 +31,7 @@ export function MenuReader({ currency }: { currency: string }) {
         setMessage(outcome.message);
         return;
       }
-      setNotes({ dropped: outcome.dropped, standIn: outcome.standIn });
+      setNotes({ dropped: outcome.dropped, standIn: outcome.standIn, textCut: outcome.textCut });
       setRows(
         outcome.items.map((item, index) => ({
           key: index,
@@ -63,7 +63,8 @@ export function MenuReader({ currency }: { currency: string }) {
       >
         <div className="grid gap-2">
           <Label htmlFor="menu-file">A photo of your menu, or a PDF or Word file</Label>
-          <Input id="menu-file" name="file" type="file" accept="image/jpeg,image/png,image/webp,.pdf,.docx,.txt" />
+          {/* What core reads (core/internal/menureading MediaType): a .txt is refused there, so its text is pasted. */}
+          <Input id="menu-file" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx" />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="menu-text">Or paste its text</Label>
@@ -104,6 +105,12 @@ export function MenuReader({ currency }: { currency: string }) {
           ansa read {rows.length === 1 ? "1 dish" : `${rows.length} dishes`}. Check each one against your menu: nothing is saved until you press
           &ldquo;Looks right&rdquo;.
           {notes.dropped > 0 && ` ${notes.dropped === 1 ? "1 line" : `${notes.dropped} lines`} without a clear name or price were left out.`}
+        </p>
+      )}
+      {notes.textCut && (
+        <p className="rounded-xl bg-attention-surface px-4 py-3 text-sm">
+          Your Word file holds more than {MENU_TEXT_MAX_LENGTH.toLocaleString("en")} characters of text, so ansa read only its first part. Add these
+          dishes, then read the rest by pasting it into &ldquo;Or paste its text&rdquo;.
         </p>
       )}
       <ol className="grid divide-y border-y">

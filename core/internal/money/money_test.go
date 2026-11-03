@@ -1,19 +1,42 @@
 package money
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"testing"
+)
 
+// The cases the screens' copy (lib/menu.ts parsePrice) reads too: thousands
+// grouped ("1,200", "1.200,50"), the South Asian way ("1,50,000"), any
+// script's digits ("৪৫০"), and the currency's own decimals ("1.250" KWD).
 func TestPricesAreReadInTheCurrencysUnits(t *testing.T) {
-	cases := []struct {
-		text, currency string
-		want           int64
-	}{
-		{"9.50", "EUR", 950}, {"9,5", "EUR", 950}, {"€ 12", "EUR", 1200}, {"1200", "JPY", 1200},
-		{"9.5", "JPY", -1}, {"-5", "EUR", -1}, {"1.250", "KWD", 1250}, {"9.999", "EUR", -1},
+	data, err := os.ReadFile("testdata/prices.json")
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, c := range cases {
-		if got := ParsePrice(c.text, c.currency); got != c.want {
-			t.Errorf("%q %s: got %d, want %d", c.text, c.currency, got, c.want)
+	var vectors struct {
+		Cases []struct {
+			Text, Currency string
+			Cents          *int64
 		}
+	}
+	if err := json.Unmarshal(data, &vectors); err != nil || len(vectors.Cases) == 0 {
+		t.Fatalf("the vectors: %v", err)
+	}
+	for _, c := range vectors.Cases {
+		want := int64(-1)
+		if c.Cents != nil {
+			want = *c.Cents
+		}
+		if got := ParsePrice(c.Text, c.Currency); got != want {
+			t.Errorf("%q %s: got %d, want %d", c.Text, c.Currency, got, want)
+		}
+	}
+}
+
+func TestEveryScriptsDigitsAreWrittenAs0To9(t *testing.T) {
+	if got := WithASCIIDigits("৳৩০০, ₹३००, €٣ or $４５"); got != "৳300, ₹300, €3 or $45" {
+		t.Errorf("got %q", got)
 	}
 }
 

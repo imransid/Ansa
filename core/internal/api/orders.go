@@ -8,6 +8,7 @@ import (
 
 	"ansa/core/internal/logging"
 	"ansa/core/internal/orders"
+	"ansa/core/internal/packages"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/session"
 )
@@ -18,17 +19,9 @@ var inboxChanges = ratelimit.Rule{MaxAttempts: 120, Window: 10 * time.Minute}
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
-// Why the customer wasn't told, in plain words (the status still changed).
-var notTold = map[string]string{
-	"window-closed": "The customer wasn't messaged: Telegram lets ansa write only within 24 hours of their last message.",
-	"not-connected": "The customer wasn't messaged: Telegram isn't connected.",
-	"cannot-reply":  "The customer wasn't messaged: ansa isn't allowed to reply on your Telegram account.",
-	"not-chat":      "The customer wasn't messaged: they didn't order in a chat.",
-	"not-found":     "The customer wasn't messaged.",
-	"send-failed":   "The customer's message couldn't be sent: see the conversation.",
-}
-
-// listOrders: GET /api/v1/orders, everyone in the company.
+// listOrders: GET /api/v1/orders, everyone in the company. With it, whether
+// the package includes orders (step 57): without, the assistant hands every
+// order to a person, and the page says so.
 func (s *Server) listOrders(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	open, finished, err := orders.ListForPage(r.Context(), s.Pool, s.Box, who.CompanyID)
 	if err != nil {
@@ -36,10 +29,19 @@ func (s *Server) listOrders(w http.ResponseWriter, r *http.Request, _ []byte, wh
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"open": nonNil(open), "finished": nonNil(finished)})
+	pkg, err := packages.Of(r.Context(), s.Pool, who.CompanyID, time.Now())
+	if err != nil {
+		s.Log.Error("api: orders package failed", logging.ErrorType(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"open": nonNil(open), "finished": nonNil(finished), "packageIncludesOrders": pkg.Orders})
 }
 
-// changeOrderStatus: POST /api/v1/orders/{id}/status {"change": "accept" | "ready" | "done" | "cancel"}.
+// changeOrderStatus: POST /api/v1/orders/{id}/status {"change": "accept" |
+// "ready" | "done" | "cancel"}. Answers {"notTold", "number", "channel"}:
+// notTold is "" when the customer was told, else why not (a chat's refusal
+// or "send-failed"), which the Orders page words for the order's channel.
 func (s *Server) changeOrderStatus(w http.ResponseWriter, r *http.Request, body []byte, who *session.Session) {
 	var input struct {
 		Change string `json:"change"`
@@ -68,7 +70,7 @@ func (s *Server) changeOrderStatus(w http.ResponseWriter, r *http.Request, body 
 	case orders.ChangeMeanwhile:
 		problem(w, http.StatusConflict, "Someone changed this order meanwhile. Reload the page.")
 	default:
-		writeJSON(w, http.StatusOK, map[string]string{"notice": notTold[result.NotToldWhy]})
+		writeJSON(w, http.StatusOK, map[string]any{"notTold": result.NotToldWhy, "number": result.Number, "channel": result.Channel})
 	}
 }
 

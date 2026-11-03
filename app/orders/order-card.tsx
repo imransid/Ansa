@@ -4,7 +4,7 @@ import { ActionButton } from "@/components/action-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot, type StatusTone } from "@/components/status-dot";
-import { CHANNEL_LABELS } from "@/lib/conversations";
+import { CHANNEL_LABELS, CHAT_CHANNELS } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
 import { formatPrice } from "@/lib/menu";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/orders";
@@ -79,13 +79,16 @@ export function OrderCard({ order }: { order: OrderView }) {
   );
 }
 
-// The one thing to do next, and Cancel (asks first: the customer is told).
+// The one thing to do next, and Cancel (asks first). The question promises
+// a message only as far as the chat allows one (Telegram, Messenger and
+// WhatsApp: within 24 hours of the customer's last message); a caller gets none.
 function NextStep({ order }: { order: OrderView }) {
   const fields = (change: string) => ({ orderId: order.id, change });
   const name = `order #${order.orderNumber}`;
   if (order.status === "done" || order.status === "cancelled" || order.status === "proposed") {
     return null;
   }
+  const whetherTheyAreTold = CHAT_CHANNELS.includes(order.channel) ? "The customer gets a message when their chat allows it." : "ansa can't message them: they didn't order in a chat.";
   return (
     <>
       {order.status === "new" && (
@@ -108,7 +111,7 @@ function NextStep({ order }: { order: OrderView }) {
         fields={fields("cancel")}
         label={order.status === "new" ? "Can't take it" : "Cancel"}
         accessibleLabel={`Cancel ${name}`}
-        question={`Cancel ${name}? The customer gets a message that it was cancelled.`}
+        question={`Cancel ${name}? ${whetherTheyAreTold}`}
         confirmLabel="Yes, cancel it"
         pendingLabel="Cancelling..."
       />

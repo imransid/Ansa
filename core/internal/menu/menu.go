@@ -54,6 +54,10 @@ type Typed struct {
 	Price       string `json:"price"`
 }
 
+// NoCategoryLabel is how the menu page shows a dish without a category (the
+// screens' NO_CATEGORY_LABEL, lib/menu.ts).
+const NoCategoryLabel = "Other dishes"
+
 // Fields is a typed dish cleaned, its price in smallest units.
 type Fields struct {
 	Category    string `json:"category"`
@@ -66,6 +70,11 @@ type Fields struct {
 // field, in the old form's words.
 func (t Typed) Check(currency string) (Fields, map[string]string) {
 	f := Fields{Category: plaintext.SingleLine(t.Category), Name: plaintext.SingleLine(t.Name), Description: plaintext.SingleLine(t.Description)}
+	// WHY: the page shows "" as "Other dishes" too, and Up and Down never
+	// crossed between the two, which looked like one list.
+	if strings.EqualFold(f.Category, NoCategoryLabel) {
+		f.Category = ""
+	}
 	problems := map[string]string{}
 	if utf8.RuneCountInString(f.Category) > 60 {
 		problems["category"] = "At most 60 characters."

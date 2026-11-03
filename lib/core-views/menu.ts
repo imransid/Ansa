@@ -74,11 +74,11 @@ export async function readMenuThroughCore(source: { file: File | null; text: str
     }
     body = { fileName: source.file.name, data: Buffer.from(await source.file.arrayBuffer()).toString("base64") };
   }
-  const answer = await callCore<{ items: ProposedMenuItem[]; dropped: number; standIn: boolean }>("POST", "/api/v1/menu/read", body);
+  const answer = await callCore<{ items: ProposedMenuItem[]; dropped: number; standIn: boolean; textCut: boolean }>("POST", "/api/v1/menu/read", body);
   if (!answer.ok) {
     return { ok: false, message: answer.message };
   }
-  return { ok: true, items: answer.data.items, dropped: answer.data.dropped, standIn: answer.data.standIn };
+  return { ok: true, items: answer.data.items, dropped: answer.data.dropped, standIn: answer.data.standIn, textCut: answer.data.textCut };
 }
 
 // "Looks right": every dish of the reading as the owner left it, all or none.

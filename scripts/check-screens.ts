@@ -10,6 +10,7 @@ import { runInboxChecks } from "./screen-checks/inbox-checks";
 import { runLoginRedirectChecks } from "./screen-checks/login-redirect-checks";
 import { runMediaUiChecks } from "./screen-checks/media-ui-checks";
 import { runMenuChecks } from "./screen-checks/menu-checks";
+import { runMenuAndOrdersChecks } from "./screen-checks/menu-and-orders-checks";
 import { runNavigationChecks } from "./screen-checks/navigation-checks";
 import { runPackageChecks } from "./screen-checks/package-checks";
 import { runPageHeadingChecks } from "./screen-checks/page-heading-checks";
@@ -27,6 +28,7 @@ async function main() {
   await runCofounderConsistencyChecks();
   await runMediaUiChecks();
   await runMenuChecks();
+  await runMenuAndOrdersChecks();
   await runSocialPageChecks();
   await runPracticePhoneChecks();
   await runContentRulesChecks();
