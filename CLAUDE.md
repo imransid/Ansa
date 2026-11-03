@@ -218,6 +218,11 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   row locked FOR SHARE in the same transaction (createInvite, db/invites.ts). An
   invite created at the moment its owner is removed or demoted is then refused,
   or saved first and revoked with the rest: nobody walks back in through it.
+  Inviting an address again revokes its pending invite in the same
+  transaction (the newest link works; a refusal for a full team keeps the
+  old one), and joining through an invite revokes the address's other
+  pending invites to that company, so one person takes one seat. The Team
+  page's person endpoints use the id exactly as sent (ids hold capitals).
 - A removed person is shut out everywhere: the session-create hook in lib/auth.ts
   gives them no session (login, the confirm page, a password change),
   lib/session-context.ts treats any session that survived as logged out, and no
@@ -267,7 +272,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   and assignment emails come from "<Company> via ansa" <EMAIL_FROM>
   (buildFromHeader: the name NFKC-normalized so look-alikes like ＠ count, as one
   plain line, without @ " < > \ or the encoded-word markers =? ?=). The "solved"
-  email is fixed text with the request number only (lib/emails/ticket-solved.ts):
+  email (for one person: no team or support desk, signed "<name>'s AI
+  assistant") is fixed text with the request number only (lib/emails/ticket-solved.ts):
   never the customer's name or the ticket subject, which a sender can write.
 - Customer addresses (a ticket's customer email, a received email's sender, a
   company's support and reply-to addresses) use customerEmailSchema
@@ -472,7 +478,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   (max 1,000) and body (max 100,000, the cut marked) are stored encrypted on
   inbound_emails and shown on the ticket as "Original email" (or "could not be
   decrypted", never as an empty email). Without a plain-text part the body is
-  text made from the HTML part (lib/html-to-text.ts, shown as text, Claude reads
+  text made from the HTML part (lib/html-to-text.ts, in time linear in its length:
+  only A-Z lower-cased once, so closing tags are found where they are; shown as text, Claude reads
   it too; an HTML part with no text says so on the ticket). Attachments are not
   stored: their count, and their file names encrypted, are shown ("2
   attachments not shown"); images the HTML shows inside the email ("cid:"
@@ -727,7 +734,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     tables), approved only, an audience flag required ("support" |
     "marketing"), never drafts or archived. The question becomes OR-ed words
     of letters, marks and digits only (lib/knowledge/search-query.ts: NFKC +
-    lower-case, 2-100 characters, a short English stop list, 4+ letters match
+    lower-case with ICU's full mapping, as the index (x/text cases: "İ",
+    a final "Σ"), 2-100 characters, short English and Bangla stop lists,
+    4+ letters match
     as a prefix, at most 20; null = no query runs), passed to
     to_tsquery('simple', ...) as a parameter. ts_rank_cd, at most 2 pieces per
     article, 10 hits. Each hit names its article.
@@ -782,8 +791,14 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     the request function can be replaced, for the checks only. HTML ->
     lib/html-to-text.ts, title from <title> (found with only A-Z
     lower-cased, so positions stay put), else host + path, kind website,
-    source_url. It logs one fixed line, "Knowledge web import failed:
-    <code>", never the address.
+    source_url. The address is read once and saved in its normalized form
+    ("Https://" becomes "https://"; one over 2,000 characters once written
+    out is refused before fetching), and every request names ansa in its
+    User-Agent (ansa-knowledge-import/1.0 (+APP_URL): sites refuse Go's
+    default). It logs one fixed line, "Knowledge web import failed:
+    <code>", never the address. "Add to knowledge" on a PDF the brain can't
+    read right now says to try again in a minute (its error's type logged),
+    never that the file may be damaged.
   - Support: the ticket page's "Related knowledge" (its own <Suspense>) lists
     up to 3 approved support articles matching the subject and category name,
     one piece each, or one quiet line. A solved ticket offers "Save as
@@ -1082,8 +1097,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   - Generation (lib/media-generation.ts, the ONLY door; one adapter per
     service, MediaProvider: start -> the file or a job id; poll -> running /
     done (bytes or an https URL) / failed (a code)). MEDIA_PROVIDER: unset in
-    development = the stand-in (adapters/dev-media-generator.ts: a real
-    1024 x 1024 PNG in one colour from the prompt's hash; no video:
+    development = the stand-in (core/internal/mediagen/standin*.go: a real
+    1024 x 1024 PNG, a soft two-colour gradient from the prompt's hash with
+    its first words in an embedded pixel font; no video:
     "no_video_provider"); production refuses the stand-in, so generation is
     "off" there (pages say it isn't set up, nothing is saved) until a real
     service is chosen (OPEN, IMPLEMENTATION_PLAN.md decision 9). A request
@@ -1549,7 +1565,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     lib/home-briefing.ts, and the ONE button that changes it for owners:
     Turn ansa on / Pause ansa / I'm away / I'm back; members read);
     "Getting started" (getting-started.tsx, services/home.ts, owners only,
-    gone once all are done: Telegram connected and allowed to reply, an AI
+    gone once all are done: Telegram (allowed to reply), WhatsApp or a
+    Facebook Page whose messages come to ansa connected, an AI
     engine ready, and a business's menu or a person's instructions); "While
     you were away" (only in "Only when I'm away": answering always, "What
     ansa did" says it); "Needs you" (needs-you.tsx): new orders to accept
@@ -1566,8 +1583,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     now."; "What ansa did"; and, for businesses only, "Your business in
     numbers" (business-overview.tsx): open requests, calls of the last 7
     days and those ansa solved, emails being read, and once the company
-    started the marketing helper (a fact, an interview message or a
-    draft: db/cofounder-progress.ts, one EXISTS each) key facts confirmed
+    started the marketing helper (a fact setup doesn't write, i.e. not
+    company_name, description or location; an interview message or a
+    draft: one EXISTS each) key facts confirmed
     (x of 16), posts waiting for approval (status draft) and posts
     scheduled within the next 7 days (queued, due ones too: it links to
     the queue's Scheduled list). Every number is a NumberLink to the list
@@ -1620,7 +1638,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   Analytics page ?period= (7, 30 or 90 days, step 42), all parsed in
   lib/validation/list-queries.ts (odd values fall back to the default). "mine"
   is always session.userId, never a URL value. Every list link and Previous/Next
-  keep the filters (buildListUrl). Search is ILIKE with %, _ and \ escaped
+  keep the filters (buildListUrl). A search is cut to its first 200 characters
+  (never in the middle of one), and a request number past Postgres's integers
+  is "not found". Search is ILIKE with %, _ and \ escaped
   (lib/search-patterns.ts), values as parameters; db/ticket-filters.ts and
   db/call-filters.ts hold the conditions, and db/tickets.ts / db/calls.ts put the
   company first in one WHERE builder used by the list and the per-view counts.
@@ -1691,7 +1711,12 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   business's name, what it serves and its address are business facts
   (company_name, description, location), written as the owner's confirmed
   values (db/setup-facts.ts, inside the setup's transaction, without the
-  Profile page's "what the page showed" check), so posts can use them.
+  Profile page's "what the page showed" check), so posts can use them. A
+  person emptying "What you do" clears it. One rename path: the business's
+  name saved on /setup also confirms the company_name fact, and the
+  Profile's company_name also renames companies.name (same name rules),
+  each in one transaction, so the AI label, calls, posts and alerts never
+  keep an old name.
   - Steps (SETUP_STEPS): business (name, kind, what it serves), contact
     (address, phone), hours (time zone, picked from the device in the
     browser until one is saved), orders (orders, delivery, pickup,
@@ -1732,8 +1757,13 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     then ends by itself (read with the database's clock). Checked in the
     services AND in /db (role read again FOR SHARE); menu-changes limit.
     No menu before a currency: every price is typed as text and read by
-    parsePrice in it (one "." or "," before at most the currency's
-    digits; a minus is no price).
+    parsePrice in it: any script's digits as 0-9 ("৪৫০"); a "," or "."
+    before exactly 3 digits groups thousands (unless the currency has 3
+    decimals), as do lakhs ("1,50,000"); with both marks the last is the
+    point; at most the currency's digits after it; a minus is no price.
+    Core's money.ParsePrice and the screens' lib/menu.ts replay one set of
+    cases (core/internal/money/testdata/prices.json). "Other dishes" typed
+    as a category is no category ("").
   - "Read my menu" (owners, services/menu-reading.ts, menu-readings: 20 an
     hour per company): a photo (JPEG, PNG, WebP or GIF, its type read from
     its own first bytes, never the name), a PDF or .docx (its text, as for
@@ -1745,9 +1775,14 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     can read, one plain line each, at most 150) and says how many were
     left out. NOTHING is saved by reading: the list comes back to the page
     to check and edit, and only "Looks right" adds it (every row checked
-    again, all or none, a bad price naming its dish). Without an API key
-    the development stand-in (adapters/dev-menu-reader.ts) answers a
-    labelled sample menu; production says reading isn't available
+    again, all or none, a bad price naming its dish). A Word file's text
+    is cut after its last whole line within 20,000 characters (the page
+    says so); a brain that can't answer now says "Reading menus isn't
+    available right now", never that the menu couldn't be read. Without
+    an API key, a development brain with Claude Code reads it on the
+    laptop (a photo as itself, a PDF as its text: brain/brain/free_ai.py);
+    without either the development stand-in answers a labelled sample menu
+    the page never offers to add; production says reading isn't available
     (menuStandInAllowed).
 - Inbox (step 47, /inbox, one conversation at /inbox/<id>, the ticket list
   at /inbox/requests "All requests"). contacts: one customer on one
@@ -1778,7 +1813,15 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   - "Needs you" = a conversation with an open ticket, or (step 49) a reply
     of the assistant waiting for a person (needsYouCondition,
     db/conversations.ts); Home's "N conversations need you" counts with the
-    same condition. A conversation's page shows its entries (each voice its
+    same condition. Without a team (one person, or a business of one),
+    Home also counts the open requests in no conversation (typed in, a
+    hidden caller's) that nobody or the viewer has, and never says "your
+    team". Home, the Inbox and a conversation refresh every 5 s while in
+    view (keeping what is typed). Inbox rows never preview a waiting or
+    discarded reply, and say when one waits (draftWaiting). A nameless
+    chat customer is "<app> customer", never the platform's id. The
+    conversation page's request shows its description (a call's note) and
+    related saved answers; an email entry links the request it became. A conversation's page shows its entries (each voice its
     own: the customer, ansa with its bell, a person by name), Take over /
     Hand back, a reply box on chat channels only (replying takes it over),
     and its newest open request with that ticket's own actions
@@ -1828,7 +1871,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     once per Telegram message id; text and caption only, other contents
     named ("[A photo: open Telegram to see it]", lib/telegram.ts), never
     downloaded. One written by the account itself (from = the account's
-    user) is saved as author "business_account" ("Written in Telegram");
+    user) is saved as author "business_account" ("Written in Telegram":
+    the business's own answer, below);
     one sent by the bot (sender_business_bot: ansa's own reply coming back)
     is not saved again. deleted_business_messages delete ansa's copies.
     Edits are ignored (Known gaps). Encrypted with
@@ -1881,7 +1925,7 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     read from Meta once, after the answer, when the contact has none
     (best effort). An echo sent by ansa's own app (app_id) isn't saved
     again; any other echo is the Page's own message (author
-    "business_account", clears the catch-up's wait). Then the assistant
+    "business_account": the business's own answer, below). Then the assistant
     answers it as it does Telegram's (step 49 onwards, orders included).
   - Sending: every message to a customer goes through
     services/chat-send.ts (sendToCustomer), which reads a Messenger Page's
@@ -1936,8 +1980,14 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     never downloaded; reactions and WhatsApp's notices left out. Saved once
     per WhatsApp message id, encrypted, the assistant's answer queued. An
     smb_message_echoes message is the business's own (author
-    business_account, "Written in the WhatsApp Business app"; the catch-up
-    stops waiting). account_update PARTNER_REMOVED / ACCOUNT_OFFBOARDED =
+    business_account, "Written in the WhatsApp Business app"). The
+    business's own answer from its app, on every channel
+    (core/internal/conversations/own_answer.go): it ends ansa's wait,
+    discards ansa's waiting "Ask me first" reply, and in "always" mode takes
+    the conversation over as a person's reply in ansa does (until Hand back;
+    recorded as by whoever connected that account, since the database ties
+    a take over to a person), so the customer never gets two answers;
+    Connections says so. account_update PARTNER_REMOVED / ACCOUNT_OFFBOARDED =
     removed_in_whatsapp (nothing arrives or goes, the token kept),
     ACCOUNT_RECONNECTED = connected again; an owner's disconnect is final.
   - Replies (chat.RouteWithin → whatsapp.Send; the token read right before
@@ -1951,7 +2001,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     each channel (lib/conversations.ts sendErrorText, WRITTEN_IN).
   - Modes (whatsapp.Connector.Mode): "real" with FACEBOOK_APP_ID, _SECRET
     and WHATSAPP_SIGNUP_CONFIG_ID; "stand-in" in development (a stand-in
-    number, `make simulate-whatsapp`, replies to .dev-messages/);
+    number with the same ids at every connect, "stand-in:<company id>", so
+    its conversations survive a reconnect; the practice chat or `make
+    simulate-whatsapp`; replies to .dev-messages/);
     "not-set-up" in production without them. WHATSAPP_VERIFY_TOKEN answers
     Meta's setup check.
 - "Post for me" (step 54, Settings → Posts for me at /settings/posts,
@@ -1999,12 +2051,14 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     `pnpm assistant:catch-up` in development, write each posting time's
     post within a day of it, at most 10 a run, each only while two AI
     tries still fit its 300 s. "Post one now" (owners, autopost-now: 5 an
-    hour per company) writes one for this moment and sends it after the
-    answer (maxDuration 300).
+    hour per company) writes one for this moment and sends it right after
+    the answer (the publisher's SendSoon; maxDuration 300).
   - The page: what ansa is doing and the next three times, the form, and
     ansa's newest 20 posts with where each is (being written, scheduled,
     posted, waiting for approval, couldn't be posted, taken back, skipped
-    and why) and its reactions, comments and shares.
+    and why) and its reactions, comments and shares (simulated ones
+    labelled "Simulated (development)"); it refreshes itself while a post
+    is due within a minute.
   - Setup's business types (widened in step 54, a CHECK): food
     (restaurant, café, bakery, takeaway, food truck, bar, catering) and
     shop, salon or beauty, clinic, gym, services / freelance / agency,
@@ -2027,7 +2081,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     hours with "now" in its time zone, delivery / pickup / payment notes,
     the AVAILABLE dishes with labels M1... and prices as the menu shows
     them, the owner's instructions, up to 3 approved support articles
-    matching the customer's last message (3,000 characters), the active
+    matching the customer's newest 3 messages (their words taken in turns,
+    newest first: knowledge.CombineSearchTexts, so a follow-up keeps the
+    article of the question before it; 3,000 characters), the active
     category names, and the newest 20 messages of this conversation (cut
     to 1,000 characters each, never splitting an emoji). Every value
     escaped in its tag; customers' text with card-like and SSN-like numbers
@@ -2044,12 +2100,22 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     order_withdrawn (see Orders below).
   - ansa's checks before a reply may go (lib/assistant/reply-checks.ts):
     every amount written with a currency mark is a menu price or an amount
-    in the owner's own texts (notes, instructions, articles; thousands in
-    groups of three are one amount, "15,000" or "1.040,50": step 58); no refund,
-    compensation or voucher words (several languages); every link appears
-    in the owner's texts. The first automated message of a conversation
-    starts with ansa's own line "I'm the AI assistant for <restaurant>."
-    (lib/assistant/ai-label.ts), never the AI's.
+    in the owner's own texts (notes, instructions, approved articles'
+    titles and texts, today's dishes' descriptions; any script's digits are
+    read as 0-9 ("৳৩০০"); "Tk", "Tk." and টাকা count as currency marks;
+    thousands in groups of three or as lakhs are one amount, "15,000",
+    "1.040,50" or "1,50,000", read as money.ParsePrice reads a menu
+    price); no refund, compensation or voucher words (several languages,
+    Bangla's রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ and ভাউচার, never a bare ফেরত);
+    every link appears in the owner's texts; and for one person (kind
+    personal) no clock time, day or agreement ("3 pm", "15:00", "tomorrow",
+    a weekday, "see you", "booked", ৩টায়, আগামীকাল...) that their own texts
+    don't hold (core/internal/assistant/commitments.go: a needs_decision
+    handover, so ansa never commits them, also on their calls). The first
+    automated message a customer RECEIVES (sending, sent or unclear: never
+    a waiting, discarded or failed one) starts with ansa's own line "I'm
+    the AI assistant for <restaurant>." (lib/assistant/ai-label.ts), never
+    the AI's; ansa's order texts carry it too when they are the first.
   - Anything else hands over (services/assistant-handover.ts,
     db/assistant-handover.ts, ONE transaction): the restaurant's holding
     reply (with the AI label when first; never the AI's text), a request
@@ -2065,7 +2131,10 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     model_failed, model_unavailable (no engine), reply_limit, send_failed
     (the reply itself failed: a request and an alert, no holding reply).
   - Automatic (the default) sends at once; "Ask me first" saves the reply
-    as a "draft" (one at a time: a newer one discards it) that shows under
+    as a "draft" (one at a time: a newer one, a handover, ansa's order
+    texts, a person's reply, Take over and the business's own message from
+    its app each discard it, a person's discard recorded as theirs, so it
+    can never go after them) that shows under
     Needs you with Send (as written), Edit (?edit=<id>: the reply box, a
     person's reply that replaces it in its transaction) and Discard
     (ConfirmButton), anyone in the company (db/assistant-drafts.ts, the
@@ -2083,8 +2152,17 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     sources, no CLAUDE.md or memory, no saved session, an empty temporary
     folder, only PATH, HOME, USER, LOGNAME, LANG and TMPDIR passed on (never
     ansa's secrets), the conversation on stdin, the answer its
-    structured_output, 90 s; CLAUDE_CODE_PATH names the program. No engine =
-    every message gets the holding reply and a request.
+    structured_output, 90 s; the program is CLAUDE_CODE_PATH while that is
+    an executable file, else `claude` on the PATH (brain/brain/claude_code.py:
+    an editor's extension folder disappears when the editor updates).
+    No engine = every message gets the holding reply and a request.
+    DEVELOPMENT ONLY, without ANTHROPIC_API_KEY, ansa's own uses (email
+    triage, call decisions, menu reading, the marketing pages, "Claude API
+    key" with no key of the business's own) are answered by that same
+    locked-down Claude Code (brain/brain/free_ai.py), so every feature
+    works on the laptop for free; /v1/status reports it as free_stand_in
+    (never as ansa_key) and Settings → Assistant says so. Production never
+    falls back.
   - "Test your assistant" (owners, assistant-tests limit) runs the same
     inputs, engine and checks on one typed message and shows the reply or
     the handover and why: nothing saved, sent or alerted.
@@ -2122,15 +2200,24 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   (after posts, before post numbers), the daily job (after posts), pnpm
   telegram:poll and pnpm assistant:catch-up (development), each only while
   its slowest answer fits the 300 s, and answers the newest message unless
-  you answered after it (a person's reply in ansa, or the restaurant's own
-  Telegram message, which also clear assistant_due_at). contacts.important
-  (anyone in the company, on the conversation page): ansa never answers
-  them itself; it hands over at once with "important_person", no AI asked.
-  "While you were away" on Home: the assistant's replied / drafted /
-  handed_over lines since the person last pressed "Got it"
+  you answered after it (a person's reply in ansa, or the business's own
+  message from its app on Telegram, WhatsApp or the Facebook Page, which
+  also clear assistant_due_at). "I'm away" (the owner's direction: ansa
+  answers for you everywhere) also hands back, in its transaction, every
+  conversation a person took over (a handed_back line by the presser) and
+  makes the waiting ones due now (core/internal/settings/away.go).
+  contacts.important (anyone in the company, on the conversation page):
+  ansa never answers them itself; it hands over at once with
+  "important_person", no AI asked, whatever the away settings say (it runs
+  right after the gate). "While you were away" on Home: the assistant's
+  replied / drafted / handed_over lines and its email_made_request /
+  call_needs_person notes since the person last pressed "Got it"
   (away_summary_reads, per company and person; the last day before the
-  first), each conversation once. The sidebar's foot says "Away: ansa
-  answers for you" or "Available: you answer" in when_away mode.
+  first), each conversation once; "waiting" = replies still in draft. The
+  sidebar's foot says "Away: ansa answers for you" or "Available: you
+  answer" in when_away mode. The conversation page says "ansa answers at
+  HH:MM unless you reply" while a wait is on (development: an owner's
+  "Answer now" makes it due).
   - Home's "What ansa did": the newest six lines of ansa's activity, each a
     link to its conversation.
 - Orders (step 52, /orders; Orders in the sidebar and the phone bar after
@@ -2159,8 +2246,11 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     pickup, the address, when, notes (lib/assistant/answer.ts, its rules
     lib/assistant/order-prompt.ts, which also gives it <order_in_progress>
     and this conversation's newest 3 <placed_orders>). ansa decides
-    (lib/order-steps.ts, pure): a person's account, or a business that
-    takes no orders here = handover "order"; closed now by its own hours =
+    (lib/order-steps.ts, pure): a person's account, a business that
+    takes no orders here, or one offering neither delivery nor pickup (setup
+    refuses that: "Choose delivery, pickup or both") = handover "order";
+    a line or total past Postgres's 32-bit amounts = order_unclear; closed
+    now by its own hours =
     ansa's fixed "we can't take orders right now (opens at 18:00)"; a
     dish that is neither a label nor the one exact name on today's menu,
     or a count outside 1-50 = handover "order_unclear"; a missing way or address = ansa's fixed question
@@ -2168,7 +2258,11 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     same dish twice is one line, the fee only for delivery) and writes the
     summary itself (orderSummaryText: every line, the fee, the total, how,
     when, notes, "Reply yes to confirm"). The AI never writes a total: its
-    reply text is never sent on an order answer.
+    reply text is never sent on an order answer. Every fixed order text
+    (summary, questions, confirmation, "no", closed now, status messages,
+    and their spoken forms) is in Bangla when the customer's newest message
+    is mostly Bengali script, else in English (core/internal/orders/texts.go
+    and texts_bangla.go; prices formatted as always).
   - The summary is saved with the order ("proposed", replacing the one
     being written up) in ONE transaction that checks the conversation
     again (db/order-proposals.ts, saveOrderProposal); it goes out at once
@@ -2196,9 +2290,12 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     in the same transaction as a person's message that doesn't take the
     conversation over, only when the chat may take one now
     (lockReplyRouteWithin: Telegram's 24 hours); otherwise the status still
-    changes and the page says the customer wasn't told. Home's "Needs you"
-    counts new orders ("N new orders to accept"), and a conversation's page
-    lists that customer's orders.
+    changes and the page says the customer wasn't told (the notice lives in
+    the page's address, ?notTold=&channel=&order=, worded per channel by
+    lib/order-notices.ts, so it outlives the button). The page says when the
+    package doesn't include orders (they go to a person). Home's "Needs
+    you" counts new orders ("N new orders to accept"), and a conversation's
+    page lists that customer's orders.
 - Packages and usage limits (step 57, core/internal/packages,
   docs/backend/modules/packages.md): names, prices and limits in ONE file
   (packages.go). Free trial: 14 days from signup (companies.trial_ends_at),
@@ -2222,11 +2319,16 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     an email becomes a request without the AI; a post is skipped
     ("package"); an order goes to a person where the package has no
     orders; an invite past the team's seats (pending invites counted) is
-    refused ("team-full"). Home tells owners (the trial's days and end,
-    replies at 80% and used up, no call minutes), Billing shows the
-    package, this month's use and the three packages ("Choose" opens
-    Stripe's page; once paying, Stripe's portal changes package;
-    development: simulate buttons per package).
+    refused ("team-full"). Home tells owners (the trial's whole days
+    left, rounded up, and its end as a date in the viewer's time; replies
+    at 80% and used up; no call minutes, compared in seconds as core
+    does), Billing shows the package, this month's use and the three
+    packages ("Choose" opens Stripe's page; once paying, Stripe's portal
+    changes package). Development only (refused otherwise, POST
+    /api/v1/billing/demo, owners): simulate buttons per package and demo
+    steps (trial ended, AI replies used up, call minutes used up, payment
+    fixed, cancel at the end of the period, back to normal), under "Demo
+    payments: nothing is charged."
 - Calls answered live (step 55, core/internal/phone, docs/backend/modules/
   phone.md): someone who couldn't reach the person or the business talks
   with ansa turn by turn, answered by the SAME assistant as chats (details,
@@ -2279,11 +2381,18 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   - Only the assistant answering a live call speaks into a phone
     conversation: chat.RouteWithin refuses it to everyone else (a person's
     reply, an order's status message); requests from a call are channel
-    "phone". One live call per conversation (a partial unique index).
+    "phone" and carry the caller's number (the contact's digits), so the
+    request page shows it, a search by number finds it and same-customer
+    routing follows it. One live call per conversation (a partial unique
+    index): a new call ends one left live as hanging up would (its
+    minutes counted, its note queued, a request for the messages it took),
+    and a call's note renames only a request opened during that call.
   - The practice phone (Settings → Connections → practice phone,
     /settings/channels/practice-call; owners; development only, refused by
-    core in production): pretend to be a caller in English or Bangla, talk
-    or type, hear ansa with the browser's voice of the words' language
+    core in production): pretend to be a caller in English or Bangla (each
+    visit calls from a new made-up number; "New caller" is someone else;
+    leaving the page hangs up, and an answer that comes back after a hang
+    up is dropped), talk or type, hear ansa with the browser's voice of the words' language
     (lib/practice-phone/speech.ts; none for Bangla in Chrome on a Mac: the
     words are shown, the page names Edge). Hearing: the browser's speech
     service where it has one (the default; Chrome's is Google's, so the
@@ -2310,18 +2419,37 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   check refuses them).
 - The demo on this laptop (docs/demo.md, after step 58): `pnpm demo`
   (scripts/demo.sh) starts the database, the brain, core and the screens
-  in one terminal (Ctrl+C stops every one) and makes the two demo accounts
-  when they aren't there; `pnpm demo:reset` (core's `demo` tool,
-  cmd/simulate/demo.go) deletes and makes them again: a restaurant
-  (business@demo.ansa.test) and one person (rafa@demo.ansa.test), password
-  ansa-demo-2026, both on "Claude Code on this computer", signed up
-  through core's signup and set up through core's own functions. The
-  practice chat (Settings → Connections → Practice chat,
-  core/internal/practicechat, development and owners only) is the
-  customer's side: a message through a stand-in WhatsApp number, Telegram
-  account or Facebook Page, saved as each channel saves a customer's (its
-  reply queued as for any), and the chat as the customer sees it (never a
-  draft). Both refuse production, as every stand-in does.
+  in one terminal (Ctrl+C stops every one, letting core finish its work;
+  a part that doesn't start stops it with a clear line, never a hang), and
+  makes the demo accounts when they aren't there or their trial has less
+  than a day left. The screens listen on this computer only (`pnpm dev`
+  binds 127.0.0.1; Next's route badge is off), and the first run adds
+  development webhook secrets for the simulate tools to .env.core.
+  `pnpm demo:reset` (core's `demo` tool, cmd/simulate/demo*.go) deletes
+  every account on @demo.ansa.test (each company in ONE transaction that
+  locks its row first, its stored files, and every rate limit counter)
+  and makes the demo again, password ansa-demo-2026, all on "Claude Code
+  on this computer", signed up and set up through core's own functions: a
+  restaurant (Shapla Kitchen, business@demo.ansa.test, open all day) with a
+  member (karim@demo.ansa.test) and a day of history spread over the
+  hours, and one person (rafa@demo.ansa.test, away, with a night of
+  history). Conversations, calls and emails go through core's real
+  assistant, webhooks, analyzer and processor with a scripted brain (the
+  same every time, no AI at reset); what the seed shows is listed in
+  docs/backend/modules/commands.md, and cmd/simulate/demo_test.go runs it
+  twice on the test database. The practice chat (Settings → Connections →
+  Practice chat, core/internal/practicechat, development and owners only)
+  is the customer's side: a message through a stand-in WhatsApp number,
+  Telegram account or Facebook Page, saved as each channel saves a
+  customer's (its reply queued as for any), the chat as the customer sees
+  it (never a draft), an email typed as a customer (saved and queued with
+  the Resend webhook's own step, resend.SaveAndQueue), and the business
+  answering from its own app (asBusiness, through each channel's own
+  path). The development mailbox (core/internal/devmail, Settings →
+  Connections → Development mailbox) shows the emails ansa wrote here: an
+  owner's company's, matched by the ids in each email's name; before a
+  login, the newest to a made-up address only (@demo.ansa.test, .test,
+  .example...). All of it refuses production, as every stand-in does.
 - A GET route handler that reads no params is prerendered at BUILD time unless it
   calls `await connection()` first; lib/core-api.ts does that for every call
   to core, so nothing that asks core is built ahead. Check the build output:
@@ -2667,8 +2795,11 @@ this order and is done on the laptop, deploying aside
   live checks and words) and in core (what is decided and sent). The content
   rules are tied: both sides replay one set of vectors
   (core/internal/contentrules/testdata/old_rules.json: core's
-  oldrules_test.go and pnpm check:screens). The others are kept equal by hand
-  only, for example the menu's price reading, the setup lists, Telegram's
+  oldrules_test.go and pnpm check:screens), and so is the menu's price
+  reading (core/internal/money/testdata/prices.json). The others are kept
+  equal by hand only, for example the setup lists (and the food business
+  types: lib/restaurant-setup.ts, lib/autopost/brain.ts and core's
+  autopost), Telegram's
   fixed texts, the publishing limits, the metric definitions and the link
   lifetimes (the screens' comments name core's copy).
 - Setup page (step 16): owners list their support addresses there (shown, and
@@ -2958,8 +3089,9 @@ this order and is done on the laptop, deploying aside
   email triage don't, and otherwise approved support articles only show on
   tickets and in "Test what the AI finds". The search matches words, not
   meaning (no embeddings,
-  IMPLEMENTATION_PLAN decision 2): "refund" doesn't find "money back", and the
-  stop words are English only. A scanned PDF has no text (no OCR). A web
+  IMPLEMENTATION_PLAN decision 2): "refund" doesn't find "money back", the
+  stop words are English and Bangla only, and Bangla has no stemming
+  ("কাচ্চিতে" doesn't find "কাচ্চি"). A scanned PDF has no text (no OCR). A web
   import is that one page (links are not followed, pages behind a login or
   built by JavaScript give little or nothing), and no import is ever
   refreshed when the document or page changes: importing again adds new
@@ -3068,7 +3200,9 @@ this order and is done on the laptop, deploying aside
   IMPLEMENTATION_PLAN.md decision 9, options and prices in
   docs/research/vapi-tools-media-anthropic.md), so production has no
   generation at all ("off", said on its pages) and development only the
-  stand-in's flat-colour PNGs; no video is ever generated in development (an
+  stand-in's pictures (a gradient with the prompt's first words, not a real
+  image; a Bangla-only prompt gives the gradient alone); no video is ever
+  generated in development (an
   honest "no_video_provider"). The provider interface, polling, result
   downloads, claims and retries are checked with fake services only: no
   adapter has met a real API, and "cost" is whatever an adapter will report.
@@ -3244,7 +3378,14 @@ this order and is done on the laptop, deploying aside
   conversation (All requests lists their tickets). A caller is matched on
   the digits as written: "+39 051..." and "0039 051..." are two customers.
   A conversation a removed teammate took over stays "taken over" until
-  someone hands it back. Previews decrypt each listed conversation's newest
+  someone hands it back (or an owner presses "I'm away"). A message that
+  arrived while a conversation was taken over, or while its request was
+  open, isn't answered after Hand back, Done or "I'm away": only the
+  customer's next message is. The business's own answer in its app takes
+  a conversation over in "always" mode: if the WhatsApp Business app or
+  Telegram Business sends automated greeting or away messages from the
+  business's own account (NOT CONFIRMED), they would take conversations
+  over too; check on the first real account. Previews decrypt each listed conversation's newest
   message (50 a page). Conversations, contacts and messages are kept
   forever (no retention rule), like calls and emails. A typed-in ticket
   or one from a hidden number has no conversation.
@@ -3269,8 +3410,11 @@ this order and is done on the laptop, deploying aside
   set): the checks hold prices, refunds and links, not whether an answer
   is right; an amount written without a currency mark ("8.50") or in words
   isn't checked, nor is a price in another currency's symbol with the same
-  number. Refund words are matched in English, Italian, Spanish, French
-  and German only. Each reply is a job: a run cut off (a crash, or a
+  number. Refund words are matched in English, Italian, Spanish, French,
+  German and Bangla (exactly রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার: not
+  টাকাটা ফেরত or ফেরৎ); Post for me's offer words not in Bangla. For one
+  person the commitment check (times, days, agreement words) is a word
+  list: it errs toward a note, and can't judge meaning. Each reply is a job: a run cut off (a crash, or a
   deploy that outlasts core's 20-second stop) is tried again after its
   10-minute lease, unless it had saved its reply already: that reply then
   stays "Sending..." in the Inbox (it may or may not have gone out), never
@@ -3292,8 +3436,10 @@ this order and is done on the laptop, deploying aside
   can't place, or a "yes" with no summary seen, goes to a person (the
   holding reply), so an unusual order (half and half, extras, sizes not
   on the menu as their own dish) always reaches a person. The fixed texts
-  (summary, questions, confirmation, status messages) are English only,
-  whatever language the customer writes. There is no online payment, no
+  (summary, questions, confirmation, status messages) are in Bangla for a
+  customer whose newest message is mostly Bengali script, else English
+  (a Bangla customer answering "yes" in Latin letters gets the English
+  confirmation; the AI label stays English; other languages get English). There is no online payment, no
   minimum order, no delivery area check, no ready-time estimate and no
   stock: "Not available today" is the only limit. A change or a cancel of
   a placed order is a person's job (handover). The status messages go
@@ -3322,7 +3468,11 @@ this order and is done on the laptop, deploying aside
   a few seconds later; a note that fails leaves the request as the call
   left it. Calls aren't listed on the Calls page (that is still Vapi's
   finished-call reports): they are conversations in the Inbox. ansa never
-  ends a call by itself: the caller hangs up.
+  ends a call by itself: the caller hangs up. A practice call whose page
+  was closed before its hang-up reached core stays live until the same
+  number calls again (each visit has a new made-up number, so rarely):
+  no sweep ends quiet live calls yet, and a call ended that way counts
+  its minutes from its start to that next call.
 - The "easy to use" pass (2026-11-01): Home, Settings, Settings →
   Assistant and the conversation page were simplified by hand; nothing
   measures how easy they are (no user testing yet). "Done" on a chat's
@@ -4443,3 +4593,37 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   amount over a thousand written with a comma ("15,000 taka") stopped
   every reply naming it (now read as one amount). No migration, no new
   setting or package.
+- 2026-11-03: Every feature ready to show and check on the laptop (the
+  owner: "make ansa completely ready ... all feature should be there ...
+  test everything"). An audit of 12 areas, each bug checked again by two
+  reviewers, confirmed 41 bugs; all are fixed, each with a test, and the
+  demo's gaps closed. Decisions where the direction left room: in
+  development without an API key, Claude Code on the laptop stands in for
+  ansa's own key in every use (email triage, call decisions, menu reading
+  with photos and PDFs, the marketing pages), never in production; a
+  development mailbox shows the emails ansa wrote (owners: their company's,
+  matched by the ids in each email's name; before a login, made-up
+  addresses only), and the screens listen on 127.0.0.1 only; `pnpm
+  demo:reset` makes three accounts and a day of history through core's
+  real paths with a scripted brain (no AI at reset), deleting everything
+  on @demo.ansa.test first; the practice chat also sends emails and
+  writes as the business from its own app. Behaviour: a person's reply,
+  Take over, a handover and ansa's order texts discard ansa's waiting
+  "Ask me first" reply, and the AI label goes on the first automated
+  message the customer receives; the business's own answer in its app
+  takes the conversation over in "always" mode, as a reply in ansa does
+  (Connections promised it); "I'm away" hands back every taken-over
+  conversation and answers what waits; important people go to the person
+  whatever the away settings say; a person's reply naming a time, a day
+  or an agreement they never wrote becomes a note (needs_decision); the
+  price checks read any script's digits, Tk and টাকা, lakhs and Bangla
+  refund words, and menu prices are read the same way (shared cases with
+  the screens); ansa's order texts are in Bangla for a Bangla customer;
+  requests from calls carry the caller's number (same-customer routing
+  follows it); the knowledge search reads the customer's newest 3
+  messages; inviting an address again replaces its invite; one rename
+  path between /setup and the Profile; Home's marketing numbers only once
+  the marketing helper was used; development Billing has demo steps
+  (trial ended, limits used up, back to normal); the image stand-in draws
+  a gradient with the prompt's words. No migration, no new package, no
+  new production setting.
