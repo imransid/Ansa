@@ -37,6 +37,7 @@ import (
 	"ansa/core/internal/secure"
 	"ansa/core/internal/session"
 	"ansa/core/internal/socialconnect"
+	"ansa/core/internal/whatsapp"
 )
 
 // The screens send small JSON bodies.
@@ -79,6 +80,8 @@ type Server struct {
 	Publisher *publishing.Runner
 	// Connecting Facebook Pages.
 	Social *socialconnect.Connector
+	// Connecting a WhatsApp number (Meta's Embedded Signup, step 56).
+	WhatsApp *whatsapp.Connector
 	// The app's own address (invite links).
 	AppURL string
 	// Private file storage (documents), and ansa's own sending address

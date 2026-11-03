@@ -1,5 +1,5 @@
 // Package chat is core's ONE door for sending a message to a customer in a
-// chat (Telegram, Messenger, the development stand-in), and for recording
+// chat (Telegram, Messenger, WhatsApp, the development stand-in), and for recording
 // what became of it. The route is read inside the transaction that saves
 // the message (RouteWithin): nothing is saved when it can't go.
 package chat
@@ -15,6 +15,7 @@ import (
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tenant"
+	"ansa/core/internal/whatsapp"
 )
 
 // Target is where one message goes.
@@ -30,6 +31,11 @@ type Target struct {
 	MessengerConnectionID string
 	MessengerPSID         string
 	MessengerIsStandIn    bool
+	// WhatsApp: the company's number (its row, and Meta's id for it) and the customer.
+	WhatsAppNumberID      string
+	WhatsAppPhoneNumberID string
+	WhatsAppCustomerID    string
+	WhatsAppIsStandIn     bool
 }
 
 // Result of one send (Status "sent", "failed" or "unclear"; Error a code).
@@ -38,10 +44,12 @@ type Result = telegram.Result
 // Sender sends through the right channel.
 type Sender struct {
 	TelegramToken string
-	// ansa's Meta app secret (every Graph call is signed with it), and the
-	// Page token reader (core/internal/social: the only code that decrypts one).
-	MessengerAppSecret string
-	PageToken          func(ctx context.Context, company tenant.CompanyID, connectionID string) (string, error)
+	// ansa's Meta app secret (every Graph call is signed with it, Messenger's
+	// and WhatsApp's), and the Page's and the WhatsApp number's token readers
+	// (core/internal/social: the only code that decrypts a token).
+	MetaAppSecret string
+	PageToken     func(ctx context.Context, company tenant.CompanyID, connectionID string) (string, error)
+	WhatsAppToken func(ctx context.Context, company tenant.CompanyID, numberID string) (string, error)
 	// Development only: stand-ins write to StandInDir instead of sending.
 	StandInsAllowed bool
 	StandInDir      string
@@ -52,12 +60,15 @@ type Sender struct {
 func (s *Sender) Send(ctx context.Context, target Target, messageID, text string) Result {
 	switch {
 	case target.Channel == conversations.ChannelStandIn || (target.Channel == conversations.ChannelTelegram && target.TelegramIsStandIn) ||
-		(target.Channel == conversations.ChannelMessenger && target.MessengerIsStandIn):
+		(target.Channel == conversations.ChannelMessenger && target.MessengerIsStandIn) ||
+		(target.Channel == conversations.ChannelWhatsApp && target.WhatsAppIsStandIn):
 		return s.writeStandIn(messageID, target, text)
 	case target.Channel == conversations.ChannelTelegram && target.TelegramConnectionID != "" && s.TelegramToken != "":
 		return telegram.Send(ctx, s.TelegramToken, target.ExternalID, text, target.TelegramConnectionID)
 	case target.Channel == conversations.ChannelMessenger && target.MessengerConnectionID != "":
 		return s.sendMessenger(ctx, target, text)
+	case target.Channel == conversations.ChannelWhatsApp && target.WhatsAppNumberID != "":
+		return s.sendWhatsApp(ctx, target, text)
 	case target.Channel == conversations.ChannelPhone:
 		// Words for a live call: the phone line speaks them, reading them
 		// back from the conversation (core/internal/phone). Only the
@@ -72,14 +83,29 @@ func (s *Sender) Send(ctx context.Context, target Target, messageID, text string
 // sendMessenger reads the Page's token first: a Page that can't be used now
 // (disconnected, its token unreadable) means the message isn't sent.
 func (s *Sender) sendMessenger(ctx context.Context, target Target, text string) Result {
-	if s.MessengerAppSecret == "" || s.PageToken == nil {
+	if s.MetaAppSecret == "" || s.PageToken == nil {
 		return Result{Status: "failed", Error: "not_connected"}
 	}
 	token, err := s.PageToken(ctx, target.CompanyID, target.MessengerConnectionID)
 	if err != nil {
 		return Result{Status: "failed", Error: "not_connected"}
 	}
-	sent := messenger.Send(ctx, s.MessengerAppSecret, target.MessengerPageID, token, target.MessengerPSID, text)
+	sent := messenger.Send(ctx, s.MetaAppSecret, target.MessengerPageID, token, target.MessengerPSID, text)
+	return Result{Status: sent.Status, ChannelMessageID: sent.ChannelMessageID, Error: sent.Error}
+}
+
+// sendWhatsApp reads the number's token first: a number that can't be used
+// now (disconnected, removed on Meta's side, its token unreadable) means
+// the message isn't sent.
+func (s *Sender) sendWhatsApp(ctx context.Context, target Target, text string) Result {
+	if s.MetaAppSecret == "" || s.WhatsAppToken == nil {
+		return Result{Status: "failed", Error: "not_connected"}
+	}
+	token, err := s.WhatsAppToken(ctx, target.CompanyID, target.WhatsAppNumberID)
+	if err != nil {
+		return Result{Status: "failed", Error: "not_connected"}
+	}
+	sent := whatsapp.Send(ctx, s.MetaAppSecret, target.WhatsAppPhoneNumberID, token, target.WhatsAppCustomerID, text)
 	return Result{Status: sent.Status, ChannelMessageID: sent.ChannelMessageID, Error: sent.Error}
 }
 

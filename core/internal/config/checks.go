@@ -43,8 +43,16 @@ func metaProblems(cfg Config) []string {
 	if cfg.MessengerVerifyToken != "" && !verifyTokenPattern.MatchString(cfg.MessengerVerifyToken) {
 		problems = append(problems, "MESSENGER_VERIFY_TOKEN must be 32 to 256 letters, digits, _ or - (openssl rand -hex 32)")
 	}
+	if cfg.WhatsAppVerifyToken != "" && !verifyTokenPattern.MatchString(cfg.WhatsAppVerifyToken) {
+		problems = append(problems, "WHATSAPP_VERIFY_TOKEN must be 32 to 256 letters, digits, _ or - (openssl rand -hex 32)")
+	}
+	if cfg.WhatsAppSignupConfigID != "" && (!metaIDPattern.MatchString(cfg.WhatsAppSignupConfigID) || cfg.FacebookAppID == "") {
+		problems = append(problems, "WHATSAPP_SIGNUP_CONFIG_ID must be the digits of a Facebook Login for Business configuration, with FACEBOOK_APP_ID and FACEBOOK_APP_SECRET set")
+	}
 	return problems
 }
+
+var metaIDPattern = regexp.MustCompile(`^[0-9]{1,40}$`)
 
 // mediaProblems checks the media library's image service.
 func mediaProblems(cfg Config) []string {

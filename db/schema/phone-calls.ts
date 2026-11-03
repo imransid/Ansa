@@ -23,9 +23,9 @@ export const phoneCalls = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     // How often the caller spoke while ansa only took messages (the
-    // assistant paused, a person handling the conversation, or a request
-    // already open in it): when the call ends, a request is opened for them
-    // if none is open.
+    // assistant paused, a person handling the conversation, a caller marked
+    // important, or past the call's limits): when the call ends, a request is
+    // opened for them if none is open.
     messagesTaken: integer("messages_taken").notNull().default(0),
   },
   (table) => [

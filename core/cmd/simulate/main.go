@@ -64,6 +64,7 @@ func allTools() map[string]tool {
 		"telegram":       telegramTool,
 		"telegram-poll":  telegramPollTool,
 		"messenger":      messengerTool,
+		"whatsapp":       whatsappTool,
 		"seed-tickets":   seedTicketsTool,
 	}
 }

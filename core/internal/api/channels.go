@@ -14,6 +14,7 @@ func (s *Server) registerChannels(routes *http.ServeMux) {
 	routes.HandleFunc("POST /api/v1/channels/telegram/link", s.withSession(s.ownersOnly("Only owners connect Telegram.", s.telegramLink)))
 	routes.HandleFunc("POST /api/v1/channels/telegram/stand-in", s.withSession(s.ownersOnly("Only owners connect Telegram.", s.telegramStandIn)))
 	routes.HandleFunc("POST /api/v1/channels/telegram/disconnect", s.withSession(s.ownersOnly("Only owners disconnect Telegram.", s.telegramDisconnect)))
+	s.registerWhatsApp(routes)
 }
 
 // telegramMode: "real" with ansa's bot, "stand-in" in development without
@@ -39,7 +40,8 @@ func (s *Server) channelsPage(w http.ResponseWriter, r *http.Request, _ []byte, 
 	if s.Social != nil {
 		facebookMode = s.Social.Mode("facebook")
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"page": page, "canManage": who.IsOwner(), "telegramMode": s.telegramMode(), "facebookMode": facebookMode})
+	writeJSON(w, http.StatusOK, map[string]any{"page": page, "canManage": who.IsOwner(), "telegramMode": s.telegramMode(), "facebookMode": facebookMode,
+		"whatsappMode": s.whatsappMode(), "whatsappSignup": s.whatsappSignup()})
 }
 
 // telegramLink: a one-time link to ansa's bot ({"link"}), 10 minutes.

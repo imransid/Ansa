@@ -5,14 +5,15 @@
 // (core/internal/conversations, core/internal/chat).
 
 // Where a customer writes from. "stand_in": the development stand-in chat
-// (make simulate-message in core/), until Telegram (step 48) and Messenger
-// (step 53).
-export const CONVERSATION_CHANNELS = ["telegram", "messenger", "phone", "email", "stand_in"] as const;
+// (make simulate-message in core/), until Telegram (step 48), Messenger
+// (step 53) and WhatsApp (step 56).
+export const CONVERSATION_CHANNELS = ["telegram", "messenger", "whatsapp", "phone", "email", "stand_in"] as const;
 export type ConversationChannel = (typeof CONVERSATION_CHANNELS)[number];
 
 export const CHANNEL_LABELS: Record<ConversationChannel, string> = {
   telegram: "Telegram",
   messenger: "Messenger",
+  whatsapp: "WhatsApp",
   phone: "Phone",
   email: "Email",
   stand_in: "Stand-in chat",
@@ -20,7 +21,7 @@ export const CHANNEL_LABELS: Record<ConversationChannel, string> = {
 
 // Chat channels: a person can reply from the Inbox. Calls and emails show
 // what came in; replying to them isn't done from ansa (yet).
-export const CHAT_CHANNELS: ConversationChannel[] = ["telegram", "messenger", "stand_in"];
+export const CHAT_CHANNELS: ConversationChannel[] = ["telegram", "messenger", "whatsapp", "stand_in"];
 
 // Who answers the conversation: the assistant (from step 49), or a person who
 // took it over.
@@ -28,8 +29,9 @@ export const HANDLERS = ["assistant", "person"] as const;
 export type ConversationHandler = (typeof HANDLERS)[number];
 
 export const MESSAGE_DIRECTIONS = ["in", "out"] as const;
-// "business_account": written in the restaurant's own Telegram app (step 48),
-// not from ansa, so no person of the team is named.
+// "business_account": written in the business's own app (Telegram, step 48;
+// its Facebook Page, step 53; the WhatsApp Business app, step 56), not from
+// ansa, so no person of the team is named.
 export const MESSAGE_AUTHORS = ["customer", "assistant", "person", "business_account"] as const;
 export type MessageAuthor = (typeof MESSAGE_AUTHORS)[number];
 
@@ -43,14 +45,34 @@ export type SendStatus = (typeof SEND_STATUSES)[number];
 export const SEND_ERRORS = ["not_connected", "cannot_reply", "reply_window_closed", "refused", "bot_rejected", "rate_limited", "no_answer"] as const;
 export type SendError = (typeof SEND_ERRORS)[number];
 
-export const SEND_ERROR_TEXT: Record<SendError, string> = {
-  not_connected: "Not sent: this channel isn't connected. Connect it in Settings → Connections.",
-  cannot_reply: "Not sent: ansa isn't allowed to reply. Allow it in Telegram Business → Chatbots.",
-  reply_window_closed: "Not sent: Telegram lets ansa reply only within 24 hours of the customer's last message.",
-  refused: "Not sent: Telegram refused it. The customer may have blocked the account, or the chat is closed to ansa.",
-  bot_rejected: "Not sent: Telegram didn't accept ansa's bot. Contact ansa.",
-  rate_limited: "Not sent: Telegram asked ansa to slow down. Send it again in a minute.",
-  no_answer: "Maybe not delivered: Telegram didn't answer. Check in Telegram before sending it again.",
+// Why a message wasn't sent, in plain words that name its channel.
+export function sendErrorText(error: SendError, channel: ConversationChannel): string {
+  const name = CHANNEL_LABELS[channel];
+  switch (error) {
+    case "not_connected":
+      return `Not sent: ${name} isn't connected. Connect it in Settings → Connections.`;
+    case "cannot_reply":
+      return channel === "telegram"
+        ? "Not sent: ansa isn't allowed to reply. Allow it in Telegram Business → Chatbots."
+        : `Not sent: ansa isn't allowed to reply on ${name}. Connect it again in Settings → Connections.`;
+    case "reply_window_closed":
+      return `Not sent: ${name} lets ansa reply only within 24 hours of the customer's last message.`;
+    case "refused":
+      return `Not sent: ${name} refused it. The customer may have blocked the account, or the chat is closed to ansa.`;
+    case "bot_rejected":
+      return "Not sent: Telegram didn't accept ansa's bot. Contact ansa.";
+    case "rate_limited":
+      return `Not sent: ${name} asked ansa to slow down. Send it again in a minute.`;
+    case "no_answer":
+      return `Maybe not delivered: ${name} didn't answer. Check in ${name} before sending it again.`;
+  }
+}
+
+// Where the business itself wrote a message ansa received (author "business_account").
+export const WRITTEN_IN: Partial<Record<ConversationChannel, string>> = {
+  telegram: "Written in Telegram",
+  messenger: "Written on your Facebook Page",
+  whatsapp: "Written in the WhatsApp Business app",
 };
 
 // What the activity log records. Actions with an actor are a person's; the

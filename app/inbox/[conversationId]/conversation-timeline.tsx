@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ConciergeBell } from "lucide-react";
 import { LocalDateTime } from "@/components/local-date-time";
-import { SEND_ERROR_TEXT } from "@/lib/conversations";
+import { sendErrorText, WRITTEN_IN, type ConversationChannel } from "@/lib/conversations";
 import type { ConversationEntryView } from "@/lib/types/conversation-page";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 // (step 48: what the restaurant wrote in its own Telegram app says so).
 // Calls and emails are links to their own pages, where their content is.
 // `senderName`: who the customer (or, for a person's account, the contact) is, by name.
-export function ConversationTimeline({ entries, senderName }: { entries: ConversationEntryView[]; senderName: string }) {
+export function ConversationTimeline({ entries, senderName, channel }: { entries: ConversationEntryView[]; senderName: string; channel: ConversationChannel }) {
   if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">Nothing here yet.</p>;
   }
@@ -21,12 +21,12 @@ export function ConversationTimeline({ entries, senderName }: { entries: Convers
         <li key={entry.id} className={cn("grid max-w-[85%] gap-1", entry.author === "customer" ? "justify-self-start" : "justify-self-end justify-items-end")}>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {entry.author === "assistant" && <ConciergeBell aria-hidden className="size-3.5 text-link" />}
-            {describeAuthor(entry, senderName)} · <LocalDateTime iso={entry.createdAt.toISOString()} />
+            {describeAuthor(entry, senderName, channel)} · <LocalDateTime iso={entry.createdAt.toISOString()} />
           </span>
           <EntryBody entry={entry} />
           {entry.sendStatus && entry.sendStatus !== "sent" && (
             <span className={cn("text-xs", entry.sendStatus === "draft" || entry.sendStatus === "discarded" ? "text-muted-foreground" : "text-destructive")}>
-              {describeDelivery(entry)}
+              {describeDelivery(entry, channel)}
             </span>
           )}
         </li>
@@ -62,7 +62,7 @@ function EntryBody({ entry }: { entry: ConversationEntryView }) {
   );
 }
 
-function describeAuthor(entry: ConversationEntryView, senderName: string): string {
+function describeAuthor(entry: ConversationEntryView, senderName: string, channel: ConversationChannel): string {
   if (entry.author === "assistant") {
     return "ansa";
   }
@@ -70,12 +70,12 @@ function describeAuthor(entry: ConversationEntryView, senderName: string): strin
     return entry.authorName ?? "A teammate";
   }
   if (entry.author === "business_account") {
-    return "Written in Telegram";
+    return WRITTEN_IN[channel] ?? "Written in your own app";
   }
   return entry.call ? "Call" : entry.email ? "Email" : senderName;
 }
 
-function describeDelivery(entry: ConversationEntryView): string {
+function describeDelivery(entry: ConversationEntryView, channel: ConversationChannel): string {
   if (entry.sendStatus === "sending") {
     return "Sending...";
   }
@@ -86,7 +86,7 @@ function describeDelivery(entry: ConversationEntryView): string {
     return "Discarded: never sent";
   }
   if (entry.sendError) {
-    return SEND_ERROR_TEXT[entry.sendError];
+    return sendErrorText(entry.sendError, channel);
   }
   if (entry.sendStatus === "unclear") {
     return "Maybe not delivered: the channel didn't answer.";

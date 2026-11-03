@@ -2,7 +2,8 @@
 // services/telegram-connect.ts and the Connections page's reads): where
 // people reach the company. Owners connect Telegram through a one-time link
 // to ansa's bot and disconnect it; everyone reads it. Facebook Pages come
-// from the social connection (their messaging permission shown); the email
+// from the social connection (their messaging permission shown), the
+// WhatsApp number from core/internal/whatsapp's connection; the email
 // forwarding address and phone lines are read-only.
 package channels
 
@@ -24,6 +25,7 @@ import (
 // Page is what Settings → Connections shows.
 type Page struct {
 	Telegram          *Telegram      `json:"telegram"`
+	WhatsApp          *WhatsApp      `json:"whatsapp"`
 	FacebookPages     []FacebookPage `json:"facebookPages"`
 	ForwardingAddress string         `json:"forwardingAddress"`
 	LastEmailAt       *time.Time     `json:"lastEmailAt"`
@@ -76,6 +78,9 @@ func Read(ctx context.Context, pool *database.Pool, company tenant.CompanyID, fo
 		return page, err
 	}
 	if page.FacebookPages, err = facebookPages(ctx, pool, company); err != nil {
+		return page, err
+	}
+	if page.WhatsApp, err = whatsappNumber(ctx, pool, company); err != nil {
 		return page, err
 	}
 	page.PhoneLines, err = phoneLines(ctx, pool, company)

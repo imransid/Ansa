@@ -7,9 +7,9 @@ import { getChannelsStepFromCore } from "@/lib/core-views/restaurant-setup";
 import { requireSessionContext } from "@/lib/session";
 
 // Setup step 6: where messages reach ansa. Email works today through the
-// company's forwarding address; ansa links phone numbers itself; Telegram
-// connects on Settings → Connections (step 48); Messenger comes with step 53,
-// so the step says so instead of offering a button that does nothing.
+// company's forwarding address; ansa links phone numbers itself; WhatsApp
+// (step 56), Telegram (step 48) and Messenger (step 53) connect on
+// Settings → Connections.
 export async function ChannelsStep({ backHref }: { backHref: string }) {
   await requireSessionContext("/welcome");
   const { forwardingAddress, phoneLineCount } = await getChannelsStepFromCore();
@@ -33,6 +33,16 @@ export async function ChannelsStep({ backHref }: { backHref: string }) {
               ? `ansa answers ${phoneLineCount === 1 ? "your phone number" : `your ${phoneLineCount} phone numbers`}.`
               : "ansa sets up a phone number for you: contact ansa when you want calls answered."}
           </p>
+        </li>
+        <li className="grid gap-2 py-4">
+          <h2 className="font-semibold">WhatsApp</h2>
+          <p className="text-sm text-muted-foreground">
+            Connect your WhatsApp Business number (you keep using the WhatsApp Business app on your phone), and the messages people send it
+            arrive in your Inbox.
+          </p>
+          <Link href="/settings/channels" className="justify-self-start text-sm font-medium underline">
+            Connect WhatsApp in Settings → Connections
+          </Link>
         </li>
         <li className="grid gap-2 py-4">
           <h2 className="font-semibold">Telegram</h2>

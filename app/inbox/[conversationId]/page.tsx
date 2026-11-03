@@ -18,9 +18,9 @@ import { ConversationTimeline } from "./conversation-timeline";
 import { ReplyForm } from "./reply-form";
 import { RequestBox } from "./request-box";
 
-// Why a Telegram (step 48) or Messenger (step 53) customer can't be
-// answered from ansa right now.
-const REPLY_BLOCKED_TEXT: Record<"telegram" | "messenger", Record<NonNullable<ConversationPage["replyBlocked"]>, string>> = {
+// Why a Telegram (step 48), Messenger (step 53) or WhatsApp (step 56)
+// customer can't be answered from ansa right now.
+const REPLY_BLOCKED_TEXT: Record<"telegram" | "messenger" | "whatsapp", Record<NonNullable<ConversationPage["replyBlocked"]>, string>> = {
   telegram: {
     "not-connected": "Telegram isn't connected, so replies can't go from ansa. Connect it in Settings → Connections.",
     "cannot-reply": "ansa isn't allowed to reply on your Telegram account. Allow it in Telegram Business → Chatbots.",
@@ -31,7 +31,17 @@ const REPLY_BLOCKED_TEXT: Record<"telegram" | "messenger", Record<NonNullable<Co
     "cannot-reply": "ansa may not send messages for this Page. Connect it again in Settings → Connections and allow messages.",
     "window-closed": "Messenger lets ansa reply only within 24 hours of the customer's last message. Answer them in Meta Business Suite.",
   },
+  whatsapp: {
+    "not-connected": "This WhatsApp number isn't connected, so replies can't go from ansa. Connect it in Settings → Connections.",
+    "cannot-reply": "ansa may not send messages from this number. Connect WhatsApp again in Settings → Connections.",
+    "window-closed": "WhatsApp lets ansa reply only within 24 hours of the customer's last message. Answer them in your WhatsApp Business app.",
+  },
 };
+
+// The words for a chat's channel (Telegram's for the stand-in chat too).
+function blockedTextsFor(channel: string) {
+  return channel === "messenger" || channel === "whatsapp" ? REPLY_BLOCKED_TEXT[channel] : REPLY_BLOCKED_TEXT.telegram;
+}
 
 // One read per request: the tab title and the page both need it.
 const readConversationFromCore = cache(getConversationFromCore);
@@ -94,10 +104,10 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
           <h2 id="conversation-heading" className="sr-only">
             Conversation
           </h2>
-          <ConversationTimeline entries={conversation.entries} senderName={contactLabel(conversation)} />
+          <ConversationTimeline entries={conversation.entries} senderName={contactLabel(conversation)} channel={conversation.channel} />
           {waiting && !editing && <WaitingReply conversationId={conversation.id} messageId={waiting.id} />}
           {conversation.canReply && conversation.replyBlocked ? (
-            <p className="text-sm text-muted-foreground">{REPLY_BLOCKED_TEXT[conversation.channel === "messenger" ? "messenger" : "telegram"][conversation.replyBlocked]}</p>
+            <p className="text-sm text-muted-foreground">{blockedTextsFor(conversation.channel)[conversation.replyBlocked]}</p>
           ) : conversation.canReply ? (
             <ReplyForm
               key={editing?.id ?? "new"}

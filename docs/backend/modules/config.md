@@ -16,7 +16,10 @@ needs EMAIL_FROM and RESEND_API_KEY; production requires it), ANSA_DEV_FOLDER
 repository's root by default), FACEBOOK_APP_ID / FACEBOOK_APP_SECRET
 (ansa's Meta app, both or neither: its secret signs Messenger's webhook),
 MESSENGER_VERIFY_TOKEN (Meta's one-time setup check, 32-256 letters, digits,
-_ or -), SCREENS_SHARED_SECRET (signs the screens' requests to core's API, at
+_ or -), WHATSAPP_VERIFY_TOKEN (the same for WhatsApp's webhook),
+WHATSAPP_SIGNUP_CONFIG_ID (the digits of the Facebook Login for Business
+configuration made for WhatsApp Embedded Signup; needs FACEBOOK_APP_ID and
+FACEBOOK_APP_SECRET), SCREENS_SHARED_SECRET (signs the screens' requests to core's API, at
 least 32 characters), INBOUND_EMAIL_DOMAIN (forwarding addresses' domain;
 required with real email), RESEND_WEBHOOK_SECRET (Resend's "whsec_..." signing secret),
 USE_R2_STORAGE (exactly "true" keeps private files in Cloudflare R2, then

@@ -3,7 +3,7 @@
 .PHONY: test check run \
 	link-phone-line unlink-phone-line show-forwarding-address replace-forwarding-address telegram-webhook \
 	simulate simulate-message simulate-post-metrics simulate-vapi-call simulate-vapi-tool-call simulate-solved-call \
-	try-brain simulate-inbound-email simulate-email-bounce simulate-telegram telegram-poll simulate-messenger seed-tickets
+	try-brain simulate-inbound-email simulate-email-bounce simulate-telegram telegram-poll simulate-messenger simulate-whatsapp seed-tickets
 
 # Every test (or one folder's: make test PKG=./internal/commands/). Database
 # tests use TEST_DATABASE_URL from ../.env.core (the local database; they
@@ -101,6 +101,10 @@ telegram-poll:
 # make simulate-messenger OWNER=you@example.com NAME="Lena" TEXT="Do you deliver?"
 simulate-messenger:
 	go run ./cmd/simulate messenger "$(OWNER)" "$(NAME)" "$(TEXT)"
+
+# make simulate-whatsapp OWNER=you@example.com NAME="Lena" TEXT="Are you open tonight?"
+simulate-whatsapp:
+	go run ./cmd/simulate whatsapp "$(OWNER)" "$(NAME)" "$(TEXT)"
 
 # make seed-tickets OWNER=you@example.com
 seed-tickets:

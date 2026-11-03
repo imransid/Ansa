@@ -9,6 +9,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/tenant"
+	"ansa/core/internal/whatsapp"
 )
 
 // Why a reply can't go (nothing is saved then).
@@ -23,8 +24,9 @@ const (
 // RouteWithin reads, and locks, where a reply to this conversation's customer
 // goes: Telegram needs the company's account connected, allowed to reply,
 // and the customer's last message under 24 hours old (Telegram's rule).
-// Messenger needs the Page connected and allowed to send messages, within 24
-// hours too. Returns the target or a refusal.
+// Messenger needs the Page connected and allowed to send messages, and
+// WhatsApp the number connected, within 24 hours too. Returns the target or
+// a refusal.
 func RouteWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID string) (Target, string, error) {
 	const conversation = `
 		SELECT contacts.channel, contacts.external_id,
@@ -49,6 +51,8 @@ func RouteWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, 
 		return telegramRoute(ctx, tx, company, target, windowOpen)
 	case "messenger":
 		return messengerRoute(ctx, tx, company, target, windowOpen)
+	case "whatsapp":
+		return whatsappRoute(ctx, tx, company, target, windowOpen)
 	default:
 		return Target{}, RefusedNotChat, nil
 	}
@@ -103,6 +107,32 @@ func messengerRoute(ctx context.Context, tx database.Tx, company tenant.CompanyI
 		return Target{}, RefusedWindowClosed, nil
 	}
 	target.MessengerPageID, target.MessengerPSID = pageID, psid
+	return target, "", nil
+}
+
+// whatsappRoute: the number the customer wrote to, connected in this
+// company (not removed on Meta's side), and the customer's last message
+// under 24 hours (Meta's rule).
+func whatsappRoute(ctx context.Context, tx database.Tx, company tenant.CompanyID, target Target, windowOpen bool) (Target, string, error) {
+	phoneNumberID, customer, ok := whatsapp.SplitContactID(target.ExternalID)
+	if !ok {
+		return Target{}, RefusedNotConnected, nil
+	}
+	const number = `
+		SELECT id, is_stand_in FROM whatsapp_numbers
+		WHERE company_id = $1 AND phone_number_id = $2 AND status = 'connected'
+		FOR SHARE`
+	err := tx.QueryRow(ctx, number, company.String(), phoneNumberID).Scan(&target.WhatsAppNumberID, &target.WhatsAppIsStandIn)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Target{}, RefusedNotConnected, nil
+	}
+	if err != nil {
+		return Target{}, "", err
+	}
+	if !windowOpen {
+		return Target{}, RefusedWindowClosed, nil
+	}
+	target.WhatsAppPhoneNumberID, target.WhatsAppCustomerID = phoneNumberID, customer
 	return target, "", nil
 }
 

@@ -91,3 +91,28 @@ func TestSeedTicketsMakesTheSampleRequests(t *testing.T) {
 		t.Fatal("every sample is an open request the owner made")
 	}
 }
+
+// The stand-in WhatsApp number: refused until it is connected; then the
+// message goes through core's own saving code, and the same name is the
+// same customer.
+func TestWhatsAppSavesForTheStandInNumber(t *testing.T) {
+	w := newTestWorld(t)
+	if _, err := w.run("whatsapp", w.owner, "Lena", "Hi"); err == nil || !strings.Contains(err.Error(), "no stand-in WhatsApp number") {
+		t.Fatalf("without a stand-in: %v", err)
+	}
+	_, err := w.pool.Exec(context.Background(), `
+		INSERT INTO whatsapp_numbers (company_id, waba_id, phone_number_id, display_phone_number, is_stand_in, connected_by_user_id)
+		VALUES ($1, 'stand-in:w', 'stand-in:n', '+00 000 000 000', true, $2)`, w.company.String(), w.ownerID)
+	if err != nil {
+		t.Fatalf("connecting the stand-in number: %v", err)
+	}
+	for _, text := range []string{"Are you open tonight?", "And tomorrow?"} {
+		if out, err := w.run("whatsapp", w.owner, "Lena O'Brien", text); err != nil || !strings.Contains(out, "Saved a WhatsApp message") {
+			t.Fatalf("saved: %q %v", out, err)
+		}
+	}
+	if w.count(`SELECT count(*) FROM contacts WHERE company_id = $1 AND channel = 'whatsapp' AND external_id = 'stand-in:n:XX.lenaobrien' AND display_name = 'Lena O''Brien'`) != 1 ||
+		w.count(`SELECT count(*) FROM messages WHERE company_id = $1 AND body_encrypted LIKE 'v1:%'`) != 2 || w.count(replyJobs) < 1 {
+		t.Fatal("two encrypted messages from one WhatsApp customer, and a reply queued")
+	}
+}

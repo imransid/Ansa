@@ -15,6 +15,7 @@ import (
 const (
 	ChannelTelegram  = "telegram"
 	ChannelMessenger = "messenger"
+	ChannelWhatsApp  = "whatsapp"
 	ChannelPhone     = "phone"
 	ChannelEmail     = "email"
 	ChannelStandIn   = "stand_in"

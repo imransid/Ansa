@@ -10,11 +10,13 @@ import { requireSessionContext } from "@/lib/session";
 import type { PlatformView, SocialAccountsPage } from "@/lib/types/social-accounts";
 import { MessengerFromCore } from "./messenger-from-core";
 import { TelegramSection } from "./telegram-section";
+import { WhatsAppSection } from "./whatsapp-section";
 
 export const metadata: Metadata = { title: "Connections - ansa" };
 
 // Settings → Connections (step 48): where customers write to the restaurant.
-// Telegram connects here; owners connect and disconnect, members read.
+// WhatsApp (step 56) and Telegram connect here; owners connect and
+// disconnect, members read.
 export default function ChannelsSettingsPage() {
   return (
     <main className="mx-auto grid w-full max-w-3xl gap-6 p-6">
@@ -59,6 +61,12 @@ function postingPlatformsOf(social: SocialAccountsPage): PlatformView[] {
 function ConnectionsSections({ page, practicePhone, messenger, posting }: { page: ConnectionsPage; practicePhone: boolean; messenger: ReactNode; posting: ReactNode }) {
   return (
     <div className="grid gap-6">
+      <section aria-labelledby="whatsapp-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
+        <h2 id="whatsapp-heading" className="text-lg font-semibold">
+          WhatsApp
+        </h2>
+        <WhatsAppSection page={page} />
+      </section>
       <section aria-labelledby="telegram-heading" className="grid gap-4 rounded-2xl border bg-card p-5">
         <h2 id="telegram-heading" className="text-lg font-semibold">
           Telegram

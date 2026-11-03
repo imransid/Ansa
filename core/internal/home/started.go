@@ -36,23 +36,14 @@ func GettingStarted(ctx context.Context, pool *database.Pool, company tenant.Com
 	if err := pool.QueryRow(ctx, `SELECT kind FROM companies WHERE id = $1`, company.String()).Scan(&kind); err != nil {
 		return nil, err
 	}
-	var telegramStatus string
-	var standIn bool
-	err := pool.QueryRow(ctx, `SELECT status, is_stand_in FROM channel_connections WHERE company_id = $1 AND channel = 'telegram' AND status <> 'disconnected'`, company.String()).Scan(&telegramStatus, &standIn)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	channel, err := channelStep(ctx, pool, company)
+	if err != nil {
 		return nil, err
 	}
 	engine, ownKey, instructions := "api_key", false, ""
 	err = pool.QueryRow(ctx, `SELECT ai_engine, anthropic_key_hint IS NOT NULL, instructions FROM assistant_settings WHERE company_id = $1`, company.String()).Scan(&engine, &ownKey, &instructions)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
-	}
-	channel := Step{Key: "channel", Done: telegramStatus == "connected", Label: "Connect Telegram, where people write to you", Href: "/settings/channels", DoneText: "Telegram is connected."}
-	if telegramStatus != "" {
-		channel.Label = "Let ansa reply on Telegram"
-	}
-	if standIn {
-		channel.DoneText = "A stand-in Telegram account is connected (development)."
 	}
 	aiReady := ownKey || brain.AnsaKey
 	if engine == "claude_code" {
@@ -82,4 +73,37 @@ func HasTeam(ctx context.Context, pool *database.Pool, company tenant.CompanyID)
 	var people int
 	err := pool.QueryRow(ctx, `SELECT count(*) FROM users WHERE company_id = $1 AND email_verified = true AND deactivated_at IS NULL`, company.String()).Scan(&people)
 	return people > 1, err
+}
+
+// channelStep: a chat where people write to you, WhatsApp (step 56) or
+// Telegram, connected and allowed to reply.
+func channelStep(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (Step, error) {
+	var telegramStatus string
+	var telegramStandIn bool
+	err := pool.QueryRow(ctx, `SELECT status, is_stand_in FROM channel_connections WHERE company_id = $1 AND channel = 'telegram' AND status <> 'disconnected'`, company.String()).Scan(&telegramStatus, &telegramStandIn)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return Step{}, err
+	}
+	var whatsappStatus string
+	var whatsappStandIn bool
+	err = pool.QueryRow(ctx, `SELECT status, is_stand_in FROM whatsapp_numbers WHERE company_id = $1 AND status <> 'disconnected'`, company.String()).Scan(&whatsappStatus, &whatsappStandIn)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return Step{}, err
+	}
+	step := Step{Key: "channel", Label: "Connect WhatsApp or Telegram, where people write to you", Href: "/settings/channels"}
+	switch {
+	case whatsappStatus == "connected":
+		step.Done, step.DoneText = true, "WhatsApp is connected."
+		if whatsappStandIn {
+			step.DoneText = "A stand-in WhatsApp number is connected (development)."
+		}
+	case telegramStatus == "connected":
+		step.Done, step.DoneText = true, "Telegram is connected."
+		if telegramStandIn {
+			step.DoneText = "A stand-in Telegram account is connected (development)."
+		}
+	case telegramStatus != "":
+		step.Label = "Let ansa reply on Telegram"
+	}
+	return step, nil
 }

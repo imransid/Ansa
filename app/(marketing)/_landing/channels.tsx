@@ -4,13 +4,14 @@ import { StatusDot } from "@/components/status-dot";
 // so nobody signs up for one that isn't there yet, and the two that can never
 // be connected, said plainly (trust is the product).
 //
-// LAUNCH CHECK (step 58): update each status as steps 53 and 55 land.
+// LAUNCH CHECK (step 58): update each status as steps 53, 55 and 56 land
+// (WhatsApp Business is built: "Available" once Meta's App Review passed).
 const CHANNELS: { name: string; status: "now" | "next"; note: string }[] = [
   { name: "Telegram", status: "now", note: "Your own account, for you or your business." },
   { name: "Email", status: "now", note: "Forward it to ansa: every email becomes a note in your inbox. Replies come next." },
   { name: "Phone calls", status: "next", note: "Calls you don't pick up, answered and written down." },
   { name: "Facebook Messenger", status: "next", note: "Your business's Facebook Page." },
-  { name: "WhatsApp Business", status: "next", note: "A WhatsApp Business number, for businesses." },
+  { name: "WhatsApp Business", status: "next", note: "Your WhatsApp Business number: keep the app on your phone, ansa answers when you can't." },
   { name: "Instagram", status: "next", note: "Business and creator accounts." },
 ];
 

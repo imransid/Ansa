@@ -13,8 +13,8 @@ export function ReadyStep({ profile, backHref }: { profile: RestaurantProfile; b
       <RestaurantSummary profile={profile} show="business" />
       <p className="text-sm text-muted-foreground">
         {profile.kind === "personal"
-          ? "ansa answers for you once Telegram is connected, and Home shows you what you missed while you were away."
-          : "ansa replies on its own once Telegram or Messenger is connected. Next, you'll add your menu."}
+          ? "ansa answers for you once WhatsApp or Telegram is connected, and Home shows you what you missed while you were away."
+          : "ansa replies on its own once WhatsApp, Telegram or Messenger is connected. Next, you'll add your menu."}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Link href={backHref} className={buttonVariants({ variant: "ghost" })}>

@@ -15,7 +15,7 @@ ask core for everything. Start here, then read the other files in this order:
 ## In one picture
 
 ```
- Customers (Telegram, Messenger, email, phone calls)
+ Customers (WhatsApp, Telegram, Messenger, email, phone calls)
         │
         ▼
  ┌───────────────────┐   asks "what should we answer?"   ┌──────────────────┐

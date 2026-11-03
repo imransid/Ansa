@@ -94,6 +94,7 @@ var argumentsOfEveryTool = map[string][]string{
 	"telegram":       {"owner@x.example", "Lena", "Hello"},
 	"telegram-poll":  {},
 	"messenger":      {"owner@x.example", "Lena", "Hello"},
+	"whatsapp":       {"owner@x.example", "Lena", "Hello"},
 	"seed-tickets":   {"owner@x.example"},
 }
 

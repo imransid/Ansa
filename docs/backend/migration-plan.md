@@ -133,4 +133,4 @@ first, then deploy.
 | Delete the old backend: `services/`, `adapters/`, `db/`'s query files, Better Auth, the old webhook, cron and health routes, the old scripts and checks; the screens ask core who is logged in (`GET /api/v1/me`), and the proxy only checks that a login cookie exists (89bfdcc) | ✅ |
 | The screens' settings cut to CORE_API_URL, SCREENS_SHARED_SECRET and APP_URL; CI with one job per part (screens, core, brain, audit); the docs | ✅ |
 | Choose hosting for core and the brain (the screens can stay on Vercel) | ⬜ the owner's decision |
-| Deploy core and the brain; point the webhooks (Telegram, Messenger, Resend, Vapi, Stripe) at core's public address; watch the first real messages | ⬜ after hosting (`docs/going-live.md`) |
+| Deploy core and the brain; point the webhooks (Telegram, Messenger, WhatsApp, Resend, Vapi, Stripe) at core's public address; watch the first real messages | ⬜ after hosting (`docs/going-live.md`) |

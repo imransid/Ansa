@@ -44,6 +44,7 @@ import (
 	"ansa/core/internal/studio"
 	"ansa/core/internal/telegram"
 	"ansa/core/internal/tickets"
+	"ansa/core/internal/whatsapp"
 )
 
 // How many jobs run at once in one core process. The database pool has 10
@@ -97,6 +98,9 @@ func main() {
 	messengerHook := &messenger.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.MessengerVerifyToken}
 	routes.Handle("POST /webhooks/messenger", messengerHook)
 	routes.HandleFunc("GET /webhooks/messenger", messengerHook.Verify)
+	whatsappHook := &whatsapp.Webhook{Pool: pool, Limiter: limiter, Box: box, Log: log, AppSecret: cfg.FacebookAppSecret, VerifyToken: cfg.WhatsAppVerifyToken}
+	routes.Handle("POST /webhooks/whatsapp", whatsappHook)
+	routes.HandleFunc("GET /webhooks/whatsapp", whatsappHook.Verify)
 	routes.Handle("POST /webhooks/vapi", &calls.Webhook{Pool: pool, Box: box, Limiter: limiter, Log: log, Signing: vapiSigning(cfg),
 		RecordingHosts: cfg.VapiRecordingHosts, Files: storage, Tools: &calls.Tools{Pool: pool, Limiter: limiter, Log: log}})
 	routes.Handle("POST /webhooks/resend", &resend.Webhook{Pool: pool, Limiter: limiter, Log: log, Secret: cfg.ResendWebhookSecret, ForwardingDomain: cfg.ForwardingDomain()})
@@ -125,6 +129,8 @@ func main() {
 	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.ContentDraftWait), Limiter: limiter, Log: log},
 		Generation: generations}
 	screensAPI.CofounderBrain = brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.CofounderWait)
+	screensAPI.WhatsApp = &whatsapp.Connector{Pool: pool, Box: box, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret,
+		SignupConfigID: cfg.WhatsAppSignupConfigID, Development: !cfg.IsProduction()}
 	screensAPI.Register(routes)
 	server := httpserver.New(cfg.ListenAddr, routes, log)
 

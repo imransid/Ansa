@@ -121,3 +121,45 @@ func TestMessengerNeedsItsPageConnectedHereAndAllowedToMessage(t *testing.T) {
 		t.Fatalf("without ansa's Meta app nothing is sent: %+v", result)
 	}
 }
+
+// WhatsApp (step 56): the number the customer wrote to, connected in this
+// company (not removed on Meta's side), within 24 hours of their message;
+// a stand-in number's replies are files (development only).
+func TestWhatsAppNeedsItsNumberConnectedHereWithin24Hours(t *testing.T) {
+	pool := database.ForTest(t)
+	companyID := database.TestCompany(t, pool)
+	owner := database.TestOwner(t, pool, companyID)
+	company, _ := tenant.FromTrustedSource(companyID)
+	ctx := context.Background()
+	id, _ := conversations.NewID()
+	phone := "stand-in:" + id
+	turn := customerTurn(t, pool, company, conversations.ContactKey{Channel: conversations.ChannelWhatsApp, ExternalID: phone + ":XX.lena"}, id)
+	if _, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != RefusedNotConnected {
+		t.Fatalf("no number: %q", refusal)
+	}
+	pool.Exec(ctx, `INSERT INTO whatsapp_numbers (company_id, waba_id, phone_number_id, display_phone_number, is_stand_in, connected_by_user_id, status)
+		VALUES ($1, $2, $2, '+00 000 000 000', true, $3, 'removed_in_whatsapp')`, companyID, phone, owner)
+	if _, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != RefusedNotConnected {
+		t.Fatalf("removed on Meta's side: %q", refusal)
+	}
+	pool.Exec(ctx, `UPDATE whatsapp_numbers SET status = 'connected' WHERE company_id = $1`, companyID)
+	target, refusal := routeOf(t, pool, company, turn.ConversationID)
+	if refusal != "" || target.WhatsAppPhoneNumberID != phone || target.WhatsAppCustomerID != "XX.lena" || target.WhatsAppNumberID == "" || !target.WhatsAppIsStandIn {
+		t.Fatalf("connected: %+v %q", target, refusal)
+	}
+	dir := t.TempDir()
+	if result := (&Sender{StandInsAllowed: true, StandInDir: dir}).Send(ctx, target, id, "Hi"); result.Status != "sent" {
+		t.Fatalf("a stand-in's reply is a file: %+v", result)
+	}
+	if result := (&Sender{}).Send(ctx, target, id, "Hi"); result.Error != "not_connected" {
+		t.Fatalf("never a file in production: %+v", result)
+	}
+	target.WhatsAppIsStandIn = false
+	if result := (&Sender{}).Send(ctx, target, id, "Hi"); result.Error != "not_connected" {
+		t.Fatalf("without ansa's Meta app nothing is sent: %+v", result)
+	}
+	pool.Exec(ctx, `UPDATE conversations SET last_customer_message_at = now() - interval '25 hours' WHERE company_id = $1`, companyID)
+	if _, refusal := routeOf(t, pool, company, turn.ConversationID); refusal != RefusedWindowClosed {
+		t.Fatalf("past 24 hours: %q", refusal)
+	}
+}

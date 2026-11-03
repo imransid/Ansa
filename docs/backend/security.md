@@ -11,7 +11,8 @@ These rules are not optional. A change that breaks one is a bug, even if it
   passed by mistake.
 - The company comes from the server side only: a verified session, a webhook
   secret core issued (a Telegram link code, a Page connected in exactly one
-  company), never from the request body.
+  company, a WhatsApp number connected in exactly one company), never from
+  the request body.
 - Cross-company reads (scheduled jobs that find due work) are listed in
   `core/internal/database/CROSS_COMPANY.md` and return ids only.
 - Test: `core/internal/database/tenant_test.go` reads every SQL statement in core and
@@ -44,6 +45,9 @@ Nothing is parsed before the signature is checked.
   `v1:<iv>:<tag>:<ciphertext>` (base64), a context naming company and record
   as additional data: a value copied to another company's row can't be read.
 - `core/internal/secure`, tested against values the old TypeScript code wrote.
+- Third-party tokens (social accounts, Facebook Pages, WhatsApp numbers) are
+  decrypted only in `core/internal/social` (`TestOnlyThisPackageDecryptsTokens`);
+  other packages may only encrypt the one a platform gives.
 
 ## 6. Core ↔ brain
 - The brain listens on a private address only (`127.0.0.1` in development, a

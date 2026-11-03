@@ -36,7 +36,7 @@ export const contacts = pgTable(
   (table) => [
     unique("contacts_company_id_id_unique").on(table.companyId, table.id),
     unique("contacts_company_channel_external_unique").on(table.companyId, table.channel, table.externalId),
-    check("contacts_channel_known", sql`${table.channel} IN ('telegram', 'messenger', 'phone', 'email', 'stand_in')`),
+    check("contacts_channel_known", sql`${table.channel} IN ('telegram', 'messenger', 'whatsapp', 'phone', 'email', 'stand_in')`),
     check("contacts_external_id_length", sql`char_length(${table.externalId}) BETWEEN 1 AND 400`),
     check("contacts_display_name_length", sql`char_length(${table.displayName}) BETWEEN 1 AND 200`),
   ],

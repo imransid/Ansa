@@ -74,10 +74,13 @@ func vapiSigning(cfg config.Config) calls.Signing {
 // chatSender is the one door for messages to customers.
 func chatSender(cfg config.Config, pool *database.Pool, box *secure.Box) *chat.Sender {
 	return &chat.Sender{
-		TelegramToken:      cfg.TelegramBotToken,
-		MessengerAppSecret: cfg.FacebookAppSecret,
+		TelegramToken: cfg.TelegramBotToken,
+		MetaAppSecret: cfg.FacebookAppSecret,
 		PageToken: func(ctx context.Context, company tenant.CompanyID, connectionID string) (string, error) {
 			return social.PageToken(ctx, pool, box, company, connectionID)
+		},
+		WhatsAppToken: func(ctx context.Context, company tenant.CompanyID, numberID string) (string, error) {
+			return social.WhatsAppToken(ctx, pool, box, company, numberID)
 		},
 		StandInsAllowed: !cfg.IsProduction(),
 		StandInDir:      filepath.Join(cfg.DevFolder, ".dev-messages"),

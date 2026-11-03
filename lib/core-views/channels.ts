@@ -13,10 +13,26 @@ type TelegramModeKind = "real" | "stand-in" | "not-set-up";
 // disconnecting a social account (Facebook's Pages too) is
 // lib/core-views/accounts.ts.
 
+// WhatsApp Business (step 56): the company's number as core reads it, and
+// what the page needs to open Meta's sign-up window (only once ansa's Meta
+// app is set up for it: public values, Meta's script shows them to anyone).
+export type WhatsAppNumber = {
+  displayPhoneNumber: string;
+  verifiedName: string | null;
+  status: "connected" | "removed_in_whatsapp";
+  sharedWithApp: boolean;
+  isStandIn: boolean;
+  connectedAt: Date;
+};
+export type WhatsAppSignup = { appId: string; configId: string };
+
 // What the Connections page shows, whichever backend read it.
 export type ConnectionsPage = {
   canManage: boolean;
   telegramMode: TelegramModeKind;
+  whatsappMode: TelegramModeKind;
+  whatsapp: WhatsAppNumber | null;
+  whatsappSignup: WhatsAppSignup | null;
   telegram: {
     displayName: string;
     status: "connected" | "cannot_reply" | "removed_in_telegram";
@@ -40,6 +56,7 @@ export type CoreMessenger = {
 type CoreChannels = {
   page: {
     telegram: { displayName: string; status: NonNullable<ConnectionsPage["telegram"]>["status"]; isStandIn: boolean; connectedAt: string } | null;
+    whatsapp: (Omit<WhatsAppNumber, "connectedAt"> & { connectedAt: string }) | null;
     facebookPages: CoreMessenger["pages"];
     forwardingAddress: string;
     lastEmailAt: string | null;
@@ -48,6 +65,8 @@ type CoreChannels = {
   canManage: boolean;
   telegramMode: TelegramModeKind;
   facebookMode: CoreMessenger["mode"];
+  whatsappMode: TelegramModeKind;
+  whatsappSignup: WhatsAppSignup | null;
 };
 
 function dateOrNull(iso: string | null): Date | null {
@@ -77,6 +96,9 @@ export async function getConnectionsFromCore(): Promise<ConnectionsPage & { mess
     canManage: channels.data.canManage,
     telegramMode: channels.data.telegramMode,
     telegram: page.telegram ? { ...page.telegram, connectedAt: new Date(page.telegram.connectedAt) } : null,
+    whatsappMode: channels.data.whatsappMode,
+    whatsapp: page.whatsapp ? { ...page.whatsapp, connectedAt: new Date(page.whatsapp.connectedAt) } : null,
+    whatsappSignup: channels.data.whatsappSignup,
     kind: setup.data.profile.kind === "personal" ? "personal" : "business",
     forwardingAddress: page.forwardingAddress,
     lastEmailAt: dateOrNull(page.lastEmailAt),
@@ -98,4 +120,19 @@ export async function connectStandInTelegramThroughCore(): Promise<FormResult> {
 
 export async function disconnectTelegramThroughCore(): Promise<FormResult> {
   return savedOrErrors(await callCore("POST", "/api/v1/channels/telegram/disconnect"));
+}
+
+// "Connect WhatsApp": what Meta's sign-up window reported (claims: core
+// checks each with Meta, server to server, before saving anything).
+export async function connectWhatsAppThroughCore(signup: { code: string; wabaId: string; phoneNumberId: string }): Promise<FormResult> {
+  return savedOrErrors(await callCore("POST", "/api/v1/channels/whatsapp/connect", signup));
+}
+
+// Development without ansa's Meta app: a stand-in WhatsApp number.
+export async function connectStandInWhatsAppThroughCore(): Promise<FormResult> {
+  return savedOrErrors(await callCore("POST", "/api/v1/channels/whatsapp/stand-in"));
+}
+
+export async function disconnectWhatsAppThroughCore(): Promise<FormResult> {
+  return savedOrErrors(await callCore("POST", "/api/v1/channels/whatsapp/disconnect"));
 }

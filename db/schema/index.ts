@@ -17,6 +17,7 @@ export * from "./conversations";
 export * from "./phone-calls";
 export * from "./messages";
 export * from "./channels";
+export * from "./whatsapp";
 export * from "./onboarding-messages";
 export * from "./performance-reviews";
 export * from "./marketing-plans";

@@ -57,6 +57,12 @@ type Config struct {
 	FacebookAppID        string
 	FacebookAppSecret    string
 	MessengerVerifyToken string
+	// WhatsApp Business (step 56), on the same Meta app: the WhatsApp
+	// webhook's one-time setup check (as MessengerVerifyToken), and the
+	// Embedded Signup configuration (a Facebook Login for Business
+	// configuration's id) the Connect WhatsApp button opens.
+	WhatsAppVerifyToken    string
+	WhatsAppSignupConfigID string
 	// Signs every request the screens (Next.js's server) send core's API (at
 	// least 32 characters; the same value in the screens' settings). Empty:
 	// the API refuses every request.
@@ -101,38 +107,40 @@ type Getenv func(name string) string
 // Load reads and checks every setting. All problems are reported at once.
 func Load(getenv Getenv) (Config, error) {
 	cfg := Config{
-		ListenAddr:            withDefault(getenv("CORE_LISTEN_ADDR"), "127.0.0.1:8080"),
-		DatabaseURL:           getenv("DATABASE_URL"),
-		DataEncryptionKey:     getenv("DATA_ENCRYPTION_KEY"),
-		BrainURL:              withDefault(getenv("BRAIN_URL"), "http://127.0.0.1:8090"),
-		BrainSharedSecret:     getenv("BRAIN_SHARED_SECRET"),
-		Environment:           withDefault(getenv("ANSA_ENV"), "production"),
-		AuthSecret:            getenv("BETTER_AUTH_SECRET"),
-		TelegramBotToken:      getenv("TELEGRAM_BOT_TOKEN"),
-		TelegramBotUsername:   getenv("TELEGRAM_BOT_USERNAME"),
-		TelegramWebhookSecret: getenv("TELEGRAM_WEBHOOK_SECRET"),
-		AppURL:                withDefault(getenv("APP_URL"), "http://localhost:3000"),
-		SendRealEmail:         getenv("SEND_REAL_EMAIL") == "true",
-		EmailFrom:             getenv("EMAIL_FROM"),
-		ResendAPIKey:          getenv("RESEND_API_KEY"),
-		DevFolder:             withDefault(getenv("ANSA_DEV_FOLDER"), ".."),
-		ScreensSharedSecret:   getenv("SCREENS_SHARED_SECRET"),
-		InboundEmailDomain:    strings.ToLower(strings.TrimSpace(getenv("INBOUND_EMAIL_DOMAIN"))),
-		ResendWebhookSecret:   getenv("RESEND_WEBHOOK_SECRET"),
-		FacebookAppID:         getenv("FACEBOOK_APP_ID"),
-		FacebookAppSecret:     getenv("FACEBOOK_APP_SECRET"),
-		MessengerVerifyToken:  getenv("MESSENGER_VERIFY_TOKEN"),
-		UseR2:                 getenv("USE_R2_STORAGE") == "true",
-		R2AccountID:           getenv("R2_ACCOUNT_ID"),
-		R2AccessKeyID:         getenv("R2_ACCESS_KEY_ID"),
-		R2SecretAccessKey:     getenv("R2_SECRET_ACCESS_KEY"),
-		R2Bucket:              getenv("R2_BUCKET"),
-		UseStripe:             getenv("USE_STRIPE") == "true",
-		StripeSecretKey:       getenv("STRIPE_SECRET_KEY"),
-		StripeWebhookSecret:   getenv("STRIPE_WEBHOOK_SECRET"),
-		StripePriceID:         getenv("STRIPE_PRICE_ID"),
-		SchedulerOff:          getenv("CORE_SCHEDULER") == "off",
-		MediaProvider:         getenv("MEDIA_PROVIDER"),
+		ListenAddr:             withDefault(getenv("CORE_LISTEN_ADDR"), "127.0.0.1:8080"),
+		DatabaseURL:            getenv("DATABASE_URL"),
+		DataEncryptionKey:      getenv("DATA_ENCRYPTION_KEY"),
+		BrainURL:               withDefault(getenv("BRAIN_URL"), "http://127.0.0.1:8090"),
+		BrainSharedSecret:      getenv("BRAIN_SHARED_SECRET"),
+		Environment:            withDefault(getenv("ANSA_ENV"), "production"),
+		AuthSecret:             getenv("BETTER_AUTH_SECRET"),
+		TelegramBotToken:       getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramBotUsername:    getenv("TELEGRAM_BOT_USERNAME"),
+		TelegramWebhookSecret:  getenv("TELEGRAM_WEBHOOK_SECRET"),
+		AppURL:                 withDefault(getenv("APP_URL"), "http://localhost:3000"),
+		SendRealEmail:          getenv("SEND_REAL_EMAIL") == "true",
+		EmailFrom:              getenv("EMAIL_FROM"),
+		ResendAPIKey:           getenv("RESEND_API_KEY"),
+		DevFolder:              withDefault(getenv("ANSA_DEV_FOLDER"), ".."),
+		ScreensSharedSecret:    getenv("SCREENS_SHARED_SECRET"),
+		InboundEmailDomain:     strings.ToLower(strings.TrimSpace(getenv("INBOUND_EMAIL_DOMAIN"))),
+		ResendWebhookSecret:    getenv("RESEND_WEBHOOK_SECRET"),
+		FacebookAppID:          getenv("FACEBOOK_APP_ID"),
+		FacebookAppSecret:      getenv("FACEBOOK_APP_SECRET"),
+		MessengerVerifyToken:   getenv("MESSENGER_VERIFY_TOKEN"),
+		WhatsAppVerifyToken:    getenv("WHATSAPP_VERIFY_TOKEN"),
+		WhatsAppSignupConfigID: getenv("WHATSAPP_SIGNUP_CONFIG_ID"),
+		UseR2:                  getenv("USE_R2_STORAGE") == "true",
+		R2AccountID:            getenv("R2_ACCOUNT_ID"),
+		R2AccessKeyID:          getenv("R2_ACCESS_KEY_ID"),
+		R2SecretAccessKey:      getenv("R2_SECRET_ACCESS_KEY"),
+		R2Bucket:               getenv("R2_BUCKET"),
+		UseStripe:              getenv("USE_STRIPE") == "true",
+		StripeSecretKey:        getenv("STRIPE_SECRET_KEY"),
+		StripeWebhookSecret:    getenv("STRIPE_WEBHOOK_SECRET"),
+		StripePriceID:          getenv("STRIPE_PRICE_ID"),
+		SchedulerOff:           getenv("CORE_SCHEDULER") == "off",
+		MediaProvider:          getenv("MEDIA_PROVIDER"),
 	}
 	readVapi(&cfg, getenv)
 	readSocialApps(&cfg, getenv)

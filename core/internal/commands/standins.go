@@ -32,6 +32,15 @@ func StandInFacebookPage(ctx context.Context, pool *database.Pool, company tenan
 	return oneText(pool.QueryRow(ctx, statement, company.String()))
 }
 
+// StandInWhatsAppNumber is the phone number id of the company's connected
+// development stand-in WhatsApp number ("" = none).
+func StandInWhatsAppNumber(ctx context.Context, pool *database.Pool, company tenant.CompanyID) (string, error) {
+	const statement = `
+		SELECT phone_number_id FROM whatsapp_numbers
+		WHERE company_id = $1 AND is_stand_in AND status = 'connected'`
+	return oneText(pool.QueryRow(ctx, statement, company.String()))
+}
+
 // CallOfVapiID is the id of the company's saved call with Vapi's call id
 // ("" = none saved).
 func CallOfVapiID(ctx context.Context, pool *database.Pool, company tenant.CompanyID, vapiCallID string) (string, error) {

@@ -56,8 +56,9 @@ change (`pnpm install`), restart `pnpm dev` too.
 - A customer message without Telegram: in a 4th terminal,
   `cd core && make simulate-message OWNER=<your login email> NAME="Lena" TEXT="Are you open tonight?"`.
   The answer appears in `.dev-messages/` and in the Inbox. With a stand-in
-  Telegram account or Facebook Page connected (Connections), `make
-  simulate-telegram` and `make simulate-messenger` take the same arguments.
+  WhatsApp number, Telegram account or Facebook Page connected
+  (Connections), `make simulate-whatsapp`, `make simulate-telegram` and
+  `make simulate-messenger` take the same arguments.
 - An order through the stand-in chat (ask for two dishes from your menu,
   answer "yes"), then Orders: Accept, Ready, Done.
 - Settings → Assistant (Try your assistant), What it knows, Menu (Read my

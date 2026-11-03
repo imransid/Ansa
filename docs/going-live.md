@@ -573,6 +573,8 @@ section 8):
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | all three or none (unset: "Telegram isn't set up by ansa yet") | section 12 |
 | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | the pair, once ansa's Meta app passed review (Facebook Pages and Messenger) | sections 10 and 13 |
 | `MESSENGER_VERIFY_TOKEN` | with Messenger: the word Meta's webhook setup checks once (`openssl rand -hex 32`) | section 13 |
+| `WHATSAPP_VERIFY_TOKEN` | with WhatsApp: the same for its webhook (`openssl rand -hex 32`) | section 14 |
+| `WHATSAPP_SIGNUP_CONFIG_ID` | with WhatsApp: the Embedded Signup configuration's id (unset: "WhatsApp isn't set up by ansa yet") | section 14 |
 | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | the pair, once ansa's LinkedIn app exists (unset: "Not set up by ansa yet") | section 10 |
 | `X_CLIENT_ID`, `X_CLIENT_SECRET` | the pair, once ansa's X app has credits | section 10 |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | the pair, once ansa's Google OAuth client is verified (YouTube) | section 10 |
@@ -1079,6 +1081,54 @@ What stays unconfirmed until then: the exact shape of `message_echoes`
 (ansa skips an echo whose `app_id` is its own app and saves the others as
 the Page's own message), and whether the name lookup needs more than
 `pages_messaging`.
+
+## 14. WhatsApp Business (a business's WhatsApp number)
+
+A business (or one person with the WhatsApp Business app) connects its
+number once: Settings → Connections → Connect WhatsApp opens Meta's own
+sign-up window (Embedded Signup), and core checks everything the window
+reports with Meta before saving (docs/backend/modules/whatsapp.md). The
+owner may keep using the WhatsApp Business app on the same number. A
+personal WhatsApp number can never be connected.
+
+1. **Meta app**: the same app as sections 10 and 13, with the **WhatsApp**
+   product added. ansa must become a **Tech Provider** (Meta's onboarding
+   for platforms that connect other businesses' numbers), with Business
+   Verification and App Review for `whatsapp_business_messaging` and
+   `whatsapp_business_management` (a screencast each). Until then only
+   numbers of people with a role on the app work.
+2. **Sign-up configuration**: in the app's Facebook Login for Business,
+   make a configuration for WhatsApp Embedded Signup (version 4: versions 2
+   and 3 ended on 15 October 2026) and put its id in core's
+   `WHATSAPP_SIGNUP_CONFIG_ID`. Add the screens' domain (`APP_URL`'s) to the
+   app's allowed domains and valid OAuth redirect URIs: Meta only reports
+   the number to a page on a listed domain (https).
+3. **Webhook**: in the WhatsApp product's configuration, Callback URL
+   `https://<core address>/webhooks/whatsapp`, Verify token = core's
+   `WHATSAPP_VERIFY_TOKEN` (`openssl rand -hex 32`), fields `messages`,
+   `smb_message_echoes` and `account_update` (not `history` or
+   `smb_app_state_sync`: ansa imports no past chats or contact book). Meta
+   signs every message with the app secret (`X-Hub-Signature-256`); an
+   unsigned or badly signed one gets `401` and core's log says `whatsapp
+   webhook rejected` with the code `bad_signature`.
+4. **Payment**: since 1 October 2026 Meta charges for replies after the
+   first 1,000 a month per number; each business adds its own payment
+   method in WhatsApp Manager (without one, replies past the free 1,000 are
+   not delivered). Decide how ansa explains this in its packages (step 57).
+5. **Try it free first**: the app's WhatsApp API Setup gives a test number
+   that may message up to 5 verified phones, with no payment method. Real
+   webhooks need core reachable over https (a host, or a tunnel while
+   testing).
+6. **Check it** with ansa's own test business: a number connected through
+   the window (one in the WhatsApp Business app, and a new one), a message
+   from another phone in the Inbox within seconds with the sender's name,
+   ansa's reply arriving, a reply written in the WhatsApp Business app shown
+   as written there (the assistant then stays quiet), a reply after 24
+   hours refused by ansa before sending, and removing ansa in the app
+   marking the number "Removed on WhatsApp's side".
+
+What stays unconfirmed until then: listed at the end of
+docs/backend/modules/whatsapp.md.
 
 ## Errors
 

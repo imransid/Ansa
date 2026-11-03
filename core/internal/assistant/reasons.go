@@ -25,5 +25,5 @@ var ReasonText = map[string]string{
 
 // ChannelLabels name a conversation's channel for people.
 var ChannelLabels = map[string]string{
-	"telegram": "Telegram", "messenger": "Messenger", "phone": "Phone", "email": "Email", "stand_in": "Stand-in chat",
+	"telegram": "Telegram", "messenger": "Messenger", "whatsapp": "WhatsApp", "phone": "Phone", "email": "Email", "stand_in": "Stand-in chat",
 }

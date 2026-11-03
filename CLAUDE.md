@@ -75,7 +75,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     age), the webhooks finding their company from what only ansa issues (a
     phone line, a forwarding address, a Stripe customer, a Telegram link
     code or the business connection it tied, a Facebook Page connected in
-    exactly ONE company), a session cookie's person, an address at login,
+    exactly ONE company, a WhatsApp number connected in exactly ONE company
+    or, when Meta ends or restores the link, its business account's
+    numbers), a session cookie's person, an address at login,
     an invite's hash, and "is this platform account still connected
     anywhere" before X or Google revoke. Each returns ids only, and the work
     then continues through company-scoped paths with the row's own company.
@@ -273,8 +275,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   domain converted to ASCII (lib/email-address.ts, shared with the ticket page's
   confirm step), a dot in the domain, max 254. Team accounts keep the strict
   emailSchema.
-- Webhooks (Vapi, Resend, Stripe, Telegram, Messenger: services/vapi-webhook.ts, inbound-email-webhook.ts,
-  stripe-webhook.ts, telegram-webhook.ts, messenger-webhook.ts) always run in this order: size cap -> raw bytes -> signature +
+- Webhooks (Vapi, Resend, Stripe, Telegram, Messenger, WhatsApp: services/vapi-webhook.ts, inbound-email-webhook.ts,
+  stripe-webhook.ts, telegram-webhook.ts, messenger-webhook.ts; core/internal/whatsapp/webhook.go) always run in this order: size cap -> raw bytes -> signature +
   timestamp -> rate limit (logged when it refuses) -> JSON parse -> Zod -> save.
   Telegram signs nothing: its "signature" is setWebhook's secret_token,
   sent back in X-Telegram-Bot-Api-Secret-Token and compared in constant
@@ -581,7 +583,9 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   oauthPkceVerifierContext company and attempt, (step 49) a
   restaurant's own Claude API key: anthropicKeyContext, its company, and
   (step 52) an order's delivery address and the customer's notes:
-  orderFieldContext, company, order and field) goes through
+  orderFieldContext, company, order and field, and (step 56) a WhatsApp
+  number's access token: social.WhatsAppTokenContext, company and number,
+  decrypted only in core/internal/social like every third-party token) goes through
   lib/encryption.ts with a context naming its company and record (an id from a
   form is lowercased first, as Postgres gives it back: analyzeCallSchema,
   inboundEmailIdSchema, ticketNoteSchema). Only full 16-byte GCM tags decrypt.
@@ -1892,6 +1896,60 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     _SECRET; "stand-in" in development (the stand-in Page of step 40, `pnpm
     simulate:messenger`, replies to .dev-messages/); production without
     the app has no Messenger.
+- WhatsApp Business (step 56, core/internal/whatsapp, docs/backend/modules/
+  whatsapp.md; Settings → Connections, POST and GET /webhooks/whatsapp). A
+  business, or one person who uses the WhatsApp Business app, connects its
+  number through Meta's Cloud API; a personal WhatsApp number can never be
+  connected (no allowed API). The owner may keep using the WhatsApp
+  Business app on the same number (Meta's "coexistence").
+  - Connecting (owners; settings-changes limit): Meta's own sign-up window
+    (Embedded Signup, coexistence allowed: featureType
+    whatsapp_business_app_onboarding) reports a one-time code (30 s) and
+    the business account and number; the page hands them to core at once,
+    and they are claims until Meta confirms them server to server
+    (whatsapp.Confirm): the code exchanged for the business's token; the
+    token ansa's app's, valid and granted whatsapp_business_messaging for
+    that account (debug_token); the number among the account's, Meta's own
+    is_on_biz_app saying whether the app shares it (never the browser);
+    ansa's app subscribed to the account's webhooks; a number not shared
+    with the app registered with a random six-digit PIN ansa never keeps.
+    The owner and "no number yet" are checked before Meta is asked and
+    again when saving (settings.AsOwner: the company row lock, the role
+    read again), the token encrypted (social.WhatsAppTokenContext). One
+    number per company and per number (partial unique indexes: a number
+    connected in another company is refused). Disconnect deletes the
+    token (the row stays); the business removes ansa on Meta's side itself.
+    No past chats or contact book are imported (no history sync).
+  - Messages: the webhook runs the webhook order (512 KB, Meta's
+    X-Hub-Signature-256 with FACEBOOK_APP_SECRET, the whatsapp-webhook
+    per-IP ceiling, strict reading, 200 for what ansa can't read). The
+    company comes ONLY from the phone number id Meta signed, connected in
+    exactly one company. A customer is "<phone number id>:<customer id>",
+    the customer id their business-scoped user id ("US.1349...", in every
+    message since April 2026; a WhatsApp username may hide the number), else
+    their number's digits. Text, a button's or list's choice and captions
+    are kept; media named ("[A voice message: open WhatsApp to see it]"),
+    never downloaded; reactions and WhatsApp's notices left out. Saved once
+    per WhatsApp message id, encrypted, the assistant's answer queued. An
+    smb_message_echoes message is the business's own (author
+    business_account, "Written in the WhatsApp Business app"; the catch-up
+    stops waiting). account_update PARTNER_REMOVED / ACCOUNT_OFFBOARDED =
+    removed_in_whatsapp (nothing arrives or goes, the token kept),
+    ACCOUNT_RECONNECTED = connected again; an owner's disconnect is final.
+  - Replies (chat.RouteWithin → whatsapp.Send; the token read right before
+    by social.WhatsAppToken): the number connected in this company and the
+    customer's last message under 24 hours (Meta's rule), else refused
+    before anything is saved; the token in the Authorization header, never
+    an address, with appsecret_proof; a business-scoped id as "recipient",
+    a number as "to"; 131047 = reply_window_closed, throttling =
+    rate_limited, 190 / 133010 = not_connected, a 5xx or no answer =
+    unclear (never sent again by itself). The conversation page words
+    each channel (lib/conversations.ts sendErrorText, WRITTEN_IN).
+  - Modes (whatsapp.Connector.Mode): "real" with FACEBOOK_APP_ID, _SECRET
+    and WHATSAPP_SIGNUP_CONFIG_ID; "stand-in" in development (a stand-in
+    number, `make simulate-whatsapp`, replies to .dev-messages/);
+    "not-set-up" in production without them. WHATSAPP_VERIFY_TOKEN answers
+    Meta's setup check.
 - "Post for me" (step 54, Settings → Posts for me at /settings/posts,
   businesses). ansa plans, writes and posts on the business's Facebook
   Page by itself; the owner never gives it a topic.
@@ -3225,6 +3283,30 @@ this order and is done on the laptop, deploying aside
   status messages of orders too. One person is a different customer on
   each Page (Page-scoped ids). Attachments are only named. A Page
   connected in two companies receives nothing in either.
+- WhatsApp Business (step 56): nothing has met Meta: the sign-up, the
+  webhook, the Send API and the account changes follow Meta's documentation
+  (Graph v26.0, Embedded Signup v4) and are checked with fakes. Real
+  businesses need ansa to be a Tech Provider with App Review for
+  whatsapp_business_messaging and whatsapp_business_management (and
+  Business Verification); until then only numbers of people with a role on
+  ansa's app work. NOT CONFIRMED: the echo's shape for a customer known only
+  by a business-scoped id (ansa reads to_user_id, else to: a mismatch would
+  put the business's reply in a conversation of its own), is_on_biz_app in
+  the account's number list, and debug_token's granular scopes for a
+  business token. Delivery and read statuses are ignored: a reply Meta
+  accepted but couldn't deliver still shows as sent. Only replies within
+  24 hours exist (no message templates), so neither ansa nor a person can
+  write first or late from ansa; order status messages too. Voice messages,
+  photos and files are only named, never downloaded or heard. WhatsApp
+  calls aren't answered (Meta's calling isn't offered on a number shared
+  with the app, and needs a media bridge: the phone provider at launch).
+  Since 1 October 2026 Meta charges each business for replies past 1,000 a
+  month per number (a payment method in WhatsApp Manager), which ansa
+  doesn't show or limit yet. Disconnecting in ansa doesn't remove ansa on
+  Meta's side (the business does, in the app or WhatsApp Manager); Meta
+  keeps sending that number's messages, which ansa ignores. One number per
+  company. The same customer is a different conversation on WhatsApp than
+  on a call or Telegram (a contact per channel).
 - Telegram (step 48): nothing has met a real bot or a real Telegram
   Business account: the updates and answers follow Telegram's Bot API
   documentation (version 10.3) and are checked with fakes. NOT
@@ -3359,6 +3441,14 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   (messages, message_echoes), pass App Review for pages_messaging and
   pages_manage_metadata, and check one Page's message, name, reply and
   Business Suite echo with ansa's own test Page.
+- For WhatsApp (docs/going-live.md, section 14): add the WhatsApp product
+  to ansa's Meta app, become a Tech Provider (Business Verification, App
+  Review for whatsapp_business_messaging and whatsapp_business_management),
+  make the Embedded Signup configuration (WHATSAPP_SIGNUP_CONFIG_ID), set
+  WHATSAPP_VERIFY_TOKEN and the webhook (messages, smb_message_echoes,
+  account_update), decide how packages explain Meta's charge for replies
+  past 1,000 a month, and check one number of each kind (the WhatsApp
+  Business app's and a new one) with ansa's own test business.
 
 ## Decisions log
 - 2026-10-16: Dropped Supabase. Custom stack: Postgres + Drizzle + Better Auth + R2.
@@ -4196,4 +4286,21 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   speech (in Chrome for the practice phone, free; the phone provider's
   Google or Azure speech in production), Whisper kept as the private
   choice. No migration, no new package or setting.
+- 2026-11-03: Step 56, WhatsApp Business (the owner's yes to the plan).
+  Decisions where the plan left room: Meta's official Cloud API only,
+  connected with Meta's Embedded Signup with coexistence allowed, so a
+  business (or one person using the WhatsApp Business app) keeps the app on
+  its phone and ansa sees its replies there; every value the sign-up
+  window reports is checked with Meta server to server before anything is
+  saved (whether the app shares the number comes from Meta, never the
+  browser); customers are keyed by Meta's business-scoped user id (phone
+  numbers may be hidden since 2026), else their number; no history or
+  contact import (privacy); the token is read only by core/internal/social,
+  like every third-party token; one number per company; delivery statuses,
+  message templates and WhatsApp calls are left for later (Known gaps).
+  Migration 0050_whatsapp_numbers (the table, and "whatsapp" as a contact
+  channel); two new settings (WHATSAPP_VERIFY_TOKEN,
+  WHATSAPP_SIGNUP_CONFIG_ID); no new package. Meta's JavaScript SDK
+  (connect.facebook.net) loads only on Settings → Connections, when an
+  owner presses Connect WhatsApp.
 
