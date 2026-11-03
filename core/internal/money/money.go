@@ -15,7 +15,22 @@ var currencySymbols = map[string]string{"EUR": "€", "USD": "$", "GBP": "£", "
 // Format writes an amount in the currency's smallest units as a menu
 // shows it: "€9.50", "¥1,200", "BDT 1,200.00".
 func Format(cents int64, currency string) string {
-	digits := MinorUnitDigits(currency)
+	number := formatNumber(cents, MinorUnitDigits(currency), false)
+	if symbol, ok := currencySymbols[strings.ToUpper(currency)]; ok {
+		return symbol + number
+	}
+	return strings.ToUpper(currency) + " " + number
+}
+
+// SpokenNumber writes an amount without its currency as a person says it:
+// the decimals only when there are some ("1,200", "9.50", never "700.00").
+func SpokenNumber(cents int64, currency string) string {
+	return formatNumber(cents, MinorUnitDigits(currency), true)
+}
+
+// formatNumber groups the whole part in thousands and adds the currency's
+// decimals (left out when they are all zero and dropZeroDecimals is set).
+func formatNumber(cents int64, digits int, dropZeroDecimals bool) string {
 	scale := int64(1)
 	for i := 0; i < digits; i++ {
 		scale *= 10
@@ -29,14 +44,11 @@ func Format(cents int64, currency string) string {
 		grouped.WriteRune(r)
 	}
 	number := grouped.String()
-	if digits > 0 {
-		fraction := strconv.FormatInt(cents%scale, 10)
-		number += "." + strings.Repeat("0", digits-len(fraction)) + fraction
+	if digits == 0 || (dropZeroDecimals && cents%scale == 0) {
+		return number
 	}
-	if symbol, ok := currencySymbols[strings.ToUpper(currency)]; ok {
-		return symbol + number
-	}
-	return strings.ToUpper(currency) + " " + number
+	fraction := strconv.FormatInt(cents%scale, 10)
+	return number + "." + strings.Repeat("0", digits-len(fraction)) + fraction
 }
 
 // ParsePrice reads a price as people write it in the currency's smallest

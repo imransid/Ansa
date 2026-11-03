@@ -36,8 +36,8 @@ func LanguageOf(text string) string {
 }
 
 // The Bangla texts below say what texts.go's English ones say: the numbers
-// and prices are written the same way (money.Format), the dishes as the
-// menu names them.
+// and prices are written the same way (money.Format; spoken, the Bangla
+// way: texts_spoken.go), the dishes as the menu names them.
 
 const (
 	sendTheAddressBangla = "অনুগ্রহ করে পুরো ঠিকানাটা পাঠান।"
@@ -82,11 +82,13 @@ func summaryBangla(order Priced) string {
 	return strings.Join(append(lines, "", "অর্ডারটি কি নিশ্চিত করব? নিশ্চিত করতে “হ্যাঁ” লিখে পাঠান।"), "\n")
 }
 
+// spokenSummaryBangla says amounts and counts with Bengali digits and the
+// currency's Bangla word ("২ Kacchi, ৯০০ টাকা।"), as spoken Bangla does.
 func spokenSummaryBangla(order Priced) string {
-	price := func(cents int64) string { return money.Format(cents, order.Currency) }
+	price := func(cents int64) string { return spokenPrice(cents, order.Currency, Bangla) }
 	parts := []string{"আপনার অর্ডার:"}
 	for _, line := range order.Lines {
-		parts = append(parts, strconv.Itoa(line.Quantity)+" "+line.Name+", "+price(line.LineTotalCents)+"।")
+		parts = append(parts, bengaliDigits(strconv.Itoa(line.Quantity))+" "+line.Name+", "+price(line.LineTotalCents)+"।")
 	}
 	if order.DeliveryFeeCents > 0 {
 		parts = append(parts, "ডেলিভারি চার্জ, "+price(order.DeliveryFeeCents)+"।")

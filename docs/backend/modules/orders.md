@@ -31,7 +31,11 @@ U+0980-U+09FF; the assistant reads it from the conversation, a status
 button from the customer's newest message), else English, word for word as
 before. Numbers and prices are written the same way in both; the Bangla
 summary starts "আপনার অর্ডার:", which the brain is told as it is told
-"Here is your order".
+"Here is your order". On a call (`texts_spoken.go`) amounts are said as a
+person says them: "700 taka", "19.50 euros" (decimals only when there are
+some, `money.SpokenNumber`), never "BDT 700.00"; in Bangla with Bengali
+digits and the currency's Bangla word ("২ Kacchi, ৯০০ টাকা"); a currency
+without words keeps its code.
 **Rows (`store.go`):** the summary is saved with its order ("proposed", one
 per conversation, unnumbered, address and notes encrypted with
 `order-<field>:<company>:<order>`), replacing the one being written up. A
@@ -62,7 +66,8 @@ cases, `money/testdata/prices.json`.
 **Tests:** `orders_test.go` (pricing, gaps, the 32-bit limit, neither
 delivery nor pickup, the summary word for word, the plan, status texts);
 `texts_bangla_test.go` (the language of a newest message, every Bangla
-text, the plan in the customer's language); `assistant/order_test.go` (live database, a fake brain:
+text, the plan in the customer's language); `texts_spoken_test.go` (amounts
+on a call); `assistant/order_test.go` (live database, a fake brain:
 summary priced by ansa with the address encrypted, a "yes" places #1 with
 ansa's total, sends the confirmation and queues the alert, the brain sees
 the order in progress, a second "yes" goes to a person; a "no" takes it

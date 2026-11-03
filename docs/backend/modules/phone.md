@@ -28,7 +28,8 @@ calls, and its name in `phone_calls_line_known`. Nothing else changes.
   the call has it), never a silent `no_reply`, never a promise of a time,
   money or a decision. It thinks more than in a chat (`CALL_REPLY`: effort
   medium). ansa's own order texts are the spoken ones ("Please say yes to
-  confirm", no promise to message the caller later: `orders.Spoken*`).
+  confirm", no promise to message the caller later, amounts as people say
+  them, "700 taka" or "৭০০ টাকা": `orders.Spoken*`).
 - The greeting says who ansa is (the AI label: it never pretends to be the
   person): "Hello! I'm Rafa's AI assistant. Rafa can't take your call right
   now. How can I help?" (`words.go`).

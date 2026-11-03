@@ -90,7 +90,7 @@ func TestTheSummaryIsAnsasOwnWords(t *testing.T) {
 // "say yes", no promise to message the caller later, "tell" not "send".
 func TestTheSpokenTextsForACall(t *testing.T) {
 	order, _ := Price(Request{Items: []Item{{"M1", 2}}, Fulfilment: "delivery", Address: "Via Roma 1", Time: "20:00", Notes: "No basil"}, menu, both)
-	want := "Here is your order: 2 Margherita, €19.00. Delivery, €2.50. Total, €21.50. Delivered to Via Roma 1. When: 20:00. Notes: No basil. Shall I place the order? Please say yes to confirm."
+	want := "Here is your order: 2 Margherita, 19 euros. Delivery, 2.50 euros. Total, 21.50 euros. Delivered to Via Roma 1. When: 20:00. Notes: No basil. Shall I place the order? Please say yes to confirm."
 	if got := SpokenSummaryText(order, English); got != want {
 		t.Fatalf("spoken summary:\n%s", got)
 	}
