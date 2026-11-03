@@ -142,6 +142,9 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
               canReopen={session.role === "owner"}
               relatedArticles={request?.relatedArticles ?? []}
             />
+          ) : waiting ? (
+            // An "Ask me first" reply waits: that is what needs you here.
+            <StatusDot tone="attention">ansa&apos;s reply waits for you: Send, Edit or Discard it.</StatusDot>
           ) : (
             <StatusDot tone="success">Nothing needs you in this conversation.</StatusDot>
           )}

@@ -39,6 +39,14 @@ export async function runInboxChecks() {
     assert.equal(attributeValue(openingTags(page, ["RequestBox"])[0], "key"), "{conversation.openTicket.id}");
   });
 
+  await check("conversation page: \"Nothing needs you\" shows only without an open request and without a waiting \"Ask me first\" reply; a waiting reply says it needs you", async () => {
+    const page = withoutComments(await read(`${CONVERSATION}/page.tsx`));
+    assert.match(
+      page,
+      /\) : waiting \? \(\s*<StatusDot tone="attention">ansa&apos;s reply waits for you: Send, Edit or Discard it\.<\/StatusDot>\s*\) : \(\s*<StatusDot tone="success">Nothing needs you in this conversation\.<\/StatusDot>/,
+    );
+  });
+
   await check("live pages: a page that asks the server again starts the next refresh only once the last one is shown (a transition's isPending, never setInterval), so slow refreshes never pile up in front of a button's action", async () => {
     for (const file of ["components/refresh-every.tsx", "components/refresh-while-pending.tsx"]) {
       const source = withoutComments(await read(file));
