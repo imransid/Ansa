@@ -45,8 +45,11 @@ worker thread: a model call that takes seconds never holds up other requests.
 **Answer (`answer.py`):** read strictly: exactly the schema's fields;
 `reply` (1–1,500 characters, cleaned), `needs_person` (a reason from the
 allowed list, a one-line subject, a summary, a category), `no_reply`,
-`order_summary` (items by label with whole quantities), `order_confirmed`,
-`order_withdrawn`. Anything else, or no model, or a failure, is
+`order_summary` (items by label with whole quantities; the wanted time as a
+24-hour clock time with its day, "19:00 today", empty for as soon as
+possible: the order rules tell the AI to ask about a time that could be
+morning or evening, is already past or when the business is closed, before
+a summary), `order_confirmed`, `order_withdrawn`. Anything else, or no model, or a failure, is
 `{"kind":"failed","reason": model_unavailable | model_failed | unusable_answer}`:
 core then sends the holding reply, never the model's text.
 **Calls (step 55):** `channel: "call"` adds the call rules (a warm, smart
