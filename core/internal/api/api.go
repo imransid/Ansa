@@ -84,6 +84,9 @@ type Server struct {
 	WhatsApp *whatsapp.Connector
 	// The app's own address (invite links).
 	AppURL string
+	// The development mailbox's folder (the stand-in outbox's emails): ""
+	// when real email is on or in production.
+	DevMailFolder string
 	// Private file storage (documents), and ansa's own sending address
 	// (never a company's reply-to or support address).
 	Files     *files.Store
@@ -134,6 +137,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerCofounder(routes)
 	s.registerPhone(routes)
 	s.registerPracticeChat(routes)
+	s.registerDevMailbox(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

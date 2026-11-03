@@ -45,6 +45,9 @@ func TestTheBrainAnswersBeforeCoreStopsWaiting(t *testing.T) {
 	settings := readBrainFile(t, "../../../brain/brain/ai.py")
 	retryWait := secondsIn(t, retryWaitLine, settings, "MAX_RETRY_WAIT_SECONDS")
 	uses := useLine.FindAllStringSubmatch(settings, -1)
+	// Claude Code's limit (development): it answers the assistant and "Post
+	// for me", and every other use while ansa has no key (free_ai.py).
+	limit := secondsIn(t, claudeCode, readBrainFile(t, "../../../brain/brain/claude_code.py"), "TIMEOUT_SECONDS")
 	if len(uses) < len(waitForUse) {
 		t.Fatalf("found %d uses in brain/brain/ai.py, expected at least %d: did their lines change shape?", len(uses), len(waitForUse))
 	}
@@ -61,10 +64,14 @@ func TestTheBrainAnswersBeforeCoreStopsWaiting(t *testing.T) {
 		if longest > wait {
 			t.Errorf("%s: the brain may take %v, but core waits %v", name, longest, wait)
 		}
+		// Development without ansa's key: one try of Claude Code, with the
+		// longer of its own limit and the use's (brain/brain/free_ai.py).
+		if free := max(limit, timeout) + brainOverhead; free > wait {
+			t.Errorf("%s: Claude Code standing in for ansa's key may take %v, but core waits %v", name, free, wait)
+		}
 	}
 
 	// Claude Code (development) answers the assistant and "Post for me".
-	limit := secondsIn(t, claudeCode, readBrainFile(t, "../../../brain/brain/claude_code.py"), "TIMEOUT_SECONDS")
 	for _, wait := range []time.Duration{AssistantReplyWait, AutopostWait} {
 		if limit+brainOverhead > wait {
 			t.Errorf("Claude Code may take %v, but core waits %v", limit, wait)

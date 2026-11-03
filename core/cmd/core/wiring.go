@@ -65,6 +65,15 @@ func fileStore(cfg config.Config) *files.Store {
 	return store
 }
 
+// devMailFolder is where the stand-in outbox writes emails, for the
+// development mailbox: "" when real email is on or in production.
+func devMailFolder(cfg config.Config) string {
+	if cfg.IsProduction() || cfg.SendRealEmail {
+		return ""
+	}
+	return filepath.Join(cfg.DevFolder, ".dev-emails")
+}
+
 // vapiSigning is how Vapi signs its webhooks (the VAPI_* settings; the
 // simulators sign with the same function).
 func vapiSigning(cfg config.Config) calls.Signing {

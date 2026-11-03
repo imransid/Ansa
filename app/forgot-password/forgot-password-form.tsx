@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { requestPasswordResetAction } from "@/app/actions/auth";
+import { DevMailPeek } from "@/components/dev-mail-peek";
 import { FormField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { ACCOUNT_EMAIL_MAX_LENGTH } from "@/lib/form-limits";
@@ -23,6 +24,8 @@ export function ForgotPasswordForm() {
         <Link href="/login" className="underline">
           Back to log in
         </Link>
+        {/* Development only: the email isn't really sent on this computer. */}
+        <DevMailPeek />
       </div>
     );
   }

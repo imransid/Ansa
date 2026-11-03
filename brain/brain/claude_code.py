@@ -70,9 +70,9 @@ def environment(parent: Mapping[str, str]) -> dict[str, str]:
     return result
 
 
-def run_program(args: list[str], stdin_text: str, folder: str, env: dict[str, str]) -> tuple[int, bytes]:
+def run_program(args: list[str], stdin_text: str, folder: str, env: dict[str, str], timeout: float = TIMEOUT_SECONDS) -> tuple[int, bytes]:
     """Runs Claude Code once; a run past its time is stopped and counts as a failure."""
-    completed = subprocess.run(args, input=stdin_text.encode(), capture_output=True, cwd=folder, env=env, timeout=TIMEOUT_SECONDS, check=False)
+    completed = subprocess.run(args, input=stdin_text.encode(), capture_output=True, cwd=folder, env=env, timeout=timeout, check=False)
     return completed.returncode, completed.stdout
 
 

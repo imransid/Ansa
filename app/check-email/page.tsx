@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import { DevMailPeek } from "@/components/dev-mail-peek";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { describeLinkLifetime, VERIFICATION_LINK_SECONDS } from "@/lib/link-lifetimes";
 
@@ -33,6 +34,8 @@ export default function CheckEmailPage() {
           </p>
         </CardContent>
       </Card>
+      {/* Development only: the email isn't really sent on this computer. */}
+      <DevMailPeek />
     </main>
   );
 }

@@ -18,15 +18,32 @@ fail() {
 [ -x brain/.venv/bin/uvicorn ] || fail "the brain's packages are missing: cd brain && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
 command -v go >/dev/null || fail "Go is missing (brew install go)."
 command -v docker >/dev/null || fail "Docker Desktop is missing (docker.com)."
+# The AI is Claude Code on this computer. A path into an editor's extension
+# folder disappears when the editor updates it, so the claude on PATH stands
+# in for one that is gone.
 claude_code=$(grep '^CLAUDE_CODE_PATH=' .env.local | cut -d= -f2- || true)
 if [ -z "$claude_code" ] || [ ! -x "$claude_code" ]; then
-  echo "pnpm demo: CLAUDE_CODE_PATH in .env.local doesn't name the claude program: without it ansa can't answer with the AI (only holding replies)." >&2
+  claude_code=$(command -v claude || true)
+fi
+if [ -z "$claude_code" ]; then
+  echo "pnpm demo: no claude program (CLAUDE_CODE_PATH in .env.local, or claude on PATH): ansa can't answer with the AI, only with holding replies." >&2
 fi
 for port in 3000 8080 8090; do
   if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
     fail "something already runs on port $port: stop it first (another pnpm dev, make run or brain)."
   fi
 done
+
+# The simulate tools sign calls and emails as Vapi and Resend do, and core
+# checks them with the same secret from .env.core: the first time, a
+# development one is made for this laptop (docs/backend/try-it.md).
+add_development_secret() {
+  if ! grep -q "^$1=." .env.core; then
+    printf '\n# Made by pnpm demo for this laptop (development only).\n%s=%s\n' "$1" "$2" >> .env.core
+  fi
+}
+add_development_secret VAPI_WEBHOOK_SECRET "$(openssl rand -hex 32)"
+add_development_secret RESEND_WEBHOOK_SECRET "whsec_$(openssl rand -base64 32)"
 
 # The database: Docker Desktop first, then ansa's Postgres and its migrations.
 if ! docker info >/dev/null 2>&1; then

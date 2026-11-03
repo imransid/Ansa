@@ -10,7 +10,7 @@ import os
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
-from brain import ai, claude_code
+from brain import ai, claude_code, free_ai
 from brain.analytics.review import ReviewRequest, review_performance
 from brain.assistant.answer import read_answer
 from brain.assistant.call_summary import CallSummaryRequest, summarize_call
@@ -79,7 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def status() -> dict[str, bool]:
         """What the brain can answer with: ansa's own key, and Claude Code
         (development only). Core shows it as "the AI is ready". Never the key."""
-        return {"ansa_key": bool(os.environ.get("ANTHROPIC_API_KEY")), "claude_code": active.development}
+        return {"ansa_key": bool(os.environ.get("ANTHROPIC_API_KEY")) or free_ai.ready(active.development), "claude_code": active.development}
 
     # A plain def on purpose: FastAPI runs it in a worker thread, so a model
     # call that takes seconds never holds up the other requests.
@@ -93,18 +93,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def menu_read(request: MenuReadRequest) -> dict:
         """A menu read into rows for the owner to check (core prices them). Without
         a key: the development sample, or unavailable in production."""
-        return read_menu(request, active_asker, active.development)
+        return read_menu(request, ansa_asker(active.development), active.development)
 
     @app.post("/v1/email/triage")
     def email_triage(request: TriageRequest) -> dict:
         """A received email's summary, subject and category (or why not)."""
-        return triage_email(request, active_asker)
+        return triage_email(request, ansa_asker(active.development))
 
     @app.post("/v1/calls/decide")
     def calls_decide(request: CallRequest) -> dict:
         """A finished call: solved (with the customer's own confirming
         sentence) or a person follows up. Never the transcript in a log."""
-        return decide_call(request, active_asker, ai.CALL_DECISION)
+        return decide_call(request, ansa_asker(active.development), ai.CALL_DECISION)
 
     @app.post("/v1/documents/pdf-text")
     def documents_pdf_text(request: PdfTextRequest) -> dict:
@@ -121,30 +121,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def analytics_review(request: ReviewRequest) -> dict:
         """A review of one period's post numbers (core checks every number
         it cites). Never the numbers or the answer in a log."""
-        return review_performance(request, active_asker)
+        return review_performance(request, ansa_asker(active.development))
 
     @app.post("/v1/content/draft")
     def content_draft(request: DraftRequest) -> dict:
         """One content studio draft (core cleans it and marks its claims).
         Never the facts or the draft in a log."""
-        return write_draft(request, active_asker)
+        return write_draft(request, ansa_asker(active.development))
 
     # The Co-Founder (marketing): core checks every answer before it is saved.
     @app.post("/v1/cofounder/interview-turn")
     def cofounder_interview_turn(request: InterviewTurnRequest) -> dict:
-        return answer_turn(request, active_asker)
+        return answer_turn(request, ansa_asker(active.development))
 
     @app.post("/v1/cofounder/fact-suggestions")
     def cofounder_fact_suggestions(request: FactSuggestionRequest) -> dict:
-        return suggest_facts(request, active_asker)
+        return suggest_facts(request, ansa_asker(active.development))
 
     @app.post("/v1/cofounder/marketing-plan")
     def cofounder_marketing_plan(request: MarketingPlanRequest) -> dict:
-        return make_plan(request, active_asker)
+        return make_plan(request, ansa_asker(active.development))
 
     @app.post("/v1/cofounder/calendar-plan")
     def cofounder_calendar_plan(request: CalendarPlanRequest) -> dict:
-        return plan_calendar(request, active_asker)
+        return plan_calendar(request, ansa_asker(active.development))
 
     @app.post("/v1/calls/summary")
     def calls_summary(request: CallSummaryRequest) -> dict:
@@ -211,11 +211,18 @@ def claude_code_asker(system_prompt: str, prompt: str, schema: dict, use: ai.Use
     return claude_code.ask_claude_code(system_prompt, prompt, schema, use.effort)
 
 
+def ansa_asker(development: bool) -> free_ai.Asker:
+    """ansa's own key (or the business's, when it gives one); in development
+    without a key, Claude Code on this computer (free_ai.py: the free demo).
+    active_asker is looked up at each call, so a test's fake replaces it."""
+    return free_ai.or_claude_code(lambda *asked: active_asker(*asked), development)
+
+
 def asker_for(engine: str, development: bool):
     """The model for this business's engine, or None when it isn't allowed here."""
     if engine == "claude_code":
         return claude_code_asker if development else None
-    return active_asker
+    return ansa_asker(development)
 
 
 def decide_reply(request: ReplyRequest, asker) -> dict:

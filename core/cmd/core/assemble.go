@@ -92,7 +92,7 @@ func assemble(cfg config.Config, pool *database.Pool, box *secure.Box, log *logg
 		Phone: &phone.Service{Pool: pool, Box: box, Assistant: runner, Log: log,
 			Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.VoiceWait)},
 		MenuBrain:   brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.MenuReadingWait),
-		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(),
+		TelegramBot: cfg.TelegramBotUsername, Development: !cfg.IsProduction(), ForwardingDomain: cfg.ForwardingDomain(), DevMailFolder: devMailFolder(cfg),
 		Outbox: deliverer, Inbound: processor, Posts: postWriter, AppURL: cfg.AppURL, Files: storage, EmailFrom: cfg.EmailFrom, WebFetcher: &safefetch.Fetcher{},
 		Accounts:    &accounts.Service{Pool: pool, Secret: cfg.AuthSecret, AppURL: cfg.AppURL, Mail: mail, Limits: limiter, Log: log},
 		BillingMode: billing.Mode(cfg.UseStripe, cfg.IsProduction()), Stripe: stripe, Calls: callAnalyzer,

@@ -92,14 +92,14 @@ func (s *Server) sendPracticeChat(w http.ResponseWriter, r *http.Request, body [
 		problem(w, http.StatusTooManyRequests, "That's a lot of practice messages this hour. Try again later.")
 		return
 	}
-	conversationID, err := practicechat.Send(r.Context(), s.Pool, s.Box, who.CompanyID, input.Channel, name, text)
+	turn, err := practicechat.Send(r.Context(), s.Pool, s.Box, who.CompanyID, input.Channel, name, text)
 	switch {
 	case errors.Is(err, practicechat.ErrNoStandIn):
 		problem(w, http.StatusConflict, "Connect a stand-in account for this channel on Settings → Connections first.")
 	case err != nil:
 		s.failed(w, "practice chat", err)
 	default:
-		writeJSON(w, http.StatusOK, map[string]string{"conversationId": conversationID})
+		writeJSON(w, http.StatusOK, map[string]string{"conversationId": turn.ConversationID})
 	}
 }
 

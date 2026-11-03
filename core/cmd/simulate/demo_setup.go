@@ -55,7 +55,26 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 	}
 	posts := autopost.Choices{Enabled: true, Frequency: autopost.FrequencyThreeAWeek, Clock: "11:00", Mode: "automatic"}
 	outcome, err := autopost.Save(ctx, w.pool, a.company, a.userID, posts)
-	return saved("Post for me", outcome, err)
+	if err := saved("Post for me", outcome, err); err != nil {
+		return err
+	}
+	if err := setUpRestaurantTeam(ctx, w, a); err != nil {
+		return err
+	}
+	if err := addSavedAnswers(ctx, w, a, restaurantAnswers); err != nil {
+		return err
+	}
+	chats, err := playDemoChats(ctx, w, a, restaurantHistory)
+	if err != nil {
+		return err
+	}
+	if err := finishDemoOrder(ctx, w, a, chats[doneOrderCustomer]); err != nil {
+		return err
+	}
+	if err := addDemoCallsAndEmails(ctx, w, a); err != nil {
+		return err
+	}
+	return setUpMarketing(ctx, w, a)
 }
 
 // setUpPerson sets up one person (a freelance designer) away from their
@@ -78,7 +97,14 @@ func setUpPerson(ctx context.Context, w *world, a demoAccount) error {
 		return err
 	}
 	outcome, err := settings.SetAway(ctx, w.pool, a.company, a.userID, true)
-	return saved("\"I'm away\"", outcome, err)
+	if err := saved("\"I'm away\"", outcome, err); err != nil {
+		return err
+	}
+	if err := addSavedAnswers(ctx, w, a, personAnswers); err != nil {
+		return err
+	}
+	_, err = playDemoChats(ctx, w, a, personHistory)
+	return err
 }
 
 // addDemoMenu adds the restaurant's dishes, priced in its currency.

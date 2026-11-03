@@ -46,30 +46,26 @@ func StandIns(ctx context.Context, pool *database.Pool, company tenant.CompanyID
 	return connected, nil
 }
 
-// Send saves the made-up customer's message on the channel and returns the
-// conversation it joined; core's workers answer it in a moment.
-func Send(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, channel, name, text string) (string, error) {
+// Send saves the made-up customer's message on the channel and returns it
+// (its conversation and the message); core's workers answer it in a moment.
+func Send(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, channel, name, text string) (*conversations.Turn, error) {
 	account, err := standInAccount(ctx, pool, company, channel)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if account == "" {
-		return "", ErrNoStandIn
+		return nil, ErrNoStandIn
 	}
 	contact := conversations.ContactKey{Channel: channel, ExternalID: customerOf(channel, account, name), DisplayName: &name}
 	id, err := conversations.NewID()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	body, err := box.Encrypt(text, conversations.MessageContext(company, id))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	turn, err := conversations.InsertCustomerMessage(ctx, pool, company, contact, conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: "practice-" + id})
-	if err != nil {
-		return "", err
-	}
-	return turn.ConversationID, nil
+	return conversations.InsertCustomerMessage(ctx, pool, company, contact, conversations.IncomingMessage{ID: id, BodyEncrypted: body, ChannelMessageID: "practice-" + id})
 }
 
 // Find is the made-up customer's conversation on the channel ("" before
