@@ -221,6 +221,38 @@ func TestAResetGivesAPasswordToSomeoneWhoHasNone(t *testing.T) {
 	}
 }
 
+// Joining through one invite ends the address's other pending invites to
+// that company (an older link, or one made at the same moment): each would
+// keep a team seat taken.
+func TestJoiningEndsTheAddresssOtherInvitesToThatCompany(t *testing.T) {
+	w := newAccountsWorld(t)
+	ctx := context.Background()
+	r := Request{IP: w.ip}
+	owner := address()
+	w.service.SignUp(ctx, NewPerson{Name: "Owner", Email: owner, Password: "owner password ok"}, r)
+	w.service.ConfirmEmail(ctx, tokenIn(w.mail.last(t, owner)), "owner password ok", r)
+	var ownerID, companyText string
+	w.service.Pool.QueryRow(ctx, `SELECT id, company_id FROM users WHERE email = $1`, owner).Scan(&ownerID, &companyText)
+	company, _ := tenant.FromTrustedSource(companyText)
+	invitee, someoneElse := address(), address()
+	inviteToken, _, _ := teammates.CreateInvite(ctx, w.service.Pool, company, ownerID, invitee, "member", time.Now())
+	teammates.CreateInvite(ctx, w.service.Pool, company, ownerID, someoneElse, "member", time.Now())
+	const olderLink = `INSERT INTO invites (company_id, email, role, token_hash, created_by_user_id, expires_at) VALUES ($1, $2, 'owner', $3, $4, now() + interval '7 days')`
+	if _, err := w.service.Pool.Exec(ctx, olderLink, companyText, invitee, teammates.HashInviteToken("an older link to "+invitee), ownerID); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if message, err := w.service.JoinWithInvite(ctx, inviteToken, NewPerson{Name: "Invitee", Email: invitee, Password: "member password ok"}, r); message != "" || err != nil {
+		t.Fatalf("join: %q %v", message, err)
+	}
+	const pending = `SELECT count(*) FROM invites WHERE company_id = $1 AND email = $2 AND accepted_at IS NULL AND revoked_at IS NULL`
+	var left, othersLeft int
+	w.service.Pool.QueryRow(ctx, pending, companyText, invitee).Scan(&left)
+	w.service.Pool.QueryRow(ctx, pending, companyText, someoneElse).Scan(&othersLeft)
+	if left != 0 || othersLeft != 1 {
+		t.Fatalf("the older link stops working (%d left), another address's stays (%d)", left, othersLeft)
+	}
+}
+
 func TestAnInvitedTypoIsRemovedByItsResetLink(t *testing.T) {
 	w := newAccountsWorld(t)
 	ctx := context.Background()

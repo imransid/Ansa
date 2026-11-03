@@ -43,6 +43,16 @@ export function TicketSummary({ ticket }: { ticket: TicketView }) {
         <dd>
           <LocalDateTime iso={ticket.createdAt.toISOString()} />
         </dd>
+        {ticket.conversationId && (
+          <>
+            <dt className="text-muted-foreground">Conversation</dt>
+            <dd>
+              <Link href={`/inbox/${ticket.conversationId}`} className="underline">
+                Open the conversation
+              </Link>
+            </dd>
+          </>
+        )}
         {ticket.callId && (
           <>
             <dt className="text-muted-foreground">From call</dt>

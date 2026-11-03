@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, PenLine, Phone } from "lucide-react";
+import { Mail, MessageCircle, PenLine, Phone, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -86,27 +86,26 @@ const CHANNEL_NAMES: Record<TicketListItem["channel"], string> = {
   chat: "Chat",
 };
 
+// WHY a Record: TypeScript then refuses a channel without an icon (chat
+// requests, the most common kind, once showed none).
+const CHANNEL_ICONS: Record<TicketListItem["channel"], LucideIcon> = {
+  phone: Phone,
+  email: Mail,
+  manual: PenLine,
+  chat: MessageCircle,
+};
+
 // The ticket's channel as a small icon, with its name for screen readers
 // and on hover.
 function ChannelIcon({ channel }: { channel: TicketListItem["channel"] }) {
   const name = CHANNEL_NAMES[channel];
+  const Glyph = CHANNEL_ICONS[channel];
   return (
     <span title={name} className="shrink-0 text-muted-foreground">
-      <ChannelGlyph channel={channel} />
+      <Glyph aria-hidden className="size-3.5" />
       <span className="sr-only">{name}: </span>
     </span>
   );
-}
-
-function ChannelGlyph({ channel }: { channel: TicketListItem["channel"] }) {
-  switch (channel) {
-    case "phone":
-      return <Phone aria-hidden className="size-3.5" />;
-    case "email":
-      return <Mail aria-hidden className="size-3.5" />;
-    case "manual":
-      return <PenLine aria-hidden className="size-3.5" />;
-  }
 }
 
 // Shows the best thing we know about the customer: name, then email, then phone.

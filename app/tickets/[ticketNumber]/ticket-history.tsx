@@ -25,7 +25,7 @@ export function TicketHistorySection({ ticketId, ticketCreatedAt, history }: Tic
             the history's first entry already says who created it. */}
         {showCreatedLine && (
           <li className="text-sm text-muted-foreground">
-            <LocalDateTime iso={ticketCreatedAt.toISOString()} /> · Ticket created
+            <LocalDateTime iso={ticketCreatedAt.toISOString()} /> · Request created
           </li>
         )}
         {history.entries.map((entry) =>

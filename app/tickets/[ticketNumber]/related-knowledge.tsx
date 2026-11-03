@@ -33,7 +33,7 @@ export function KnowledgeSection({ ticketNumber, isSolved, articles }: Knowledge
 
 function RelatedArticles({ articles }: Pick<KnowledgeSectionProps, "articles">) {
   if (articles.length === 0) {
-    return <p className="text-sm text-muted-foreground">No approved article matches this ticket.</p>;
+    return <p className="text-sm text-muted-foreground">No approved article matches this request.</p>;
   }
   return (
     <ul className="grid gap-2 text-sm">

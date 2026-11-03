@@ -98,7 +98,7 @@ export function NewTicketForm({ categories }: { categories: CategoryChoice[] }) 
       </fieldset>
       {addressToConfirm === null ? (
         <Button type="submit" className="justify-self-start" disabled={isCreating}>
-          {isCreating ? "Creating..." : "Create ticket"}
+          {isCreating ? "Creating..." : "Create request"}
         </Button>
       ) : (
         <ConfirmEmailStep address={addressToConfirm} isCreating={isCreating} onChangeAddress={() => setAddressToConfirm(null)} />
@@ -147,7 +147,7 @@ function CategoryField({ categories, errors }: { categories: CategoryChoice[]; e
         ))}
       </NativeSelect>
       <p id="categoryId-help" className="text-xs text-muted-foreground">
-        Routing gives the ticket to whoever has this customer&apos;s other open ticket, or else to someone who
+        Routing gives the request to whoever has this customer&apos;s other open request, or else to someone who
         handles its category. Without either, it waits under Unassigned.
       </p>
       {errors?.[0] && (
@@ -170,11 +170,11 @@ function ConfirmEmailStep({ address, isCreating, onChangeAddress }: ConfirmEmail
   return (
     <div className="grid gap-3 rounded-lg border p-4">
       <p role="status" className="text-sm">
-        Solved emails for this ticket will go to <strong className="text-base wrap-anywhere">{address}</strong>. Correct?
+        Solved emails for this request will go to <strong className="text-base wrap-anywhere">{address}</strong>. Correct?
       </p>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={isCreating}>
-          {isCreating ? "Creating..." : "Yes, create the ticket"}
+          {isCreating ? "Creating..." : "Yes, create the request"}
         </Button>
         <Button type="button" variant="outline" disabled={isCreating} onClick={onChangeAddress}>
           No, change it

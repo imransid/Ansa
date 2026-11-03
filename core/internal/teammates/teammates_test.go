@@ -175,3 +175,33 @@ func TestAnInviteNeedsASeatInThePackage(t *testing.T) {
 		t.Fatal("nothing saved past the seats")
 	}
 }
+
+// Inviting an address again replaces its pending invite (the newest link is
+// the one that works), so one person never takes two seats.
+func TestInvitingAnAddressAgainReplacesItsPendingInvite(t *testing.T) {
+	w := newTeamWorld(t)
+	ctx := context.Background()
+	CreateInvite(ctx, w.pool, w.company, w.ownerA, "one@core-test.example", "member", time.Now())
+	first, _, _ := CreateInvite(ctx, w.pool, w.company, w.ownerA, "two@core-test.example", "member", time.Now())
+	second, outcome, err := CreateInvite(ctx, w.pool, w.company, w.ownerA, "two@core-test.example", "owner", time.Now())
+	if err != nil || outcome != "created" {
+		t.Fatalf("the same address again, with the trial's 3 seats taken: %q %v", outcome, err)
+	}
+	const pending = `SELECT count(*) FROM invites WHERE company_id = $1 AND token_hash = $2 AND revoked_at IS NULL`
+	if w.count(pending, HashInviteToken(first)) != 0 || w.count(pending, HashInviteToken(second)) != 1 {
+		t.Fatal("the first link stops working, the newest one works")
+	}
+	if w.count(`SELECT count(*) FROM invites WHERE company_id = $1 AND email = 'one@core-test.example' AND revoked_at IS NULL`) != 1 {
+		t.Fatal("another address's invite stays")
+	}
+	// Two people joined meanwhile (or the package got smaller): the team is
+	// full even without that invite, and nothing changes.
+	database.TestOwner(t, w.pool, w.company.String())
+	database.TestOwner(t, w.pool, w.company.String())
+	if _, outcome, err := CreateInvite(ctx, w.pool, w.company, w.ownerA, "two@core-test.example", "member", time.Now()); err != nil || outcome != "team-full" {
+		t.Fatalf("a full team: %q %v", outcome, err)
+	}
+	if w.count(pending, HashInviteToken(second)) != 1 {
+		t.Fatal("a refused invite keeps the pending one working")
+	}
+}

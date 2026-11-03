@@ -39,7 +39,7 @@ export function describeTicketActivity(activity: ActivityToDescribe): string {
     case "note":
       return `${actor} added a note`;
     case "assigned":
-      return activity.actorUserId === activity.targetUserId ? `${actor} took the ticket` : `${actor} assigned it to ${target}`;
+      return activity.actorUserId === activity.targetUserId ? `${actor} took the request` : `${actor} assigned it to ${target}`;
     case "unassigned":
       return describeUnassignment(activity);
     case "routed":
@@ -55,9 +55,9 @@ export function describeTicketActivity(activity: ActivityToDescribe): string {
     case "customer_email_set":
       return `${actor} set the customer's email`;
     case "created":
-      return `${actor} created the ticket`;
+      return `${actor} created the request`;
     case "escalated":
-      return `${actor} escalated the call to a ticket: the AI had marked it solved`;
+      return `${actor} escalated the call to a request: the AI had marked it solved`;
     case "subject_changed":
       // No person: ansa gave a request it opened during a call the subject of the call's note.
       return activity.actorUserId === null ? "ansa updated the subject after the call" : `${actor} changed the subject`;
@@ -67,7 +67,7 @@ export function describeTicketActivity(activity: ActivityToDescribe): string {
 }
 
 // True when the history itself says who made the ticket (step 31: typed in,
-// or escalated from a call): the page then leaves out its own "Ticket
+// or escalated from a call): the page then leaves out its own "Request
 // created" line, which would say the same thing again.
 export function historyNamesItsCreator(kinds: TicketActivityKind[]): boolean {
   return kinds.some((kind) => kind === "created" || kind === "escalated");
@@ -83,10 +83,10 @@ function describeUnassignment(activity: ActivityToDescribe): string {
     return "Taken off its assignee automatically: their account was deleted";
   }
   if (activity.actorUserId === null) {
-    return `Taken off ${target} automatically: they can no longer take tickets`;
+    return `Taken off ${target} automatically: they can no longer take requests`;
   }
   if (activity.actorUserId === activity.targetUserId) {
-    return `${actor} gave the ticket up`;
+    return `${actor} gave the request up`;
   }
   return `${actor} took it off ${target}`;
 }
@@ -98,5 +98,5 @@ function describeRouting(activity: ActivityToDescribe): string {
   if (activity.category) {
     return `Routed automatically to ${target} for the category ${activity.category}`;
   }
-  return `Routed automatically to ${target}, who had this customer's other open ticket`;
+  return `Routed automatically to ${target}, who had this customer's other open request`;
 }

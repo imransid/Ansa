@@ -13,6 +13,6 @@ export function listAssigneeMenu(choices: AssignableUser[], ticket: Pick<TicketV
   if (!currentAssigneeId || choices.some((person) => person.id === currentAssigneeId)) {
     return labelAssigneeOptions(choices);
   }
-  const formerAssignee = { id: currentAssigneeId, name: `${ticket.assigneeName ?? "Someone"} (can't take tickets)`, email: null };
+  const formerAssignee = { id: currentAssigneeId, name: `${ticket.assigneeName ?? "Someone"} (can't take requests)`, email: null };
   return labelAssigneeOptions([...choices, formerAssignee]);
 }

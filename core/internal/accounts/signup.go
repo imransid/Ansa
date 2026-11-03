@@ -10,6 +10,7 @@ import (
 	"ansa/core/internal/database"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/teammates"
+	"ansa/core/internal/tenant"
 )
 
 // Signup: 10 an hour per IP. Joining through invites: 60 an hour per IP (a
@@ -132,7 +133,8 @@ func (s *Service) createAccount(ctx context.Context, p NewPerson, inviteHash str
 
 // membershipWithin decides which company a new person joins, in ONE place:
 // with an invite, the inviting company and role (the invite claimed in one
-// UPDATE: pending, for this address); without, a new company they own.
+// UPDATE: pending, for this address; the address's other pending invites
+// to that company end, so none keeps a seat); without, a new company they own.
 func membershipWithin(ctx context.Context, tx database.Tx, inviteHash, emailAddress string) (companyID, role string, err error) {
 	if inviteHash == "" {
 		err = tx.QueryRow(ctx, `INSERT INTO companies (name) VALUES ($1) RETURNING id`, newCompanyName).Scan(&companyID)
@@ -147,7 +149,15 @@ func membershipWithin(ctx context.Context, tx database.Tx, inviteHash, emailAddr
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", "", errInviteGone
 	}
-	return companyID, role, err
+	if err != nil {
+		return "", "", err
+	}
+	// The claimed invite's own row named the company.
+	company, err := tenant.FromTrustedSource(companyID)
+	if err != nil {
+		return "", "", err
+	}
+	return companyID, role, teammates.RevokeInvitesForAddressWithin(ctx, tx, company, emailAddress)
 }
 
 // existingUserID is the id of the account of an address ("" for none).

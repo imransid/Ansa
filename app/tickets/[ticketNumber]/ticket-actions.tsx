@@ -121,7 +121,7 @@ export function TicketActions({
         <form action={asLastAction("reopen", reopenAction)}>
           <input type="hidden" name="ticketId" value={ticketId} />
           <Button type="submit" variant="outline" disabled={isReopening}>
-            {isReopening ? "Reopening..." : "Reopen ticket"}
+            {isReopening ? "Reopening..." : "Reopen request"}
           </Button>
         </form>
       )}

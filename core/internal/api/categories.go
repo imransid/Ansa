@@ -100,8 +100,3 @@ func categoryName(w http.ResponseWriter, body []byte) (string, bool) {
 	}
 	return name, true
 }
-
-// uuidOrText: a person's id (Better Auth's text ids are uuids here).
-func uuidOrText(id string) bool {
-	return id != "" && len(id) <= 100 && !strings.ContainsFunc(id, unicode.IsControl)
-}

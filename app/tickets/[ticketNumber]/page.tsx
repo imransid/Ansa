@@ -24,11 +24,11 @@ export async function generateMetadata({ params }: PageProps<"/tickets/[ticketNu
   const session = await getSessionContext();
   // Logged out: the page sends them to /login.
   if (!session) {
-    return { title: "Ticket - ansa" };
+    return { title: "Request - ansa" };
   }
   const ticket = (await getRequestPageFromCore(ticketNumber))?.ticket;
   if (!ticket) {
-    return { title: "Ticket not found - ansa" };
+    return { title: "Request not found - ansa" };
   }
   const subject = ticket.subject.length > 60 ? `${ticket.subject.slice(0, 60).trimEnd()}...` : ticket.subject;
   return { title: `#${ticket.ticketNumber} ${subject} - ansa` };

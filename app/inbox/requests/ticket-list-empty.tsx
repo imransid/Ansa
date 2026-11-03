@@ -7,11 +7,11 @@ import type { TicketListQuery, TicketView } from "@/lib/validation/list-queries"
 // What an empty view says (step 29): an empty "Mine" is good news, an empty
 // "Unassigned" means every open ticket has someone.
 const EMPTY_VIEW_TEXT: Record<TicketView, string> = {
-  open: "No open tickets.",
-  mine: "No open tickets are assigned to you.",
-  unassigned: "Every open ticket has someone working on it.",
-  solved: "No solved tickets yet.",
-  all: "No tickets yet.",
+  open: "No open requests.",
+  mine: "No open requests are assigned to you.",
+  unassigned: "Every open request has someone working on it.",
+  solved: "No solved requests yet.",
+  all: "No requests yet.",
 };
 
 type TicketListEmptyProps = {
@@ -38,7 +38,7 @@ export function TicketListEmpty({ query, page, totalTickets, canSetUp }: TicketL
   if (query.search) {
     return (
       <EmptyBox>
-        No tickets {query.view === "all" ? "" : "in this view "}match &ldquo;{query.search}&rdquo;.{" "}
+        No requests {query.view === "all" ? "" : "in this view "}match &ldquo;{query.search}&rdquo;.{" "}
         <Link href={buildListUrl("/inbox/requests", { view: query.view })} className="underline">
           Clear search
         </Link>
@@ -51,7 +51,7 @@ export function TicketListEmpty({ query, page, totalTickets, canSetUp }: TicketL
   if (totalTickets === 0) {
     return (
       <EmptyBox>
-        No tickets yet. Tickets appear here when the AI can&apos;t solve a customer&apos;s problem.
+        No requests yet. Requests appear here when the AI can&apos;t solve a customer&apos;s problem.
         {canSetUp && (
           <>
             {" "}

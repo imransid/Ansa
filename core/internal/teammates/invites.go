@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"time"
 
 	"ansa/core/internal/database"
@@ -20,11 +21,13 @@ const inviteLifetime = 7 * 24 * time.Hour
 // company with a role, while the person creating it is an active owner
 // (their row locked FOR SHARE: a removal or demotion being saved at that
 // moment is waited for, then seen, so nobody walks back in through an
-// invite made at that instant). Only the token's SHA-256 is stored; the
-// token itself goes only into the link (after "#", which browsers never
-// send to a server). Outcomes: "created" (with the token), "not-allowed",
-// "taken" (the address is someone's on the team, or someone removed),
-// "team-full" (the package's team members, pending invites counted, step 57).
+// invite made at that instant). It replaces the address's pending invite:
+// the newest link is the one that works, and one person takes one seat.
+// Only the token's SHA-256 is stored; the token itself goes only into the
+// link (after "#", which browsers never send to a server). Outcomes:
+// "created" (with the token), "not-allowed", "taken" (the address is
+// someone's on the team, or someone removed), "team-full" (the package's
+// team members, pending invites counted, step 57; nothing changes).
 func CreateInvite(ctx context.Context, pool *database.Pool, company tenant.CompanyID, actorUserID, email, role string, now time.Time) (token, outcome string, err error) {
 	var taken bool
 	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE company_id = $1 AND email = $2)`, company.String(), email).Scan(&taken); err != nil {
@@ -46,10 +49,18 @@ func CreateInvite(ctx context.Context, pool *database.Pool, company tenant.Compa
 		if err := tx.QueryRow(ctx, lockCreator, company.String(), actorUserID).Scan(&creator); err != nil {
 			return ignoreNoRows(err)
 		}
-		seatLeft, err := packages.TeamSeatLeftWithin(ctx, tx, company, now)
-		if err != nil || !seatLeft {
-			outcome = "team-full"
+		// Before the seats are counted: the replaced invite frees its own.
+		if err := RevokeInvitesForAddressWithin(ctx, tx, company, email); err != nil {
 			return err
+		}
+		seatLeft, err := packages.TeamSeatLeftWithin(ctx, tx, company, now)
+		if err != nil {
+			return err
+		}
+		if !seatLeft {
+			// Undoes the revoke too: the pending invite keeps working.
+			outcome = "team-full"
+			return errRefused
 		}
 		const insert = `
 			INSERT INTO invites (company_id, email, role, token_hash, created_by_user_id, expires_at)
@@ -60,10 +71,25 @@ func CreateInvite(ctx context.Context, pool *database.Pool, company tenant.Compa
 		outcome = "created"
 		return nil
 	})
+	if errors.Is(err, errRefused) {
+		err = nil
+	}
 	if outcome != "created" {
 		token = ""
 	}
 	return token, outcome, err
+}
+
+// RevokeInvitesForAddressWithin revokes the company's pending invites for one
+// address: it is invited again (the newest link replaces them), or someone
+// joined through one of them (any other, an older link or one made at that
+// same moment, would keep a team seat taken).
+func RevokeInvitesForAddressWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, email string) error {
+	const revoke = `
+		UPDATE invites SET revoked_at = now()
+		WHERE company_id = $1 AND email = $2 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()`
+	_, err := tx.Exec(ctx, revoke, company.String(), email)
+	return err
 }
 
 // HashInviteToken is what invites.token_hash stores: the token's SHA-256, hex.

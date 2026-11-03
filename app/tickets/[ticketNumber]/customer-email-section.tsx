@@ -48,7 +48,7 @@ export function CustomerEmailSection({ ticketId, customerEmail, origin, suggesti
           {customerEmail ? (
             <p className="text-sm">
               <strong>{customerEmail}</strong>
-              {origin === "came-with-ticket" && <span className="text-muted-foreground"> · came with the ticket</span>}
+              {origin === "came-with-ticket" && <span className="text-muted-foreground"> · came with the request</span>}
               {origin && origin !== "came-with-ticket" && (
                 <span className="text-muted-foreground">
                   {" "}· entered by {origin.setByName} on <LocalDateTime iso={origin.setAtIso} />
@@ -57,7 +57,7 @@ export function CustomerEmailSection({ ticketId, customerEmail, origin, suggesti
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No customer email on file. The customer won&apos;t be emailed when this ticket is solved.
+              No customer email on file. The customer won&apos;t be emailed when this request is solved.
             </p>
           )}
           <Button type="button" variant="outline" size="sm" onClick={() => setMode("edit")}>
@@ -118,7 +118,7 @@ export function CustomerEmailSection({ ticketId, customerEmail, origin, suggesti
       {mode === "confirm" && (
         <div className="grid gap-3">
           <p className="text-sm">
-            Solved emails for this ticket will go to <strong className="text-base">{addressToSave}</strong>. Correct?
+            Solved emails for this request will go to <strong className="text-base">{addressToSave}</strong>. Correct?
           </p>
           {errorMessage && (
             <p role="alert" className="text-sm text-destructive">

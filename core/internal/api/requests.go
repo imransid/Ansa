@@ -2,11 +2,13 @@ package api
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/inbound"
@@ -46,9 +48,10 @@ func (s *Server) listRequests(w http.ResponseWriter, r *http.Request, _ []byte, 
 	if !tickets.IsView(view) {
 		view = map[bool]string{true: "open", false: "mine"}[who.IsOwner()]
 	}
+	// Cut by characters, never inside one: half a letter is text Postgres refuses.
 	q := query.Get("q")
-	if len(q) > 200 {
-		q = q[:200]
+	if utf8.RuneCountInString(q) > 200 {
+		q = string([]rune(q)[:200])
 	}
 	page, _ := strconv.Atoi(query.Get("page"))
 	lines, err := tickets.List(r.Context(), s.Pool, who.CompanyID, who.UserID, view, q, page)
@@ -67,8 +70,9 @@ func (s *Server) listRequests(w http.ResponseWriter, r *http.Request, _ []byte, 
 // requestPage: GET /api/v1/requests/{number}, with who it can be given to
 // and the categories.
 func (s *Server) requestPage(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
+	// Request numbers are Postgres integers: a bigger one is no request.
 	number, err := strconv.Atoi(r.PathValue("number"))
-	if err != nil || number < 1 {
+	if err != nil || number < 1 || number > math.MaxInt32 {
 		problem(w, http.StatusNotFound, requestGone)
 		return
 	}

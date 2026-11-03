@@ -47,7 +47,7 @@ function EditDetailsForm({ ticketId, subject, customerName, onClose }: TicketDet
   const fieldErrors = errors?.fieldErrors;
   // The hidden fields have no place to show an error of their own.
   const hiddenFieldFailed = fieldErrors !== undefined && !fieldErrors.subject && !fieldErrors.customerName;
-  const message = errors?.message ?? (hiddenFieldFailed ? "This ticket could not be saved. Reload the page and try again." : undefined);
+  const message = errors?.message ?? (hiddenFieldFailed ? "This request could not be saved. Reload the page and try again." : undefined);
 
   // WHY by hand (as in the "New ticket" form): when <form action> runs an
   // action, React empties the form's fields afterwards, and what was typed

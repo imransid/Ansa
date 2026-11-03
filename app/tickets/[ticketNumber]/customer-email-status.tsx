@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { LocalDateTime } from "@/components/local-date-time";
+import { RefreshWhilePending } from "@/components/refresh-while-pending";
 import type { TicketView } from "@/lib/core-views/tickets";
 import { lastDeliveryProblemFor } from "@/lib/last-delivery-problem";
 import type { CustomerEmailSummary } from "@/lib/types/outgoing-emails";
@@ -31,7 +32,7 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
   // later does not send one (known gap, see CLAUDE.md).
   if (!latestEmail) {
     return (
-      <StatusLine text="This ticket was solved before an email was on file, so the customer was not emailed. An owner can reopen and solve it again to email them." />
+      <StatusLine text="This request was solved before an email was on file, so the customer was not emailed. An owner can reopen and solve it again to email them." />
     );
   }
 
@@ -73,8 +74,15 @@ export function CustomerEmailStatus({ ticket, latestEmail }: CustomerEmailStatus
   }
 
   // No Retry while a delivery is on its way: it would only wait for that one.
+  // Core's worker sends it about a second after the solve, so the page asks
+  // again until this line says how it went.
   if (latestEmail.deliveryInProgress) {
-    return <StatusLine text={`Email to ${latestEmail.toEmail} is being sent. Reload the page in a moment.`} />;
+    return (
+      <>
+        <StatusLine text={`Email to ${latestEmail.toEmail} is being sent...`} />
+        <RefreshWhilePending isPending everyMs={2_000} />
+      </>
+    );
   }
 
   return (

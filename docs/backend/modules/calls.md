@@ -69,7 +69,8 @@ verdicts can be counted), then makes its request ("escalated" history row,
 the AI's summary and the teammate's note, never the transcript), routed.
 
 **The pages (`page.go`):** the list (filters all / solved / needs_human /
-stuck, a search of the caller's number by text or digits, 50 a page, the
+stuck, a search of the caller's number by text or digits, cut at 200
+characters and never inside one, 50 a page, the
 count of every filter), a call (the transcript and the AI's notes
 decrypted, "could not be decrypted" said, never shown as empty; who
 escalated it; its request's number; whether "Analyze now" and "Escalate"

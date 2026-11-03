@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageLoading } from "@/components/page-loading";
 import { PaginationLinks } from "@/components/pagination-links";
 import { buttonVariants } from "@/components/ui/button";
+import { getAccountKindFromCore } from "@/lib/core-views/inbox";
 import { listRequestsFromCore } from "@/lib/core-views/tickets";
 import { parsePageNumber } from "@/lib/pagination";
 import { requireSessionContext } from "@/lib/session";
@@ -36,7 +37,7 @@ async function RequestsContent({ searchParams }: Pick<PageProps<"/inbox/requests
   const page = parsePageNumber(urlQuery.page);
   const session = await requireSessionContext("/inbox/requests");
   const query = parseTicketListQuery(urlQuery, defaultTicketViewFor(session.role));
-  const { tickets, counts } = await listRequestsFromCore(page, query);
+  const [{ tickets, counts }, kind] = await Promise.all([listRequestsFromCore(page, query), getAccountKindFromCore()]);
 
   return (
     <>
@@ -58,10 +59,13 @@ async function RequestsContent({ searchParams }: Pick<PageProps<"/inbox/requests
             .
           </p>
         </div>
-        {/* For requests that reach the team another way (step 31). */}
-        <Link href="/tickets/new" className={buttonVariants({ size: "sm" })}>
-          New ticket
-        </Link>
+        {/* For requests that reach the team another way (step 31). A
+            person's account has no team to hand them to (as in the Inbox). */}
+        {kind !== "personal" && (
+          <Link href="/tickets/new" className={buttonVariants({ size: "sm" })}>
+            New request
+          </Link>
+        )}
       </div>
       <TicketViews query={query} counts={counts} />
       {tickets.length > 0 ? (

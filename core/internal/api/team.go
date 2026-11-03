@@ -117,8 +117,9 @@ func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, body []byte,
 	var input struct {
 		Role string `json:"role"`
 	}
-	id := strings.ToLower(r.PathValue("id"))
-	if !readJSON(body, &input) || (input.Role != "owner" && input.Role != "member") || !uuidOrText(id) {
+	// A person's id as sent: ids have capitals (never lower-cased, unlike a uuid).
+	id := r.PathValue("id")
+	if !readJSON(body, &input) || (input.Role != "owner" && input.Role != "member") || !userIDPattern.MatchString(id) {
 		problem(w, http.StatusBadRequest, "Something went wrong. Reload the page.")
 		return
 	}
@@ -139,8 +140,8 @@ func (s *Server) changeRole(w http.ResponseWriter, r *http.Request, body []byte,
 
 // removeTeammate: never yourself. Their open requests go back to routing.
 func (s *Server) removeTeammate(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
-	id := strings.ToLower(r.PathValue("id"))
-	if !uuidOrText(id) {
+	id := r.PathValue("id")
+	if !userIDPattern.MatchString(id) {
 		problem(w, http.StatusNotFound, "That person is not on your team, or was already removed.")
 		return
 	}
@@ -164,8 +165,8 @@ func (s *Server) saveCategoriesOf(w http.ResponseWriter, r *http.Request, body [
 	var input struct {
 		CategoryIDs []string `json:"categoryIds"`
 	}
-	id := strings.ToLower(r.PathValue("id"))
-	if !readJSON(body, &input) || len(input.CategoryIDs) > 100 || !uuidOrText(id) {
+	id := r.PathValue("id")
+	if !readJSON(body, &input) || len(input.CategoryIDs) > 100 || !userIDPattern.MatchString(id) {
 		problem(w, http.StatusBadRequest, "Unknown person or category.")
 		return
 	}

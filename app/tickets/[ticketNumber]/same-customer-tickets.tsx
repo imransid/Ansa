@@ -11,7 +11,7 @@ export function SameCustomerTickets({ tickets }: { tickets: SameCustomerTicket[]
   }
   return (
     <section className="grid min-w-0 gap-2 wrap-anywhere">
-      <h2 className="text-lg font-semibold">Other open tickets from this customer</h2>
+      <h2 className="text-lg font-semibold">Other open requests from this customer</h2>
       <ul className="grid gap-1 text-sm">
         {tickets.map((ticket) => (
           <li key={ticket.ticketNumber}>

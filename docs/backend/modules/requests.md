@@ -11,9 +11,12 @@ mine, owners on open); 50 a page, newest number first; the counts of every
 view with the same search. The search finds the text anywhere in the
 subject, the customer's name, email or phone, or the address the original
 email came from (ILIKE with `% _ \` escaped; every value a parameter), a
-phone number however written (3+ digits), and "#57" or "57".
-**A request (`GET /api/v1/requests/{number}`):** its fields, who solved it
-and how, who set the customer's email, its newest 200 history entries oldest
+phone number however written (3+ digits), and "#57" or "57"; it is cut at
+200 characters, never inside one (half a Bangla letter is text Postgres
+refuses).
+**A request (`GET /api/v1/requests/{number}`):** a number that isn't a
+Postgres integer (1 to 2,147,483,647) is 404, as an unknown one. Its
+fields, who solved it and how, who set the customer's email, its newest 200 history entries oldest
 first (notes decrypted with `ticket-note:<company>:<ticket>:<note>`), the
 people it can be given to (confirmed, not removed) and the categories. Each
 history entry names who did it and who it was about (the wording tells "took
@@ -48,7 +51,9 @@ Every change takes the company row lock first when it may route.
 written differently, "100%" as text, nothing); owners land on open; the
 category routes to its expert and queues the email; taking it yourself
 emails nobody; a made-up person refused; a note decrypted in the history;
-Done closes without an email; closing twice refused; an owner reopens.
+Done closes without an email; closing twice refused; an owner reopens; a
+search of 70 Bangla letters finds its request (and the Calls page answers
+it); a number past Postgres's integers is 404.
 **Solving with the customer's email (`tickets/solve.go`, `core/internal/outbox`):**
 `POST .../{id}/solve {"confirmedCustomerEmail"}` ("" when the page showed
 none): the UPDATE requires the request to still have exactly that address,

@@ -26,8 +26,10 @@ named "New business" (nothing in the request names or picks one) with the
 person as its owner; joining through an invite instead takes the inviting
 company and role, the invite checked BEFORE the address is looked up (a
 junk invite answers the same for every address) and claimed once in the
-account's own transaction. An address that already has an account changes
-nothing and gets the same answer; only its inbox is told ("You already
+account's own transaction, which also ends the address's other pending
+invites to that company (an older link, or one made at the same moment:
+each would keep a team seat taken). An address that already has an
+account changes nothing and gets the same answer; only its inbox is told ("You already
 have an ansa account"). No session until the address is confirmed. Limits:
 10 signups an hour per IP; 60 joins an hour per IP and 10 tries per invite
 link; invite previews 30 per 15 minutes per IP.
@@ -87,6 +89,7 @@ and told by email, a link alone confirms nobody, a new company owned, ten
 wrong passwords from one place stop that place while a known browser
 elsewhere still gets in; a reset works once and ends every login; an
 invite works only for its address, decides the company, and its typo is
-removed by its reset link; a password change keeps only this browser's
-fresh login); `api/auth_test.go` (signup, the emailed link, confirm,
+removed by its reset link; joining ends the address's other pending
+invites to that company, never another address's; a password change
+keeps only this browser's fresh login); `api/auth_test.go` (signup, the emailed link, confirm,
 account, logout through the API).

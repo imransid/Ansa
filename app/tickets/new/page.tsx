@@ -5,7 +5,7 @@ import { listActiveCategoriesFromCore } from "@/lib/core-views/tickets";
 import { requireSessionContext } from "@/lib/session";
 import { NewTicketForm } from "./new-ticket-form";
 
-export const metadata: Metadata = { title: "New ticket - ansa" };
+export const metadata: Metadata = { title: "New request - ansa" };
 
 export default function NewTicketPage() {
   return (
@@ -31,10 +31,10 @@ async function NewTicketContent() {
         &larr; Inbox
       </Link>
       <section className="grid gap-2">
-        <h1 className="text-xl font-semibold">New ticket</h1>
+        <h1 className="text-xl font-semibold">New request</h1>
         <p className="text-sm text-muted-foreground">
           For a request that reached you another way: a voicemail on your own phone, a customer at the counter, a
-          message on social media. It is routed like any other ticket.
+          message on social media. It is routed like any other request.
         </p>
       </section>
       <NewTicketForm categories={categories} />

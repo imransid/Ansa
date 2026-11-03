@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"ansa/core/internal/calls"
 	"ansa/core/internal/logging"
@@ -45,9 +46,10 @@ func (s *Server) listCalls(w http.ResponseWriter, r *http.Request, _ []byte, who
 	if !calls.IsOutcomeFilter(outcome) {
 		outcome = "all"
 	}
+	// Cut by characters, never inside one: half a letter is text Postgres refuses.
 	q := query.Get("q")
-	if len(q) > 200 {
-		q = q[:200]
+	if utf8.RuneCountInString(q) > 200 {
+		q = string([]rune(q)[:200])
 	}
 	page, _ := strconv.Atoi(query.Get("page"))
 	list, err := calls.List(r.Context(), s.Pool, who.CompanyID, outcome, q, page)

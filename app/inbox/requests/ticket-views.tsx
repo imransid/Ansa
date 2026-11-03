@@ -31,13 +31,13 @@ export function TicketViews({ query, counts }: TicketViewsProps) {
 
   return (
     <div className="grid gap-3">
-      <FilterLinks label="Ticket views" links={links} />
+      <FilterLinks label="Request views" links={links} />
       {/* WHY the search covers all tickets: a customer calling back is
           usually looking for an older, solved or someone else's ticket. The
           links above then narrow it down. */}
       <SearchBox
         action="/inbox/requests"
-        label="Search all tickets"
+        label="Search all requests"
         placeholder="Number, subject, customer name, email or phone"
         search={query.search}
         hiddenFields={{ view: "all" }}

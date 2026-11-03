@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -74,5 +75,30 @@ func TestRequestsThroughCoresAPI(t *testing.T) {
 	}
 	if code, _ := w.call("POST", base+"/reopen", "", screensSecret, w.cookie); code != 200 {
 		t.Fatal("an owner reopens")
+	}
+}
+
+// A search is cut at 200 characters, never inside one: 70 Bangla letters are
+// 210 bytes, and half a letter is text Postgres refuses.
+func TestALongBanglaSearchFindsItsRequest(t *testing.T) {
+	w := newAPIWorld(t)
+	words := strings.Repeat("ক", 70)
+	w.must(`INSERT INTO tickets (company_id, ticket_number, subject, description, channel) VALUES ($1, 3, $2, 'd', 'manual')`, w.company.String(), "অর্ডার "+words)
+	code, answer := w.call("GET", "/api/v1/requests?view=all&q="+url.QueryEscape(words), "", screensSecret, w.cookie)
+	if code != 200 || len(answer["lines"].([]any)) != 1 {
+		t.Fatalf("the request: %d %v", code, answer)
+	}
+	if code, answer := w.call("GET", "/api/v1/calls?q="+url.QueryEscape(words), "", screensSecret, w.cookie); code != 200 {
+		t.Fatalf("the calls: %d %v", code, answer)
+	}
+}
+
+// A request number past Postgres's integers is no request (not a failure).
+func TestARequestNumberPastPostgresIntegersIsNotFound(t *testing.T) {
+	w := newAPIWorld(t)
+	for _, number := range []string{"2147483647", "2147483648", "99999999999"} {
+		if code, _ := w.call("GET", "/api/v1/requests/"+number, "", screensSecret, w.cookie); code != 404 {
+			t.Fatalf("request %s: %d", number, code)
+		}
 	}
 }

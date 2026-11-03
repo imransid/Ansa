@@ -23,8 +23,14 @@ only while its creator is an active owner, their row locked FOR SHARE (a
 removal or demotion saved at that moment is waited for, then seen). Only
 the token's SHA-256 is stored; the link is `<APP_URL>/invite#<token>` (after
 "#": browsers never send it to a server). An address of someone on the team
-or removed from it is refused. Revoking works on a pending invite only.
-Limits: 200 created and 200 revoked an hour per company.
+or removed from it is refused. Inviting an address again revokes its
+pending invite in the same transaction, before the seats are counted: the
+newest link is the one that works, and one person takes one seat (a
+refusal for a full team changes nothing). Joining through an invite ends
+the address's other pending invites to that company in the joining
+transaction (`RevokeInvitesForAddressWithin`, [accounts](accounts.md)): an
+older link, or one made at the same moment. Revoking works on a pending
+invite only. Limits: 200 created and 200 revoked an hour per company.
 
 **Roles (`roles.go` `SetRole`):** ONE UPDATE holds every rule (an active
 owner acting, never on themselves, a confirmed teammate still on the team,
@@ -60,8 +66,10 @@ categories stay; requests waiting in the new categories are routed.
 /api/v1/team/people/{id}/remove`; `POST /api/v1/team/people/{id}/categories`
 `{categoryIds}`; `POST /api/v1/team/categories` `{name}`; `POST
 /api/v1/team/categories/{id}/rename` `{name}`; `POST
-/api/v1/team/categories/{id}/archive` `{archived}`. Settings changes count
-60 per 10 minutes per person.
+/api/v1/team/categories/{id}/archive` `{archived}`. A person's `{id}` is
+used exactly as sent (letters, digits, "_" and "-": ids have capitals, so
+it is never lower-cased as a category's or an invite's uuid is). Settings
+changes count 60 per 10 minutes per person.
 
 **Tests:** `teammates_test.go` (live database: a company always keeps an
 owner, a demoted owner's invites are revoked, a member invites and demotes
@@ -69,6 +77,8 @@ nobody, an address on the team can't be invited, revoking works once; a
 removed teammate's request goes to the next expert of its category, their
 logins and categories gone, the expert emailed after commit; an account
 that never confirmed is deleted; restoring a renamed category routes its
-waiting request); `api/team_test.go`.
+waiting request; inviting an address again replaces its pending invite,
+also with every seat taken, and a full team keeps it); `api/team_test.go`
+(also a person whose id has capitals: categories, role, removal).
 
 **Packages (step 57, [packages](packages.md)):** an invite needs a seat in the package (Personal 1, Business and the free trial 3, Pro 10; active people and pending invites counted, read in the invite's transaction): otherwise "team-full", and the Team page says to remove someone, revoke an invite or choose a bigger package.
