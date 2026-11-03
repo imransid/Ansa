@@ -9,7 +9,7 @@ import (
 )
 
 func done(prompt string) (Started, error) {
-	data, err := FlatColorPNG(ColorOfPrompt(prompt))
+	data, err := StandInPNG(prompt)
 	return Started{Status: "done", Output: Output{Bytes: data}}, err
 }
 
@@ -39,7 +39,7 @@ func TestAServiceWorkingInTheBackgroundIsPolledNeverAskedAgain(t *testing.T) {
 			if !ready || id != "svc-1" {
 				return Polled{Status: "running"}, nil
 			}
-			data, _ := FlatColorPNG(ColorOfPrompt("x"))
+			data, _ := StandInPNG("x")
 			return Polled{Status: "done", Output: Output{Bytes: data}}, nil
 		},
 	}

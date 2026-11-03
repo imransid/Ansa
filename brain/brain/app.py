@@ -78,9 +78,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/status")
     async def status() -> dict[str, bool]:
         """What the brain can answer with: ansa's own key; Claude Code (development,
-        while its program is there: looked for, never run); and Claude Code standing
-        in for ansa's key on a development brain without one (free_ai.py), said apart.
-        Core shows it as "the AI is ready". Never the key."""
+        while a program is there: CLAUDE_CODE_PATH's, else claude on the PATH,
+        looked for, never run); and Claude Code standing in for ansa's key on a
+        development brain without one (free_ai.py), said apart. Core shows it as
+        "the AI is ready". Never the key."""
         development = active.development
         return {"ansa_key": bool(os.environ.get("ANTHROPIC_API_KEY")), "claude_code": development and claude_code.installed(), "free_stand_in": free_ai.ready(development)}
 
@@ -95,7 +96,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/menu/read")
     def menu_read(request: MenuReadRequest) -> dict:
         """A menu read into rows for the owner to check (core prices them). Without
-        a key: the development sample, or unavailable in production."""
+        a key: Claude Code on a development brain (free_ai.py), else the
+        development sample, or unavailable in production."""
         return read_menu(request, ansa_asker(active.development), active.development)
 
     @app.post("/v1/email/triage")
@@ -193,7 +195,8 @@ def triage_email(request: TriageRequest, asker) -> dict:
 
 
 def read_menu(request: MenuReadRequest, asker, development: bool) -> dict:
-    content = build_content(request)
+    # Claude Code standing in for ansa's key takes no PDF: it reads the PDF's own text.
+    content = build_content(request, pdf_as_text=free_ai.ready(development))
     if content is None:
         return {"kind": "failed", "reason": "nothing_to_read"}
     result = asker(MENU_SYSTEM_PROMPT, content, MENU_JSON_SCHEMA, ai.MENU_READING, None)

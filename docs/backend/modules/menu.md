@@ -32,12 +32,20 @@ reads too); a Word file (a zip named .docx) has only its text part unpacked
 by Go's standard library, never more than 50 MB whatever its headers claim;
 pasted text up to 20,000 characters. The brain answers rows; core reads each
 row itself (cut to the menu's limits, a name, a price `money.ParsePrice` can
-read; at most 150; how many were left out). Without an AI key the
-development brain answers a labelled sample; production says reading isn't
-available. NOTHING is saved by reading: "Looks right" adds the checked list.
+read; at most 150; how many were left out). Without an AI key, a
+development brain with Claude Code on the computer reads it there
+(`brain/brain/free_ai.py`): text as it is, a photo as itself (one
+stream-json message), a PDF as its own text (the brain's PDF reader: a
+scanned one has none, so nothing to read); without Claude Code either, the
+development brain answers a labelled sample, which the page shows under its
+banner and never offers to add ("Looks right" is only for a menu ansa read);
+production says reading isn't available. NOTHING is saved by reading:
+"Looks right" adds the checked list.
 **Tests:** `menureading_test.go` (a Word file's text; a bomb stops at its
 cap; files known by their bytes, a fake .jpg and a zip not named .docx
 refused; core prices every row itself and cuts long names);
 `brain/tests/test_menu.py` (text escaped in `<menu>`; a photo and a PDF sent
 as themselves; rows read strictly; ansa's own key; the sample only in
-development); `api/menu_test.go` (a fake photo refused; reading saves nothing).
+development; without a key, Claude Code reads a PDF's own text and a photo
+as itself); `api/menu_test.go` (a fake photo refused; reading saves
+nothing); `pnpm check:screens` (the sample is never offered as the owner's).

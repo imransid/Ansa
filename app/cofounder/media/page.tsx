@@ -73,7 +73,7 @@ async function MediaContent({ searchParams }: Pick<PageProps<"/cofounder/media">
           <>
             <p className="max-w-3xl text-sm text-muted-foreground">
               {generation.isStandIn
-                ? "In development a stand-in makes the images: a flat colour picked from your words, so you can try the whole flow. Nothing is sent anywhere."
+                ? "In development a stand-in makes the images: a soft gradient with the first words of your description written on it, so you can try the whole flow. Nothing is sent anywhere."
                 : "An AI image service makes it from your words, in a minute or so. Everything it makes is marked as AI-generated."}{" "}
               Your company can ask for 30 images and videos a day.
             </p>

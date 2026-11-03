@@ -9,6 +9,7 @@ import { runContentRulesVectorChecks } from "./screen-checks/content-rules-vecto
 import { runInboxChecks } from "./screen-checks/inbox-checks";
 import { runLoginRedirectChecks } from "./screen-checks/login-redirect-checks";
 import { runMediaUiChecks } from "./screen-checks/media-ui-checks";
+import { runMenuChecks } from "./screen-checks/menu-checks";
 import { runNavigationChecks } from "./screen-checks/navigation-checks";
 import { runPageHeadingChecks } from "./screen-checks/page-heading-checks";
 import { runPracticePhoneChecks } from "./screen-checks/practice-phone-checks";
@@ -24,6 +25,7 @@ async function main() {
   await runUiPolishChecks();
   await runCofounderConsistencyChecks();
   await runMediaUiChecks();
+  await runMenuChecks();
   await runSocialPageChecks();
   await runPracticePhoneChecks();
   await runContentRulesChecks();

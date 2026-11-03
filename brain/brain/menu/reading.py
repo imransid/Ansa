@@ -1,7 +1,10 @@
 """Reading a business's menu for its owner (the old lib/menu-reading/):
 a photo or a PDF (sent to the model as itself: no parser runs on our
-servers), or text from a Word file or pasted. The answer is only ever a list
-the owner checks; core reads every price again with its own rules.
+servers), or text from a Word file or pasted. Claude Code on this computer
+(development without a key, free_ai.py) takes no PDF: there a PDF's own
+text is read out by the brain's PDF reader and sent as pasted text is. The
+answer is only ever a list the owner checks; core reads every price again
+with its own rules.
 
 Prompt-injection rule (as everywhere): the menu is data, never instructions.
 Its text sits inside <menu> with every character escaped, and the model has
@@ -13,6 +16,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from brain.documents.pdf_text import PdfTextRequest, read_pdf_text
 from brain.text import cut, escape_html
 
 TEXT_MAX_LENGTH = 20_000
@@ -73,8 +77,9 @@ class MenuReadRequest(BaseModel):
     text: str | None = Field(default=None, max_length=TEXT_MAX_LENGTH)
 
 
-def build_content(request: MenuReadRequest) -> list[dict[str, Any]] | str | None:
-    """The user message: the file first and a short line, or the escaped text. None: nothing to read."""
+def build_content(request: MenuReadRequest, pdf_as_text: bool = False) -> list[dict[str, Any]] | str | None:
+    """The user message: the file first and a short line, or the escaped text
+    (a PDF's own text with pdf_as_text). None: nothing to read."""
     currency = f"<currency>{escape_html(request.currency)}</currency>\n"
     if request.file is not None:
         try:
@@ -83,16 +88,29 @@ def build_content(request: MenuReadRequest) -> list[dict[str, Any]] | str | None
             return None
         if not raw or len(raw) > FILE_MAX_BYTES:
             return None
+        if pdf_as_text and request.file.media_type == "application/pdf":
+            return text_content(currency, pdf_text(request.file.data))
         kind = "document" if request.file.media_type == "application/pdf" else "image"
         block = {"type": kind, "source": {"type": "base64", "media_type": request.file.media_type, "data": request.file.data}}
         where = "The menu is the document above." if kind == "document" else "The menu is the photo above."
         return [block, {"type": "text", "text": currency + where}]
-    text = (request.text or "").strip()
+    return text_content(currency, request.text or "")
+
+
+def text_content(currency: str, text: str) -> str | None:
+    """The menu's text escaped inside <menu>, cut to TEXT_MAX_LENGTH. None: no text."""
+    text = text.strip()
     if not text:
         return None
     if len(text) > TEXT_MAX_LENGTH:
         text = cut(text, TEXT_MAX_LENGTH) + "\n[... the rest of the menu was left out ...]"
     return f"{currency}<menu>\n{escape_html(text)}\n</menu>"
+
+
+def pdf_text(data: str) -> str:
+    """A PDF's own text, read by the brain's PDF reader ("" for a scanned or damaged one)."""
+    answer = read_pdf_text(PdfTextRequest(data=data))
+    return answer["text"] if answer["kind"] == "ok" else ""
 
 
 def read_rows(output_text: str) -> list[dict[str, str]] | None:

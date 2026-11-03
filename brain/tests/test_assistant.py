@@ -139,7 +139,7 @@ def test_the_endpoint_needs_cores_signature_and_answers_a_decision(monkeypatch):
     assert ok.status_code == 200 and ok.json() == {"kind": "no_reply"}
 
 
-def test_claude_code_is_development_only_and_locked_down():
+def test_claude_code_is_development_only_and_locked_down(tmp_path):
     from brain import claude_code
     from brain.app import asker_for, claude_code_asker
 
@@ -152,9 +152,14 @@ def test_claude_code_is_development_only_and_locked_down():
         seen.update(args=args, stdin=stdin_text, env=env)
         return 0, json.dumps({"subtype": "success", "structured_output": {"action": "no_reply"}}).encode()
 
-    parent = {"PATH": "/bin", "HOME": "/h", "DATABASE_URL": "secret", "BRAIN_SHARED_SECRET": "secret", "ANTHROPIC_API_KEY": "secret"}
+    # The program is only looked for (the fake runs nothing).
+    program = tmp_path / "claude"
+    program.write_text("#!/bin/sh\nexit 1\n")
+    program.chmod(0o755)
+    parent = {"PATH": "/bin", "HOME": "/h", "CLAUDE_CODE_PATH": str(program), "DATABASE_URL": "secret", "BRAIN_SHARED_SECRET": "secret", "ANTHROPIC_API_KEY": "secret"}
     result = claude_code.ask_claude_code("system", "the conversation", {"type": "object"}, "low", run=fake_run, parent_env=parent)
     assert result.kind == "ok" and json.loads(result.output_text) == {"action": "no_reply"}
+    assert seen["args"][0] == str(program) and seen["args"][seen["args"].index("--output-format") + 1] == "json"
     assert seen["stdin"] == "the conversation" and "the conversation" not in seen["args"]
     assert "secret" not in seen["env"].values() and seen["env"]["PATH"] == "/bin"
     assert seen["args"][seen["args"].index("--tools") + 1] == "" and "--no-session-persistence" in seen["args"]

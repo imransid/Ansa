@@ -5,8 +5,12 @@
 `db/media-generation-*.ts`, `adapters/dev-media-generator.ts`). Each
 service is one `Provider` (start → the file or a job id; poll → running,
 done or failed with a code). No real service is chosen yet: only the
-development stand-in (`standin.go`: a real 1024 x 1024 PNG in one colour
-from the prompt's hash, free; no video: "no_video_provider").
+development stand-in (`standin.go`: a real 1024 x 1024 PNG, free: a soft
+gradient in two colours from the prompt's hash with the prompt's first words
+written on it, `standin_picture.go` and `standin_words.go`, in a 5 x 7 pixel
+font of every printable ASCII character kept as data in `standin_font.go`,
+accents dropped and other characters left out; no new dependency; no video:
+"no_video_provider").
 
 **Mode (`mode.go`, MEDIA_PROVIDER):** empty in development = the stand-in;
 production refuses the stand-in, even when named, so generation is "off"
@@ -54,9 +58,13 @@ the service it was asked of ("provider_unavailable" otherwise).
 - `POST /api/v1/media/generations/{id}/start` `{}` → `{outcome: "started" | "interrupted"}`; 409 not stuck.
 - The media page's `jobs`: `[{id, kind, prompt, provider, status, attempts, lastError, lastErrorText, costCents, assetId, assetDeletedAt, libraryPage, draftId, draftTopic, draftMediaAssetId, requestedByName, createdAt, finishedAt, isStuck}]` (the newest 20).
 
-**Tests:** `standin_test.go` (the PNG, the colour, no video; production
-refuses the stand-in), `requests_test.go` (made and linked; off in
-production; the daily limit and the cap with open requests; library_full;
-attached only at its version; superseded), `runs_test.go` (five runs at
-once make one asset; polled, never asked again; results checked by their
-bytes; interrupted; Cancel; the stuck finder).
+**Tests:** `standin_test.go` (a PNG of 1024 x 1024, a gradient with the
+words on it, the same picture for one prompt and another for another; the
+words as the font writes them, laid out large when short and cut with "..."
+when long; every printable ASCII character in the font; the words read on
+both ends of every gradient; no video; production refuses the stand-in),
+`requests_test.go` (made and linked; off in production; the daily limit and
+the cap with open requests; library_full; attached only at its version;
+superseded), `runs_test.go` (five runs at once make one asset; polled, never
+asked again; results checked by their bytes; interrupted; Cancel; the stuck
+finder).

@@ -111,7 +111,7 @@ function MakeImage({ media, imagePrompt, button, isMaking }: MakeImageProps) {
       <MakeDraftImageButton {...button} disabled={button.disabled || !imagePrompt.trim()} />
       <p className="text-xs text-muted-foreground">
         {imagePrompt.trim()
-          ? `From the saved image description (Image: what it shows)${media.generation.isStandIn ? ", by the development stand-in (a flat colour)" : ""}: it is attached once it is made, and marked as AI-generated.`
+          ? `From the saved image description (Image: what it shows)${media.generation.isStandIn ? ", by the development stand-in (a gradient with the description's first words on it)" : ""}: it is attached once it is made, and marked as AI-generated.`
           : "Describe the image first (Image: what it shows), and save."}
       </p>
     </div>

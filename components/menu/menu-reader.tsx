@@ -81,24 +81,31 @@ export function MenuReader({ currency }: { currency: string }) {
     );
   }
 
+  // WHY the development sample (no AI could read the menu) is only shown:
+  // added, it would pose as the owner's own dishes and prices.
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        save(rows);
+        if (!notes.standIn) {
+          save(rows);
+        }
       }}
       className="grid gap-5"
     >
       {notes.standIn && (
         <p className="rounded-xl bg-attention-surface px-4 py-3 text-sm">
-          Development stand-in: this is a sample menu, not yours. Your photo or text wasn&apos;t read (no Anthropic API key is set).
+          Development stand-in: this is a sample menu, not yours, so it can&apos;t be added. Your menu wasn&apos;t read: there is no Anthropic API
+          key, and no Claude Code on this computer.
         </p>
       )}
-      <p className="text-sm text-muted-foreground">
-        ansa read {rows.length === 1 ? "1 dish" : `${rows.length} dishes`}. Check each one against your menu: nothing is saved until you press
-        &ldquo;Looks right&rdquo;.
-        {notes.dropped > 0 && ` ${notes.dropped === 1 ? "1 line" : `${notes.dropped} lines`} without a clear name or price were left out.`}
-      </p>
+      {!notes.standIn && (
+        <p className="text-sm text-muted-foreground">
+          ansa read {rows.length === 1 ? "1 dish" : `${rows.length} dishes`}. Check each one against your menu: nothing is saved until you press
+          &ldquo;Looks right&rdquo;.
+          {notes.dropped > 0 && ` ${notes.dropped === 1 ? "1 line" : `${notes.dropped} lines`} without a clear name or price were left out.`}
+        </p>
+      )}
       <ol className="grid divide-y border-y">
         {rows.map((row, index) => (
           <li key={row.key} className="grid gap-2 py-4 sm:grid-cols-[1fr_1fr_8rem_auto] sm:items-end">
@@ -120,9 +127,11 @@ export function MenuReader({ currency }: { currency: string }) {
         </p>
       )}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={isPending || rows.length === 0}>
-          {isPending ? "Adding..." : `Looks right, add ${rows.length === 1 ? "1 dish" : `${rows.length} dishes`}`}
-        </Button>
+        {!notes.standIn && (
+          <Button type="submit" size="lg" disabled={isPending || rows.length === 0}>
+            {isPending ? "Adding..." : `Looks right, add ${rows.length === 1 ? "1 dish" : `${rows.length} dishes`}`}
+          </Button>
+        )}
         <Button type="button" variant="ghost" onClick={() => setRows(null)} disabled={isPending}>
           Start again
         </Button>

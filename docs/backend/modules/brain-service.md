@@ -9,16 +9,20 @@ switched off.
 **Tests:** `brain/tests/test_security.py`: the signature matches core's; only
 signed, fresh requests pass; a body over the cap is refused.
 `brain/tests/test_free_ai.py`: the status looks for Claude Code's program
-and never runs it, and says the free stand-in apart from ansa's key.
+and never runs it (a `CLAUDE_CODE_PATH` that is gone falls back to `claude`
+on the PATH), says the free stand-in apart from ansa's key, and sends a
+photo as one stream-json message, never a PDF's document block.
 **`POST /v1/status` (signed):** what the brain can answer with,
 `{"ansa_key": bool, "claude_code": bool, "free_stand_in": bool}`: whether
 ansa's own key is set; whether Claude Code can answer (development, and the
-program it runs is there and may be run: `CLAUDE_CODE_PATH`'s, else
-`claude` on the PATH; only looked for, never run); and whether Claude Code
-on this computer answers in place of ansa's key (`free_ai.py`: development,
-no key, `CLAUDE_CODE_PATH` set), said apart so nobody on the laptop is told
-ansa's key answers. Never the key. Core shows it as "the AI is ready" on
-Home and as whose key answers on Settings → Assistant.
+program it runs is there and may be run: `CLAUDE_CODE_PATH`'s while that is
+an executable file, else `claude` on the PATH, as an editor's extension
+folder disappears when the editor updates itself; only looked for, never
+run); and whether Claude Code on this computer answers in place of ansa's
+key (`free_ai.py`: development, no key, and that program there), said apart
+so nobody on the laptop is told ansa's key answers. Never the key. Core
+shows it as "the AI is ready" on Home and as whose key answers on Settings →
+Assistant.
 **`POST /v1/posts/write` (signed):** one "Post for me" post about what
 core's topic brain chose, from the business's own details: `{"kind": "ok",
 "body", "call_to_action", "hashtags"}` or `{"kind": "failed", "reason":

@@ -31,8 +31,15 @@ answers `model_unavailable`). Locked down as the old adapter: no tools, no
 MCP, no settings, CLAUDE.md or memory, no saved session, an empty temporary
 folder, only PATH, HOME, USER, LOGNAME, LANG and TMPDIR passed on (never a
 secret), the conversation on stdin, 90 s. `CLAUDE_CODE_PATH` names the program
-(else `claude` on the PATH); `/v1/status` says Claude Code can answer only
-while that program is there and may be run (looked for, never run).
+while it is an executable file (else `claude` on the PATH: a path into an
+editor's extension folder disappears when the editor updates itself; one
+helper, `program()`, for the runs, `/v1/status` and `free_ai.py`); with
+neither, nothing runs (`ClaudeCodeNotFound`), and `/v1/status` says Claude
+Code can answer only while a program is there and may be run (looked for,
+never run). Content blocks (a menu's photo, for `free_ai.py`) go in on stdin
+as one stream-json user message, as the Agent SDK sends one
+(`--input-format stream-json`, which Claude Code answers only in stream-json
+with `--verbose`: the result is the last line of type "result").
 **Threads:** the reply endpoint is a plain `def`, so FastAPI runs it in a
 worker thread: a model call that takes seconds never holds up other requests.
 **Answer (`answer.py`):** read strictly: exactly the schema's fields;

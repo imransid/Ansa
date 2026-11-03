@@ -1,15 +1,16 @@
 """DEVELOPMENT ONLY: the free stand-in for ansa's own API key (the demo on
 the laptop, docs/demo.md). Without ANTHROPIC_API_KEY every use that asks
 with ansa's key gets "unavailable" (the marketing interview, plans, drafts,
-reviews, email triage, call decisions, a menu's pasted text); on a
-development brain with Claude Code set up (CLAUDE_CODE_PATH), it asks
-Claude Code on this computer instead, locked down as always
-(claude_code.py), so every feature can be tried and shown for free.
+reviews, email triage, call decisions, reading a menu); on a development
+brain with Claude Code on this computer (claude_code.program: the program
+CLAUDE_CODE_PATH names, else claude on the PATH), it asks Claude Code
+instead, locked down as always (claude_code.py), so every feature can be
+tried and shown for free.
 
 Never in production (Anthropic doesn't allow a product to run on a claude.ai
-login), never when a key is set (that key is used), and never for a photo or
-a PDF (Claude Code takes text only here: the menu's development sample
-answers those)."""
+login), and never when a key is set (that key is used). A menu's photo goes
+to Claude Code as itself (one stream-json message), a menu's PDF as its own
+text (menu/reading.py); any other content block stays "unavailable"."""
 
 import os
 from collections.abc import Callable
@@ -22,9 +23,9 @@ Asker = Callable[[str, Any, dict, ai.UseSettings, str | None], ai.ModelResult]
 
 
 def ready(development: bool) -> bool:
-    """Whether the stand-in answers here: development, no key, and Claude Code
-    set up (the program CLAUDE_CODE_PATH names is there to run)."""
-    return development and not os.environ.get("ANTHROPIC_API_KEY") and bool(os.environ.get("CLAUDE_CODE_PATH")) and claude_code.installed()
+    """Whether the stand-in answers here: development, no key, and a Claude
+    Code program on this computer to run."""
+    return development and not os.environ.get("ANTHROPIC_API_KEY") and claude_code.installed()
 
 
 def or_claude_code(asker: Asker, development: bool) -> Asker:
@@ -33,7 +34,7 @@ def or_claude_code(asker: Asker, development: bool) -> Asker:
 
     def ask(system_prompt: str, prompt: Any, schema: dict, use: ai.UseSettings, api_key: str | None) -> ai.ModelResult:
         result = asker(system_prompt, prompt, schema, use, api_key)
-        if result.kind != "unavailable" or not ready(development) or not isinstance(prompt, str):
+        if result.kind != "unavailable" or not ready(development) or not claude_code.takes(prompt):
             return result
         timeout = max(claude_code.TIMEOUT_SECONDS, use.timeout_seconds)
 
