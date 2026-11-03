@@ -64,6 +64,10 @@ def test_answers_are_read_strictly():
     assert read_answer(answer(reply="Yes, until 23:00.")) == {"kind": "reply", "text": "Yes, until 23:00."}
     assert read_answer(answer(action="needs_person", handover_reason="complaint", request_subject="Cold\npizza"))["subject"] == "Cold pizza"
     assert read_answer(answer(action="order_summary", order={**NO_ORDER, "items": [{"label": "M1", "quantity": 2}], "fulfilment": "pickup"}))["order"]["items"] == [{"label": "M1", "quantity": 2}]
+    # A dish written by its name instead of its label is kept whole: core
+    # finds a dish by its exact name too.
+    named = [{"label": "Kacchi Biryani with extra egg", "quantity": 1}]
+    assert read_answer(answer(action="order_summary", order={**NO_ORDER, "items": named, "fulfilment": "pickup"}))["order"]["items"] == named
     assert read_answer(answer(reply="")) is None
     assert read_answer(answer(reply="x" * 1501)) is None
     assert read_answer(answer(extra=1)) is None

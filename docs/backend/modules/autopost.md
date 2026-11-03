@@ -34,7 +34,9 @@ kind, about, address, hours, up to 40 offers ("Margherita | €9.50 |
 Tomato and mozzarella"), the owner's instructions and words to avoid, the
 newest 5 posts' first lines, the topic brain's choice and the day; every
 value escaped in its tag, card-like numbers hidden; no id, account or
-customer. Its answer is strict (`body`, `call_to_action`, `hashtags`: a
+customer. Every list goes as a list, empty when there is nothing (the brain
+reads the request strictly: no words to avoid sent as null was refused,
+and no post was ever written, until step 58). Its answer is strict (`body`, `call_to_action`, `hashtags`: a
 body empty or over 1,500 characters is unusable; the call to action one
 plain line of at most 200; at most 4 hashtags of letters, digits and _).
 

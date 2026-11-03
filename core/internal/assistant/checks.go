@@ -8,7 +8,6 @@ import (
 
 	"regexp"
 	"strings"
-	"unicode"
 )
 
 // Why a proposed reply is stopped (then the holding reply goes out instead).
@@ -61,7 +60,7 @@ func MoneyAmounts(text, currency string) []int64 {
 	var amounts []int64
 	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
 		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
-			amounts = append(amounts, money.ParsePrice(dropThousandsSpaces(match[1]), currency))
+			amounts = append(amounts, money.ParsePrice(withoutThousandsSeparators(match[1]), currency))
 		}
 	}
 	return amounts
@@ -99,30 +98,20 @@ func linksAreKnown(text string, ownerTexts []string) bool {
 	return true
 }
 
-// dropThousandsSpaces removes a space that sits before exactly three digits
-// ("1 200" is 1200), as the old pattern / (?=\d{3}\b)/ does.
-func dropThousandsSpaces(text string) string {
-	runes := []rune(text)
-	var out []rune
-	for i, r := range runes {
-		if r == ' ' && i+3 < len(runes)+1 && isThreeDigitsThenEnd(runes, i+1) {
-			continue
-		}
-		out = append(out, r)
-	}
-	return string(out)
-}
+// groupedAmount is an amount written in groups of three digits ("15,000",
+// "1 200", "1.040,50", "1,040.00"), with its decimals apart.
+var groupedAmount = regexp.MustCompile(`^(\d{1,3}(?:[ .,]\d{3})+)([.,]\d{1,2})?$`)
 
-func isThreeDigitsThenEnd(runes []rune, start int) bool {
-	if start+3 > len(runes) {
-		return false
+// withoutThousandsSeparators writes a grouped amount as one number
+// ("15,000" is 15000, "1.040,50" is 1040,50), so a price over a thousand
+// reads as itself: "15,000" read as 15 with three decimals was no price at
+// all, and stopped every reply naming one (found in step 58's demo).
+func withoutThousandsSeparators(written string) string {
+	parts := groupedAmount.FindStringSubmatch(written)
+	if parts == nil {
+		return written
 	}
-	for _, r := range runes[start : start+3] {
-		if !unicode.IsDigit(r) {
-			return false
-		}
-	}
-	return start+3 == len(runes) || !unicode.IsDigit(runes[start+3]) && !unicode.IsLetter(runes[start+3]) && runes[start+3] != '_'
+	return strings.NewReplacer(" ", "", ".", "", ",", "").Replace(parts[1]) + parts[2]
 }
 
 // AILabel is ansa's own first line in a conversation (never the AI's).

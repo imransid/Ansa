@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -15,6 +13,7 @@ import (
 	"ansa/core/internal/commands"
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
+	"ansa/core/internal/standins"
 	"ansa/core/internal/telegram"
 )
 
@@ -59,7 +58,7 @@ func runTelegram(ctx context.Context, w *world, args []string) error {
 // standInTelegramUpdate is a customer's message as Telegram sends one to a
 // business's chatbot.
 func standInTelegramUpdate(businessConnectionID, customerName, text string) []byte {
-	customerID := standInTelegramCustomerID(customerName)
+	customerID := standins.TelegramChatID(customerName)
 	update, _ := json.Marshal(map[string]any{
 		"update_id": randomTelegramID(),
 		"business_message": map[string]any{
@@ -71,16 +70,6 @@ func standInTelegramUpdate(businessConnectionID, customerName, text string) []by
 		},
 	})
 	return update
-}
-
-// standInTelegramCustomerID: the same name is the same made-up Telegram
-// customer (a whole number from the name's hash, as the old script made it,
-// so the old simulator's conversations continue).
-func standInTelegramCustomerID(name string) uint64 {
-	sum := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(name))))
-	var six [8]byte
-	copy(six[2:], sum[:6])
-	return binary.BigEndian.Uint64(six[:])
 }
 
 // randomTelegramID is a made-up id from 1 to 2^31 - 1, as Telegram's are.

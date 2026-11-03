@@ -133,6 +133,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerStudio(routes)
 	s.registerCofounder(routes)
 	s.registerPhone(routes)
+	s.registerPracticeChat(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

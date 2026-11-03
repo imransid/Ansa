@@ -13,7 +13,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "check:screens": "tsx scripts/check-screens.ts"
+    "check:screens": "tsx scripts/check-screens.ts",
+    "demo": "bash scripts/demo.sh",
+    "demo:reset": "cd core && ANSA_ENV=development go run ./cmd/simulate demo"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

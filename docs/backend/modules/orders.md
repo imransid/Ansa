@@ -3,15 +3,18 @@
 **What:** orders a customer places in a chat, collected by the assistant and
 written up by ansa (the old `lib/orders.ts`, `lib/order-steps.ts`,
 `db/order-proposals.ts`). The AI only names dishes by today's menu labels
-(M1...) and how many, delivery or pickup, the address, when and notes.
+(M1...) and how many, delivery or pickup, the address, when and notes. A
+dish it names by its exact name instead is found too, when exactly one of
+today's dishes has that name (`dishes.go`, step 58: the AI sometimes writes
+the name; the price is still the menu's and the customer confirms).
 **Every price, line and total is ansa's own (`orders.go`, pure):** the same
 dish twice is one line; 1-50 of one dish; at most 30 lines; the delivery fee
 only for delivery; "As soon as possible" when no time was said.
 **The plan (`plan.go`, `PlanStep`, pure):** a person's account, or a business
 that takes no orders here = a person (`order`); a "yes" = place; a "no" =
 take it back; closed now by its own hours = ansa's "we can't take orders
-right now (opens at 18:00)"; a label not on today's menu or a count outside
-1-50 = a person (`order_unclear`); a missing way or address = ansa's fixed
+right now (opens at 18:00)"; a dish neither a label nor the one exact name
+of today's menu, or a count outside 1-50 = a person (`order_unclear`); a missing way or address = ansa's fixed
 question; else ansa's summary (every line, the fee, the total, how, when,
 notes, "Reply yes to confirm"). The AI's reply text is never sent on an order.
 **Rows (`store.go`):** the summary is saved with its order ("proposed", one

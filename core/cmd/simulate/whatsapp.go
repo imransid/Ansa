@@ -8,6 +8,7 @@ import (
 	"ansa/core/internal/commands"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/plaintext"
+	"ansa/core/internal/standins"
 	"ansa/core/internal/whatsapp"
 )
 
@@ -43,17 +44,11 @@ func runWhatsApp(ctx context.Context, w *world, args []string) error {
 	if err != nil {
 		return err
 	}
-	event := whatsapp.Event{Kind: whatsapp.KindMessage, PhoneNumberID: phoneNumberID, CustomerID: standInCustomer(name), CustomerName: name,
+	event := whatsapp.Event{Kind: whatsapp.KindMessage, PhoneNumberID: phoneNumberID, CustomerID: standins.WhatsAppCustomer(name), CustomerName: name,
 		MessageID: "stand-in-" + id, Text: cutRunes(strings.TrimSpace(args[2]), 4000), MessageType: "text"}
 	if err := whatsapp.SaveEvent(ctx, w.pool, w.box, company.ID, event); err != nil {
 		return err
 	}
 	fmt.Fprintf(w.out, "Saved a WhatsApp message for %q. A running core answers it in a moment (see .dev-messages/ and %s/inbox?view=all).\n", company.Name, w.cfg.AppURL)
 	return nil
-}
-
-// standInCustomer: the same name is the same made-up customer of the
-// number (a made-up business-scoped id, as WhatsApp's look: "XX.<name>").
-func standInCustomer(name string) string {
-	return "XX." + strings.ReplaceAll(standInPSID(name), "-", "")
 }

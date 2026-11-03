@@ -115,16 +115,6 @@ func Price(request Request, menu []MenuChoice, options Options) (Priced, string)
 	return order, ""
 }
 
-func findDish(menu []MenuChoice, label string) (MenuChoice, bool) {
-	wanted := strings.ToUpper(strings.TrimSpace(label))
-	for _, dish := range menu {
-		if dish.Label == wanted {
-			return dish, true
-		}
-	}
-	return MenuChoice{}, false
-}
-
 func addLine(lines []Line, dish MenuChoice, quantity int) []Line {
 	for i := range lines {
 		if lines[i].Name == dish.Name && lines[i].UnitPriceCents == dish.PriceCents {

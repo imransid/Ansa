@@ -235,6 +235,10 @@ func (w *Writer) readDetails(ctx context.Context, company tenant.CompanyID) (*de
 		}
 	}
 	wordsToAvoid := contentrules.ReadWordsToAvoid(facts["words_to_avoid"])
+	if wordsToAvoid == nil {
+		// None: an empty list, as the brain reads every list strictly (null is refused).
+		wordsToAvoid = []string{}
+	}
 	d.checks = CheckData{CheckData: assistant.CheckData{Currency: currency, MenuPrices: prices, OwnerTexts: ownerTexts}, WordsToAvoid: wordsToAvoid}
 	label := setup.BusinessTypeLabels[businessType]
 	if label == "" {

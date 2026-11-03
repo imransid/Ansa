@@ -98,6 +98,13 @@ func TestAutomaticWritesTheNextPostOnceAndQueuesItUnderTheOwnersRule(t *testing.
 	if !strings.Contains(string(offers), "Margherita | €9.50 | Tomato and mozzarella") || post["day"] != "Wednesday 2026-11-04" || post["topic"] != "Margherita" || asked["company_id"] != nil {
 		t.Fatalf("the brain got the business's own details only: %v", asked)
 	}
+	// The brain reads every list strictly: null (no words to avoid here) is
+	// refused, and the post was never written (found in step 58's demo).
+	for _, list := range []string{"hours", "offers", "words_to_avoid", "recent_posts"} {
+		if _, isList := asked[list].([]any); !isList {
+			t.Fatalf("%s must be a list, never null: %v", list, asked[list])
+		}
+	}
 	var scheduledFor time.Time
 	var mode string
 	w.pool.QueryRow(ctx, `SELECT scheduled_for, approval_mode FROM publish_jobs WHERE company_id = $1`, w.company.String()).Scan(&scheduledFor, &mode)

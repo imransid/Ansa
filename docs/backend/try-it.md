@@ -4,6 +4,10 @@ ansa runs as three parts: the brain (Python), core (Go) and the screens
 (Next.js). Start them in this order, each in its own terminal. The screens
 ask core for everything; there is no other backend any more.
 
+Quickest: once the settings below are in place, `pnpm demo` starts the
+database and all three parts in one terminal, with two ready demo accounts
+([../demo.md](../demo.md)).
+
 ## Once: settings
 - `.env.core` in the repository root (copy `core/.env.core.example`): core's
   settings. The brain reads its shared secret from there too.

@@ -66,6 +66,7 @@ func allTools() map[string]tool {
 		"messenger":      messengerTool,
 		"whatsapp":       whatsappTool,
 		"seed-tickets":   seedTicketsTool,
+		"demo":           demoTool,
 	}
 }
 

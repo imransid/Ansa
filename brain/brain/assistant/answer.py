@@ -15,6 +15,9 @@ SUBJECT_MAX_LENGTH = 120
 SUMMARY_MAX_LENGTH = 1_000
 ORDER_LINES_MAX = 30
 ADDRESS_MAX, TIME_MAX, NOTES_MAX = 300, 100, 500
+# A dish's label ("M1"), or its name when the AI writes that instead (a
+# menu name is at most 120 characters; core finds a dish by either).
+LABEL_MAX = 120
 
 ANSWER_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -32,7 +35,7 @@ ANSWER_JSON_SCHEMA: dict[str, Any] = {
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "properties": {"label": {"type": "string"}, "quantity": {"type": "integer"}},
+                        "properties": {"label": {"type": "string", "description": "The dish's label exactly as <menu> writes it, like M1."}, "quantity": {"type": "integer"}},
                         "required": ["label", "quantity"],
                         "additionalProperties": False,
                     },
@@ -100,7 +103,7 @@ def _read_order(order: Any) -> dict[str, Any] | None:
     for item in items:
         if not isinstance(item, dict) or set(item) != {"label", "quantity"} or not isinstance(item["label"], str) or type(item["quantity"]) is not int:
             return None
-        clean_items.append({"label": item["label"].strip()[:20], "quantity": item["quantity"]})
+        clean_items.append({"label": item["label"].strip()[:LABEL_MAX], "quantity": item["quantity"]})
     if not all(isinstance(order[key], str) for key in ("address", "time", "notes")):
         return None
     return {

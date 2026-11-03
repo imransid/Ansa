@@ -47,7 +47,10 @@ their words: `reasons.go`.
 - every amount written with a currency mark (symbols, ISO codes, the words
   for the common ones; before or after the number) must be a menu price or
   an amount in the business's own texts; one that can't be read as a price
-  of the currency stops the reply (`price_not_on_menu`);
+  of the currency stops the reply (`price_not_on_menu`). Thousands in groups
+  of three are one amount, whatever the separator ("15,000", "1 200",
+  "1.040,50": step 58; "15,000" was read as no price and stopped every
+  reply naming one);
 - no refund, compensation or voucher words in English, Italian, Spanish,
   French or German (`refund_promise`);
 - every link must appear in the business's own texts (`unknown_link`).

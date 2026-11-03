@@ -3,7 +3,7 @@
 .PHONY: test check run website-packages \
 	link-phone-line unlink-phone-line show-forwarding-address replace-forwarding-address telegram-webhook \
 	simulate simulate-message simulate-post-metrics simulate-vapi-call simulate-vapi-tool-call simulate-solved-call \
-	try-brain simulate-inbound-email simulate-email-bounce simulate-telegram telegram-poll simulate-messenger simulate-whatsapp seed-tickets
+	try-brain simulate-inbound-email simulate-email-bounce simulate-telegram telegram-poll simulate-messenger simulate-whatsapp seed-tickets demo
 
 # Every test (or one folder's: make test PKG=./internal/commands/). Database
 # tests use TEST_DATABASE_URL from ../.env.core (the local database; they
@@ -115,3 +115,8 @@ simulate-whatsapp:
 # make seed-tickets OWNER=you@example.com
 seed-tickets:
 	go run ./cmd/simulate seed-tickets "$(OWNER)"
+
+# make demo: deletes and makes the two demo accounts again, ready to show
+# ansa on this laptop (../docs/demo.md): a restaurant and one person.
+demo:
+	go run ./cmd/simulate demo

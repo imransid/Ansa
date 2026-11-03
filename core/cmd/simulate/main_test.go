@@ -96,6 +96,7 @@ var argumentsOfEveryTool = map[string][]string{
 	"messenger":      {"owner@x.example", "Lena", "Hello"},
 	"whatsapp":       {"owner@x.example", "Lena", "Hello"},
 	"seed-tickets":   {"owner@x.example"},
+	"demo":           {},
 }
 
 // Every tool writes or sends something made up: never in production, never
@@ -130,7 +131,7 @@ func TestTheUsageComesBeforeAnySetting(t *testing.T) {
 	for _, args := range [][]string{
 		{}, {"unknown"}, {"message", "a@b.example", "Lena"}, {"telegram", "a@b.example", " ", "hi"}, {"vapi-call"},
 		{"vapi-call", "pn-1", "valid", "extra"}, {"vapi-call", "pn-1", "--core"}, {"vapi-tool-call", "pn-1"},
-		{"vapi-tool-call", "pn-1", "q", "--call"}, {"telegram-poll", "now"}, {"try-brain", "a@b.example"},
+		{"vapi-tool-call", "pn-1", "q", "--call"}, {"telegram-poll", "now"}, {"try-brain", "a@b.example"}, {"demo", "now"},
 	} {
 		if _, err := runWith(map[string]string{}, args...); err == nil || !strings.HasPrefix(err.Error(), "usage") {
 			t.Fatalf("%v: %v", args, err)

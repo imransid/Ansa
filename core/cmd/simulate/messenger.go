@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"ansa/core/internal/commands"
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/messenger"
 	"ansa/core/internal/plaintext"
+	"ansa/core/internal/standins"
 )
 
 // messenger brings a customer's Messenger message into the Inbox through
@@ -27,8 +27,6 @@ var messengerTool = tool{
 	fits:  exactly(3),
 	run:   runMessenger,
 }
-
-var notLettersOrDigits = regexp.MustCompile(`[^a-z0-9]+`)
 
 func runMessenger(ctx context.Context, w *world, args []string) error {
 	company, err := w.owner(ctx, args[0])
@@ -51,7 +49,7 @@ func runMessenger(ctx context.Context, w *world, args []string) error {
 	if err != nil {
 		return err
 	}
-	contact := conversations.ContactKey{Channel: conversations.ChannelMessenger, ExternalID: messenger.ContactID(pageID, standInPSID(name))}
+	contact := conversations.ContactKey{Channel: conversations.ChannelMessenger, ExternalID: messenger.ContactID(pageID, standins.PSID(name))}
 	if name != "" {
 		contact.DisplayName = &name
 	}
@@ -61,14 +59,4 @@ func runMessenger(ctx context.Context, w *world, args []string) error {
 	}
 	fmt.Fprintf(w.out, "Saved a Messenger message for %q. A running core answers it in a moment (see .dev-messages/ and %s/inbox?view=all).\n", company.Name, w.cfg.AppURL)
 	return nil
-}
-
-// standInPSID: the same name is the same made-up customer of the Page (as
-// the old script made it).
-func standInPSID(name string) string {
-	psid := strings.Trim(notLettersOrDigits.ReplaceAllString(strings.ToLower(name), "-"), "-")
-	if psid == "" {
-		return "customer"
-	}
-	return psid
 }

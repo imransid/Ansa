@@ -2044,7 +2044,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     order_withdrawn (see Orders below).
   - ansa's checks before a reply may go (lib/assistant/reply-checks.ts):
     every amount written with a currency mark is a menu price or an amount
-    in the owner's own texts (notes, instructions, articles); no refund,
+    in the owner's own texts (notes, instructions, articles; thousands in
+    groups of three are one amount, "15,000" or "1.040,50": step 58); no refund,
     compensation or voucher words (several languages); every link appears
     in the owner's texts. The first automated message of a conversation
     starts with ansa's own line "I'm the AI assistant for <restaurant>."
@@ -2152,15 +2153,17 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   (Settings → What it knows and setup step 4, typed as a price in the
   currency, parsePrice; empty = free).
   - The assistant (step 49's run) collects an order: its answer names
-    dishes ONLY by today's menu labels (M1...) and how many, delivery or
+    dishes by today's menu labels (M1...; since step 58 also a dish's
+    exact name when exactly one of today's dishes has it: the AI sometimes
+    writes the name, core/internal/orders/dishes.go) and how many, delivery or
     pickup, the address, when, notes (lib/assistant/answer.ts, its rules
     lib/assistant/order-prompt.ts, which also gives it <order_in_progress>
     and this conversation's newest 3 <placed_orders>). ansa decides
     (lib/order-steps.ts, pure): a person's account, or a business that
     takes no orders here = handover "order"; closed now by its own hours =
     ansa's fixed "we can't take orders right now (opens at 18:00)"; a
-    label not on today's menu or a count outside 1-50 = handover
-    "order_unclear"; a missing way or address = ansa's fixed question
+    dish that is neither a label nor the one exact name on today's menu,
+    or a count outside 1-50 = handover "order_unclear"; a missing way or address = ansa's fixed question
     (lib/orders.ts orderQuestion); else ansa prices it (priceOrder: the
     same dish twice is one line, the fee only for delivery) and writes the
     summary itself (orderSummaryText: every line, the fee, the total, how,
@@ -2305,6 +2308,20 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   changes them in the same change (app/(marketing)/privacy/who-helps.tsx
   names every service, and a check reads it). No "LAUNCH CHECK" notes (a
   check refuses them).
+- The demo on this laptop (docs/demo.md, after step 58): `pnpm demo`
+  (scripts/demo.sh) starts the database, the brain, core and the screens
+  in one terminal (Ctrl+C stops every one) and makes the two demo accounts
+  when they aren't there; `pnpm demo:reset` (core's `demo` tool,
+  cmd/simulate/demo.go) deletes and makes them again: a restaurant
+  (business@demo.ansa.test) and one person (rafa@demo.ansa.test), password
+  ansa-demo-2026, both on "Claude Code on this computer", signed up
+  through core's signup and set up through core's own functions. The
+  practice chat (Settings → Connections → Practice chat,
+  core/internal/practicechat, development and owners only) is the
+  customer's side: a message through a stand-in WhatsApp number, Telegram
+  account or Facebook Page, saved as each channel saves a customer's (its
+  reply queued as for any), and the chat as the customer sees it (never a
+  draft). Both refuse production, as every stand-in does.
 - A GET route handler that reads no params is prerendered at BUILD time unless it
   calls `await connection()` first; lib/core-api.ts does that for every call
   to core, so nothing that asks core is built ahead. Check the build output:
@@ -3270,7 +3287,8 @@ this order and is done on the laptop, deploying aside
   retry), and a customer's display name is shown in them as the channel
   gave it.
 - Orders (step 52): nothing has met a real customer: checked with a fake
-  model and the stand-in chat. The AI must name dishes by label; one it
+  model, the stand-in chat and the demo's rehearsals with Claude Code
+  (step 58). The AI names dishes by label (or exact, unique name); one it
   can't place, or a "yes" with no summary seen, goes to a person (the
   holding reply), so an unusual order (half and half, extras, sizes not
   on the menu as their own dish) always reaches a person. The fixed texts
@@ -4410,3 +4428,18 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   runs the same wiring: one business from signup to its first order and
   post, a second finding none of it. No migration, no new setting or
   package.
+- 2026-11-03: The demo on this laptop (the owner: "make it completely ready
+  for a demo, locally, free"). `pnpm demo` starts everything in one
+  terminal and makes two demo accounts (`pnpm demo:reset` makes them again,
+  clean); the practice chat lets the presenter be the customer on
+  WhatsApp, Telegram or Messenger in the browser, beside the owner's pages;
+  docs/demo.md is the 10-minute story. The AI is Claude Code on this
+  computer (the owner's own login), everything else a local stand-in. The
+  rehearsals with the real AI found three bugs, fixed: an order whose dishes
+  the AI named by name instead of label always went to a person (core now
+  also takes a dish's exact, unique name, and the brain asks for the label
+  more clearly); "Post for me" never wrote a post for a business without
+  words to avoid (core sent null where the brain wants a list); and an
+  amount over a thousand written with a comma ("15,000 taka") stopped
+  every reply naming it (now read as one amount). No migration, no new
+  setting or package.
