@@ -6,7 +6,7 @@ import { StatusDot } from "@/components/status-dot";
 import type { ConnectionsPage } from "@/lib/core-views/channels";
 import { CONNECTION_STATUS_TEXT } from "@/lib/telegram";
 import { OwnAnswersNote } from "./own-answers";
-import { PracticeChatAdvice, StandInName } from "./stand-in";
+import { ForDevelopers, PracticeChatAdvice, StandInName } from "./stand-in";
 
 // Settings → Connections → Telegram (step 48): the connected account and
 // Disconnect, or how to connect one. Owners connect and disconnect, members read.
@@ -22,16 +22,19 @@ export function TelegramSection({ page }: { page: ConnectionsPage }) {
           <LocalDateTime iso={telegram.connectedAt.toISOString()} />
         </p>
         <ConnectionAdvice status={telegram.status} isStandIn={telegram.isStandIn} personal={personal} />
+        {/* Its own box: a button straight in the grid would fill the card's width. */}
         {page.canManage && (
-          <ConfirmButton
-            action={disconnectTelegramAction}
-            fields={{}}
-            label="Disconnect"
-            accessibleLabel="Disconnect Telegram"
-            question="Disconnect Telegram? Customers' messages stop arriving in ansa, and ansa stops replying. To remove ansa from Telegram too, open Telegram Business → Chatbots."
-            confirmLabel="Disconnect"
-            pendingLabel="Disconnecting..."
-          />
+          <div className="justify-self-start">
+            <ConfirmButton
+              action={disconnectTelegramAction}
+              fields={{}}
+              label="Disconnect"
+              accessibleLabel="Disconnect Telegram"
+              question="Disconnect Telegram? Customers' messages stop arriving in ansa, and ansa stops replying. To remove ansa from Telegram too, open Telegram Business → Chatbots."
+              confirmLabel="Disconnect"
+              pendingLabel="Disconnecting..."
+            />
+          </div>
         )}
       </div>
     );
@@ -45,10 +48,11 @@ export function TelegramSection({ page }: { page: ConnectionsPage }) {
   if (page.telegramMode === "stand-in") {
     return (
       <div className="grid gap-3">
-        <p className="text-sm text-muted-foreground">
-          Development: ansa&apos;s bot isn&apos;t set (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET in .env.core), so this connects
-          a stand-in account.
-        </p>
+        <p className="text-sm text-muted-foreground">On this computer this connects a practice Telegram account: nothing reaches Telegram.</p>
+        <ForDevelopers>
+          ansa&apos;s bot isn&apos;t set (TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME and TELEGRAM_WEBHOOK_SECRET in .env.core), so this connects a
+          stand-in account.
+        </ForDevelopers>
         <PracticeChatAdvice connected={false} personal={personal} />
         <TelegramConnectButton action={connectStandInTelegramAction} label="Connect a stand-in Telegram account" />
       </div>

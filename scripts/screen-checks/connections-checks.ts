@@ -57,6 +57,22 @@ export async function runConnectionsChecks() {
     assert.doesNotMatch(withoutComments(await read(`${FOLDER}/whatsapp-section.tsx`)), /stays quiet\./, "WhatsApp promises ansa always stays quiet");
   });
 
+  await check("connections: setting names and developer folders (.env.core, .dev-messages/) sit only in a closed \"For developers\" fold, the stand-in WhatsApp number shows as \"Practice number\", and Telegram's and WhatsApp's Disconnect keep a button's own width", async () => {
+    for (const file of [`${FOLDER}/stand-in.tsx`, `${FOLDER}/telegram-section.tsx`, `${FOLDER}/whatsapp-section.tsx`]) {
+      const shown = withoutComments(await read(file))
+        .replace(/<ForDevelopers>[\s\S]*?<\/ForDevelopers>/g, "")
+        .replace(/export function ForDevelopers[\s\S]*?\n\}\n/, "");
+      assert.doesNotMatch(shown, /\.env\.core|\.dev-messages|[A-Z]+_[A-Z_]*(TOKEN|SECRET|ID|USERNAME)\b/, `${file} shows developer words outside its fold`);
+    }
+    const standIn = withoutComments(await read(`${FOLDER}/stand-in.tsx`));
+    assert.match(standIn, /<details className="[^"]*">\s*<summary[^>]*>For developers<\/summary>/);
+    const whatsapp = withoutComments(await read(`${FOLDER}/whatsapp-section.tsx`));
+    assert.match(whatsapp, /<StandInName name="Practice number" \/>/);
+    for (const file of [`${FOLDER}/whatsapp-section.tsx`, `${FOLDER}/telegram-section.tsx`]) {
+      assert.match(withoutComments(await read(file)), /<div className="justify-self-start">\s*<ConfirmButton/, `${file}'s Disconnect fills the card's width`);
+    }
+  });
+
   await check("one person's pages (step 50) speak to a person, a business's keep their words: Connections' notes (someone writing to you, answering as yourself, no marketing accounts link), Saved answers, About you and Account", async () => {
     for (const file of CHAT_SECTIONS) {
       const source = withoutComments(await read(file));

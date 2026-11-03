@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,13 +20,27 @@ export function StandInName({ name }: { name: string }) {
 // person (step 50): someone writing to them, or they answering themselves.
 export function PracticeChatAdvice({ connected, personal }: { connected: boolean; personal: boolean }) {
   return (
-    <p className="text-sm text-muted-foreground">
-      {practiceChatWords(connected, personal)}
-      <Link href="/settings/channels/practice-chat" className="text-link hover:underline">
-        practice chat
-      </Link>
-      . ansa&apos;s replies are written to .dev-messages/.
-    </p>
+    <div className="grid gap-1">
+      <p className="text-sm text-muted-foreground">
+        {practiceChatWords(connected, personal)}
+        <Link href="/settings/channels/practice-chat" className="text-link hover:underline">
+          practice chat
+        </Link>
+        .
+      </p>
+      <ForDevelopers>ansa&apos;s replies to it are written to .dev-messages/.</ForDevelopers>
+    </div>
+  );
+}
+
+// Words for whoever runs ansa on this computer (setting names, folders),
+// folded away, closed: the page is also shown to people trying ansa.
+export function ForDevelopers({ children }: { children: ReactNode }) {
+  return (
+    <details className="text-sm text-muted-foreground">
+      <summary className="cursor-pointer hover:text-foreground">For developers</summary>
+      <p className="pt-1">{children}</p>
+    </details>
   );
 }
 

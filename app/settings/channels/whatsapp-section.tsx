@@ -6,7 +6,7 @@ import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot } from "@/components/status-dot";
 import type { ConnectionsPage } from "@/lib/core-views/channels";
 import { OwnAnswersNote } from "./own-answers";
-import { PracticeChatAdvice, StandInName } from "./stand-in";
+import { ForDevelopers, PracticeChatAdvice, StandInName } from "./stand-in";
 
 const IN_THE_APP = "in the WhatsApp Business app";
 
@@ -24,7 +24,8 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
         </StatusDot>
         <p className="text-sm">
           {whatsapp.isStandIn ? (
-            <StandInName name={whatsapp.displayPhoneNumber} />
+            // Core's stand-in number is a placeholder (+00 000 000 000).
+            <StandInName name="Practice number" />
           ) : (
             <>
               <span className="font-medium">{whatsapp.displayPhoneNumber}</span>
@@ -34,20 +35,23 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
           , since <LocalDateTime iso={whatsapp.connectedAt.toISOString()} />
         </p>
         <NumberAdvice number={whatsapp} personal={personal} />
+        {/* Its own box: a button straight in the grid would fill the card's width. */}
         {page.canManage && (
-          <ConfirmButton
-            action={disconnectWhatsAppAction}
-            fields={{}}
-            label="Disconnect"
-            accessibleLabel="Disconnect WhatsApp"
-            question={
-              whatsapp.sharedWithApp
-                ? "Disconnect WhatsApp? Customers' messages stop arriving in ansa, and ansa stops replying. Your WhatsApp Business app keeps working. To end Meta's link too, open the app's settings and remove ansa."
-                : "Disconnect WhatsApp? Customers' messages stop arriving in ansa, and ansa stops replying. To end Meta's link too, remove ansa in WhatsApp Manager."
-            }
-            confirmLabel="Disconnect"
-            pendingLabel="Disconnecting..."
-          />
+          <div className="justify-self-start">
+            <ConfirmButton
+              action={disconnectWhatsAppAction}
+              fields={{}}
+              label="Disconnect"
+              accessibleLabel="Disconnect WhatsApp"
+              question={
+                whatsapp.sharedWithApp
+                  ? "Disconnect WhatsApp? Customers' messages stop arriving in ansa, and ansa stops replying. Your WhatsApp Business app keeps working. To end Meta's link too, open the app's settings and remove ansa."
+                  : "Disconnect WhatsApp? Customers' messages stop arriving in ansa, and ansa stops replying. To end Meta's link too, remove ansa in WhatsApp Manager."
+              }
+              confirmLabel="Disconnect"
+              pendingLabel="Disconnecting..."
+            />
+          </div>
         )}
       </div>
     );
@@ -61,10 +65,11 @@ export function WhatsAppSection({ page }: { page: ConnectionsPage }) {
   if (page.whatsappMode === "stand-in" || !page.whatsappSignup) {
     return (
       <div className="grid gap-3">
-        <p className="text-sm text-muted-foreground">
-          Development: ansa&apos;s Meta app isn&apos;t set up for WhatsApp (FACEBOOK_APP_ID, FACEBOOK_APP_SECRET and WHATSAPP_SIGNUP_CONFIG_ID in
-          .env.core), so this connects a stand-in number.
-        </p>
+        <p className="text-sm text-muted-foreground">On this computer this connects a practice WhatsApp number: nothing reaches WhatsApp.</p>
+        <ForDevelopers>
+          ansa&apos;s Meta app isn&apos;t set up for WhatsApp (FACEBOOK_APP_ID, FACEBOOK_APP_SECRET and WHATSAPP_SIGNUP_CONFIG_ID in .env.core), so
+          this connects a stand-in number.
+        </ForDevelopers>
         <PracticeChatAdvice connected={false} personal={personal} />
         <TelegramConnectButton action={connectStandInWhatsAppAction} label="Connect a stand-in WhatsApp number" />
       </div>
