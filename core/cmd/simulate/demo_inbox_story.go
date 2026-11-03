@@ -43,8 +43,8 @@ type demoEmail struct {
 
 var demoEmails = []demoEmail{
 	{"Lamia Chowdhury", "lamia.chowdhury@example.com", "Booking the family room for a birthday",
-		"Hello,\n\nWe'd like to book your family room for my mother's 60th birthday on Saturday 15 November, about 18 people, at 7 pm. Can you arrange a set menu with kacchi and firni?\n\nThanks,\nLamia",
-		triage("Family room for a 60th birthday, 18 people", "Lamia wants the family room on Saturday 15 November at 7 pm for 18 people, with a set menu of kacchi and firni.", "Catering")},
+		"Hello,\n\nWe'd like to book your family room for my mother's 60th birthday next Saturday, about 18 people, at 7 pm. Can you arrange a set menu with kacchi and firni?\n\nThanks,\nLamia",
+		triage("Family room for a 60th birthday, 18 people", "Lamia wants the family room next Saturday at 7 pm for 18 people, with a set menu of kacchi and firni.", "Catering")},
 	{"Farzana Ahmed", "farzana@deltaoffice.example", "A monthly lunch account for our office",
 		"Dear Shapla Kitchen,\n\nOur office of 25 people would like to order lunch every weekday. Do you offer a monthly account with one invoice?\n\nRegards,\nFarzana Ahmed\nDelta Office",
 		triage("Weekday lunches for an office of 25, one monthly invoice", "Farzana from Delta Office asks for lunch every weekday for 25 people, paid on one monthly invoice.", "Orders")},

@@ -113,12 +113,12 @@ func writeDemoText(ctx context.Context, w *world, a demoAccount, post demoPost) 
 // stand-in makes from its description, approves it and schedules it now;
 // the posting job.
 func addImagePost(ctx context.Context, w *world, a demoAccount, page string) (string, error) {
-	place := studio.Placement{Topic: "Friday kacchi", Pillar: "From our kitchen"}
+	place := studio.Placement{Topic: "Kacchi day", Pillar: "From our kitchen"}
 	draftID, outcome, err := studio.Create(ctx, w.pool, a.company, a.userID, studio.NewDraft{Platform: "facebook", Format: "image_post", Placement: place}, nil)
 	if err != nil || draftID == "" {
 		return "", refusedStep(err, "created", outcome)
 	}
-	fields := drafts.Fields{Body: "Friday is kacchi day: mutton, rice and potatoes, slow-cooked since the morning.", Hashtags: []string{"kacchi", "friday"},
+	fields := drafts.Fields{Body: "Kacchi day: mutton, rice and potatoes, slow-cooked since the morning.", Hashtags: []string{"kacchi", "kacchiday"},
 		CallToAction: "Order on WhatsApp", ImagePrompt: "Kacchi biryani on a brass platter, seen from above"}
 	if outcome, err := studio.Edit(ctx, w.pool, a.company, a.userID, draftID, 1, place, fields); err != nil || outcome != studio.Changed {
 		return "", refusedStep(err, "written", outcome)

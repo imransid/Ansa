@@ -151,9 +151,9 @@ already in the Inbox continues that customer's chat.
 18. **I'm back** on Home: now ansa leaves messages to Rafa (or waits the
     minutes set in Settings → Assistant before stepping in: the
     conversation says when ansa answers, and "Answer now" skips the wait
-    in development). Between 22:00 and 08:00 (Dhaka) Rafa's away hours
-    keep ansa answering anyway. **I'm away** again: ansa takes back every
-    chat Rafa had taken over and answers what waits.
+    in development). **I'm away** again: ansa takes back every chat Rafa
+    had taken over and answers what waits. (Rafa has no away hours, so
+    this works at any time of day; Settings → Assistant can add them.)
 
 **The website**: http://localhost:3000 and http://localhost:3000/pricing.
 

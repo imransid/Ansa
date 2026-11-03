@@ -48,11 +48,11 @@ func addCalendarIdeas(ctx context.Context, w *world, a demoAccount) (string, err
 		inDays                            int
 		platform, pillar, campaign, topic string
 	}{
-		{2, "facebook", "Dish of the day", "Office lunch weeks", "Beef bhuna for Thursday lunch"},
+		{2, "facebook", "Dish of the day", "Office lunch weeks", "Beef bhuna for an office lunch"},
 		{4, "facebook", "From our kitchen", "", "Our cooks at 9 in the morning"},
 		{6, "linkedin", "Family and events", "Wedding season catering", "A winter wedding menu for 200 guests"},
 		{9, "facebook", "Dish of the day", "Office lunch weeks", "Mishti doi, made in the kitchen"},
-		{12, "facebook", "Family and events", "", "A family Friday in the upstairs room"},
+		{12, "facebook", "Family and events", "", "A family evening in the upstairs room"},
 	}
 	var ideas []calendar.Idea
 	for _, p := range planned {

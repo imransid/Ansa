@@ -116,12 +116,12 @@ func setUpPerson(ctx context.Context, w *world, a demoAccount) error {
 		Instructions: "A logo starts at 15,000 taka and takes about a week. I'm usually free for calls after 6 pm. Never agree to a meeting or a price for me: say I'll confirm.",
 		HoldingReply: "Thanks for your message! Rafa can't answer right now and will get back to you soon.",
 	}
-	nights := map[string][]hours.Range{}
-	for _, day := range []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"} {
-		nights[day] = []hours.Range{{Opens: "00:00", Closes: "08:00"}, {Opens: "22:00", Closes: "00:00"}}
-	}
+	// No away hours: during them ansa answers whatever "I'm back" says, so a
+	// demo in the evening couldn't show I'm back and I'm away. Rafa is away
+	// by "I'm away", and ansa steps in after 10 minutes once he's back.
 	grace := 10
-	if err := saveSetup(ctx, w, a, &person, nil, &setup.Week{TimeZone: "Asia/Dhaka", Hours: nights, ReplyGraceMinutes: &grace}, nil, &answering); err != nil {
+	noAwayHours := map[string][]hours.Range{}
+	if err := saveSetup(ctx, w, a, &person, nil, &setup.Week{TimeZone: "Asia/Dhaka", Hours: noAwayHours, ReplyGraceMinutes: &grace}, nil, &answering); err != nil {
 		return err
 	}
 	if err := connectStandIns(ctx, w, a, false); err != nil {

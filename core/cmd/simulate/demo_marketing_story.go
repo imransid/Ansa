@@ -3,10 +3,12 @@ package main
 // The restaurant's marketing content (demo_marketing.go saves it). Its
 // name, what it does and its address were confirmed by the setup.
 
-// The other key facts, as an owner fills them in on the Profile page.
+// The other facts, as an owner fills them in on the Profile page (products
+// and prices name every dish, so the marketing AI can write about any).
 var demoFacts = [][2]string{
 	{"industry", "Restaurant: home-style Bangladeshi food, eaten in, picked up or delivered."},
-	{"products", "Kacchi biryani, chicken biryani, morog polao, beef bhuna, rui fish curry, borhani, mango lassi and firni."},
+	{"products", "Kacchi biryani, family kacchi (serves four), chicken biryani, morog polao, beef bhuna, rui fish curry, shorshe ilish, plain rice, borhani, mango lassi, firni and mishti doi."},
+	{"prices", "Kacchi biryani 450 taka, family kacchi 1,650, chicken biryani 350, morog polao 380, beef bhuna 320, rui fish curry 300, shorshe ilish 650, plain rice 60, borhani 80, mango lassi 120, firni 90, mishti doi 70; delivery 60."},
 	{"services", "Dine-in for 40 guests, pickup, delivery within 5 km of Dhanmondi, and catering for 20 to 300 guests."},
 	{"target_customers", "Families and office workers in Dhanmondi, and people planning weddings and office events."},
 	{"customer_problems", "A home-style meal without cooking, lunch at the office on time, and food for a big family event."},
