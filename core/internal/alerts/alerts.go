@@ -57,6 +57,7 @@ func (a *Alerter) HandleJob(ctx context.Context, job *jobs.Job) error {
 		CustomerName:     details.CustomerName,
 		ChannelLabel:     assistant.ChannelLabels[details.Channel],
 		Reason:           payload.Reason,
+		Kind:             details.Kind,
 		HoldingReplySent: details.HoldingReplySent,
 		OnACall:          details.Channel == "phone",
 		WroteAgain:       payload.WroteAgain,

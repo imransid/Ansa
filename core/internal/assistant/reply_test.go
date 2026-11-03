@@ -316,6 +316,22 @@ func TestAPersonsReplyThatWouldCommitThemIsNeverSent(t *testing.T) {
 	}
 }
 
+// A person has no menu: a reply stopped for an amount says it isn't in
+// their own notes or saved answers.
+func TestAPersonsStoppedAmountIsWordedForThem(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"A logo is BDT 10,000."}`)
+	mustExec(t, w.pool, `UPDATE companies SET kind = 'personal', name = 'Rafa' WHERE id = $1`, w.companyID)
+	turn := w.customerSays("nb", "How much is a logo?")
+	if got := w.answer(turn); got != OutcomeHandedOver {
+		t.Fatalf("outcome: %s", got)
+	}
+	var description string
+	w.pool.QueryRow(context.Background(), `SELECT description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&description)
+	if !strings.HasPrefix(description, "The assistant's reply named an amount that isn't in your own notes or saved answers") || strings.Contains(description, "menu") {
+		t.Fatalf("a person's words: %q", description)
+	}
+}
+
 func TestABrainThatIsDownGivesTheHoldingReply(t *testing.T) {
 	w := newReplyWorld(t, "")
 	turn := w.customerSays("ha", "Hi")

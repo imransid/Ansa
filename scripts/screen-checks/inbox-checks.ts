@@ -6,6 +6,7 @@
 // time; and "Try your assistant" shows the question it answers.
 
 import assert from "node:assert/strict";
+import { HANDOVER_REASON_TEXT, handoverReasonText } from "@/lib/assistant/reasons";
 import { contactLabel } from "@/lib/inbox";
 import { check } from "./check";
 import { attributeValue, openingTags, read, withoutComments } from "./source-helpers";
@@ -60,5 +61,16 @@ export async function runInboxChecks() {
     assert.match(box, /\{state\.question\}/);
     assert.match(attributeValue(openingTags(box, ["Textarea"])[0], "defaultValue") ?? "", /state\.errors\.values\?\.text/);
     assert.match(withoutComments(await read("app/actions/assistant.ts")), /withTypedValues\(result\.errors, formData, \["text"\]\)/);
+  });
+
+  await check("handover reasons: a person (no menu) reads a stopped amount in their own words, as core writes it on the request and the alert; a business keeps its menu", async () => {
+    const personal = handoverReasonText("price_not_on_menu", true);
+    assert.doesNotMatch(personal, /menu/);
+    assert.ok((await read("core/internal/assistant/reasons.go")).includes(JSON.stringify(personal)), "core words it differently");
+    assert.equal(handoverReasonText("price_not_on_menu", false), HANDOVER_REASON_TEXT.price_not_on_menu);
+    assert.equal(handoverReasonText("complaint", true), HANDOVER_REASON_TEXT.complaint);
+    for (const file of [`${CONVERSATION}/conversation-parts.tsx`, "app/dashboard/away-panel.tsx"]) {
+      assert.doesNotMatch(withoutComments(await read(file)), /HANDOVER_REASON_TEXT\[/, `${file} words a reason without the account's kind`);
+    }
   });
 }

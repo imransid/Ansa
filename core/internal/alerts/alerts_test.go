@@ -120,3 +120,16 @@ func TestAnImportantPersonWritingAgainIsSaidSo(t *testing.T) {
 		t.Fatalf("note: %q", note)
 	}
 }
+
+// A person has no menu: their alert words a stopped amount for them.
+func TestAPersonsAlertIsWordedForThem(t *testing.T) {
+	name := "Nabil"
+	alert := NeedsYou{CustomerName: &name, ChannelLabel: "WhatsApp", Reason: "price_not_on_menu", Kind: "personal", Link: "http://localhost:3000/inbox/x"}
+	if text := alert.Email("Rafa").Text; !strings.Contains(text, "an amount that isn't in your own notes or saved answers") || strings.Contains(text, "menu") {
+		t.Fatalf("text: %q", text)
+	}
+	alert.Kind = "business"
+	if !strings.Contains(alert.TelegramNote(), "a price that isn't on your menu") {
+		t.Fatal("a business keeps its menu")
+	}
+}

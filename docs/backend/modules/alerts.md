@@ -7,7 +7,8 @@ conversation needs them (the old `services/owner-alerts.ts`).
 - at most 60 alerts an hour per business (`owner-alerts`, the old counter);
 - an email to each confirmed, active owner while "alert by email" is on
   (`texts.go`, the old `lib/emails/needs-you.ts`): who (the name as the
-  channel gave it, one plain line of at most 60), where, why, whether the
+  channel gave it, one plain line of at most 60), where, why (worded for
+  the account's kind: a person has no menu), whether the
   holding reply reached them, and a link to the conversation. The job's id
   makes each email's idempotency key, so a retried job never emails twice;
 - a note from ansa's bot in the business's own Telegram, when a real bot is

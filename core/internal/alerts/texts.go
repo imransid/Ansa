@@ -11,9 +11,11 @@ import (
 // NeedsYou is one alert: who (as the channel gave the name), where, why,
 // whether the holding reply reached them, and the link.
 type NeedsYou struct {
-	CustomerName     *string
-	ChannelLabel     string
-	Reason           string
+	CustomerName *string
+	ChannelLabel string
+	Reason       string
+	// The account's kind ("business" or "personal"): how the reason is worded.
+	Kind             string
 	HoldingReplySent bool
 	// They called (step 55): ansa spoke to them on the call.
 	OnACall bool
@@ -44,7 +46,7 @@ func (n NeedsYou) customer() string {
 // Email is the alert for one owner (the old lib/emails/needs-you.ts).
 func (n NeedsYou) Email(ownerName string) Rendered {
 	customer := n.customer()
-	why := assistant.ReasonText[n.Reason]
+	why := assistant.ReasonTextFor(n.Reason, n.Kind)
 	subject := []rune(customer + " needs you on " + n.ChannelLabel)
 	if n.WroteAgain {
 		subject = []rune(customer + " wrote again on " + n.ChannelLabel)
@@ -89,5 +91,5 @@ func (n NeedsYou) TelegramNote() string {
 	if n.WroteAgain {
 		again = " They wrote again."
 	}
-	return n.customer() + " needs you on " + n.ChannelLabel + ". " + assistant.ReasonText[n.Reason] + again + " Open: " + n.Link
+	return n.customer() + " needs you on " + n.ChannelLabel + ". " + assistant.ReasonTextFor(n.Reason, n.Kind) + again + " Open: " + n.Link
 }

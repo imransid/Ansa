@@ -56,7 +56,10 @@ active one exactly; routed, and whoever routing picks is emailed by the
 handled, and the `owner.alert` job (starts 20 s later, so it can say whether
 the holding reply arrived; see [alerts](alerts.md)). Then the holding reply
 is sent. While the request is open the assistant stays quiet. Reasons and
-their words: `reasons.go`.
+their words: `reasons.go`, worded for the account's kind (`ReasonTextFor`:
+a person has no menu, so a stopped amount is "an amount that isn't in your
+own notes or saved answers"; the screens' `lib/assistant/reasons.ts` says
+the same on Home and the conversation page).
 **Checks (`checks.go`, the same rules as the old `lib/assistant/reply-checks.ts`):**
 - every amount written with a currency mark (symbols, ISO codes, the words
   for the common ones, and taka as Bangladesh writes it: "Tk 450", "Tk.

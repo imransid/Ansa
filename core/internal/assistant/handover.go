@@ -151,7 +151,7 @@ func requestFields(ctx context.Context, tx database.Tx, turn conversations.Turn,
 	if subject == "" || utf8.RuneCountInString(subject) > 200 {
 		subject = ChannelLabels[info.Channel] + " conversation needs you"
 	}
-	description := ReasonText[h.Reason]
+	description := ReasonTextFor(h.Reason, info.Kind)
 	if summary := strings.TrimSpace(h.Summary); summary != "" {
 		description += "\n\n" + cutRunes(summary, 1_000)
 	}

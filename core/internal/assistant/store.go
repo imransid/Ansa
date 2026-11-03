@@ -16,6 +16,8 @@ type conversationInfo struct {
 	CallerNumber string
 	// Someone the owner marked important: always handed to them.
 	Important bool
+	// The account's kind ("business" or "personal"): how a request words its reason.
+	Kind string
 	// Nothing automated reached the customer yet (sent, being sent, or maybe
 	// arrived): the next message gets the AI label. A waiting reply doesn't
 	// count: it may be replaced, discarded or held back by a newer message.
@@ -38,11 +40,13 @@ func (r *Runner) readGate(ctx context.Context, turn conversations.Turn, options 
 					SELECT 1 FROM messages
 					WHERE messages.company_id = $1 AND messages.conversation_id = $2 AND messages.author = 'assistant'
 						AND messages.send_status IN ('sending', 'sent', 'unclear')),
-				CASE WHEN contacts.channel = 'phone' THEN contacts.external_id ELSE '' END
+				CASE WHEN contacts.channel = 'phone' THEN contacts.external_id ELSE '' END,
+				companies.kind
 			FROM conversations
 			JOIN contacts ON contacts.id = conversations.contact_id AND contacts.company_id = conversations.company_id
+			JOIN companies ON companies.id = conversations.company_id
 			WHERE conversations.company_id = $1 AND conversations.id = $2`
-		return tx.QueryRow(ctx, statement, turn.CompanyID.String(), turn.ConversationID).Scan(&info.Channel, &info.ContactName, &info.Important, &info.FirstAutomated, &info.CallerNumber)
+		return tx.QueryRow(ctx, statement, turn.CompanyID.String(), turn.ConversationID).Scan(&info.Channel, &info.ContactName, &info.Important, &info.FirstAutomated, &info.CallerNumber, &info.Kind)
 	})
 	return gate, info, err
 }

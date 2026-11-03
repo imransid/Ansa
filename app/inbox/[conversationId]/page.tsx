@@ -167,7 +167,7 @@ async function ConversationContent({ params, searchParams }: Pick<PageProps<"/in
               ))}
             </section>
           )}
-          <History activity={conversation.activity} />
+          <History activity={conversation.activity} personal={kind === "personal"} />
         </aside>
       </div>
     </>

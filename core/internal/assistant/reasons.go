@@ -25,6 +25,21 @@ var ReasonText = map[string]string{
 	"not_in_package":    "Your package doesn't include this channel, so ansa sent your holding reply. See Billing.",
 }
 
+// personalReasonText: the same reasons for one person's account, where the
+// business words don't fit (a person has no menu).
+var personalReasonText = map[string]string{
+	"price_not_on_menu": "The assistant's reply named an amount that isn't in your own notes or saved answers, so ansa didn't send it.",
+}
+
+// ReasonTextFor is a reason in plain words for this kind of account
+// ("business" or "personal").
+func ReasonTextFor(reason, kind string) string {
+	if text, ok := personalReasonText[reason]; ok && kind == "personal" {
+		return text
+	}
+	return ReasonText[reason]
+}
+
 // ChannelLabels name a conversation's channel for people.
 var ChannelLabels = map[string]string{
 	"telegram": "Telegram", "messenger": "Messenger", "whatsapp": "WhatsApp", "phone": "Phone", "email": "Email", "stand_in": "Stand-in chat",

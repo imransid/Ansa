@@ -55,5 +55,5 @@ func (r *Runner) Try(ctx context.Context, company tenant.CompanyID, text string)
 	case "needs_person":
 		decision.Reason = handoverFor(decision, inputs).Reason
 	}
-	return TryResult{Outcome: "handover", Text: label(inputs.HoldingReply), Why: ReasonText[decision.Reason]}, nil
+	return TryResult{Outcome: "handover", Text: label(inputs.HoldingReply), Why: ReasonTextFor(decision.Reason, inputs.Kind)}, nil
 }

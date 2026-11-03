@@ -62,7 +62,7 @@ async function HomeContent() {
       <PackageNotice status={packageStatus} />
       <GettingStarted steps={gettingStarted} />
       {/* Only while ansa answers when you're away: answering always, "What ansa did" says it. */}
-      {presence.availability.answerWhen === "when_away" && <AwaySummaryCard summary={awaySummary} />}
+      {presence.availability.answerWhen === "when_away" && <AwaySummaryCard summary={awaySummary} personal={personal} />}
       <UndeliveredEmailsNotice count={undeliveredEmails} />
       <NeedsYou conversations={needsYou} overview={overview} personal={personal} newOrders={newOrders} />
       {!personal && <FirstRunNotices hints={hints} />}
