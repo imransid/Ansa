@@ -93,7 +93,7 @@ func TestThePracticeCommentAndTheList(t *testing.T) {
 	if code, answer := w.call("POST", "/api/v1/comments/"+id+"/discard", "{}", screensSecret, w.cookie); code != 200 || answer["outcome"] != "discarded" {
 		t.Fatalf("discarded: %d %v", code, answer)
 	}
-	if _, one := w.call("GET", "/api/v1/practice/comment/"+id, "", screensSecret, w.cookie); one["status"] != "skipped" || one["skipReason"] != "" || one["next"] != "done" {
+	if _, one := w.call("GET", "/api/v1/practice/comment/"+id, "", screensSecret, w.cookie); one["status"] != "skipped" || one["skipReason"] != "discarded" || one["next"] != "done" {
 		t.Fatalf("discarded shows as skipped: %v", one)
 	}
 	if code, _ := w.call("GET", "/api/v1/practice/comment/"+anotherCompanysConversation(t, w), "", screensSecret, w.cookie); code != 404 {

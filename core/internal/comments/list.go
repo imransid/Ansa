@@ -144,10 +144,6 @@ func scanView(rows pgx.Rows, box *secure.Box, company tenant.CompanyID) (View, e
 	if readable, err := box.Decrypt(text, TextContext(company, v.ID, "text")); err == nil {
 		v.Text, v.Readable = readable, true
 	}
-	// A discarded reply never went: Discard is shown as a skipped comment.
-	if v.SkipReason == SkipDiscarded {
-		v.SkipReason = ""
-	}
 	if v.Status == StatusNew {
 		return v, nil
 	}

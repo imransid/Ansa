@@ -109,7 +109,7 @@ message and continues it. Production refuses stand-ins (`not_connected`).
 **Send and Discard (`review.go`):** anyone in the company (the person read
 again), only while the comment waits: Send makes its waiting parts
 "sending" and queues the job (it sends them, once); Discard sends nothing
-(skipped, `discarded`, shown to the screens as skipped with no reason).
+(skipped, `discarded`, shown to the screens as skipped with that reason).
 Who pressed it is kept.
 
 **API ([api](api.md), `internal/api/comments.go`, `practice_comments.go`):**

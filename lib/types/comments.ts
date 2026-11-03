@@ -20,7 +20,9 @@ export type CommentSkipReason =
   | "package"
   | "limit"
   | "too_old"
-  | "not_allowed";
+  | "not_allowed"
+  // Someone pressed Discard on ansa's waiting reply ("Ask me first").
+  | "discarded";
 
 // Where one of ansa's texts stands: waiting = for a person's Send.
 export type CommentReplyStatus = "sent" | "failed" | "unclear" | "waiting";

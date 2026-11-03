@@ -26,6 +26,7 @@ export const COMMENT_SKIP_TEXT: Record<CommentSkipReason, string> = {
   limit: "too many comments came in at once: ansa answers only so many an hour.",
   too_old: "it's more than 7 days old: ansa answers only newer comments.",
   not_allowed: "Facebook hasn't allowed ansa to answer comments on this Page yet: connect the Page again and allow comments.",
+  discarded: "someone on your team discarded ansa's reply, so nothing was sent.",
 };
 
 // Where one of ansa's texts stands, after the text itself. where: where it

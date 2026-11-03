@@ -16,7 +16,7 @@ const CONNECTIONS = "app/settings/channels";
 const PRACTICE = `${CONNECTIONS}/practice-chat`;
 
 // What core sends (the API contract of GET /api/v1/comments).
-const SKIP_REASONS = ["", "thanks", "spam", "own_comment", "reply_in_thread", "comments_off", "package", "limit", "too_old", "not_allowed"];
+const SKIP_REASONS = ["", "thanks", "spam", "own_comment", "reply_in_thread", "comments_off", "package", "limit", "too_old", "not_allowed", "discarded"];
 const KINDS = ["question", "order", "complaint", "thanks", "spam", "unsure"];
 
 export async function runCommentsChecks() {

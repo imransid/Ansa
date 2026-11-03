@@ -51,7 +51,7 @@ func TestAskMeFirstWaitsForSendOrDiscard(t *testing.T) {
 	if outcome, _ := DiscardWaiting(ctx, w.pool, w.company, w.owner, order); outcome != OutcomeDiscarded {
 		t.Fatal("discarded")
 	}
-	if view := w.view(order); view.Status != StatusSkipped || view.SkipReason != "" || view.PublicReply != nil || view.PrivateMessage != nil {
+	if view := w.view(order); view.Status != StatusSkipped || view.SkipReason != SkipDiscarded || view.PublicReply != nil || view.PrivateMessage != nil {
 		t.Fatalf("nothing went: shown as skipped: %+v", view)
 	}
 	stranger := database.TestOwner(t, w.pool, database.TestCompany(t, w.pool))
