@@ -20,8 +20,10 @@ type alertDetails struct {
 	HoldingReplySent bool
 	AlertByEmail     bool
 	CompanyName      string
-	TelegramChatID   string
-	Owners           []owner
+	// The account's kind ("business" or "personal"): how the reason is worded.
+	Kind           string
+	TelegramChatID string
+	Owners         []owner
 }
 
 func readDetails(ctx context.Context, pool *database.Pool, company tenant.CompanyID, payload assistant.AlertPayload) (alertDetails, error) {
@@ -45,9 +47,9 @@ func readDetails(ctx context.Context, pool *database.Pool, company tenant.Compan
 		return details, err
 	}
 	const name = `
-		SELECT COALESCE(NULLIF((SELECT confirmed_value FROM business_facts WHERE company_id = $1 AND topic = 'company_name'), ''), name)
+		SELECT COALESCE(NULLIF((SELECT confirmed_value FROM business_facts WHERE company_id = $1 AND topic = 'company_name'), ''), name), kind
 		FROM companies WHERE id = $1`
-	if err := pool.QueryRow(ctx, name, id).Scan(&details.CompanyName); err != nil {
+	if err := pool.QueryRow(ctx, name, id).Scan(&details.CompanyName, &details.Kind); err != nil {
 		return details, err
 	}
 	const chat = `

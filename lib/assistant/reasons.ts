@@ -45,8 +45,10 @@ export const HANDOVER_REASON_TEXT: Record<HandoverReason, string> = {
   complaint: "They complained.",
   refund: "They asked for a refund or compensation.",
   asked_for_person: "They asked to talk to a person.",
-  // A restaurant that doesn't take orders through ansa (step 52: one that does lets ansa take them).
-  order: "They want to place an order.",
+  // A restaurant that doesn't take orders through ansa (step 52: one that
+  // does lets ansa take them), and every table booking (the AI hands those
+  // over with this reason: the activity log's CHECK has no reason of their own).
+  order: "They want to place an order or book a table.",
   // A person's assistant (step 50): a meeting, a time, money or a promise.
   needs_decision: "It needs your decision.",
   // Step 51: someone you marked important always comes to you.
@@ -65,3 +67,15 @@ export const HANDOVER_REASON_TEXT: Record<HandoverReason, string> = {
   package_used_up: "Your package has no AI replies left this month (or the free trial ended), so ansa sent your holding reply. See Billing.",
   not_in_package: "Your package doesn't include this channel, so ansa sent your holding reply. See Billing.",
 };
+
+// A person has no menu (step 50): the reasons whose business words don't
+// fit them, as core words them (core/internal/assistant/reasons.go).
+const PERSONAL_REASON_TEXT: Partial<Record<HandoverReason, string>> = {
+  price_not_on_menu: "The assistant's reply named an amount that isn't in your own notes or saved answers, so ansa didn't send it.",
+};
+
+// One reason in plain words for this kind of account.
+export function handoverReasonText(reason: HandoverReason, personal: boolean): string {
+  const personalText = personal ? PERSONAL_REASON_TEXT[reason] : undefined;
+  return personalText ?? HANDOVER_REASON_TEXT[reason];
+}

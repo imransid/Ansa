@@ -7,16 +7,19 @@ import "ansa/core/internal/orders"
 // brain's ReplyRequest (brain/brain/assistant/models.py), which refuses any
 // field it doesn't know.
 type BrainRequest struct {
-	Kind         string     `json:"kind"`
-	Business     Business   `json:"business"`
-	Hours        *Hours     `json:"hours"`
-	Ordering     Ordering   `json:"ordering"`
-	Orders       Orders     `json:"orders"`
-	Menu         []MenuItem `json:"menu"`
-	Instructions string     `json:"instructions"`
-	Knowledge    string     `json:"knowledge"`
-	Categories   []string   `json:"categories"`
-	Conversation []Line     `json:"conversation"`
+	Kind     string     `json:"kind"`
+	Business Business   `json:"business"`
+	Hours    *Hours     `json:"hours"`
+	Ordering Ordering   `json:"ordering"`
+	Orders   Orders     `json:"orders"`
+	Menu     []MenuItem `json:"menu"`
+	// The names of today's dishes marked "Not available today": no label
+	// and no price, so they can't be ordered or priced.
+	NotAvailableToday []string `json:"not_available_today"`
+	Instructions      string   `json:"instructions"`
+	Knowledge         string   `json:"knowledge"`
+	Categories        []string `json:"categories"`
+	Conversation      []Line   `json:"conversation"`
 	// "chat", or "call": a live phone call, where the reply is read aloud.
 	Channel string `json:"channel"`
 	// On a call: "answer" (help fully) or "message_only" (only take a message).
@@ -78,4 +81,7 @@ type Decision struct {
 	Summary  string          `json:"summary"`
 	Category string          `json:"category"`
 	Order    *orders.Request `json:"order"`
+	// Core's own: the amount its price check stopped ("" for none). Never
+	// read from the brain.
+	StoppedAmount string `json:"-"`
 }

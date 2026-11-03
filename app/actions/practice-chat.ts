@@ -7,8 +7,8 @@ import {
   sendPracticeEmailThroughCore,
   sendPracticeMessageThroughCore,
   type PracticeEmail,
+  type PracticeChatRead,
   type PracticeEmailSent,
-  type PracticeLine,
   type PracticeSent,
 } from "@/lib/core-views/practice-chat";
 import { requireSessionContext } from "@/lib/session";
@@ -31,12 +31,12 @@ export async function sendPracticeMessageAction(input: { channel: string; name: 
   await requireSessionContext(PAGE);
   const parsed = sendInput.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Write the customer's name and a message." };
+    return { ok: false, error: "Write a name and a message." };
   }
   return sendPracticeMessageThroughCore(parsed.data.channel, parsed.data.name, parsed.data.text, parsed.data.asBusiness);
 }
 
-export async function readPracticeChatAction(input: { conversationId: string }): Promise<PracticeLine[] | null> {
+export async function readPracticeChatAction(input: { conversationId: string }): Promise<PracticeChatRead | null> {
   await requireSessionContext(PAGE);
   const parsed = z.object({ conversationId: z.string().uuid() }).safeParse(input);
   return parsed.success ? readPracticeChatFromCore(parsed.data.conversationId) : null;

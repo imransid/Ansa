@@ -3,7 +3,7 @@ import { ConciergeBell } from "lucide-react";
 import { markAwaySummarySeenAction } from "@/app/actions/away";
 import { ActionButton } from "@/components/action-button";
 import { LocalDateTime } from "@/components/local-date-time";
-import { HANDOVER_REASON_TEXT } from "@/lib/assistant/reasons";
+import { handoverReasonText } from "@/lib/assistant/reasons";
 import { ACTIVITY_TEXT } from "@/lib/conversations";
 import { contactLabel } from "@/lib/inbox";
 import type { AwaySummary } from "@/lib/types/away";
@@ -11,7 +11,8 @@ import type { AwaySummaryLine } from "@/lib/types/away-summary";
 
 // "While you were away": what ansa did since you last pressed "Got it",
 // each conversation once, the ones that need you first in the words.
-export function AwaySummaryCard({ summary }: { summary: AwaySummary }) {
+// personal: one person's account (a reason is worded for them).
+export function AwaySummaryCard({ summary, personal }: { summary: AwaySummary; personal: boolean }) {
   if (summary.conversations.length === 0) {
     return null;
   }
@@ -36,7 +37,7 @@ export function AwaySummaryCard({ summary }: { summary: AwaySummary }) {
           <li key={line.conversationId}>
             <Link href={`/inbox/${line.conversationId}`} className="grid gap-0.5 py-2.5 text-sm hover:text-link">
               <span className="font-medium">{contactLabel({ displayName: line.contactName, externalId: "", channel: line.channel }) || "Someone"}</span>
-              <span className="text-muted-foreground">{awayLineText(line)}</span>
+              <span className="text-muted-foreground">{awayLineText(line, personal)}</span>
             </Link>
           </li>
         ))}
@@ -47,10 +48,10 @@ export function AwaySummaryCard({ summary }: { summary: AwaySummary }) {
 }
 
 // What ansa did in one conversation, in a few words.
-function awayLineText(line: AwaySummaryLine): string {
+function awayLineText(line: AwaySummaryLine, personal: boolean): string {
   switch (line.action) {
     case "handed_over":
-      return `Needs you. ${line.reason ? HANDOVER_REASON_TEXT[line.reason] : ""}`;
+      return `Needs you. ${line.reason ? handoverReasonText(line.reason, personal) : ""}`;
     case "email_made_request":
     case "call_needs_person":
       return `Needs you. ${ACTIVITY_TEXT[line.action]}.`;

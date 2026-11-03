@@ -5,7 +5,9 @@
 strict: an unknown field is refused); the brain answers a decision.
 **Prompt (`prompt.py`):** the same words as the old `lib/assistant/prompt.ts`
 and `order-prompt.ts`: a business's or a person's system prompt, and the data
-in tags (business, hours, ordering, menu with labels, the order in progress
+in tags (business, hours, ordering, menu with labels, the dishes not
+available today by name only (`<not_available_today>`: said to be off
+today, never off the menu, with no price and no order), the order in progress
 and placed orders, the owner's instructions, articles, categories, the newest
 20 messages of this one conversation). Every value escaped (`text.py`); the
 customer's words with card-like and social-security-like numbers and email
@@ -13,7 +15,14 @@ addresses hidden, the owner's with secret numbers hidden. Each message's
 line is named by its side: "Customer" and "Restaurant", or for a person
 "Sender" and "<their name>'s side" (theirs, and ansa's for them; never
 "Restaurant"). No prompt names one chat: customers write on WhatsApp,
-Messenger and Telegram alike ("in its chats").
+Messenger and Telegram alike ("in its chats"). The AI never repeats an
+amount of money the customer wrote, even to say no (core's price check
+would stop the reply): it says the menu's price instead (a person's: only
+amounts their instructions or articles give). An order's notes are only
+what the customer asked for, briefly, in their own words and language (ansa
+shows them in the summary it sends the customer): never the AI's comment
+to the restaurant; something it can't promise (an extra or a change not on
+the menu) is asked about or handed over, never written into the notes.
 **Model (`ai.py`):** Anthropic's SDK, one structured JSON answer
 (`output_config.format: json_schema`), effort low, 3,000 tokens, 30 s, one
 retry; the business's own key when core sends one, else ansa's; on an error
@@ -72,7 +81,8 @@ engine; a failure is `{"kind":"failed","reason":...}`.
 **Core's checks (prices, links, refunds) run in core, not here.**
 **Tests:** `tests/test_call_summary.py` (the note's prompt, escaping and
 strict reading); `tests/test_assistant.py` (a fake model): the prompt's contents,
-escaping and hiding; a person's prompt; each side of the conversation named
+escaping and hiding; a dish off today by its name only; an order's notes
+the customer's own words; a person's prompt; each side of the conversation named
 for whom ansa answers, and no chat named; strict reading; failures; the
 endpoint needs core's signature; Claude Code is refused outside development,
 gets the conversation on stdin only and none of the brain's secrets (a fake

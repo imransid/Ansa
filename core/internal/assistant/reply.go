@@ -27,6 +27,9 @@ const (
 	OutcomeHandedOver = "handed-over"
 	OutcomeQuiet      = "quiet"
 	OutcomeWaiting    = "waiting"
+	// An important person wrote again while their request is open: you
+	// were told again (no second holding reply).
+	OutcomeToldAgain = "told-again"
 )
 
 // The hourly limits (the old RATE_LIMITS, the same counters): per customer
@@ -81,8 +84,16 @@ func (r *Runner) HandleJob(ctx context.Context, job *jobs.Job) error {
 // the gate makes sure a message is never answered twice.
 func (r *Runner) Answer(ctx context.Context, turn conversations.Turn, coverAfterNoReply bool) (string, error) {
 	gate, info, err := r.readGate(ctx, turn, GateOptions{RequireNewest: true})
-	if err != nil || gate != GateMay {
+	if err != nil {
 		return OutcomeQuiet, err
+	}
+	// An open request keeps ansa quiet (one holding reply until a person
+	// answers), but someone you marked important still reaches you.
+	if gate == GateNeedsPerson && info.Important {
+		return r.tellAgainAboutImportant(ctx, turn)
+	}
+	if gate != GateMay {
+		return OutcomeQuiet, nil
 	}
 	// Someone you marked important always comes to you at once, whatever
 	// your away settings say: no AI answer at all.
@@ -150,7 +161,7 @@ func (r *Runner) decide(ctx context.Context, inputs *Inputs) Decision {
 	switch decision.Kind {
 	case "reply":
 		if reason := CheckReply(decision.Text, inputs.Checks); reason != "" {
-			return Decision{Kind: "failed", Reason: reason}
+			return Decision{Kind: "failed", Reason: reason, StoppedAmount: StoppedAmount(decision.Text, inputs.Checks)}
 		}
 		return decision
 	case "no_reply", "needs_person", "order_summary", "order_confirmed", "order_withdrawn":
@@ -165,9 +176,14 @@ func (r *Runner) decide(ctx context.Context, inputs *Inputs) Decision {
 }
 
 // handoverFor is the handover a decision asks for: the AI's subject,
-// summary and category only when it asked for a person itself.
+// summary and category only when it asked for a person itself; a reply
+// core's checks stopped gets a subject saying why.
 func handoverFor(decision Decision, inputs *Inputs) Handover {
-	handover := Handover{Reason: decision.Reason, SendHoldingReply: true}
+	handover := Handover{Reason: decision.Reason, SendHoldingReply: true, StoppedAmount: decision.StoppedAmount}
+	if decision.Kind == "failed" {
+		handover.Subject = stoppedSubject(decision.Reason, inputs.Kind)
+		return handover
+	}
 	if decision.Kind != "needs_person" {
 		return handover
 	}

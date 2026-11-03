@@ -141,7 +141,7 @@ func (r *Runner) saveFixedAndSend(ctx context.Context, turn conversations.Turn, 
 			outcome = outcomeNothingToDo
 			return err
 		}
-		text = WithAILabel(text, inputs.Name, inputs.Kind, info.FirstAutomated)
+		text = WithAILabel(text, inputs.Name, inputs.Kind, inputs.Ordering.Language, info.FirstAutomated)
 		body, err := r.Box.Encrypt(text, conversations.MessageContext(turn.CompanyID, messageID))
 		if err != nil {
 			return err

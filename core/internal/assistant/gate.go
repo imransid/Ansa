@@ -3,11 +3,13 @@ package assistant
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	"ansa/core/internal/conversations"
 	"ansa/core/internal/database"
+	"ansa/core/internal/tenant"
 )
 
 // Why the assistant stays quiet, or GateMay when it may answer (the same
@@ -82,15 +84,11 @@ func GateWithin(ctx context.Context, tx database.Tx, turn conversations.Turn, op
 		return GateNeedsPerson, nil
 	}
 	if options.RequireNewest {
-		const newest = `
-			SELECT id FROM messages
-			WHERE company_id = $1 AND conversation_id = $2 AND direction = 'in' AND body_encrypted IS NOT NULL
-			ORDER BY created_at DESC LIMIT 1`
-		var newestID string
-		if err := tx.QueryRow(ctx, newest, company, turn.ConversationID).Scan(&newestID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		newest, err := isNewestCustomerMessageWithin(ctx, tx, turn)
+		if err != nil {
 			return "", err
 		}
-		if newestID != turn.TriggerMessageID {
+		if !newest {
 			return GateNotNewest, nil
 		}
 	}
@@ -112,6 +110,29 @@ func callStillLiveWithin(ctx context.Context, tx database.Tx, turn conversations
 	var live bool
 	err := tx.QueryRow(ctx, statement, turn.CompanyID.String(), turn.TriggerMessageID).Scan(&live)
 	return live, err
+}
+
+// isNewestCustomerMessageWithin: the turn's message is the customer's newest
+// in its conversation (a newer one gets its own run).
+func isNewestCustomerMessageWithin(ctx context.Context, tx database.Tx, turn conversations.Turn) (bool, error) {
+	newestID, _, err := newestCustomerMessageWithin(ctx, tx, turn.CompanyID, turn.ConversationID)
+	return newestID == turn.TriggerMessageID, err
+}
+
+// newestCustomerMessageWithin is the customer's newest message ("" when
+// they wrote none) and when it arrived.
+func newestCustomerMessageWithin(ctx context.Context, tx database.Tx, company tenant.CompanyID, conversationID string) (string, time.Time, error) {
+	const statement = `
+		SELECT id, created_at FROM messages
+		WHERE company_id = $1 AND conversation_id = $2 AND direction = 'in' AND body_encrypted IS NOT NULL
+		ORDER BY created_at DESC LIMIT 1`
+	var id string
+	var at time.Time
+	err := tx.QueryRow(ctx, statement, company.String(), conversationID).Scan(&id, &at)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", time.Time{}, nil
+	}
+	return id, at, err
 }
 
 // MarkHandledWithin records that the assistant answered (or decided about)

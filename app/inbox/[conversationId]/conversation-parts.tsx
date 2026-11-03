@@ -6,7 +6,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { LocalDateTime } from "@/components/local-date-time";
 import { StatusDot } from "@/components/status-dot";
 import { buttonVariants } from "@/components/ui/button";
-import { HANDOVER_REASON_TEXT } from "@/lib/assistant/reasons";
+import { handoverReasonText } from "@/lib/assistant/reasons";
 import { ACTIVITY_TEXT } from "@/lib/conversations";
 import type { ConversationView } from "@/lib/core-views/inbox";
 import { offersDone } from "./request-box";
@@ -130,7 +130,8 @@ function openRequestText(conversation: ConversationView, ticket: NonNullable<Con
   return "You answer next: ansa stays quiet here until the request below is solved";
 }
 
-export function History({ activity }: { activity: ConversationView["activity"] }) {
+// personal: one person's account (a reason is worded for them).
+export function History({ activity, personal }: { activity: ConversationView["activity"]; personal: boolean }) {
   if (activity.length === 0) {
     return null;
   }
@@ -141,7 +142,7 @@ export function History({ activity }: { activity: ConversationView["activity"] }
         {activity.map((row) => (
           <li key={row.id}>
             <LocalDateTime iso={row.createdAt.toISOString()} />: {ACTIVITY_TEXT[row.action]}
-            {row.reason ? `. ${HANDOVER_REASON_TEXT[row.reason]}` : ""}
+            {row.reason ? `. ${handoverReasonText(row.reason, personal)}` : ""}
             {row.actorName ? ` (${row.actorName})` : ""}
           </li>
         ))}

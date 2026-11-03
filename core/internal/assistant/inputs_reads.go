@@ -85,6 +85,32 @@ func readMenu(ctx context.Context, pool *database.Pool, company tenant.CompanyID
 	return menu, rows.Err()
 }
 
+// readUnavailableToday lists the names of the dishes someone marked "Not
+// available today" (a person has none): the AI tells a customer one isn't
+// available today, never that it isn't on the menu.
+func readUnavailableToday(ctx context.Context, pool *database.Pool, company tenant.CompanyID, kind string) ([]string, error) {
+	names := []string{}
+	if kind == "personal" {
+		return names, nil
+	}
+	const statement = `
+		SELECT name FROM catalog_items
+		WHERE company_id = $1 AND unavailable_until > now()
+		ORDER BY position, id`
+	rows, err := pool.Query(ctx, statement, company.String())
+	if err != nil {
+		return nil, fmt.Errorf("menu: %w", err)
+	}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}
+
 // conversationLines are the newest texts of the conversation, oldest first,
 // decrypted; drafts, discarded and failed messages never reached the customer.
 func conversationLines(ctx context.Context, pool *database.Pool, box *secure.Box, company tenant.CompanyID, conversationID string) ([]Line, error) {

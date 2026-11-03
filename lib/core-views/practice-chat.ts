@@ -12,6 +12,14 @@ export type PracticeChannel = "whatsapp" | "telegram" | "messenger";
 // email: the practice email works here (real email is off).
 export type PracticeChat = { available: boolean; isOwner: boolean; standIns: Record<PracticeChannel, boolean>; email: boolean };
 export type PracticeLine = { fromCustomer: boolean; text: string; at: string };
+// What ansa does next with the newest message (core's assistant.WhatNext):
+// it answers now, or at `at` ("If I haven't answered within N minutes"); its
+// reply waits for a person (Ask me first); or it stays quiet, and why.
+export type PracticeNext = {
+  what: "answers" | "answers_at" | "draft" | "paused" | "taken_over" | "request_open" | "told_you" | "you_answer" | "nothing";
+  at: string | null;
+};
+export type PracticeChatRead = { lines: PracticeLine[]; next: PracticeNext };
 export type PracticeSent = { ok: true; conversationId: string } | { ok: false; error: string };
 // verified: as Resend reports DKIM or DMARC passed for the sender.
 export type PracticeEmail = { name: string; address: string; subject: string; text: string; verified: boolean };
@@ -50,10 +58,11 @@ export async function sendPracticeMessageThroughCore(channel: PracticeChannel, n
   return { ok: true, conversationId: answer.data.conversationId };
 }
 
-// The chat as the customer sees it (null: it couldn't be read).
-export async function readPracticeChatFromCore(conversationId: string): Promise<PracticeLine[] | null> {
-  const answer = await callCore<{ lines: PracticeLine[] }>("GET", `/api/v1/practice/chat/${conversationId}`);
-  return answer.ok ? answer.data.lines : null;
+// The chat as the customer sees it, and what ansa does next with their
+// newest message (null: it couldn't be read).
+export async function readPracticeChatFromCore(conversationId: string): Promise<PracticeChatRead | null> {
+  const answer = await callCore<PracticeChatRead>("GET", `/api/v1/practice/chat/${conversationId}`);
+  return answer.ok ? answer.data : null;
 }
 
 // The made-up customer's conversation on the channel, so the page shows it

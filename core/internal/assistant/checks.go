@@ -5,6 +5,7 @@ package assistant
 
 import (
 	"ansa/core/internal/money"
+	"ansa/core/internal/orders"
 
 	"regexp"
 	"strings"
@@ -54,7 +55,7 @@ var (
 
 // CheckReply returns "" when the reply may go, else the reason it may not.
 func CheckReply(text string, data CheckData) string {
-	if !pricesAreKnown(text, data) {
+	if _, unknown := firstUnknownAmount(text, data); unknown {
 		return ReasonPriceNotOnMenu
 	}
 	if refundWords.MatchString(text) || refundWordsBangla.MatchString(text) {
@@ -75,17 +76,35 @@ func CheckReply(text string, data CheckData) string {
 // thousand, "1,50,000" a hundred and fifty thousand), so a price the owner
 // wrote reads the same in a reply.
 func MoneyAmounts(text, currency string) []int64 {
-	text = money.WithASCIIDigits(text)
 	var amounts []int64
-	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
-		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
-			amounts = append(amounts, money.ParsePrice(match[1], currency))
-		}
+	for _, mention := range moneyMentions(text, currency) {
+		amounts = append(amounts, mention.amount)
 	}
 	return amounts
 }
 
-func pricesAreKnown(text string, data CheckData) bool {
+// moneyMention is one amount written with a currency mark: as written (any
+// script's digits as 0-9) and in smallest units (-1: unreadable).
+type moneyMention struct {
+	written string
+	amount  int64
+}
+
+func moneyMentions(text, currency string) []moneyMention {
+	text = money.WithASCIIDigits(text)
+	var mentions []moneyMention
+	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
+		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
+			mentions = append(mentions, moneyMention{written: strings.TrimSpace(match[0]), amount: money.ParsePrice(match[1], currency)})
+		}
+	}
+	return mentions
+}
+
+// firstUnknownAmount is the first amount of the reply, as written, that is
+// neither a menu price nor in the business's own texts (or can't be read as
+// a price), and whether there is one.
+func firstUnknownAmount(text string, data CheckData) (string, bool) {
 	allowed := map[int64]bool{}
 	for _, price := range data.MenuPrices {
 		allowed[price] = true
@@ -97,12 +116,19 @@ func pricesAreKnown(text string, data CheckData) bool {
 			}
 		}
 	}
-	for _, amount := range MoneyAmounts(text, data.Currency) {
-		if amount < 0 || !allowed[amount] {
-			return false
+	for _, mention := range moneyMentions(text, data.Currency) {
+		if mention.amount < 0 || !allowed[mention.amount] {
+			return mention.written, true
 		}
 	}
-	return true
+	return "", false
+}
+
+// StoppedAmount is the amount that stopped a reply (price_not_on_menu) as
+// the reply wrote it ("250 taka"), at most 40 characters; "" when there is none.
+func StoppedAmount(text string, data CheckData) string {
+	written, _ := firstUnknownAmount(text, data)
+	return cutRunes(strings.Join(strings.Fields(written), " "), 40)
 }
 
 func linksAreKnown(text string, ownerTexts []string) bool {
@@ -117,7 +143,7 @@ func linksAreKnown(text string, ownerTexts []string) bool {
 	return true
 }
 
-// AILabel is ansa's own first line in a conversation (never the AI's).
+// AILabel is ansa's own first line in a conversation (never the AI's), in English.
 func AILabel(name, kind string) string {
 	clean := strings.Join(strings.Fields(name), " ")
 	if kind == "personal" {
@@ -132,10 +158,29 @@ func AILabel(name, kind string) string {
 	return "I'm the AI assistant for " + clean + "."
 }
 
-// WithAILabel puts the label first on the first automated message.
-func WithAILabel(text, name, kind string, first bool) string {
+// AILabelIn is the label in the customer's language, chosen as ansa's
+// order texts choose theirs (orders.LanguageOf on the customer's newest
+// message): Bangla for a customer writing mostly in Bengali script, else
+// English. The name stays as written.
+func AILabelIn(name, kind, language string) string {
+	if language != orders.Bangla {
+		return AILabel(name, kind)
+	}
+	clean := strings.Join(strings.Fields(name), " ")
+	switch {
+	case clean != "":
+		return "আমি " + clean + "-এর এআই সহকারী।"
+	case kind == "personal":
+		return "আমি একজন এআই সহকারী।"
+	}
+	return "আমি এই ব্যবসার এআই সহকারী।"
+}
+
+// WithAILabel puts the label first on the first automated message, in the
+// customer's language.
+func WithAILabel(text, name, kind, language string, first bool) string {
 	if !first {
 		return text
 	}
-	return AILabel(name, kind) + "\n" + text
+	return AILabelIn(name, kind, language) + "\n" + text
 }

@@ -18,7 +18,8 @@ const TEXT_MAX_LENGTH = 100_000;
 // address as a customer's email forwarded to ansa arrives through Resend,
 // and core reads it as any received email. ansa doesn't answer emails: each
 // one becomes a request in the Inbox.
-export function PracticeEmail({ available }: { available: boolean }) {
+// personal: one person's account (emails become notes for them).
+export function PracticeEmail({ available, personal }: { available: boolean; personal: boolean }) {
   const [name, setName] = useState("Tanvir Ahmed");
   const [address, setAddress] = useState("tanvir@example.com");
   const [subject, setSubject] = useState("");
@@ -62,8 +63,9 @@ export function PracticeEmail({ available }: { available: boolean }) {
   return (
     <form onSubmit={send} className="grid gap-4 rounded-2xl border bg-card p-5">
       <p className="text-sm text-muted-foreground">
-        Your email goes to your forwarding address, like a customer&apos;s email forwarded to ansa. ansa doesn&apos;t answer emails: each one
-        becomes a request in your Inbox.
+        {personal
+          ? "Your email goes to your forwarding address, like an email forwarded to ansa. ansa doesn't answer emails: each one becomes a note in your Inbox."
+          : "Your email goes to your forwarding address, like a customer's email forwarded to ansa. ansa doesn't answer emails: each one becomes a request in your Inbox."}
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
@@ -127,8 +129,9 @@ export function PracticeEmail({ available }: { available: boolean }) {
           <span>Sender verified (as Resend reports DKIM/DMARC passed)</span>
         </label>
         <p id="email-verified-help" className="text-xs text-muted-foreground">
-          Ticked, as for a real sender Resend verified, the address becomes the request&apos;s customer email. Not ticked, it is only
-          suggested for a person to confirm, as for an email anyone could have forged.
+          {personal
+            ? "Ticked, as for a real sender Resend verified, the address is saved as theirs. Not ticked, it is only suggested for you to confirm, as for an email anyone could have forged."
+            : "Ticked, as for a real sender Resend verified, the address becomes the request's customer email. Not ticked, it is only suggested for a person to confirm, as for an email anyone could have forged."}
         </p>
       </div>
       <div>

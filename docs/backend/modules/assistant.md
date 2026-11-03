@@ -6,7 +6,13 @@ passes, and sending, drafting or handing over to a person), as the old
 `services/assistant-reply.ts` and `assistant-handover.ts`.
 
 **One run (`reply.go`, `Runner.Answer`), in this order:**
-1. The gate (below), read before anything else: not "may" = quiet.
+1. The gate (below), read before anything else: not "may" = quiet, with
+   one exception: an important person writing again while their request is
+   still open (`important.go`, `tellAgainAboutImportant`) is passed on
+   anyway: a "handed_over" line (`important_person`) and the owners' alert
+   again, at once (`wroteAgain`), for their newest message only (a burst
+   tells you once), with no second holding reply or request and no AI
+   (outcome "told-again").
 2. An important person goes to a person at once (`important_person`: the
    holding reply, a request and the alert), no AI, whatever the away
    settings say (also while you're available and ansa would leave the
@@ -43,14 +49,22 @@ conversation now, and nothing may go after the holding reply), the
 business's holding reply (never the AI's text; with the AI label when
 first) saved "sending" when the channel can take it, a request
 (`tickets.CreateChatTicketWithin`: the AI's subject
-cleaned to one plain line, else "<Channel> conversation needs you"; the
+cleaned to one plain line; for a reply core's checks stopped, a subject
+saying why ("Reply stopped: a price not on your menu", "...: it promised a
+refund", "...: an unknown link"; a person's "...: an amount not in your
+notes", "...: it would commit you"); else "<Channel> conversation needs you"; the
 reason's words, then the AI's summary; its category only when it names an
 active one exactly; routed, and whoever routing picks is emailed by the
 `ticket.assigned` job), the "handed_over" line with the reason, the message
 handled, and the `owner.alert` job (starts 20 s later, so it can say whether
 the holding reply arrived; see [alerts](alerts.md)). Then the holding reply
 is sent. While the request is open the assistant stays quiet. Reasons and
-their words: `reasons.go`.
+their words: `reasons.go`, worded for the account's kind (`ReasonTextFor`:
+a person has no menu, so a stopped amount is "an amount that isn't in your
+own notes or saved answers"; the screens' `lib/assistant/reasons.ts` says
+the same on Home and the conversation page). A table booking is handed
+over as `order` (the activity log's CHECK has no reason of its own for
+it), worded "They want to place an order or book a table."
 **Checks (`checks.go`, the same rules as the old `lib/assistant/reply-checks.ts`):**
 - every amount written with a currency mark (symbols, ISO codes, the words
   for the common ones, and taka as Bangladesh writes it: "Tk 450", "Tk.
@@ -64,7 +78,11 @@ their words: `reasons.go`.
   groups of three are one amount, whatever the separator ("15,000",
   "1 200", "1.040,50": step 58; "15,000" was read as no price and stopped
   every reply naming one), and so are lakhs grouped the South Asian way
-  ("1,50,000" and "১,৫০,০০০" are 150,000, not 1.50);
+  ("1,50,000" and "১,৫০,০০০" are 150,000, not 1.50). An amount the customer
+  wrote never counts (the AI could agree to a made-up price): the brain is
+  told never to repeat one, and a reply that does is stopped, its request
+  naming the amount as the reply wrote it (`StoppedAmount`: "The
+  assistant's reply named 250 taka, which isn't on your menu, ...");
 - no refund, compensation or voucher words in English, Italian, Spanish,
   French, German or Bangla (রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার; never a
   bare ফেরত, "back": ফেরত কল is a call back) (`refund_promise`);
@@ -88,7 +106,16 @@ smallest units (ISO 4217 digits: 0 for yen or won, 3 for dinars, 2 for
 most); a minus is no price. See [orders](orders.md), Money.
 **AI label:** "I'm the AI assistant for <business>." / "I'm <name>'s AI
 assistant.", ansa's own first line of the first automated message the
-customer gets (a reply, a holding reply or one of ansa's order texts).
+customer gets (a reply, a holding reply or one of ansa's order texts). In
+the customer's language, chosen as ansa's order texts choose theirs
+(`orders.LanguageOf` on their newest message): for a customer writing
+mostly in Bengali script, "আমি <business>-এর এআই সহকারী।" / "আমি
+<name>-এর এআই সহকারী।" (`AILabelIn`; the name as written). A call's
+greeting keeps the English label.
+**What next (`next.go`, `WhatNext`):** for the practice chat, what ansa
+does next with a conversation's newest customer message, read with the
+same gate and away settings as an answer, nothing written (see
+[practicechat](practicechat.md)).
 **Gate (`gate.go`, the old `gateWithin`'s order):** not found → paused →
 taken over by a person → the message handled already → a request open in the
 conversation → a newer customer message (it gets its own run) → may. Read
@@ -105,7 +132,9 @@ their away hours and whether they said they're away); delivery, pickup,
 payment, whether it takes orders (only with delivery or pickup to get them)
 and the delivery fee; the dishes available
 now, labelled M1..., with prices as the menu shows them (`money.go`); the
-owner's instructions; active category names; the newest 20 messages of this
+names of the dishes marked "Not available today" (`not_available_today`: no
+label and no price, so they can't be ordered or priced, and the AI says
+they're off today, never off the menu); the owner's instructions; active category names; the newest 20 messages of this
 one conversation, decrypted (drafts, discarded and failed ones never reached
 the customer). Never an id. Also what core checks the reply against (menu
 prices plus the delivery fee, the owner's own texts, today's dishes'
@@ -123,16 +152,17 @@ engine goes too: "api_key" with the business's own key decrypted
 (the brain holds it), or "claude_code" (development only, refused by the
 brain in production).
 **Tests:** `checks_test.go` (also Bengali digits, Tk and টাকা, lakhs, and
-the Bangla refund words); `commitments_test.go` (a person's reply naming a
+the Bangla refund words; the AI label in Bangla); `commitments_test.go` (a person's reply naming a
 time, a day or an agreement they never wrote stops, in English and Bangla,
 য় written either way; their own times and days pass, written the other
 way or in the other language; সকাল, কালো, আজব and the name রাজিব don't
 stop a reply; a business's replies aren't checked); `gate_test.go`; `inputs_test.go` (live database:
-only available dishes, labelled; the fee; "Tuesday 19:30, open until
+only available dishes, labelled, and today's unavailable ones by name,
+without a price; the fee; "Tuesday 19:30, open until
 midnight"; the decrypted conversation; no id in the request; a price in
 today's dish's description may be quoted; no orders without delivery or
-pickup); `order_test.go` (also a Bangla customer's summary, confirmation
-and status message in Bangla);
+pickup); `order_test.go` (also a Bangla customer's summary, with the AI label,
+confirmation and status message in Bangla);
 `inputs_knowledge_test.go` (live database, a fake brain: a price written
 only in an article's title may be quoted; a follow-up finds the article of
 the question before it; the customer's newest messages, newest first);
@@ -142,7 +172,9 @@ is asked (holding reply, request, line, alert queued) and the assistant then
 stays quiet; the AI's own request keeps its cleaned subject and category;
 paused is quiet without asking the brain; Ask me first saves a draft; an
 important person is handed over without the brain, also at once while you're
-available (holding reply, request, alert); "when away" waits, then the
+available (holding reply, request, alert), and writing again while their
+request is open is passed on again (a line and the alert at once, no second
+holding reply or request, once for a burst; anyone else waits quietly); "when away" waits, then the
 catch-up's run answers; a person's reply that would commit them is never
 sent (their holding reply, a `needs_decision` request); the brain down =
 the holding reply; an own key that can't be read is never replaced by ansa's. `drafts_test.go` (Ask me

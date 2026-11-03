@@ -7,7 +7,7 @@ var ReasonText = map[string]string{
 	"complaint":         "They complained.",
 	"refund":            "They asked for a refund or compensation.",
 	"asked_for_person":  "They asked to talk to a person.",
-	"order":             "They want to place an order.",
+	"order":             "They want to place an order or book a table.",
 	"needs_decision":    "It needs your decision.",
 	"important_person":  "They're one of your important people.",
 	"price_not_on_menu": "The assistant's reply named a price that isn't on your menu, so ansa didn't send it.",
@@ -25,6 +25,60 @@ var ReasonText = map[string]string{
 	"not_in_package":    "Your package doesn't include this channel, so ansa sent your holding reply. See Billing.",
 	// Only a request's and an alert's (callNoteReason): its activity row is "call_needs_person".
 	"call_note": "After their call, ansa noted something that waits for you.",
+}
+
+// personalReasonText: the same reasons for one person's account, where the
+// business words don't fit (a person has no menu).
+var personalReasonText = map[string]string{
+	"price_not_on_menu": "The assistant's reply named an amount that isn't in your own notes or saved answers, so ansa didn't send it.",
+}
+
+// ReasonTextFor is a reason in plain words for this kind of account
+// ("business" or "personal").
+func ReasonTextFor(reason, kind string) string {
+	if text, ok := personalReasonText[reason]; ok && kind == "personal" {
+		return text
+	}
+	return ReasonText[reason]
+}
+
+// stoppedSubjects: the subject of a request about a reply ansa's own
+// checks stopped, saying why, instead of "<Channel> conversation needs you"
+// (the AI wrote none: its reply never went).
+var stoppedSubjects = map[string]string{
+	ReasonPriceNotOnMenu: "Reply stopped: a price not on your menu",
+	ReasonRefundPromise:  "Reply stopped: it promised a refund",
+	ReasonUnknownLink:    "Reply stopped: an unknown link",
+}
+
+// personalStoppedSubjects: the same for one person (no menu; only their
+// replies are checked for commitments).
+var personalStoppedSubjects = map[string]string{
+	ReasonPriceNotOnMenu: "Reply stopped: an amount not in your notes",
+	ReasonNeedsDecision:  "Reply stopped: it would commit you",
+}
+
+// stoppedSubject is that subject for this kind of account ("" for a reason
+// none of the checks gives).
+func stoppedSubject(reason, kind string) string {
+	if subject, ok := personalStoppedSubjects[reason]; ok && kind == "personal" {
+		return subject
+	}
+	return stoppedSubjects[reason]
+}
+
+// reasonWords is a request's reason in plain words for this kind of
+// account, naming the amount ansa's price check stopped when there is one
+// (the customer's own price the AI repeated, or one it made up).
+func reasonWords(reason, stoppedAmount, kind string) string {
+	if reason != ReasonPriceNotOnMenu || stoppedAmount == "" {
+		return ReasonTextFor(reason, kind)
+	}
+	where := "on your menu"
+	if kind == "personal" {
+		where = "in your own notes or saved answers"
+	}
+	return "The assistant's reply named " + stoppedAmount + ", which isn't " + where + ", so ansa didn't send it."
 }
 
 // ChannelLabels name a conversation's channel for people.

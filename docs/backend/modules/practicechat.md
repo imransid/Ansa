@@ -34,6 +34,15 @@ side, in the browser, beside the owner's own pages.
   (or being sent, or unclear) and the business's own on the business's
   side, never a reply waiting for the owner's approval ("Ask me first") or
   one discarded.
+- With the chat, what ansa does next with the customer's newest message
+  (`assistant.WhatNext`, read with the assistant's own gate and away
+  settings, nothing written): "answers" (now; an important person passed
+  on), "answers_at" (it waits for you until `at`: "if I haven't answered
+  within N minutes"), "draft" (Ask me first), or why it stays quiet:
+  "paused", "taken_over", "request_open", "told_you" (an important person
+  while their request is open: you were alerted), "you_answer" (Only when
+  I'm away, and you're available), "nothing" (it needed no answer). The
+  page shows "ansa is writing..." only for "answers".
 - Without a stand-in account on that channel: refused (409), the page links
   Connections.
 - **Email** (`email.go`): the owner writes an email as a customer (a name or
@@ -58,21 +67,31 @@ which channels have a stand-in, whether the practice email works here),
 (checked: a known channel, a name of 1-100, a message of 1-4,000; 300 an
 hour per company; asBusiness: the business's own answer, 409 before the
 customer wrote), `GET /api/v1/practice/chat/find?channel=&name=`,
-`GET /api/v1/practice/chat/{id}` (the company's own conversations only),
+`GET /api/v1/practice/chat/{id}` {lines, next: {what, at}} (the company's
+own conversations only),
 `POST /api/v1/practice/email` {name, address, subject, text, verified}:
 {to} (body up to 1 MB; checked: a name of 0-100 and a subject of 1-1,000,
 each one plain line, the address by the customer address rule, the text a
 box of 1-100,000; 100 an hour per company).
 
-**Screens:** `app/settings/channels/practice-chat/` (the page polls every
-2 seconds while a chat is open, so an order accepted on the Orders page
-shows in the customer's chat; the message box and its "Answer as the
-business" tick are `message-form.tsx`; "Email" shows `practice-email.tsx`
+**Screens:** `app/settings/channels/practice-chat/` (while a chat is open
+the page looks at it again 2 seconds after each look ended, so an order
+accepted on the Orders page shows in the customer's chat: never two looks
+at once, none while a message is being sent, and a send doesn't wait for
+an extra look (server actions run one at a time per browser, so piled-up
+looks once held a send for minutes on a busy laptop); a sent message shows
+at once, and the next look brings the chat as core has it. Below the
+customer's newest message, "ansa is writing..." only while `next` says
+ansa answers, else a line for the presenter saying why it doesn't, or when
+it answers. Who writes is `who-writes.tsx`; the message box and its
+"Answer as the business" tick are `message-form.tsx`; for one person every
+word is a person's ("Who writes, and on which app", "Their name", "Answer
+as yourself, from your own app"); "Email" shows `practice-email.tsx`
 instead, which says where the email went and links the Inbox and the
 Emails page). Settings → Connections links it in each stand-in's advice.
 
 **Tests:** `internal/api/practice_chat_test.go` (a stand-in needed, the
-reply queued as for any customer, the same name the same customer, found
+reply queued as for any customer, ansa said to answer it, the same name the same customer, found
 again, never a draft shown, fields checked, another company's chat not
 there, members and production refused; answering as the business on each
 channel: not before the customer wrote, saved as the business's own in
@@ -82,4 +101,8 @@ Hand back); `internal/api/practice_email_test.go`
 content where the development fetcher reads it, fields checked, an unknown
 one refused, refused while real email is on, members and production
 refused; run by core's worker, a verified sender becomes the request's
-customer, an unverified one only suggested); `internal/standins/customers_test.go`.
+customer, an unverified one only suggested); `internal/standins/customers_test.go`;
+`internal/assistant/next_test.go` (what ansa does next follows the gate
+and the away settings: answers, answered, a request open, an important
+person told, Ask me first, paused, waiting until its time before and
+after the run set it, left to you, taken over).

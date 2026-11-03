@@ -65,4 +65,30 @@ export async function runConnectionsChecks() {
     assert.match(withoutComments(await read("app/actions/practice-chat.ts")), /asBusiness: z\.boolean\(\)/);
     assert.match(withoutComments(await read("lib/core-views/practice-chat.ts")), /\{ channel, name, text, asBusiness \}/);
   });
+
+  await check("practice chat: the next look at the chat starts only once the one before ended, none starts while a message is being sent, and a send never waits for an extra read (server actions run one at a time)", async () => {
+    const page = withoutComments(await read(`${FOLDER}/practice-chat/practice-chat.tsx`));
+    assert.doesNotMatch(page, /setInterval/);
+    assert.match(page, /if \(!stopped\) \{\s*timer = setTimeout\(look, LOOK_EVERY_MS\);/);
+    assert.match(page, /if \(!sending\.current\) \{/);
+    const send = page.slice(page.indexOf("function send("), page.indexOf("async function showChatIfThere"));
+    assert.ok(send.includes("sendPracticeMessageAction") && !send.includes("readPracticeChatAction"), "the send reads the chat again");
+  });
+
+  await check("practice chat: 'ansa is writing...' shows only while core says ansa answers the newest message; otherwise a line for the presenter says why it doesn't", async () => {
+    const window = withoutComments(await read(`${FOLDER}/practice-chat/chat-window.tsx`));
+    assert.match(window, /const typing = waitsForAnsa && next\.what === "answers"/);
+    assert.match(window, /<QuietNote next=\{next\} personal=\{personal\} \/>/);
+    assert.match(withoutComments(await read("lib/core-views/practice-chat.ts")), /export type PracticeChatRead = \{ lines: PracticeLine\[\]; next: PracticeNext \}/);
+  });
+
+  await check("practice chat: for one person it speaks of who writes and answering as yourself, never of a customer or a business", async () => {
+    const form = withoutComments(await read(`${FOLDER}/practice-chat/message-form.tsx`));
+    assert.match(form, /tick: "Answer as yourself, from your own app"/);
+    const personalWords = form.slice(form.indexOf("personal: {"), form.indexOf("};", form.indexOf("personal: {")));
+    assert.doesNotMatch(personalWords, /customer|business/i);
+    const who = withoutComments(await read(`${FOLDER}/practice-chat/who-writes.tsx`));
+    assert.match(who, /personal \? "Who writes, and on which app" : "The customer writes on"/);
+    assert.match(who, /personal \? "Their name" : "Customer's name"/);
+  });
 }

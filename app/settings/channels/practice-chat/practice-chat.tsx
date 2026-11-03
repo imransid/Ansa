@@ -1,23 +1,26 @@
 "use client";
 
-import { useEffect, useState, useTransition, type FormEvent } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { findPracticeChatAction, readPracticeChatAction, sendPracticeMessageAction } from "@/app/actions/practice-chat";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import type { PracticeChannel, PracticeLine } from "@/lib/core-views/practice-chat";
+import type { PracticeChannel, PracticeLine, PracticeNext } from "@/lib/core-views/practice-chat";
 import { CHAT_CHANNELS, ChatWindow } from "./chat-window";
 import { MessageForm } from "./message-form";
 import { PracticeEmail } from "./practice-email";
+import { WhoWrites } from "./who-writes";
 
-// How often the chat looks for ansa's answer, and for what ansa sends later
-// (an order accepted on the Orders page, a teammate's reply).
+// How long after one look at the chat the next starts, for ansa's answer
+// and for what ansa sends later (an order accepted on the Orders page, a
+// teammate's reply).
 const LOOK_EVERY_MS = 2000;
 
 // When the server can't be reached (a dropped connection on a very busy
 // laptop): the message may have arrived anyway, and the chat shows it if so.
 const COULD_NOT_REACH = "ansa couldn't be reached just now. If your message doesn't show in the chat, send it again.";
+
+// The chat as the page shows it: next is null while not known yet (a
+// message just sent: the next look says what ansa does with it).
+type ShownChat = { lines: PracticeLine[]; next: PracticeNext | null };
+const NO_CHAT: ShownChat = { lines: [], next: null };
 
 // The customer's side: which app they write on (or an email), their name
 // (each name is one customer, with their own conversation), and the chat
@@ -28,19 +31,24 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
   const [writesEmail, setWritesEmail] = useState(false);
   const [name, setName] = useState("Tanvir");
   const [text, setText] = useState("");
-  // The business answers the customer from its own app instead.
+  // The business (or the person) answers from its own app instead.
   const [asBusiness, setAsBusiness] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [lines, setLines] = useState<PracticeLine[]>([]);
+  const [chat, setChat] = useState<ShownChat>(NO_CHAT);
   const [error, setError] = useState("");
   const [isSending, startSending] = useTransition();
+  // Server actions run one at a time: while a message is being sent the
+  // chat isn't read, so the send never waits behind reads. sends counts
+  // them, so a read that started before a send never shows an older chat.
+  const sending = useRef(false);
+  const sends = useRef(0);
 
   // Another app or another name is another customer: their chat starts here.
   function changeCustomer(nextChannel: PracticeChannel, nextName: string) {
     setChannel(nextChannel);
     setName(nextName);
     setConversationId(null);
-    setLines([]);
+    setChat(NO_CHAT);
     setError("");
   }
 
@@ -66,7 +74,7 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
         setConversationId(found);
         const read = await readPracticeChatAction({ conversationId: found }).catch(() => null);
         if (!stopped && read) {
-          setLines(read);
+          setChat(read);
         }
       }
     }, 400);
@@ -76,22 +84,31 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
     };
   }, [channel, name, standIns]);
 
+  // The next look starts only once the one before ended: on a busy laptop a
+  // slow answer never piles reads up in front of a send.
   useEffect(() => {
     if (!conversationId || writesEmail) {
       return;
     }
     let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const look = async () => {
-      // A look that failed (null) changes nothing: the next one tries again.
-      const read = await readPracticeChatAction({ conversationId }).catch(() => null);
-      if (!stopped && read) {
-        setLines(read);
+      if (!sending.current) {
+        const sendsBefore = sends.current;
+        // A look that failed (null) changes nothing: the next one tries again.
+        const read = await readPracticeChatAction({ conversationId }).catch(() => null);
+        if (!stopped && read && sends.current === sendsBefore) {
+          setChat(read);
+        }
+      }
+      if (!stopped) {
+        timer = setTimeout(look, LOOK_EVERY_MS);
       }
     };
-    const timer = setInterval(look, LOOK_EVERY_MS);
+    timer = setTimeout(look, LOOK_EVERY_MS);
     return () => {
       stopped = true;
-      clearInterval(timer);
+      clearTimeout(timer);
     };
   }, [conversationId, writesEmail]);
 
@@ -101,24 +118,30 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
     if (!message || isSending) {
       return;
     }
+    const fromCustomer = !asBusiness;
+    sending.current = true;
+    sends.current += 1;
     startSending(async () => {
-      const sent = await sendPracticeMessageAction({ channel, name, text: message, asBusiness }).catch(() => null);
-      if (!sent) {
-        // Said on the page, not an error screen: the typed message stays in the box.
-        setError(COULD_NOT_REACH);
-        await showChatIfThere();
-        return;
-      }
-      if (!sent.ok) {
-        setError(sent.error);
-        return;
-      }
-      setError("");
-      setText("");
-      setConversationId(sent.conversationId);
-      const read = await readPracticeChatAction({ conversationId: sent.conversationId }).catch(() => null);
-      if (read) {
-        setLines(read);
+      try {
+        const sent = await sendPracticeMessageAction({ channel, name, text: message, asBusiness }).catch(() => null);
+        if (!sent) {
+          // Said on the page, not an error screen: the typed message stays in the box.
+          setError(COULD_NOT_REACH);
+          await showChatIfThere();
+          return;
+        }
+        if (!sent.ok) {
+          setError(sent.error);
+          return;
+        }
+        setError("");
+        setText("");
+        setConversationId(sent.conversationId);
+        // Shown at once; the next look brings the chat as core has it, and
+        // what ansa does with it.
+        setChat((shown) => ({ lines: [...shown.lines, { fromCustomer, text: message, at: new Date().toISOString() }], next: null }));
+      } finally {
+        sending.current = false;
       }
     });
   }
@@ -132,53 +155,27 @@ export function PracticeChat({ standIns, email, personal }: { standIns: Record<P
     }
   }
 
+  const chatApp = CHAT_CHANNELS.find((each) => each.id === channel) ?? CHAT_CHANNELS[0];
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 rounded-2xl border bg-card p-5">
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium">The customer writes on</legend>
-          <div className="flex flex-wrap gap-2">
-            {CHAT_CHANNELS.map((each) => (
-              <Button
-                key={each.id}
-                type="button"
-                size="sm"
-                variant={!writesEmail && each.id === channel ? "default" : "outline"}
-                aria-pressed={!writesEmail && each.id === channel}
-                disabled={!standIns[each.id]}
-                onClick={() => pickChat(each.id)}
-              >
-                {each.label}
-              </Button>
-            ))}
-            <Button type="button" size="sm" variant={writesEmail ? "default" : "outline"} aria-pressed={writesEmail} onClick={() => setWritesEmail(true)}>
-              Email
-            </Button>
-          </div>
-        </fieldset>
-        {CHAT_CHANNELS.some((each) => !standIns[each.id]) && (
-          <p className="text-sm text-muted-foreground">
-            A greyed-out app needs a stand-in account first: connect one on{" "}
-            <Link href="/settings/channels" className="text-link hover:underline">
-              Connections
-            </Link>
-            .
-          </p>
-        )}
-        {!writesEmail && (
-          <div className="grid gap-1.5 sm:max-w-xs">
-            <Label htmlFor="customer-name">Customer&apos;s name</Label>
-            <Input id="customer-name" value={name} maxLength={100} onChange={(event) => changeCustomer(channel, event.target.value)} />
-          </div>
-        )}
-      </div>
+      <WhoWrites
+        standIns={standIns}
+        channel={channel}
+        writesEmail={writesEmail}
+        name={name}
+        personal={personal}
+        onPickChat={pickChat}
+        onPickEmail={() => setWritesEmail(true)}
+        onNameChange={(nextName) => changeCustomer(channel, nextName)}
+      />
       {writesEmail ? (
-        <PracticeEmail available={email} />
+        <PracticeEmail available={email} personal={personal} />
       ) : (
         <>
-          <ChatWindow channel={channel} name={name} lines={lines} personal={personal} />
+          <ChatWindow channel={channel} name={name} lines={chat.lines} next={chat.next} personal={personal} />
           <MessageForm
-            businessApp={(CHAT_CHANNELS.find((each) => each.id === channel) ?? CHAT_CHANNELS[0]).businessApp}
+            ownApp={personal ? chatApp.personApp : chatApp.businessApp}
+            personal={personal}
             asBusiness={asBusiness}
             onAsBusinessChange={setAsBusiness}
             text={text}

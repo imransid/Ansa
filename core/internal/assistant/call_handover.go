@@ -37,7 +37,7 @@ func (r *Runner) callHandOver(ctx context.Context, turn conversations.Turn, info
 			return err
 		}
 		text, holding := callerHears(h, inputs, open)
-		if err := sayWithin(ctx, tx, r.Box, turn, messageID, WithAILabel(text, inputs.Name, inputs.Kind, info.FirstAutomated)); err != nil {
+		if err := sayWithin(ctx, tx, r.Box, turn, messageID, WithAILabel(text, inputs.Name, inputs.Kind, inputs.Ordering.Language, info.FirstAutomated)); err != nil {
 			return err
 		}
 		if err := MarkHandledWithin(ctx, tx, turn); err != nil || open {

@@ -1,7 +1,7 @@
 """What core sends the brain for one reply, and what the brain answers. Strict:
 an unknown field is refused (core is the only sender)."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -45,6 +45,10 @@ class MenuItem(Strict):
     price: str = Field(max_length=50)
 
 
+# A dish's name, as the menu writes it.
+DishName = Annotated[str, Field(max_length=500)]
+
+
 class Line(Strict):
     sender: Literal["customer", "restaurant"]
     text: str = Field(max_length=20_000)
@@ -59,6 +63,9 @@ class ReplyRequest(Strict):
     ordering: Ordering = Ordering()
     orders: Orders = Orders()
     menu: list[MenuItem] = Field(default_factory=list, max_length=600)
+    # Dishes marked "Not available today": their names only (no label, no
+    # price), so the AI says they're off today, never off the menu.
+    not_available_today: list[DishName] = Field(default_factory=list, max_length=600)
     instructions: str = Field(default="", max_length=4_000)
     # Escaped <article> blocks, built by core from the company's approved articles.
     knowledge: str = Field(default="", max_length=10_000)

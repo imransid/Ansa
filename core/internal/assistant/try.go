@@ -34,7 +34,9 @@ func (r *Runner) Try(ctx context.Context, company tenant.CompanyID, text string)
 		return TryResult{}, err
 	}
 	decision := r.decide(ctx, inputs)
-	label := func(text string) string { return WithAILabel(text, inputs.Name, inputs.Kind, true) }
+	label := func(text string) string {
+		return WithAILabel(text, inputs.Name, inputs.Kind, inputs.Ordering.Language, true)
+	}
 	switch decision.Kind {
 	case "reply":
 		return TryResult{Outcome: "reply", Text: label(decision.Text)}, nil
@@ -53,5 +55,5 @@ func (r *Runner) Try(ctx context.Context, company tenant.CompanyID, text string)
 	case "needs_person":
 		decision.Reason = handoverFor(decision, inputs).Reason
 	}
-	return TryResult{Outcome: "handover", Text: label(inputs.HoldingReply), Why: ReasonText[decision.Reason]}, nil
+	return TryResult{Outcome: "handover", Text: label(inputs.HoldingReply), Why: reasonWords(decision.Reason, decision.StoppedAmount, inputs.Kind)}, nil
 }

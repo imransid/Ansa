@@ -154,7 +154,7 @@ func TestAMadeUpPriceIsNeverSentAndAPersonIsAsked(t *testing.T) {
 	}
 	var subject, description string
 	w.pool.QueryRow(context.Background(), `SELECT subject, description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&subject, &description)
-	if subject != "Stand-in chat conversation needs you" || !strings.HasPrefix(description, ReasonText["price_not_on_menu"]) {
+	if subject != "Reply stopped: a price not on your menu" || description != "The assistant's reply named €5, which isn't on your menu, so ansa didn't send it." {
 		t.Fatalf("request: %q / %q", subject, description)
 	}
 	if w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'price_not_on_menu'`, w.companyID) != 1 {
@@ -251,6 +251,49 @@ func TestAnImportantPersonComesToYouAtOnceWhileYoureAvailable(t *testing.T) {
 	}
 }
 
+// An open request keeps ansa quiet (one holding reply until a person
+// answers), but someone marked important who writes again still reaches
+// you: the owners' alert again, at once, and a line in the conversation,
+// with no second holding reply or request, no AI, and once for a burst.
+func TestAnImportantPersonWritingAgainWhileTheirRequestIsOpenIsPassedOn(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"They'll be back soon."}`)
+	first := w.customerSays("dad", "Are you home this weekend?")
+	mustExec(t, w.pool, `UPDATE contacts SET important = true WHERE company_id = $1 AND external_id = 'dad'`, w.companyID)
+	if got := w.answer(first); got != OutcomeHandedOver {
+		t.Fatalf("the first message: %s", got)
+	}
+	again := w.customerSays("dad", "Call me when you're free")
+	if got := w.answer(again); got != OutcomeToldAgain || w.brainCalls != 0 {
+		t.Fatalf("writing again: %s, %d brain calls", got, w.brainCalls)
+	}
+	if messages := w.assistantMessages(again); len(messages) != 1 {
+		t.Fatalf("one holding reply only: %+v", messages)
+	}
+	alertsAgain := `SELECT count(*) FROM core_jobs WHERE company_id = $1 AND kind = 'owner.alert' AND payload->>'reason' = 'important_person' AND payload->>'wroteAgain' = 'true' AND run_after < now() + interval '10 seconds'`
+	if w.count(`SELECT count(*) FROM tickets WHERE company_id = $1 AND conversation_id = $2`, w.companyID, again.ConversationID) != 1 ||
+		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND conversation_id = $2 AND reason = 'important_person'`, w.companyID, again.ConversationID) != 2 ||
+		w.count(alertsAgain, w.companyID) != 1 {
+		t.Fatal("the same request, a second line and the owners' alert again, at once")
+	}
+	if got := w.answer(again); got != OutcomeQuiet || w.count(alertsAgain, w.companyID) != 1 {
+		t.Fatalf("a message is passed on once: %s", got)
+	}
+	burstFirst := w.customerSays("dad", "Hello?")
+	burstLast := w.customerSays("dad", "It's urgent")
+	if got := w.answer(burstFirst); got != OutcomeQuiet {
+		t.Fatalf("an older message of a burst: %s", got)
+	}
+	if got := w.answer(burstLast); got != OutcomeToldAgain || w.count(alertsAgain, w.companyID) != 2 {
+		t.Fatalf("a burst tells you once: %s", got)
+	}
+	someone := w.customerSays("sam", "Can I book a table?")
+	w.brainAnswer = `{"kind":"needs_person","reason":"order"}`
+	w.answer(someone)
+	if got := w.answer(w.customerSays("sam", "Hello?")); got != OutcomeQuiet {
+		t.Fatalf("anyone else waits for the person quietly: %s", got)
+	}
+}
+
 // For one person a reply that would commit them is never sent: their
 // holding reply goes, and a note "It needs your decision" waits for them.
 func TestAPersonsReplyThatWouldCommitThemIsNeverSent(t *testing.T) {
@@ -265,11 +308,27 @@ func TestAPersonsReplyThatWouldCommitThemIsNeverSent(t *testing.T) {
 	if len(messages) != 1 || messages[0] != [2]string{"sent", "I'm Rafa's AI assistant.\nThanks! Rafa will get back to you soon."} {
 		t.Fatalf("the holding reply, never the AI's words: %+v", messages)
 	}
-	var description string
-	w.pool.QueryRow(context.Background(), `SELECT description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&description)
-	if !strings.HasPrefix(description, ReasonText["needs_decision"]) ||
+	var subject, description string
+	w.pool.QueryRow(context.Background(), `SELECT subject, description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&subject, &description)
+	if subject != "Reply stopped: it would commit you" || !strings.HasPrefix(description, ReasonText["needs_decision"]) ||
 		w.count(`SELECT count(*) FROM assistant_activity WHERE company_id = $1 AND action = 'handed_over' AND reason = 'needs_decision'`, w.companyID) != 1 {
 		t.Fatalf("a note that it needs Rafa's decision: %q", description)
+	}
+}
+
+// A person has no menu: a reply stopped for an amount says it isn't in
+// their own notes or saved answers.
+func TestAPersonsStoppedAmountIsWordedForThem(t *testing.T) {
+	w := newReplyWorld(t, `{"kind":"reply","text":"A logo is BDT 10,000."}`)
+	mustExec(t, w.pool, `UPDATE companies SET kind = 'personal', name = 'Rafa' WHERE id = $1`, w.companyID)
+	turn := w.customerSays("nb", "How much is a logo?")
+	if got := w.answer(turn); got != OutcomeHandedOver {
+		t.Fatalf("outcome: %s", got)
+	}
+	var subject, description string
+	w.pool.QueryRow(context.Background(), `SELECT subject, description FROM tickets WHERE company_id = $1 AND conversation_id = $2 AND status = 'open'`, w.companyID, turn.ConversationID).Scan(&subject, &description)
+	if subject != "Reply stopped: an amount not in your notes" || description != "The assistant's reply named BDT 10,000, which isn't in your own notes or saved answers, so ansa didn't send it." {
+		t.Fatalf("a person's words: %q / %q", subject, description)
 	}
 }
 

@@ -80,6 +80,10 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 	if err != nil {
 		return nil, err
 	}
+	unavailable, err := readUnavailableToday(ctx, pool, company, kind)
+	if err != nil {
+		return nil, err
+	}
 	// No conversation (the owner's test box): its caller puts the typed message in.
 	lines := []Line{}
 	if conversationID != "" {
@@ -104,16 +108,17 @@ func GatherInputs(ctx context.Context, pool *database.Pool, box *secure.Box, com
 		fee = settings.DeliveryFeeCents
 	}
 	request := BrainRequest{
-		Kind:         kind,
-		Business:     Business{Name: name, Description: facts["description"], Address: facts["location"], Phone: settings.PublicPhone},
-		Ordering:     Ordering{Delivery: settings.Delivery, DeliveryNote: settings.DeliveryNote, Pickup: settings.Pickup, PaymentNote: settings.PaymentNote},
-		Orders:       Orders{TakesOrders: takesOrders, InProgress: []string{}, Placed: []string{}},
-		Menu:         []MenuItem{},
-		Instructions: settings.Instructions,
-		Categories:   categories,
-		Conversation: lines,
-		Channel:      "chat",
-		CallMode:     "answer",
+		Kind:              kind,
+		Business:          Business{Name: name, Description: facts["description"], Address: facts["location"], Phone: settings.PublicPhone},
+		Ordering:          Ordering{Delivery: settings.Delivery, DeliveryNote: settings.DeliveryNote, Pickup: settings.Pickup, PaymentNote: settings.PaymentNote},
+		Orders:            Orders{TakesOrders: takesOrders, InProgress: []string{}, Placed: []string{}},
+		Menu:              []MenuItem{},
+		NotAvailableToday: unavailable,
+		Instructions:      settings.Instructions,
+		Categories:        categories,
+		Conversation:      lines,
+		Channel:           "chat",
+		CallMode:          "answer",
 	}
 	if fee > 0 {
 		formatted := money.Format(fee, settings.Currency)
