@@ -22,8 +22,9 @@ Asker = Callable[[str, Any, dict, ai.UseSettings, str | None], ai.ModelResult]
 
 
 def ready(development: bool) -> bool:
-    """Whether the stand-in answers here: development, no key, Claude Code set up."""
-    return development and not os.environ.get("ANTHROPIC_API_KEY") and bool(os.environ.get("CLAUDE_CODE_PATH"))
+    """Whether the stand-in answers here: development, no key, and Claude Code
+    set up (the program CLAUDE_CODE_PATH names is there to run)."""
+    return development and not os.environ.get("ANTHROPIC_API_KEY") and bool(os.environ.get("CLAUDE_CODE_PATH")) and claude_code.installed()
 
 
 def or_claude_code(asker: Asker, development: bool) -> Asker:

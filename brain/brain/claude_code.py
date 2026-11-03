@@ -12,6 +12,7 @@ command line. Nothing it prints is ever logged; failures are a name only."""
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 from collections.abc import Callable, Mapping
@@ -76,9 +77,23 @@ def run_program(args: list[str], stdin_text: str, folder: str, env: dict[str, st
     return completed.returncode, completed.stdout
 
 
+def program(parent_env: Mapping[str, str] = os.environ) -> str:
+    """The program it runs: the one CLAUDE_CODE_PATH names, else claude on the PATH."""
+    return parent_env.get("CLAUDE_CODE_PATH") or "claude"
+
+
+def installed(parent_env: Mapping[str, str] = os.environ) -> bool:
+    """Whether that program is there and may be run: only looked for, never run."""
+    binary = program(parent_env)
+    # It runs in an empty folder of its own, where a relative path finds nothing.
+    if os.path.dirname(binary) and not os.path.isabs(binary):
+        return False
+    return shutil.which(binary, path=parent_env.get("PATH")) is not None
+
+
 def ask_claude_code(system_prompt: str, prompt: str, json_schema: dict[str, Any], effort: str, run: Runner = run_program, parent_env: Mapping[str, str] = os.environ) -> ModelResult:
     """Asks Claude Code once for a JSON answer following json_schema."""
-    binary = parent_env.get("CLAUDE_CODE_PATH") or "claude"
+    binary = program(parent_env)
     model = parent_env.get("ANTHROPIC_MODEL") or "claude-sonnet-5-5"
     with tempfile.TemporaryDirectory(prefix="ansa-claude-code-") as folder:
         try:

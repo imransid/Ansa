@@ -9,7 +9,11 @@ in tags (business, hours, ordering, menu with labels, the order in progress
 and placed orders, the owner's instructions, articles, categories, the newest
 20 messages of this one conversation). Every value escaped (`text.py`); the
 customer's words with card-like and social-security-like numbers and email
-addresses hidden, the owner's with secret numbers hidden.
+addresses hidden, the owner's with secret numbers hidden. Each message's
+line is named by its side: "Customer" and "Restaurant", or for a person
+"Sender" and "<their name>'s side" (theirs, and ansa's for them; never
+"Restaurant"). No prompt names one chat: customers write on WhatsApp,
+Messenger and Telegram alike ("in its chats").
 **Model (`ai.py`):** Anthropic's SDK, one structured JSON answer
 (`output_config.format: json_schema`), effort low, 3,000 tokens, 30 s, one
 retry; the business's own key when core sends one, else ansa's; on an error
@@ -26,7 +30,9 @@ doesn't allow a product to run on a claude.ai login: in production the brain
 answers `model_unavailable`). Locked down as the old adapter: no tools, no
 MCP, no settings, CLAUDE.md or memory, no saved session, an empty temporary
 folder, only PATH, HOME, USER, LOGNAME, LANG and TMPDIR passed on (never a
-secret), the conversation on stdin, 90 s. `CLAUDE_CODE_PATH` names the program.
+secret), the conversation on stdin, 90 s. `CLAUDE_CODE_PATH` names the program
+(else `claude` on the PATH); `/v1/status` says Claude Code can answer only
+while that program is there and may be run (looked for, never run).
 **Threads:** the reply endpoint is a plain `def`, so FastAPI runs it in a
 worker thread: a model call that takes seconds never holds up other requests.
 **Answer (`answer.py`):** read strictly: exactly the schema's fields;
@@ -53,7 +59,8 @@ engine; a failure is `{"kind":"failed","reason":...}`.
 **Core's checks (prices, links, refunds) run in core, not here.**
 **Tests:** `tests/test_call_summary.py` (the note's prompt, escaping and
 strict reading); `tests/test_assistant.py` (a fake model): the prompt's contents,
-escaping and hiding; a person's prompt; strict reading; failures; the
+escaping and hiding; a person's prompt; each side of the conversation named
+for whom ansa answers, and no chat named; strict reading; failures; the
 endpoint needs core's signature; Claude Code is refused outside development,
 gets the conversation on stdin only and none of the brain's secrets (a fake
 program: nothing is ever run).

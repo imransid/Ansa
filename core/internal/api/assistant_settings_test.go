@@ -70,3 +70,47 @@ func TestSettingsAssistantAndTheTryBox(t *testing.T) {
 		t.Fatal("a try saves nothing")
 	}
 }
+
+// In development without a key, Claude Code on this computer answers in
+// place of ansa's key (the brain's free_stand_in): Settings → Assistant says
+// "stand_in", never "ansa", and Home counts the AI as ready.
+func TestTheFreeStandInIsNeverCalledAnsasKey(t *testing.T) {
+	w := newAPIWorld(t)
+	engineState := func(status string) map[string]any {
+		withBrainStatus(t, w, status)
+		code, answer := w.call("GET", "/api/v1/settings/assistant", "", screensSecret, w.cookie)
+		if code != 200 {
+			t.Fatalf("settings: %d %v", code, answer)
+		}
+		return answer["engineState"].(map[string]any)
+	}
+	state := engineState(`{"ansa_key":false,"claude_code":true,"free_stand_in":true}`)
+	if state["keySource"] != "stand_in" || state["ready"] != true || state["claudeCodeAllowed"] != true {
+		t.Fatalf("Claude Code stands in for ansa's key: %v", state)
+	}
+	_, page := w.call("GET", "/api/v1/home", "", screensSecret, w.cookie)
+	engineDone := false
+	for _, step := range page["gettingStarted"].([]any) {
+		if step := step.(map[string]any); step["key"] == "engine" {
+			engineDone = step["done"] == true
+		}
+	}
+	if !engineDone {
+		t.Fatalf("Home: the AI is ready: %v", page["gettingStarted"])
+	}
+	if state := engineState(`{"ansa_key":true,"claude_code":false,"free_stand_in":false}`); state["keySource"] != "ansa" || state["ready"] != true {
+		t.Fatalf("ansa's own key: %v", state)
+	}
+	if state := engineState(`{"ansa_key":false,"claude_code":true,"free_stand_in":false}`); state["keySource"] != "none" || state["ready"] != false {
+		t.Fatalf("no key, nothing standing in: %v", state)
+	}
+}
+
+// withBrainStatus gives the API a fake brain whose /v1/status answers status.
+func withBrainStatus(t *testing.T, w *apiWorld, status string) {
+	brain := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
+		io.WriteString(rw, status)
+	}))
+	t.Cleanup(brain.Close)
+	w.serverAPI().Brain = brainclient.New(brain.URL, strings.Repeat("s", 40), 5*time.Second)
+}

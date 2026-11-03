@@ -3,13 +3,14 @@
 import { saveAiEngineAction } from "@/app/actions/assistant";
 import { Input } from "@/components/ui/input";
 import { AI_ENGINE_LABELS, type AiEngine } from "@/lib/assistant/engine";
+import type { EngineState } from "@/lib/types/assistant-engine";
 import { Choice, Choices } from "./assistant-settings-form";
 import { CheckField } from "./check-field";
 import { FieldErrors, SectionForm } from "./section-form";
 
 type AiEngineFormProps = {
   engine: AiEngine;
-  keySource: "restaurant" | "ansa" | "none";
+  keySource: EngineState["keySource"];
   keyHint: string | null;
   claudeCodeAllowed: boolean;
 };
@@ -69,6 +70,10 @@ function describeKey({ keySource, keyHint }: AiEngineFormProps): string {
   }
   if (keySource === "ansa") {
     return "Uses ansa's key until you add your own.";
+  }
+  if (keySource === "stand_in") {
+    // Only on a development brain without ansa's key (docs/demo.md: the free demo).
+    return "While developing, Claude Code on this computer answers in place of ansa's key until you add your own.";
   }
   return "No key yet: until you add one, every customer gets your holding reply and you are alerted.";
 }

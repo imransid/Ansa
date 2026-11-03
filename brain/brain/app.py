@@ -77,9 +77,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/v1/status")
     async def status() -> dict[str, bool]:
-        """What the brain can answer with: ansa's own key, and Claude Code
-        (development only). Core shows it as "the AI is ready". Never the key."""
-        return {"ansa_key": bool(os.environ.get("ANTHROPIC_API_KEY")) or free_ai.ready(active.development), "claude_code": active.development}
+        """What the brain can answer with: ansa's own key; Claude Code (development,
+        while its program is there: looked for, never run); and Claude Code standing
+        in for ansa's key on a development brain without one (free_ai.py), said apart.
+        Core shows it as "the AI is ready". Never the key."""
+        development = active.development
+        return {"ansa_key": bool(os.environ.get("ANTHROPIC_API_KEY")), "claude_code": development and claude_code.installed(), "free_stand_in": free_ai.ready(development)}
 
     # A plain def on purpose: FastAPI runs it in a worker thread, so a model
     # call that takes seconds never holds up the other requests.

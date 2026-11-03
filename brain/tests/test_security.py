@@ -43,12 +43,14 @@ def test_a_body_over_the_cap_is_refused():
     assert client.post("/v1/ping", content=body, headers=sign(body, int(time.time()))).status_code == 413
 
 
-def test_the_status_says_what_the_brain_can_answer_with_never_the_key(monkeypatch):
+def test_the_status_says_what_the_brain_can_answer_with_never_the_key(monkeypatch, tmp_path):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret-value")
+    # No claude program here, whatever this computer has (test_free_ai.py has those).
+    monkeypatch.setenv("PATH", str(tmp_path))
     client = TestClient(create_app(Settings(shared_secret=SECRET, development=True)))
     body = b"{}"
     answer = client.post("/v1/status", content=body, headers=sign(body, int(time.time())))
-    assert answer.json() == {"ansa_key": True, "claude_code": True}
+    assert answer.json() == {"ansa_key": True, "claude_code": False, "free_stand_in": False}
     assert "sk-ant" not in answer.text
 
 

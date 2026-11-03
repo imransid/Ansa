@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -21,17 +22,25 @@ func TelegramChatID(name string) uint64 {
 }
 
 // PSID is a made-up Messenger customer's Page-scoped id: the name in small
-// letters and digits joined by "-" ("customer" when nothing is left).
+// letters and digits joined by "-" ("customer" for no name at all). A name
+// with none of those (Bangla, Arabic, only emoji) is a number from the
+// name's hash, as a Telegram chat id is: else every such name would be ONE
+// customer. Latin names keep the ids they always had, so their
+// conversations go on.
 func PSID(name string) string {
 	psid := strings.Trim(notLettersOrDigits.ReplaceAllString(strings.ToLower(name), "-"), "-")
-	if psid == "" {
+	switch {
+	case psid != "":
+		return psid
+	case strings.TrimSpace(name) == "":
 		return "customer"
 	}
-	return psid
+	return strconv.FormatUint(TelegramChatID(name), 10)
 }
 
 // WhatsAppCustomer is a made-up WhatsApp customer's business-scoped id, as
-// WhatsApp's look: "XX.<name>".
+// WhatsApp's look: "XX.<name>", or "XX.<number>" for a name without Latin
+// letters or digits (PSID's).
 func WhatsAppCustomer(name string) string {
 	return "XX." + strings.ReplaceAll(PSID(name), "-", "")
 }

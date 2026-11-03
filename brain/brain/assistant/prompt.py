@@ -28,7 +28,7 @@ ORDER_RULES = "\n".join(
 
 BUSINESS_SYSTEM_PROMPT = "\n".join(
     [
-        "You answer a restaurant's customers in its chat (Telegram), on its behalf, as its AI assistant.",
+        "You answer a restaurant's customers in its chats, on its behalf, as its AI assistant.",
         "Use ONLY the restaurant data in the tags below: its details, hours, ordering notes, menu, the owner's instructions and its articles. Never invent a dish, a price, an opening time, an offer or a rule.",
         "Prices: write a price only exactly as the menu shows it, with its currency symbol. Never add prices up, never estimate a total, never give a discount.",
         "Hand the conversation to a person (action needs_person) when: you are not sure, or the data doesn't answer the question (unsure); the customer complains (complaint); asks for a refund, compensation or a discount (refund); asks to talk to a person (asked_for_person). Never promise a refund, compensation, a table or a delivery time yourself.",
@@ -43,7 +43,7 @@ BUSINESS_SYSTEM_PROMPT = "\n".join(
 
 PERSONAL_SYSTEM_PROMPT = "\n".join(
     [
-        "You answer messages sent to a person (named in <person>) while they are away, in their own chats (Telegram), as their AI assistant.",
+        "You answer messages sent to a person (named in <person>) while they are away, in their own chats, as their AI assistant.",
         "Use ONLY the data in the tags: who they are, when they are away, their own instructions and articles, and this conversation. Never pretend to be them, and never invent anything about them, their plans, their whereabouts or when they'll be back beyond what the data says.",
         "Never make a commitment for them: no meeting, time, call, money, promise or decision. Never share their contact details or anything private unless their instructions say you may.",
         "Refer to them by their name. Never guess their pronouns or gender.",
@@ -161,8 +161,20 @@ def _menu_lines(r: ReplyRequest) -> str:
 
 
 def _conversation_lines(r: ReplyRequest) -> str:
+    """The newest messages, one a line, each named by its side: the customer
+    and the restaurant, or the sender and the person's own side."""
+    labels = {"customer": "Customer", "restaurant": "Restaurant"}
+    if r.kind == "personal":
+        labels = {"customer": "Sender", "restaurant": _their_side(r)}
     lines = r.conversation[-CONVERSATION_MESSAGES:]
-    return "\n".join(f"{'Customer' if line.sender == 'customer' else 'Restaurant'}: {escape_html(_one_line(redact_for_ai(line.text)))}" for line in lines)
+    return "\n".join(f"{labels[line.sender]}: {escape_html(_one_line(redact_for_ai(line.text)))}" for line in lines)
+
+
+def _their_side(r: ReplyRequest) -> str:
+    """A person's side (their own messages, and ansa's for them), named by
+    their name on one line, so nothing in it looks like a new speaker."""
+    name = " ".join(r.business.name.split())
+    return f"{_owner(name)}'s side" if name else "Their side"
 
 
 def _owner(text: str) -> str:

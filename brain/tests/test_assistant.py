@@ -60,6 +60,20 @@ def test_a_person_gets_their_own_prompt_without_menu_or_orders():
     assert "Never pretend to be them" in system and "<person>" in prompt and "<menu>" not in prompt
 
 
+def test_the_conversation_names_each_side_for_whom_ansa_answers():
+    # A person's side is theirs (never a "Restaurant"), and no prompt names
+    # one chat: customers write on WhatsApp, Messenger and Telegram alike.
+    lines = [{"sender": "customer", "text": "Free on Friday?"}, {"sender": "restaurant", "text": "Rafa will see it later."}]
+    system, prompt, _ = build_request(request(kind="personal", business={"name": "Rafa\nO'Neil"}, conversation=lines))
+    assert "Sender: Free on Friday?\nRafa O&#39;Neil's side: Rafa will see it later." in prompt
+    assert "restaurant" not in (system + prompt).lower() and "Telegram" not in system
+    system, prompt, _ = build_request(request(conversation=lines))
+    assert "Customer: Free on Friday?\nRestaurant: Rafa will see it later." in prompt
+    assert "customers in its chats, on its behalf" in system and "Telegram" not in system
+    _, nameless, _ = build_request(request(kind="personal", business={"name": " "}, conversation=lines))
+    assert "Their side: Rafa will see it later." in nameless
+
+
 def test_answers_are_read_strictly():
     assert read_answer(answer(reply="Yes, until 23:00.")) == {"kind": "reply", "text": "Yes, until 23:00."}
     assert read_answer(answer(action="needs_person", handover_reason="complaint", request_subject="Cold\npizza"))["subject"] == "Cold pizza"

@@ -14,7 +14,10 @@ beside the owner's own pages.
   as for a real customer.
 - The made-up customer is named by `internal/standins` (shared with the
   simulate tools): the same name is the same customer, so a conversation
-  goes on where it was; `Find` shows it again after a reload.
+  goes on where it was; `Find` shows it again after a reload. A name without
+  Latin letters or digits (Bangla, Arabic) is a number from the name's hash
+  on Messenger and WhatsApp too, as on Telegram, so two such names are two
+  customers; a Latin name keeps the id it always had.
 - The chat shows what reached the customer: their messages, and replies sent
   (or being sent, or unclear), never a reply waiting for the owner's approval
   ("Ask me first") or one discarded.

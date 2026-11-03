@@ -10,9 +10,10 @@
   whether this person may change it (owners).
 - `gettingStarted` (owners only; empty once all are done): Telegram
   connected and allowed to reply, an AI ready (the business's own key,
-  ansa's key, or Claude Code in development: the brain's signed `/v1/status`
-  says which it has, never a key), and a business's menu or a person's
-  instructions.
+  ansa's key, Claude Code standing in for ansa's key in development, or the
+  Claude Code engine while its program is there: the brain's signed
+  `/v1/status` says which it has, never a key), and a business's menu or a
+  person's instructions.
 - `awaySummary` (only in "Only when I'm away"): ansa's replied / drafted /
   handed-over lines since this person last pressed "Got it" (or the last
   day): counts of the newest 200 and the newest 8 conversations, each once.
@@ -44,8 +45,10 @@ an owner), in one transaction (`settings.asOwner`). "Got it":
 **Settings → Assistant (`GET /api/v1/settings/assistant`, everyone reads):**
 the saved settings (defaults until anything is saved) and the engine's
 state: whose key answers ("restaurant": the business's own, shown only by
-its last four; "ansa"; or "none"), whether Claude Code is allowed (the
-brain says so: development only) and whether an AI is ready. Owners save
+its last four; "ansa"; "stand_in": no key of ansa's, and Claude Code on
+this computer answers in its place, development only; or "none"), whether
+Claude Code is allowed (the brain says so: development, its program there)
+and whether an AI is ready. Owners save
 (60 changes per 10 minutes):
 - `POST /api/v1/settings/assistant` `{status, replyMode, instructions
   (0-2,000), holdingReply (1-500), alertByEmail}`: texts cleaned as typed
@@ -69,7 +72,9 @@ pause, "only when I'm away" and "I'm away" change what the card says and
 show the summary; "Got it"; a member can't pause and gets no checklist.
 `api/assistant_settings_test.go`: defaults; an empty holding reply refused
 with its words; saved; an own key stored encrypted and shown by its last
-four; Claude Code refused without the brain's say-so; away hours' problems
+four; Claude Code refused without the brain's say-so; Claude Code standing
+in for ansa's key is "stand_in" (never "ansa") and counts as ready, on
+Home too; away hours' problems
 by field, then saved; a try answers with the AI label and saves nothing.
 `hours/typed_test.go`: the old form's day rules, word for word.
 **"Your business in numbers"** (tickets, calls, emails, posts):

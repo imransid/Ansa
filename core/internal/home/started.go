@@ -20,10 +20,13 @@ type Step struct {
 	DoneText string `json:"doneText"`
 }
 
-// BrainStatus is what the brain can answer with (its /v1/status).
+// BrainStatus is what the brain can answer with (its /v1/status): ansa's own
+// key, Claude Code (development, its program there), and Claude Code
+// standing in for ansa's key on a development brain without one.
 type BrainStatus struct {
-	AnsaKey    bool `json:"ansa_key"`
-	ClaudeCode bool `json:"claude_code"`
+	AnsaKey     bool `json:"ansa_key"`
+	ClaudeCode  bool `json:"claude_code"`
+	FreeStandIn bool `json:"free_stand_in"`
 }
 
 // GettingStarted is the few things that make ansa answer at all, in the
@@ -45,7 +48,7 @@ func GettingStarted(ctx context.Context, pool *database.Pool, company tenant.Com
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	aiReady := ownKey || brain.AnsaKey
+	aiReady := ownKey || brain.AnsaKey || brain.FreeStandIn
 	if engine == "claude_code" {
 		aiReady = brain.ClaudeCode
 	}

@@ -30,7 +30,8 @@ func (s *Server) registerAssistantSettings(routes *http.ServeMux) {
 }
 
 // assistantSettings: GET, everyone reads it; the engine's state says whose
-// key answers (the business's: its last four; ansa's; or none), never a key.
+// key answers (the business's: its last four; ansa's; Claude Code standing
+// in for ansa's while developing; or none), never a key.
 func (s *Server) assistantSettings(w http.ResponseWriter, r *http.Request, _ []byte, who *session.Session) {
 	view, err := settings.Read(r.Context(), s.Pool, who.CompanyID)
 	if err != nil {
@@ -47,6 +48,8 @@ func (s *Server) assistantSettings(w http.ResponseWriter, r *http.Request, _ []b
 		keySource = "restaurant"
 	case brain.AnsaKey:
 		keySource = "ansa"
+	case brain.FreeStandIn:
+		keySource = "stand_in"
 	}
 	ready := keySource != "none"
 	if view.Engine == "claude_code" {
