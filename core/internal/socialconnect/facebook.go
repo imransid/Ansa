@@ -18,12 +18,15 @@ import (
 // API's version as every other call's.
 var DialogURL = "https://www.facebook.com/v26.0/dialog/oauth"
 
-// What posting to a Page needs (all three), and what answering its
-// Messenger messages needs (a person may untick these: posts still work).
+// What posting to a Page needs (all three), what answering its Messenger
+// messages needs, and what answering comments on its posts needs (reading
+// them, and replying under them): a person may untick the last four, and
+// posts still work.
 var (
 	postingScopes   = []string{"pages_show_list", "pages_read_engagement", "pages_manage_posts"}
 	messagingScopes = []string{"pages_messaging", "pages_manage_metadata"}
-	allScopes       = append(append([]string{}, postingScopes...), messagingScopes...)
+	commentScopes   = []string{"pages_read_user_content", "pages_manage_engagement"}
+	allScopes       = append(append(append([]string{}, postingScopes...), messagingScopes...), commentScopes...)
 )
 
 // The Pages asked for at once (a person managing more is rare: a known gap).
@@ -137,11 +140,29 @@ func getJSON(ctx context.Context, address string, into any) bool {
 	return response.StatusCode/100 == 2 && json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(into) == nil
 }
 
-// subscribeToMessages switches a Page's messages on for ansa's app
-// (subscribed_apps: messages and message_echoes), so Meta sends them to
-// ansa's webhook. True when Meta says it worked.
-func subscribeToMessages(ctx context.Context, appSecret string, page Account) bool {
-	form := url.Values{"subscribed_fields": {"messages,message_echoes"}, "access_token": {page.AccessToken}, "appsecret_proof": {messenger.AppSecretProof(page.AccessToken, appSecret)}}
+// webhookFields are the Page's events ansa's webhook needs, from what the
+// person allowed: its Messenger messages (and the Page's own, as echoes)
+// and its feed (comments on its posts). None without pages_manage_metadata,
+// which subscribing itself needs.
+func webhookFields(scopes []string) []string {
+	if !contains(scopes, "pages_manage_metadata") {
+		return nil
+	}
+	var fields []string
+	if contains(scopes, "pages_messaging") {
+		fields = append(fields, "messages", "message_echoes")
+	}
+	if contains(scopes, "pages_read_user_content") && contains(scopes, "pages_manage_engagement") {
+		fields = append(fields, "feed")
+	}
+	return fields
+}
+
+// subscribeToPage switches a Page's events on for ansa's app
+// (subscribed_apps: the fields given), so Meta sends them to ansa's
+// webhook. True when Meta says it worked.
+func subscribeToPage(ctx context.Context, appSecret string, page Account, fields []string) bool {
+	form := url.Values{"subscribed_fields": {strings.Join(fields, ",")}, "access_token": {page.AccessToken}, "appsecret_proof": {messenger.AppSecretProof(page.AccessToken, appSecret)}}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, messenger.GraphURL+"/"+url.PathEscape(page.ExternalID)+"/subscribed_apps", strings.NewReader(form.Encode()))
 	if err != nil {
 		return false

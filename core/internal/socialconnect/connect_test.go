@@ -19,6 +19,9 @@ import (
 
 // fakeGraph answers Facebook's login calls; granted are the permissions the
 // person left ticked.
+// subscribedFields is what the fake Graph API was last asked to send ansa.
+var subscribedFields string
+
 func fakeGraph(t *testing.T, granted []string, subscribed *int) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -37,6 +40,8 @@ func fakeGraph(t *testing.T, granted []string, subscribed *int) {
 			io.WriteString(w, `{"data":[{"id":"111","name":"Luigi's\nPizza","access_token":"page-token","tasks":["CREATE_CONTENT"]},{"id":"222","name":"Not mine","access_token":"x","tasks":["ANALYZE"]}]}`)
 		case r.URL.Path == "/111/subscribed_apps" && r.Method == http.MethodPost:
 			*subscribed++
+			r.ParseForm()
+			subscribedFields = r.PostForm.Get("subscribed_fields")
 			io.WriteString(w, `{"success":true}`)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -63,7 +68,8 @@ func stateOf(t *testing.T, address string) string {
 	if err != nil || !strings.HasPrefix(address, DialogURL) {
 		t.Fatalf("consent screen: %s", address)
 	}
-	if parsed.Query().Get("redirect_uri") != "https://ansa.test/api/social/facebook/callback" || !strings.Contains(parsed.Query().Get("scope"), "pages_messaging") {
+	if parsed.Query().Get("redirect_uri") != "https://ansa.test/api/social/facebook/callback" || !strings.Contains(parsed.Query().Get("scope"), "pages_messaging") ||
+		!strings.Contains(parsed.Query().Get("scope"), "pages_read_user_content,pages_manage_engagement") {
 		t.Fatalf("redirect and scopes: %s", address)
 	}
 	return parsed.Query().Get("state")
@@ -71,7 +77,7 @@ func stateOf(t *testing.T, address string) string {
 
 func TestAnOwnersLoginConnectsTheirPagesOnceWithEncryptedTokens(t *testing.T) {
 	subscribed := 0
-	fakeGraph(t, append(append([]string{}, postingScopes...), messagingScopes...), &subscribed)
+	fakeGraph(t, allScopes, &subscribed)
 	c, company, owner := newConnector(t)
 	ctx := context.Background()
 	address, outcome, err := c.Start(ctx, company, owner, "facebook")
@@ -85,6 +91,9 @@ func TestAnOwnersLoginConnectsTheirPagesOnceWithEncryptedTokens(t *testing.T) {
 	result, count, err := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {state}, "code": {"good-code"}})
 	if err != nil || result != "connected" || count != 1 || subscribed != 1 {
 		t.Fatalf("connected: %s %d %v (subscribed %d)", result, count, err, subscribed)
+	}
+	if subscribedFields != "messages,message_echoes,feed" {
+		t.Fatalf("the Page's messages and its comments (feed) come to ansa: %q", subscribedFields)
 	}
 	if again, _, _ := c.Complete(ctx, company, owner, true, "facebook", url.Values{"state": {state}, "code": {"good-code"}}); again != "expired_state" {
 		t.Fatal("a state works once")
@@ -156,5 +165,25 @@ func TestTheStandInConnectsOnlyInDevelopmentWithoutTheApp(t *testing.T) {
 	c.Development = false
 	if c.Mode("facebook") != "not-set-up" {
 		t.Fatal("production without the app: not set up")
+	}
+}
+
+// A Page's webhooks follow what the person allowed: messages with the
+// messaging permissions, its feed (comments) with both comment ones, and
+// nothing without pages_manage_metadata (subscribing itself needs it).
+func TestThePagesWebhooksFollowWhatWasAllowed(t *testing.T) {
+	for _, c := range []struct {
+		scopes []string
+		want   string
+	}{
+		{allScopes, "messages,message_echoes,feed"},
+		{append(append([]string{}, postingScopes...), messagingScopes...), "messages,message_echoes"},
+		{append(append([]string{"pages_manage_metadata"}, postingScopes...), commentScopes...), "feed"},
+		{append(append([]string{}, postingScopes...), commentScopes...), ""},
+		{append([]string{"pages_manage_metadata", "pages_read_user_content"}, postingScopes...), ""},
+	} {
+		if got := strings.Join(webhookFields(c.scopes), ","); got != c.want {
+			t.Errorf("%v: %q, want %q", c.scopes, got, c.want)
+		}
 	}
 }

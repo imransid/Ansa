@@ -18,6 +18,7 @@ import (
 	"ansa/core/internal/logging"
 	"ansa/core/internal/ratelimit"
 	"ansa/core/internal/secure"
+	"ansa/core/internal/tenant"
 )
 
 // Meta batches events; a batch of text messages stays far below this.
@@ -38,6 +39,15 @@ type Webhook struct {
 	AppID, AppSecret string
 	// MESSENGER_VERIFY_TOKEN; without it the setup check is refused.
 	VerifyToken string
+	// Saves new comments on the Page's posts (core/internal/comments); nil:
+	// comments are left out.
+	Comments CommentSaver
+}
+
+// CommentSaver saves a new comment for the one company that has its Page
+// connected (core/internal/comments decides what ansa does with it).
+type CommentSaver interface {
+	SaveComment(ctx context.Context, company tenant.CompanyID, connectionID string, comment CommentEvent) error
 }
 
 // ServeHTTP checks, in this order: size, Meta's signature over the raw
@@ -62,7 +72,8 @@ func (h *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	events, err := ParseEvents(body)
-	if err != nil {
+	comments, commentsErr := ParseCommentEvents(body)
+	if err != nil || commentsErr != nil {
 		h.Log.Warn("messenger webhook ignored", logging.Code("not_for_ansa"))
 		w.WriteHeader(http.StatusOK)
 		return
@@ -75,7 +86,32 @@ func (h *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	for _, comment := range comments {
+		if err := h.handleComment(r.Context(), comment); err != nil {
+			// 500: Meta sends it again, and a comment is saved once (its id).
+			h.Log.Error("messenger webhook failed", logging.ErrorType(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// handleComment hands a new comment to the comments module, for the one
+// company that has the Page connected (the Page id Meta signed decides it,
+// never the comment).
+func (h *Webhook) handleComment(ctx context.Context, comment CommentEvent) error {
+	if h.Comments == nil {
+		return nil
+	}
+	page, err := findPage(ctx, h.Pool, comment.PageID)
+	if err != nil || page == nil {
+		if err == nil {
+			h.Log.Warn("messenger comment ignored", logging.Code("page_not_connected_once"))
+		}
+		return err
+	}
+	return h.Comments.SaveComment(ctx, page.CompanyID, page.ConnectionID, comment)
 }
 
 // IsMetasSignature: "sha256=" + HMAC-SHA256 of the raw body with the app

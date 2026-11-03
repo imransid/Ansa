@@ -59,7 +59,7 @@ func (c *Connector) Complete(ctx context.Context, company tenant.CompanyID, acto
 		return "exchange_failed", 0, err
 	}
 	if platform == "facebook" {
-		c.switchOnMessages(ctx, accounts)
+		c.switchOnWebhooks(ctx, accounts)
 	}
 	return "connected", len(accounts), nil
 }
@@ -81,15 +81,17 @@ func (c *Connector) exchange(ctx context.Context, company tenant.CompanyID, plat
 	return c.Platforms.Authorize(ctx, platform, c.redirectURI(platform), code, verifier)
 }
 
-// switchOnMessages: best effort; a Page Meta refuses keeps its posts, and
-// the log says so (fixed words).
-func (c *Connector) switchOnMessages(ctx context.Context, pages []Account) {
+// switchOnWebhooks switches on each Page's messages and comments for
+// ansa's webhook, as far as the person allowed them. Best effort: a Page
+// Meta refuses keeps its posts, and the log says so (fixed words).
+func (c *Connector) switchOnWebhooks(ctx context.Context, pages []Account) {
 	for _, page := range pages {
-		if !contains(page.Scopes, "pages_messaging") || !contains(page.Scopes, "pages_manage_metadata") {
+		fields := webhookFields(page.Scopes)
+		if len(fields) == 0 {
 			continue
 		}
-		if !subscribeToMessages(ctx, c.AppSecret, page) {
-			c.Log.Warn("socialconnect: messenger messages not switched on for a page", logging.Code("subscribe_refused"))
+		if !subscribeToPage(ctx, c.AppSecret, page, fields) {
+			c.Log.Warn("socialconnect: page webhooks not switched on", logging.Code("subscribe_refused"))
 		}
 	}
 }
