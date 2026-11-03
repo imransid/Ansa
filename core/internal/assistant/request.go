@@ -81,4 +81,7 @@ type Decision struct {
 	Summary  string          `json:"summary"`
 	Category string          `json:"category"`
 	Order    *orders.Request `json:"order"`
+	// Core's own: the amount its price check stopped ("" for none). Never
+	// read from the brain.
+	StoppedAmount string `json:"-"`
 }

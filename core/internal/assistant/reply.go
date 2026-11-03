@@ -161,7 +161,7 @@ func (r *Runner) decide(ctx context.Context, inputs *Inputs) Decision {
 	switch decision.Kind {
 	case "reply":
 		if reason := CheckReply(decision.Text, inputs.Checks); reason != "" {
-			return Decision{Kind: "failed", Reason: reason}
+			return Decision{Kind: "failed", Reason: reason, StoppedAmount: StoppedAmount(decision.Text, inputs.Checks)}
 		}
 		return decision
 	case "no_reply", "needs_person", "order_summary", "order_confirmed", "order_withdrawn":
@@ -178,7 +178,7 @@ func (r *Runner) decide(ctx context.Context, inputs *Inputs) Decision {
 // handoverFor is the handover a decision asks for: the AI's subject,
 // summary and category only when it asked for a person itself.
 func handoverFor(decision Decision, inputs *Inputs) Handover {
-	handover := Handover{Reason: decision.Reason, SendHoldingReply: true}
+	handover := Handover{Reason: decision.Reason, SendHoldingReply: true, StoppedAmount: decision.StoppedAmount}
 	if decision.Kind != "needs_person" {
 		return handover
 	}

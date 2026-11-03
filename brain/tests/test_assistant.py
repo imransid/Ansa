@@ -74,6 +74,13 @@ def test_an_orders_notes_are_the_customers_own_words_only():
     assert "in their own words and language" in schema["properties"]["order"]["properties"]["notes"]["description"]
 
 
+def test_an_amount_the_customer_wrote_is_never_repeated():
+    # Core's price check stops a reply naming an amount the menu and the
+    # owner's texts don't have, also a customer's own price said back in a "no".
+    assert "Never repeat an amount of money the customer wrote" in build_request(request())[0]
+    assert "Never repeat an amount of money the sender wrote" in build_request(request(kind="personal"))[0]
+
+
 def test_a_yes_to_ansas_summary_in_either_language_is_known():
     # Core writes its order summary in the customer's language (orders.SummaryText:
     # English, or Bangla for a customer writing in Bengali script); the AI is

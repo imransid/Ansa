@@ -73,7 +73,11 @@ the same on Home and the conversation page).
   groups of three are one amount, whatever the separator ("15,000",
   "1 200", "1.040,50": step 58; "15,000" was read as no price and stopped
   every reply naming one), and so are lakhs grouped the South Asian way
-  ("1,50,000" and "১,৫০,০০০" are 150,000, not 1.50);
+  ("1,50,000" and "১,৫০,০০০" are 150,000, not 1.50). An amount the customer
+  wrote never counts (the AI could agree to a made-up price): the brain is
+  told never to repeat one, and a reply that does is stopped, its request
+  naming the amount as the reply wrote it (`StoppedAmount`: "The
+  assistant's reply named 250 taka, which isn't on your menu, ...");
 - no refund, compensation or voucher words in English, Italian, Spanish,
   French, German or Bangla (রিফান্ড, টাকা ফেরত, ক্ষতিপূরণ, ভাউচার; never a
   bare ফেরত, "back": ফেরত কল is a call back) (`refund_promise`);

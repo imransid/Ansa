@@ -55,7 +55,7 @@ var (
 
 // CheckReply returns "" when the reply may go, else the reason it may not.
 func CheckReply(text string, data CheckData) string {
-	if !pricesAreKnown(text, data) {
+	if _, unknown := firstUnknownAmount(text, data); unknown {
 		return ReasonPriceNotOnMenu
 	}
 	if refundWords.MatchString(text) || refundWordsBangla.MatchString(text) {
@@ -76,17 +76,35 @@ func CheckReply(text string, data CheckData) string {
 // thousand, "1,50,000" a hundred and fifty thousand), so a price the owner
 // wrote reads the same in a reply.
 func MoneyAmounts(text, currency string) []int64 {
-	text = money.WithASCIIDigits(text)
 	var amounts []int64
-	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
-		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
-			amounts = append(amounts, money.ParsePrice(match[1], currency))
-		}
+	for _, mention := range moneyMentions(text, currency) {
+		amounts = append(amounts, mention.amount)
 	}
 	return amounts
 }
 
-func pricesAreKnown(text string, data CheckData) bool {
+// moneyMention is one amount written with a currency mark: as written (any
+// script's digits as 0-9) and in smallest units (-1: unreadable).
+type moneyMention struct {
+	written string
+	amount  int64
+}
+
+func moneyMentions(text, currency string) []moneyMention {
+	text = money.WithASCIIDigits(text)
+	var mentions []moneyMention
+	for _, pattern := range []*regexp.Regexp{moneyBefore, moneyAfter} {
+		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
+			mentions = append(mentions, moneyMention{written: strings.TrimSpace(match[0]), amount: money.ParsePrice(match[1], currency)})
+		}
+	}
+	return mentions
+}
+
+// firstUnknownAmount is the first amount of the reply, as written, that is
+// neither a menu price nor in the business's own texts (or can't be read as
+// a price), and whether there is one.
+func firstUnknownAmount(text string, data CheckData) (string, bool) {
 	allowed := map[int64]bool{}
 	for _, price := range data.MenuPrices {
 		allowed[price] = true
@@ -98,12 +116,19 @@ func pricesAreKnown(text string, data CheckData) bool {
 			}
 		}
 	}
-	for _, amount := range MoneyAmounts(text, data.Currency) {
-		if amount < 0 || !allowed[amount] {
-			return false
+	for _, mention := range moneyMentions(text, data.Currency) {
+		if mention.amount < 0 || !allowed[mention.amount] {
+			return mention.written, true
 		}
 	}
-	return true
+	return "", false
+}
+
+// StoppedAmount is the amount that stopped a reply (price_not_on_menu) as
+// the reply wrote it ("250 taka"), at most 40 characters; "" when there is none.
+func StoppedAmount(text string, data CheckData) string {
+	written, _ := firstUnknownAmount(text, data)
+	return cutRunes(strings.Join(strings.Fields(written), " "), 40)
 }
 
 func linksAreKnown(text string, ownerTexts []string) bool {

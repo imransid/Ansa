@@ -15,7 +15,10 @@ addresses hidden, the owner's with secret numbers hidden. Each message's
 line is named by its side: "Customer" and "Restaurant", or for a person
 "Sender" and "<their name>'s side" (theirs, and ansa's for them; never
 "Restaurant"). No prompt names one chat: customers write on WhatsApp,
-Messenger and Telegram alike ("in its chats"). An order's notes are only
+Messenger and Telegram alike ("in its chats"). The AI never repeats an
+amount of money the customer wrote, even to say no (core's price check
+would stop the reply): it says the menu's price instead (a person's: only
+amounts their instructions or articles give). An order's notes are only
 what the customer asked for, briefly, in their own words and language (ansa
 shows them in the summary it sends the customer): never the AI's comment
 to the restaurant; something it can't promise (an extra or a change not on

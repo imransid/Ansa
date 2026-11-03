@@ -35,6 +35,8 @@ type Handover struct {
 	// On a live call: the AI's own words for the caller, checked by core,
 	// said instead of the holding reply ("" = the holding reply).
 	CallerHears string
+	// The amount core's price check stopped, named on the request ("" = none).
+	StoppedAmount string
 }
 
 // AlertPayload is what the owners' alert reads.
@@ -151,7 +153,7 @@ func requestFields(ctx context.Context, tx database.Tx, turn conversations.Turn,
 	if subject == "" || utf8.RuneCountInString(subject) > 200 {
 		subject = ChannelLabels[info.Channel] + " conversation needs you"
 	}
-	description := ReasonTextFor(h.Reason, info.Kind)
+	description := reasonWords(h.Reason, h.StoppedAmount, info.Kind)
 	if summary := strings.TrimSpace(h.Summary); summary != "" {
 		description += "\n\n" + cutRunes(summary, 1_000)
 	}

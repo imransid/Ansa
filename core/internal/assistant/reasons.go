@@ -40,6 +40,20 @@ func ReasonTextFor(reason, kind string) string {
 	return ReasonText[reason]
 }
 
+// reasonWords is a request's reason in plain words for this kind of
+// account, naming the amount ansa's price check stopped when there is one
+// (the customer's own price the AI repeated, or one it made up).
+func reasonWords(reason, stoppedAmount, kind string) string {
+	if reason != ReasonPriceNotOnMenu || stoppedAmount == "" {
+		return ReasonTextFor(reason, kind)
+	}
+	where := "on your menu"
+	if kind == "personal" {
+		where = "in your own notes or saved answers"
+	}
+	return "The assistant's reply named " + stoppedAmount + ", which isn't " + where + ", so ansa didn't send it."
+}
+
 // ChannelLabels name a conversation's channel for people.
 var ChannelLabels = map[string]string{
 	"telegram": "Telegram", "messenger": "Messenger", "whatsapp": "WhatsApp", "phone": "Phone", "email": "Email", "stand_in": "Stand-in chat",

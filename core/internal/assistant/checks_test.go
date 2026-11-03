@@ -120,6 +120,29 @@ func TestBanglaRefundWordsStopAReply(t *testing.T) {
 	}
 }
 
+// The request names the amount that stopped a reply, as the reply wrote
+// it: often the customer's own price, repeated.
+func TestTheStoppedAmountIsNamedAsWritten(t *testing.T) {
+	kacchi := CheckData{Currency: "BDT", MenuPrices: []int64{30000}}
+	cases := map[string]string{
+		"Sorry, kacchi is BDT 300, not 250 taka.": "250 taka",
+		"কাচ্চি ৳৩০০, ৳২৫০ নয়।":                  "৳250",
+		"Kacchi is BDT\n250.":                     "BDT 250",
+		"Kacchi is BDT 300.":                      "",
+	}
+	for text, want := range cases {
+		if got := StoppedAmount(text, kacchi); got != want {
+			t.Errorf("%q: got %q, want %q", text, got, want)
+		}
+	}
+	if got := reasonWords(ReasonPriceNotOnMenu, "250 taka", "business"); got != "The assistant's reply named 250 taka, which isn't on your menu, so ansa didn't send it." {
+		t.Errorf("a business: %q", got)
+	}
+	if got := reasonWords(ReasonPriceNotOnMenu, "", "personal"); got != personalReasonText[ReasonPriceNotOnMenu] {
+		t.Errorf("no amount to name: %q", got)
+	}
+}
+
 func TestTheAILabelSaysWhoItWorksFor(t *testing.T) {
 	if got := WithAILabel("Hi!", "Luigi's", "business", orders.English, true); got != "I'm the AI assistant for Luigi's.\nHi!" {
 		t.Errorf("business: %q", got)
