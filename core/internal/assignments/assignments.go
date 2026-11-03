@@ -92,19 +92,19 @@ type rendered struct{ subject, html, text string }
 func (n *notice) render(appURL string) rendered {
 	number := strconv.Itoa(n.Number)
 	cleanSubject := plaintext.SingleLine(n.Subject)
-	subject := []rune("Ticket #" + number + " is yours: " + cleanSubject)
+	subject := []rune("Request #" + number + " is yours: " + cleanSubject)
 	if len(subject) > 150 {
 		subject = subject[:150]
 	}
 	why := n.why()
 	link := appURL + "/tickets/" + number
-	text := strings.Join([]string{"Hi " + n.AssigneeName + ",", "", "Ticket #" + number + ` "` + cleanSubject + `" is now assigned to you. ` + why, "", "Open it: " + link}, "\n")
+	text := strings.Join([]string{"Hi " + n.AssigneeName + ",", "", "Request #" + number + ` "` + cleanSubject + `" is now assigned to you. ` + why, "", "Open it: " + link}, "\n")
 	page := `<!doctype html>
 <html>
   <body style="font-family: sans-serif; line-height: 1.5; color: #111;">
     <p>Hi ` + html.EscapeString(n.AssigneeName) + `,</p>
-    <p>Ticket #` + number + ` <strong>"` + html.EscapeString(cleanSubject) + `"</strong> is now assigned to you. ` + html.EscapeString(why) + `</p>
-    <p><a href="` + html.EscapeString(link) + `">Open ticket #` + number + `</a></p>
+    <p>Request #` + number + ` <strong>"` + html.EscapeString(cleanSubject) + `"</strong> is now assigned to you. ` + html.EscapeString(why) + `</p>
+    <p><a href="` + html.EscapeString(link) + `">Open request #` + number + `</a></p>
   </body>
 </html>`
 	return rendered{subject: string(subject), html: page, text: text}

@@ -56,7 +56,7 @@ func TestTheExpertRoutingPicksIsEmailedOnceWithoutCustomerDetails(t *testing.T) 
 		t.Fatalf("one email: %d", len(files))
 	}
 	page, _ := os.ReadFile(filepath.Join(folder, ".dev-emails", files[0].Name()))
-	if !strings.Contains(string(page), "Ticket #1 is yours: Cold pizza") || !strings.Contains(string(page), "because you handle Complaints") || strings.Contains(string(page), "Ana Customer") {
+	if !strings.Contains(string(page), "Request #1 is yours: Cold pizza") || !strings.Contains(string(page), "because you handle Complaints") || strings.Contains(string(page), "Ana Customer") {
 		t.Fatalf("the email: number, subject and category only")
 	}
 	pool.Exec(ctx, `UPDATE users SET deactivated_at = now() WHERE company_id = $1 AND id = $2`, companyID, expert)
