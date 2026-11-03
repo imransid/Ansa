@@ -25,7 +25,7 @@ var demoCalls = []demoCall{
 	{"+880 1811 000202", []string{
 		"AI: Thanks for calling Shapla Kitchen. How can I help you today?",
 		"User: Hi, are you open on Friday evening?",
-		"AI: Yes, we're open every day, all day, and kacchi and biryani are ready from 12:00.",
+		"AI: Yes, we're open every day, all day, and kacchi and biryani are cooked fresh every morning.",
 		"User: Do we need to book a table for six people?",
 		"AI: For six people, send us a message on WhatsApp and we keep the family room ready for you.",
 		"User: Perfect, that answers my question. Thank you so much.",

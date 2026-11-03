@@ -45,7 +45,7 @@ func setUpRestaurant(ctx context.Context, w *world, a demoAccount) error {
 	orders := setup.Orders{TakesOrders: true, Delivery: true, DeliveryNote: "Within 5 km of Dhanmondi, in about 45 minutes.", DeliveryFee: "60",
 		Pickup: true, PaymentNote: "Cash on delivery or bKash.", Currency: "BDT"}
 	answering := setup.Answering{
-		Instructions: "Answer warmly and briefly, in the customer's language (Bangla or English). Kacchi and biryani are cooked fresh from 12:00 every day. " +
+		Instructions: "Answer warmly and briefly, in the customer's language (Bangla or English). Kacchi and biryani are cooked fresh every morning. " +
 			"For a party of 20 or more, take their name and number: the manager calls them back.",
 		HoldingReply: "Thanks for your message! Someone from Shapla Kitchen will get back to you very soon.",
 	}

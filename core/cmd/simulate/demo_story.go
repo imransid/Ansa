@@ -24,7 +24,7 @@ var restaurantHistory = []demoChat{
 		{"Do you have a table for 8 on Friday?", reply("We have a family room upstairs that fits 8. ansa can't book tables: to book it for Friday, please call us on +880 1700 000000.")},
 	}},
 	{channel: "whatsapp", name: "Rahim", turns: []demoTurn{
-		{"Hi! What time do you open on Friday?", reply("We're open every day, all day, Friday too. Kacchi and biryani are ready from 12:00.")},
+		{"Hi! What time do you open on Friday?", reply("We're open every day, all day, Friday too. Kacchi and biryani are cooked fresh every morning.")},
 	}},
 	{channel: "telegram", name: "Imran", turns: []demoTurn{
 		{"Can I get 1 Chicken Biryani and 2 Borhani for pickup at 8 pm?", orderSummary("pickup", "", "20:00", "", "M2", 1, "M7", 2)},
