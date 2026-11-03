@@ -95,8 +95,14 @@ Practice phone (`/settings/channels/practice-call`). Pretend to be a caller
 number, `lib/practice-phone/caller.ts`, and "New caller" makes up another
 and clears the name, since the number is who is calling), pick the
 language you'll speak (English or Bangla) and how ansa hears you, talk (or
-type), and hear ansa answer. Hang up works while ansa is thinking (its
-late answer is dropped, never spoken), and leaving the page hangs up
+type), and hear ansa answer. The caller's words show as soon as they are
+known (typed, or heard by the browser; a recording's once Whisper heard
+it). Hang up works while ansa is thinking: "Call ended." shows at once, the
+hang-up goes through its own route (`app/api/phone/practice/end`, through
+`lib/practice-phone/hang-up.ts`: a server action would wait behind the turn,
+since the browser sends a page's actions one at a time), core saves nothing
+of the answer (the gate's live-call check, [assistant](assistant.md)) and
+the page drops it, never spoken. Leaving the page hangs up the same way
 (`use-live-call.ts`: always for another page of ansa, at best for a reload
 or a closed tab):
 - Hearing: "This browser's speech service" (the default where the browser
@@ -113,7 +119,8 @@ or a closed tab):
   has Bangla voices.
 
 API: `GET /api/v1/phone/practice`, `POST .../start`, `.../turn` (text, or
-audio with its language `en` or `bn`), `.../end` (`internal/api/phone.go`):
+audio with its language `en` or `bn`), `.../end` (the screens' hang-up
+route) (`internal/api/phone.go`):
 refused on a production server and to members; 30 calls and 300 turns an
 hour per company.
 
@@ -126,6 +133,9 @@ promise never said; no words of the AI's = the holding reply; paused = the
 AI only takes a message (no order) and hanging up opens one request (never
 the caller's words on it); past the call limit = fixed words; a person's
 greeting; refusals; every request from a call carries the caller's number.
+`hung_up_test.go`: a caller who hangs up while the AI thinks gets nothing
+saved (a reply, a handover's request, an order summary), their own words
+kept.
 `note_test.go`: the note opens a request when someone has to act (its own
 words, ansa's "kept a note" line and alert, never "left a message"), joins
 the open one, gives a request opened during the call its subject (never one
@@ -138,6 +148,7 @@ its subject to the next call's request. `internal/api/phone_test.go`:
 owners on a development server only, a language the brain doesn't hear
 refused. Screens: `scripts/screen-checks/practice-phone-checks.ts` (the
 made-up numbers, New caller, late answers dropped, hanging up when the page
-is left). Brain: `tests/test_voice.py`
+is left, "Call ended." at once through the hang-up route, the caller's
+words shown before the answer). Brain: `tests/test_voice.py`
 (whisper locked down, development only, the language passed on),
 `tests/test_call_summary.py` (the note's prompt, escaping and strict reading).

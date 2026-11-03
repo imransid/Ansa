@@ -35,6 +35,8 @@ type callWorld struct {
 	modes       []string
 	lastBody    string
 	brainAnswer string
+	// Runs while the brain "thinks" (before it answers), when set.
+	whileThinking func()
 }
 
 func newCallWorld(t *testing.T, brainAnswer string) *callWorld {
@@ -54,6 +56,9 @@ func newCallWorld(t *testing.T, brainAnswer string) *callWorld {
 		w.channels = append(w.channels, request.Channel)
 		w.modes = append(w.modes, request.CallMode)
 		w.lastBody = string(body)
+		if w.whileThinking != nil {
+			w.whileThinking()
+		}
 		rw.Header().Set("Content-Type", "application/json")
 		io.WriteString(rw, w.brainAnswer)
 	}))

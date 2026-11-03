@@ -4,7 +4,9 @@
 // practice call the same caller, so each visit and each "New caller" makes
 // one up. An answer that comes back after a hang-up was still spoken and
 // shown. A call left live (the page left without hanging up) kept its note,
-// its request and its minutes waiting for the same number's next call.
+// its request and its minutes waiting for the same number's next call. A
+// hang-up while ansa thought waited behind that turn ("Calling..." for 14
+// s), and the caller's typed words vanished until the answer came.
 
 import assert from "node:assert/strict";
 import { madeUpCallerNumber } from "@/lib/practice-phone/caller";
@@ -60,9 +62,32 @@ export async function runPracticePhoneChecks() {
   await check("practice phone: leaving the page (another page of ansa, a reload, a closed tab) hangs up the live call, also one picked up after it", async () => {
     const live = withoutComments(await read(`${FOLDER}/use-live-call.ts`));
     assert.match(live, /addEventListener\("pagehide", onPageHide\)/);
-    assert.match(functionBody(live, "hangUpOnLeaving", "onPageHide"), /endPracticeCallAction\(\{ callId: left\.id \}\)/);
+    assert.match(functionBody(live, "hangUpOnLeaving", "onPageHide"), /hangUpPracticeCall\(left\.id\)/);
     const cleanup = live.slice(live.indexOf("return () => {"));
     assert.match(cleanup, /pageLeft\.current = true;\s*hangUpOnLeaving\(\);/, "unmounting hangs up");
-    assert.match(live, /if \(pageLeft\.current\) \{\s*void endPracticeCallAction\(\{ callId: call\.id \}\);/, "a call picked up after leaving hangs up at once");
+    assert.match(live, /if \(pageLeft\.current\) \{\s*void hangUpPracticeCall\(call\.id\);/, "a call picked up after leaving hangs up at once");
+  });
+
+  await check("practice phone: Hang up says 'Call ended' at once and reaches core while ansa still thinks (its own route, never a server action queued behind the turn); picking up has its own waiting state", async () => {
+    const phone = withoutComments(await read(`${FOLDER}/practice-phone.tsx`));
+    const hangUp = functionBody(phone, "hangUp", "newCaller");
+    assert.match(hangUp, /setEndedCall\(ending\);\s*void hangUpPracticeCall\(ending\.id\);/, "Call ended shows before core is told");
+    assert.doesNotMatch(hangUp, /start\w+\(/, "no transition: nothing waits for the turn");
+    for (const file of [`${FOLDER}/practice-phone.tsx`, `${FOLDER}/use-live-call.ts`, "app/actions/phone.ts"]) {
+      assert.doesNotMatch(withoutComments(await read(file)), /endPracticeCall/, `${file} hangs up through a server action`);
+    }
+    const helper = withoutComments(await read("lib/practice-phone/hang-up.ts"));
+    assert.match(helper, /fetch\("\/api\/phone\/practice\/end", \{\s*method: "POST",\s*keepalive: true,/);
+    const route = withoutComments(await read("app/api/phone/practice/end/route.ts"));
+    assert.match(route, /if \(!\(await getSessionContext\(\)\)\) \{/);
+    assert.match(route, /endPracticeCallThroughCore\(parsed\.data\.callId\)/);
+    assert.match(phone, /<WhoIsCalling[\s\S]*?waiting=\{isCalling\}/, "Calling... only while picking up");
+  });
+
+  await check("practice phone: the caller's words show as soon as they are known (typed, or heard by the browser), before ansa's answer comes", async () => {
+    const turn = functionBody(withoutComments(await read(`${FOLDER}/practice-phone.tsx`)), "send", "startTalking");
+    const shownAtOnce = turn.indexOf('setLines((before) => [...before, { who: "caller", text: shown }]);');
+    assert.ok(shownAtOnce > 0 && shownAtOnce < turn.indexOf("await practiceCallTurnAction"), "known words are shown before the turn is sent");
+    assert.match(turn, /if \(shown === null\) \{\s*setLines\(/, "only a recording's words wait for the answer");
   });
 }

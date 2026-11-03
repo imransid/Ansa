@@ -20,6 +20,7 @@ const (
 	GateNotNewest   = "not-newest"
 	GateHandled     = "handled"
 	GateNotFound    = "not-found"
+	GateCallOver    = "call-over"
 )
 
 // GateOptions: RequireNewest (a newer message gets its own run), Lock (a
@@ -27,7 +28,8 @@ const (
 // AllowHandled (the assistant's own reply just failed to send), OnACall (a
 // live call's turn: a caller on the line is always answered, so being
 // paused, a person handling the conversation or an open request don't stop
-// it; AnswerCall decides what ansa may say then).
+// it; AnswerCall decides what ansa may say then; but once they hung up,
+// nothing is said).
 type GateOptions struct {
 	RequireNewest bool
 	Lock          bool
@@ -49,6 +51,15 @@ func GateWithin(ctx context.Context, tx database.Tx, turn conversations.Turn, op
 	}
 	if err != nil {
 		return "", err
+	}
+	if options.OnACall {
+		live, err := callStillLiveWithin(ctx, tx, turn)
+		if err != nil {
+			return "", err
+		}
+		if !live {
+			return GateCallOver, nil
+		}
 	}
 	var status string
 	err = tx.QueryRow(ctx, `SELECT status FROM assistant_settings WHERE company_id = $1 FOR SHARE`, company).Scan(&status)
@@ -84,6 +95,23 @@ func GateWithin(ctx context.Context, tx database.Tx, turn conversations.Turn, op
 		}
 	}
 	return GateMay, nil
+}
+
+// callStillLiveWithin: is the call whose words started the turn still on?
+// A caller who hung up while the AI was thinking never hears its answer, so
+// nothing of it is saved: the conversation would hold words nobody heard.
+// The caller's words name their call ("call:<call id>:<message id>",
+// phone.Turn).
+func callStillLiveWithin(ctx context.Context, tx database.Tx, turn conversations.Turn) (bool, error) {
+	const statement = `
+		SELECT EXISTS (
+			SELECT 1 FROM messages
+			JOIN phone_calls ON phone_calls.company_id = messages.company_id AND phone_calls.conversation_id = messages.conversation_id
+			WHERE messages.company_id = $1 AND messages.id = $2 AND phone_calls.ended_at IS NULL
+				AND messages.channel_message_id = 'call:' || phone_calls.id::text || ':' || messages.id::text)`
+	var live bool
+	err := tx.QueryRow(ctx, statement, turn.CompanyID.String(), turn.TriggerMessageID).Scan(&live)
+	return live, err
 }
 
 // MarkHandledWithin records that the assistant answered (or decided about)

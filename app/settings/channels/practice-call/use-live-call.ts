@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef } from "react";
-import { endPracticeCallAction } from "@/app/actions/phone";
+import { hangUpPracticeCall } from "@/lib/practice-phone/hang-up";
 
 export type Call = { id: string; conversationId: string };
 
@@ -23,7 +23,7 @@ export function useLiveCall(onHidden: (ended: Call) => void) {
       live.current = null;
       window.speechSynthesis?.cancel();
       if (left) {
-        void endPracticeCallAction({ callId: left.id });
+        void hangUpPracticeCall(left.id);
       }
       return left;
     }
@@ -48,7 +48,7 @@ export function useLiveCall(onHidden: (ended: Call) => void) {
     // then nobody is on it, and it hangs up at once (false).
     begin: (call: Call) => {
       if (pageLeft.current) {
-        void endPracticeCallAction({ callId: call.id });
+        void hangUpPracticeCall(call.id);
         return false;
       }
       live.current = call;

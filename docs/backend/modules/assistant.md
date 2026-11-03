@@ -93,6 +93,10 @@ customer gets (a reply, a holding reply or one of ansa's order texts).
 taken over by a person → the message handled already → a request open in the
 conversation → a newer customer message (it gets its own run) → may. Read
 again, with the conversation row locked, inside the transaction that saves.
+On a call (`OnACall`), right after not found: the call whose words started
+the turn must still be live (`callStillLiveWithin`, by the words'
+`call:<call id>:...` id), so nothing of an answer is saved once the caller
+hung up while the AI was thinking (no words, request or order).
 `MarkHandledWithin` records the message as answered (never answered twice).
 **Inputs (`inputs.go`, the old `services/assistant-inputs.ts`):** one
 company's slice for the brain (`request.go`'s `BrainRequest`): its name,

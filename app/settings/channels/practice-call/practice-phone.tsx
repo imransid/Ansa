@@ -2,8 +2,9 @@
 
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
-import { endPracticeCallAction, practiceCallTurnAction, startPracticeCallAction } from "@/app/actions/phone";
+import { practiceCallTurnAction, startPracticeCallAction } from "@/app/actions/phone";
 import { madeUpCallerNumber } from "@/lib/practice-phone/caller";
+import { hangUpPracticeCall } from "@/lib/practice-phone/hang-up";
 import { browserCanHear, speak, type CallLanguage, type Hearing } from "@/lib/practice-phone/speech";
 import { CallControls } from "./call-controls";
 import { CallLog, type Line } from "./call-log";
@@ -21,11 +22,12 @@ const subscribeToNothing = () => () => {};
 const COULD_NOT_REACH = "ansa couldn't be reached just now. Try again in a moment.";
 
 // The practice phone (step 55): pretend to be a caller, talk (or type) in
-// English or Bangla, and hear ansa answer with the browser's voice. The
-// buttons call the actions inside a transition, so nothing typed is lost to
-// a form reset. The first caller's number is made up by the server for this
-// visit (made up in the browser, it would differ from the page the server
-// rendered).
+// English or Bangla, and hear ansa answer with the browser's voice. Picking
+// up and each turn call their actions inside a transition of their own, so
+// nothing typed is lost to a form reset; hanging up shows at once and goes
+// through its own route (hangUpPracticeCall), never behind a turn. The
+// first caller's number is made up by the server for this visit (made up in
+// the browser, it would differ from the page the server rendered).
 export function PracticePhone({ firstNumber }: { firstNumber: string }) {
   const [callerName, setCallerName] = useState("Lena");
   const [callerNumber, setCallerNumber] = useState(firstNumber);
@@ -36,7 +38,8 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
   const [language, setLanguage] = useState<CallLanguage>("en");
   const [chosenHearing, setHearing] = useState<Hearing | null>(null);
   const [noBanglaVoice, setNoBanglaVoice] = useState(false);
-  const [isWaiting, startWaiting] = useTransition();
+  const [isCalling, startCalling] = useTransition();
+  const [isThinking, startThinking] = useTransition();
   const liveCall = useLiveCall((ended) => {
     setCall(null);
     setEndedCall(ended);
@@ -57,7 +60,7 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
 
   function pickUp() {
     setError("");
-    startWaiting(async () => {
+    startCalling(async () => {
       const started = await startPracticeCallAction({ callerName, callerNumber }).catch(() => null);
       if (!started) {
         setError(COULD_NOT_REACH);
@@ -84,7 +87,12 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
       return;
     }
     setError("");
-    startWaiting(async () => {
+    // Words already known (typed, or heard by the browser) show at once:
+    // ansa may think for a while, and the caller's words shouldn't vanish.
+    if (shown !== null) {
+      setLines((before) => [...before, { who: "caller", text: shown }]);
+    }
+    startThinking(async () => {
       const answer = await practiceCallTurnAction({ callId: calling.id, ...said }).catch(() => null);
       if (liveCall.current()?.id !== calling.id) {
         // Hung up while ansa was thinking: its answer is never heard.
@@ -103,8 +111,10 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
         }
         return;
       }
-      const heard = shown ?? answer.heard;
-      setLines((before) => [...before, { who: "caller", text: heard || "(nothing heard)" }]);
+      if (shown === null) {
+        // A recording: what Whisper heard is known only now.
+        setLines((before) => [...before, { who: "caller", text: answer.heard || "(nothing heard)" }]);
+      }
       hear(answer.words);
     });
   }
@@ -122,12 +132,10 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
     voice.cancel();
     window.speechSynthesis?.cancel();
     setCall(null);
-    startWaiting(async () => {
-      // Not told (the server couldn't be reached), ansa ends this call when
-      // the same caller calls again, as hanging up does.
-      await endPracticeCallAction({ callId: ending.id }).catch(() => null);
-      setEndedCall(ending);
-    });
+    setEndedCall(ending);
+    // Not told (the server couldn't be reached), ansa ends this call when
+    // the same caller calls again, as hanging up does.
+    void hangUpPracticeCall(ending.id);
   }
 
   // Someone else calls: a new made-up number (their own conversation) and no name yet.
@@ -148,7 +156,7 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
           onNumber={setCallerNumber}
           onNewCaller={newCaller}
           onCall={pickUp}
-          waiting={isWaiting}
+          waiting={isCalling}
         />
       )}
 
@@ -157,11 +165,11 @@ export function PracticePhone({ firstNumber }: { firstNumber: string }) {
           <h2 id="call-heading" className="text-lg font-semibold">
             {call ? "On the call" : "The call"}
           </h2>
-          <CallLog lines={lines} callerName={callerName} thinking={isWaiting && call !== null} />
+          <CallLog lines={lines} callerName={callerName} thinking={isThinking && call !== null} />
           {call && (
             <CallControls
               voice={voice}
-              waiting={isWaiting}
+              waiting={isThinking}
               noBanglaVoice={noBanglaVoice}
               onTalk={startTalking}
               onHangUp={hangUp}

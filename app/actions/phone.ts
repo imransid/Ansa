@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 import {
-  endPracticeCallThroughCore,
   practiceCallTurnThroughCore,
   startPracticeCallThroughCore,
   type PracticeCallStarted,
@@ -12,7 +11,8 @@ import { requireSessionContext } from "@/lib/session";
 
 // Thin, like every action: core checks the person (an owner), that this is a
 // development server, the input and the limits. The page calls these from
-// its buttons; they never hold a password.
+// its buttons; they never hold a password. Hanging up has its own route
+// (app/api/phone/practice/end): an action would wait behind a turn.
 
 const callId = z.string().uuid();
 const startInput = z.object({ callerName: z.string().max(200), callerNumber: z.string().min(1).max(40) });
@@ -44,12 +44,4 @@ export async function practiceCallTurnAction(
   }
   const { callId: id, ...said } = parsed.data;
   return practiceCallTurnThroughCore(id, said);
-}
-
-export async function endPracticeCallAction(input: { callId: string }): Promise<void> {
-  await requireSessionContext(PAGE);
-  const parsed = z.object({ callId }).safeParse(input);
-  if (parsed.success) {
-    await endPracticeCallThroughCore(parsed.data.callId);
-  }
 }
