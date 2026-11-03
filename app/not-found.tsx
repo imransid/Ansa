@@ -12,7 +12,7 @@ export default function NotFound() {
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="grid max-w-md gap-4">
-        <h1 className="text-xl font-semibold">We couldn&apos;t find that request or page</h1>
+        <h1 className="text-xl font-semibold">We couldn&apos;t find that page</h1>
         <p className="text-sm text-muted-foreground">
           The link may be mistyped or out of date. If someone sent it to you, ask them to check it.
         </p>
