@@ -36,6 +36,8 @@ function ActivityRow({ line, first }: { line: ActivityLine; first: boolean }) {
   const palette = usePalette();
   const when = describeLocalTime(line.at);
   const title = line.who !== "" ? line.who : line.text;
+  // A name fits one line; ansa's own sentence (a phone line has no name) gets two.
+  const titleLines = line.who !== "" ? 1 : 2;
   return (
     <View
       style={[styles.row, { borderTopColor: palette.border, borderTopWidth: first ? 0 : StyleSheet.hairlineWidth }]}
@@ -43,7 +45,7 @@ function ActivityRow({ line, first }: { line: ActivityLine; first: boolean }) {
       accessibilityLabel={[line.who, line.text, when].filter((part) => part !== "").join(", ")}
     >
       <View style={styles.rowTop}>
-        <Text style={[styles.who, { color: palette.text }]} numberOfLines={1}>
+        <Text style={[styles.who, { color: palette.text }]} numberOfLines={titleLines}>
           {title}
         </Text>
         <Text style={[type.meta, { color: palette.textSubtle }]}>{when}</Text>
