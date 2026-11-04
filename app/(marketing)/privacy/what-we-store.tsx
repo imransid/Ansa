@@ -13,7 +13,8 @@ export function WhatWeStore() {
           Your setup: whether ansa answers for a business or a person, the name it uses, what you do, your address and
           public phone number, your opening or away hours and time zone, your delivery, pickup and payment notes, currency
           and delivery fee, the instructions and holding reply you write, when ansa answers (&ldquo;I&apos;m away&rdquo;,
-          away hours, how long it waits for you), and which AI writes its replies. If you add your own Claude API key, we
+          away hours, how long it waits for you, and whether it answers when your phone is unreachable), and which AI
+          writes its replies. If you add your own Claude API key, we
           keep it and show only its last four characters.
         </li>
         <li>
@@ -64,6 +65,12 @@ export function WhatWeStore() {
           and the access Meta gave us; for Facebook Pages, LinkedIn, X and YouTube, the account&apos;s name and id, the
           permissions it gave, the access it gave us and when that runs out, who connected it, and when it was
           disconnected. One-time Telegram link codes are kept only as a one-way hash.
+        </li>
+        <li>
+          The ansa phone app: for each phone connected to your account, the name it gives itself (like &ldquo;Rafa&apos;s
+          iPhone&rdquo;), whether it is an iPhone or an Android phone, when it was connected and when it last checked in.
+          The app keeps a token on the phone that lets it check in, until the phone is removed in ansa or the app is
+          disconnected. The one-time codes that connect a phone are kept only as a one-way hash.
         </li>
         <li>
           Social media posts: the posts ansa writes for your Facebook Page (&ldquo;Post for me&rdquo;) and the drafts your

@@ -36,8 +36,9 @@ export default function PrivacyPage() {
       <ul>
         <li>
           To run the service: answer messages and calls for you, take orders, pass on what ansa can&apos;t answer, route
-          requests to your team, tell you what you missed, email customers when their request is solved, and publish the
-          posts you approve or let ansa post.
+          requests to your team, tell you what you missed, email customers when their request is solved, publish the
+          posts you approve or let ansa post, and, if you turn it on, answer for you while your phone doesn&apos;t
+          check in.
         </li>
         <li>To keep it secure: limit repeated attempts and abuse, and find errors. Our logs never contain messages, calls or emails.</li>
         <li>To bill accounts that choose a package, and to count what each package includes.</li>

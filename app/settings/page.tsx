@@ -16,6 +16,7 @@ type SettingsLink = { href: string; label: string; description: string };
 const ASSISTANT_LINKS: SettingsLink[] = [
   { href: "/settings/assistant", label: "Assistant", description: "When and how ansa answers, and a place to try it." },
   { href: "/settings/channels", label: "Connections", description: "WhatsApp, Telegram, Facebook, email, phone and social media: everywhere ansa answers and posts." },
+  { href: "/settings/phone", label: "Your phone", description: "The ansa app on your phone, and ansa answering for you when your phone is unreachable." },
   { href: "/settings/business", label: "What it knows", description: "Your business, address, opening hours, orders and payment." },
   { href: "/settings/menu", label: "Menu and prices", description: "What you sell and what it costs, typed in or read from a photo." },
   { href: "/settings/posts", label: "Posts for me", description: "ansa plans, writes and posts on your Facebook Page by itself." },
@@ -27,6 +28,7 @@ const ASSISTANT_LINKS: SettingsLink[] = [
 const PERSONAL_ASSISTANT_LINKS: SettingsLink[] = [
   { href: "/settings/assistant", label: "Assistant", description: "When and how ansa answers for you, and a place to try it." },
   { href: "/settings/channels", label: "Connections", description: "WhatsApp, Telegram, Facebook Messenger and email: where people write to you." },
+  { href: "/settings/phone", label: "Your phone", description: "The ansa app on your phone, and ansa answering for you when your phone is unreachable." },
   { href: "/settings/business", label: "About you", description: "Who you are, and what ansa may tell people about you." },
   { href: "/knowledge", label: "Saved answers", description: "Longer answers ansa can give: notes, documents and web pages." },
   { href: "/settings/channels#email-heading", label: "Email forwarding", description: "Forward your email to ansa: each email becomes a note in your inbox." },

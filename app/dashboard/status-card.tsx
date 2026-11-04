@@ -1,10 +1,15 @@
+import type { ReactNode } from "react";
 import { setAssistantStatusAction, setAwayAction } from "@/app/actions/away";
 import { ActionButton } from "@/components/action-button";
+import { LocalDateTime } from "@/components/local-date-time";
 import { briefingSentence } from "@/lib/home-briefing";
 import type { Presence } from "@/lib/types/away";
 
 type StatusCardProps = {
   presence: Presence;
+  // When ansa switched to away because no connected phone checked in
+  // (Settings → Your phone), else null.
+  phoneAwaySince: string | null;
   // What waits for someone (Home's "Needs you"): app/dashboard/needs-you.tsx.
   waiting: { peopleWaiting: number; otherThingsWaiting: number };
   openTickets: number;
@@ -16,8 +21,8 @@ type StatusCardProps = {
 // it says what ansa is doing right now): a deep green card with a fine brass
 // rule inside its edge, like a printed menu. One sentence for what ansa
 // does, one for what waits, and the one button that changes it (owners).
-export function StatusCard({ presence, waiting, openTickets, hasTeam }: StatusCardProps) {
-  const now = describeNow(presence);
+export function StatusCard({ presence, phoneAwaySince, waiting, openTickets, hasTeam }: StatusCardProps) {
+  const now = describeNow(presence, phoneAwaySince);
   return (
     <section
       aria-labelledby="status-heading"
@@ -43,7 +48,7 @@ export function StatusCard({ presence, waiting, openTickets, hasTeam }: StatusCa
 }
 
 type Now = {
-  sentence: string;
+  sentence: ReactNode;
   detail: string;
   button: {
     action: typeof setAwayAction;
@@ -54,9 +59,10 @@ type Now = {
 };
 
 const PAUSE = { action: setAssistantStatusAction, fields: { status: "paused" }, label: "Pause ansa", accessibleLabel: "Pause ansa: it answers nobody until you turn it on" };
+const I_AM_BACK = { action: setAwayAction, fields: { away: "off" }, label: "I'm back", accessibleLabel: "I'm back: ansa stops answering for me" };
 
 // What ansa does right now, and the one change that makes sense from here.
-function describeNow(presence: Presence): Now {
+function describeNow(presence: Presence, phoneAwaySince: string | null): Now {
   const { availability, awayNow } = presence;
   if (presence.status === "paused") {
     return {
@@ -72,11 +78,23 @@ function describeNow(presence: Presence): Now {
       button: PAUSE,
     };
   }
+  if (availability.awaySince && phoneAwaySince) {
+    // Switched by the phone app: it switches back by itself too.
+    return {
+      sentence: (
+        <>
+          Your phone has been unreachable since <LocalDateTime iso={phoneAwaySince} timeIfToday />: ansa answers for you.
+        </>
+      ),
+      detail: "It switches back by itself when your phone checks in again, and tells you what you missed.",
+      button: I_AM_BACK,
+    };
+  }
   if (availability.awaySince) {
     return {
       sentence: "You're away. ansa is answering for you.",
       detail: "It tells you what you missed when you're back.",
-      button: { action: setAwayAction, fields: { away: "off" }, label: "I'm back", accessibleLabel: "I'm back: ansa stops answering for me" },
+      button: I_AM_BACK,
     };
   }
   if (awayNow) {

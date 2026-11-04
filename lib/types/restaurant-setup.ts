@@ -46,7 +46,8 @@ export type AssistantSettingsView = Omit<
   // Answering comments on Facebook posts has its own switch:
   // core's /api/v1/comments/settings.
   | "commentsOn"
-  // The ansa phone app has its own page: core's /api/v1/devices.
+  // The phone app has its own page (Settings → Your phone): core's
+  // /api/v1/devices. Who set an away, and when it last changed, are core's.
   | "followPhone"
   | "phoneWaitMinutes"
   | "awaySetBy"
