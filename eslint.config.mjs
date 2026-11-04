@@ -65,6 +65,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The phone app (mobile/): its own project, with its own TypeScript.
+    "mobile/**",
   ]),
 ]);
 
