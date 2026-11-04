@@ -10,6 +10,9 @@ type LocalDateTimeProps = {
   // A moment within the hour ("ansa answers at 15:05"): only the time,
   // the full one on hover.
   timeOnly?: boolean;
+  // A moment that may be today or long ago ("last check-in 21:40"): only the
+  // time when it is today where the viewer is, else the full one.
+  timeIfToday?: boolean;
 };
 
 // Shows a moment in the VIEWER's own timezone, with the zone's name
@@ -19,11 +22,13 @@ type LocalDateTimeProps = {
 // server, and in the browser while the page wakes up) shows UTC. Right after,
 // the browser switches to local time. useSyncExternalStore is React's way to
 // render differently on the server and in the browser without a mismatch error.
-export function LocalDateTime({ iso, dateOnly = false, timeOnly = false }: LocalDateTimeProps) {
+export function LocalDateTime({ iso, dateOnly = false, timeOnly = false, timeIfToday = false }: LocalDateTimeProps) {
   const inBrowser = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const date = new Date(iso);
   const fullText = inBrowser ? localFormat.format(date) : `${utcFormat.format(date)} UTC`;
-  if (timeOnly) {
+  // The clock is read in the browser only: the server's "today" is UTC's.
+  const showsTodaysTime = timeIfToday && inBrowser && localDateFormat.format(date) === localDateFormat.format(new Date());
+  if (timeOnly || showsTodaysTime) {
     return (
       <time dateTime={iso} title={fullText}>
         {inBrowser ? localTimeFormat.format(date) : `${utcTimeFormat.format(date)} UTC`}
