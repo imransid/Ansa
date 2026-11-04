@@ -125,3 +125,23 @@ func mustExec(t *testing.T, pool *database.Pool, statement string, args ...any) 
 		t.Fatalf("%s: %v", statement, err)
 	}
 }
+
+// "I'm away" is recorded as a person's (the phones never undo it), and
+// every switch records when it happened (the phones' watcher reads it).
+func TestImAwayIsAPersonsOwn(t *testing.T) {
+	pool := database.ForTest(t)
+	ctx := context.Background()
+	company, owner := awayCompany(t, pool)
+	if outcome, err := SetAway(ctx, pool, company, owner, true); err != nil || outcome != Saved {
+		t.Fatalf("I'm away: %q %v", outcome, err)
+	}
+	if count(t, pool, `SELECT count(*) FROM assistant_settings WHERE company_id = $1 AND away_set_by = 'person' AND away_changed_at = away_since`, company.String()) != 1 {
+		t.Fatal("away, set by a person, switched now")
+	}
+	if outcome, err := SetAway(ctx, pool, company, owner, false); err != nil || outcome != Saved {
+		t.Fatalf("I'm back: %q %v", outcome, err)
+	}
+	if count(t, pool, `SELECT count(*) FROM assistant_settings WHERE company_id = $1 AND away_since IS NULL AND away_set_by IS NULL AND away_changed_at IS NOT NULL`, company.String()) != 1 {
+		t.Fatal("back: nobody's away, and when it changed")
+	}
+}
