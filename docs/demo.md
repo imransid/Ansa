@@ -169,6 +169,16 @@ already in the Inbox continues that customer's chat.
     in development). **I'm away** again: ansa takes back every chat Rafa
     had taken over and answers what waits. (Rafa has no away hours, so
     this works at any time of day; Settings → Assistant can add them.)
+20. **Your phone.** Settings → **Your phone** → Connect your phone: a QR
+    code and the same code to type. Open the ansa app and scan it (on this
+    laptop the app runs in the iPhone simulator or the Android emulator:
+    "For developers" on that page says how, and a simulator can't scan, so
+    type the code). The phone shows up as Reachable. Press **I'm back** on
+    Home if Rafa is away (ansa never ends an "I'm away" you pressed
+    yourself), and switch on **Answer for me when my phone is unreachable**
+    with 1 minute. Close the app or turn on airplane mode: after the
+    minute, Home says "Your phone has been unreachable since ...: ansa
+    answers for you". Open the app again: ansa switches back by itself.
 
 **The website**: http://localhost:3000 and http://localhost:3000/pricing.
 
@@ -203,6 +213,9 @@ already in the Inbox continues that customer's chat.
   `nadia+1@demo.ansa.test`. The "check your email" page shows the email
   (development only): open the link, enter the password, and the welcome
   setup starts. `pnpm demo:reset` deletes it again.
+- **The ansa app** (once connected on Settings → Your phone): what ansa
+  is doing right now, who needs you and what ansa did, and I'm away /
+  I'm back from the phone.
 - **Ask me first**: Settings → Assistant → reply mode.
 - **Team**: Settings → Team: categories and who handles them, invite a
   teammate (copy the link, open it in a private window, join).
