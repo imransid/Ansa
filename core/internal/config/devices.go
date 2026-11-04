@@ -43,7 +43,7 @@ func deviceProblems(cfg Config) []string {
 		return append(problems, "DEVICE_LISTEN_ADDR is for development only (production serves /device/v1/ on CORE_LISTEN_ADDR, behind https)")
 	}
 	if _, port, err := net.SplitHostPort(cfg.DeviceListenAddr); err != nil || port == "" || cfg.DeviceListenAddr == cfg.ListenAddr {
-		problems = append(problems, "DEVICE_LISTEN_ADDR must be an address and port of its own, e.g. 0.0.0.0:8081")
+		problems = append(problems, "DEVICE_LISTEN_ADDR must be an address and port of its own, e.g. 0.0.0.0:8085")
 	}
 	return problems
 }

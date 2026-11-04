@@ -86,11 +86,11 @@ On the Android emulator the app reads `127.0.0.1` in a link as the laptop
    `192.168.1.20`:
 
    ```sh
-   DEVICE_LISTEN_ADDR=0.0.0.0:8090
-   DEVICE_API_URL=http://192.168.1.20:8090
+   DEVICE_LISTEN_ADDR=0.0.0.0:8085
+   DEVICE_API_URL=http://192.168.1.20:8085
    ```
 
-   (Not 8081: Expo uses it.) That listener serves the phone app's routes only,
+   (Not 8081, Expo's, nor ansa's own 3000, 8080 and 8090.) That listener serves the phone app's routes only,
    in development only; everything else of core stays on 127.0.0.1. Restart
    core.
 4. `npx expo start` and scan the QR code it prints (the iPhone's Camera app,
