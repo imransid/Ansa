@@ -5,7 +5,7 @@ import { DeviceApiError } from "../api/device-api";
 import type { Status } from "../api/types";
 import { Button } from "../components/button";
 import { describeStatus } from "../status/describe-status";
-import { usePalette } from "../theme/colors";
+import { usePalette, type Palette } from "../theme/colors";
 import { type } from "../theme/type";
 
 type StatusCardProps = {
@@ -39,7 +39,10 @@ export function StatusCard({ status, changeAway }: StatusCardProps) {
     <View style={[styles.card, { backgroundColor: palette.statusCard, borderTopColor: palette.statusCardHighlight }]}>
       <View pointerEvents="none" style={[styles.rule, { borderColor: palette.brassRule }]} />
       <View style={styles.words} accessible accessibilityLabel={`Right now: ${words.word}. ${words.sentence} ${words.details.join(" ")}`}>
-        <Text style={[styles.label, { color: palette.brass }]}>Right now</Text>
+        <View style={styles.labelRow}>
+          <View style={[styles.dot, { backgroundColor: dotColor(words.word, palette) }]} />
+          <Text style={[styles.label, { color: palette.brass }]}>Right now</Text>
+        </View>
         <Text style={[styles.word, { color: palette.ivory }]}>{words.word}</Text>
         <Text style={[styles.sentence, { color: palette.ivory }]}>{words.sentence}</Text>
         {words.details.map((detail) => (
@@ -68,6 +71,14 @@ export function StatusCard({ status, changeAway }: StatusCardProps) {
   );
 }
 
+// A small light beside "Right now": green while the owner answers, brass
+// while ansa answers for them, grey while ansa is paused.
+function dotColor(word: ReturnType<typeof describeStatus>["word"], palette: Palette): string {
+  if (word === "Available") return palette.onFrameLive;
+  if (word === "Away") return palette.brass;
+  return palette.onFrameMuted;
+}
+
 const styles = StyleSheet.create({
   card: {
     borderRadius: 22,
@@ -84,6 +95,8 @@ const styles = StyleSheet.create({
   // The fine brass line 7 points inside the card's edge.
   rule: { position: "absolute", top: 7, left: 7, right: 7, bottom: 7, borderWidth: 1, borderRadius: 15 },
   words: { gap: 6 },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   label: { ...type.smallStrong, letterSpacing: 0.4 },
   word: { ...type.displayLarge, marginTop: 2 },
   sentence: { ...type.displaySmall, marginBottom: 6 },

@@ -10,8 +10,9 @@ export type Palette = {
   frame: string;
   onFrame: string;
   onFrameMuted: string;
-  // A soft green dot on the frame: "checked in".
+  // A soft green dot on the frame: "checked in"; a warm one: "can't reach ansa".
   onFrameLive: string;
+  onFrameWarning: string;
   // The status card on the frame, and its fine brass rule.
   statusCard: string;
   statusCardHighlight: string;
@@ -45,6 +46,7 @@ const light: Palette = {
   onFrame: "#F6F1E4", // 12.0:1
   onFrameMuted: "#B7C5BC", // 7.5:1
   onFrameLive: "#8DC3A7",
+  onFrameWarning: "#E0A84A",
   statusCard: "#0E4A38",
   statusCardHighlight: "#17604A",
   brass: "#D9BE8A", // 7.5:1 on forest, 5.7:1 on bottle
@@ -73,6 +75,7 @@ const dark: Palette = {
   onFrame: "#F6F1E4",
   onFrameMuted: "#A9B8AE",
   onFrameLive: "#8DC3A7",
+  onFrameWarning: "#E0A84A",
   statusCard: "#0E3A2C",
   statusCardHighlight: "#154A3A",
   brass: "#D9BE8A",

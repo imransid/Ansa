@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BrandMark } from "../components/brand-mark";
+import { StatusBarBackdrop } from "../components/status-bar-backdrop";
 import { usePalette } from "../theme/colors";
 import { type } from "../theme/type";
 import { ActivityList } from "./activity-list";
@@ -53,6 +54,7 @@ export function HomeScreen({ sync, onOpenSettings }: HomeScreenProps) {
           <ActivityList lines={sync.activity} />
         </View>
       </ScrollView>
+      <StatusBarBackdrop />
     </View>
   );
 }

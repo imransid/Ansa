@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Status } from "../api/types";
 import { readBackgroundCheckIns, type BackgroundCheckIns } from "../background/check-in-task";
 import type { SavedConnection } from "../storage/saved-connection";
+import { StatusBarBackdrop } from "../components/status-bar-backdrop";
 import { usePalette } from "../theme/colors";
 import { type } from "../theme/type";
 import { DisconnectButton } from "./disconnect-button";
@@ -62,6 +63,7 @@ export function SettingsScreen({ connection, status, onBack, onDisconnected }: S
           <DisconnectButton connection={connection} onDisconnected={onDisconnected} />
         </View>
       </ScrollView>
+      <StatusBarBackdrop />
     </View>
   );
 }
@@ -76,7 +78,7 @@ function unreachableWords(status: Status | null): string {
 function backgroundWords(background: BackgroundCheckIns | null): string {
   if (background === "on") return "Background check-ins are on for this phone.";
   if (background === "off") return "Background check-ins start the next time ansa is open.";
-  if (background === "unavailable") return "This phone doesn't run background check-ins for ansa (a simulator, or the Expo Go app): it checks in only while ansa is open.";
+  if (background === "unavailable") return "This phone doesn't let ansa check in in the background, so it checks in only while ansa is open.";
   return " ";
 }
 

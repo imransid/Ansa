@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { BellMark } from "../components/bell-mark";
 import { usePalette } from "../theme/colors";
 import { type } from "../theme/type";
 
@@ -13,10 +14,17 @@ export function NeedsYou({ count }: { count: number | null }) {
       accessible
       accessibilityLabel={describe(count)}
     >
-      <Text style={[styles.number, { color: waiting ? palette.attention : palette.link }]}>{count === null ? "–" : count}</Text>
+      {/* All quiet: the bell, not a zero. */}
+      {count === 0 ? (
+        <View style={styles.bell}>
+          <BellMark size={34} color={palette.link} strokeAt24={1.5} />
+        </View>
+      ) : (
+        <Text style={[styles.number, { color: palette.attention }]}>{count === null ? "–" : count}</Text>
+      )}
       <View style={styles.words}>
         <Text style={[type.heading, { color: palette.text }]}>{heading(count)}</Text>
-        <Text style={[type.small, { color: palette.textMuted }]}>{waiting ? "Answer them in ansa's Inbox." : "ansa tells you here when something does."}</Text>
+        <Text style={[type.small, { color: palette.textMuted }]}>{subline(count)}</Text>
       </View>
     </View>
   );
@@ -28,6 +36,12 @@ function heading(count: number | null): string {
   return count === 1 ? "thing needs you" : "things need you";
 }
 
+function subline(count: number | null): string {
+  if (count === null) return "Checking with ansa…";
+  if (count === 0) return "ansa tells you here when something does.";
+  return count === 1 ? "Answer it in ansa's Inbox." : "Answer them in ansa's Inbox.";
+}
+
 function describe(count: number | null): string {
   if (count === null) return "Needs you: not known yet.";
   if (count === 0) return "Nothing needs you right now.";
@@ -37,5 +51,6 @@ function describe(count: number | null): string {
 const styles = StyleSheet.create({
   box: { flexDirection: "row", alignItems: "center", gap: 16, borderRadius: 18, paddingVertical: 16, paddingHorizontal: 20 },
   number: { ...type.numeral, minWidth: 36, textAlign: "center" },
+  bell: { minWidth: 36, alignItems: "center" },
   words: { flex: 1, gap: 2 },
 });

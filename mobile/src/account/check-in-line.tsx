@@ -12,7 +12,7 @@ export function CheckInLine({ lastCheckIn, problem }: CheckInLineProps) {
   const words = describeCheckIn(lastCheckIn, problem);
   return (
     <View style={styles.row} accessible accessibilityLabel={words} accessibilityLiveRegion="polite">
-      <View style={[styles.dot, { backgroundColor: problem ? palette.attention : palette.onFrameLive }]} />
+      <View style={[styles.dot, { backgroundColor: problem ? palette.onFrameWarning : palette.onFrameLive }]} />
       <Text style={[type.small, { color: palette.onFrameMuted }]}>{words}</Text>
     </View>
   );

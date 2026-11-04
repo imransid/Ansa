@@ -9,6 +9,7 @@ import { Notice } from "../components/notice";
 import type { PairingRequest } from "../pairing/pairing-link";
 import { defaultPhoneName, defaultServerUrl, serverUrlForThisPhone } from "../pairing/phone-defaults";
 import { readLastServerAndName, type SavedConnection } from "../storage/saved-connection";
+import { StatusBarBackdrop } from "../components/status-bar-backdrop";
 import { usePalette } from "../theme/colors";
 import { type } from "../theme/type";
 import { CodeForm } from "./code-form";
@@ -75,12 +76,15 @@ export function ConnectScreen({ notice, incomingRequest, onIncomingHandled, onCo
           <View style={[styles.hero, { paddingTop: insets.top + 28 }]}>
             <BrandMark />
             <View style={styles.heroWords}>
-                <Text style={[styles.headline, { color: palette.onFrame }]} accessibilityRole="header">
+              <Text style={[styles.headline, { color: palette.onFrame }]} accessibilityRole="header">
                 ansa answers when you can't.
               </Text>
-              <Text style={[styles.lead, { color: palette.onFrameMuted }]}>
-              Connect this phone to see what needs you, say “I'm away” from anywhere, and let ansa know you're reachable.
-              </Text>
+              {/* While the code is typed, the form needs the room above the keyboard. */}
+              {typing ? null : (
+                <Text style={[styles.lead, { color: palette.onFrameMuted }]}>
+                  Connect this phone to see what needs you, say “I'm away” from anywhere, and let ansa know you're reachable.
+                </Text>
+              )}
             </View>
           </View>
           <View style={[styles.sheet, { backgroundColor: palette.sheet, paddingBottom: insets.bottom + 28 }]}>
@@ -108,6 +112,7 @@ export function ConnectScreen({ notice, incomingRequest, onIncomingHandled, onCo
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <StatusBarBackdrop />
       <ScannerModal
         visible={scanning}
         onClose={() => setScanning(false)}
