@@ -3614,12 +3614,17 @@ this order and is done on the laptop, deploying aside
   best effort (iOS decides when, Android every 15 minutes at best) and never
   run in a simulator. A fully reliable "are you there?" needs push
   notifications: an Apple developer account (99 USD a year) and a Firebase
-  project, not built. The app has run in the iPhone simulator (Expo Go,
-  against the real core); the Android emulator crashed from lack of memory
-  on this laptop, a real phone and a store build (npx expo run:ios / EAS)
-  are untried, and the ansa:// link opens only in a build of the app itself
-  (Expo Go uses exp://.../--/pair). Phones are per company, not per person:
-  any owner's phone counts.
+  project, not built. The app has run in the iPhone simulator (Expo Go)
+  and, as a test APK built on the laptop (mobile/README.md), on the
+  Android emulator (headless, 2 GB), both against the real core; the first
+  APK closed as soon as it opened (the release build's shrinking dropped
+  the constructor of WorkManager's Room database: mobile/plugins/
+  android-release.js keeps it, for every build). An iPhone build and the
+  stores are untried, the test APK is signed with the template's debug key
+  and allows plain http only because its prebuild set
+  ANSA_ALLOW_PLAIN_HTTP=1, and the ansa:// link opens only in a build of
+  the app itself (Expo Go uses exp://.../--/pair). Phones are per company,
+  not per person: any owner's phone counts.
 - Facebook Page comments (step 59): nothing has met Meta: the feed
   webhook, the private reply and the public reply follow Meta's
   documentation and are checked with fakes. Real Pages need App Review for

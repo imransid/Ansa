@@ -97,6 +97,27 @@ On the Android emulator the app reads `127.0.0.1` in a link as the laptop
    or Expo Go on Android). Then scan the code on ansa's website with
    "Scan the code".
 
+## A test APK for an Android phone
+
+The app itself, without Expo Go, built on this laptop (nothing is uploaded).
+It needs Android Studio's SDK and JDK 17, and step 3 above. Build it in a
+copy outside the repository:
+
+```sh
+cp -cR mobile /some/folder/mobile && cd /some/folder/mobile
+ANSA_ALLOW_PLAIN_HTTP=1 CI=1 npx expo prebuild --platform android --clean --no-install
+cd android && JAVA_HOME=<JDK 17> ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+# the APK: android/app/build/outputs/apk/release/app-release.apk (about 10 minutes the first time)
+```
+
+`ANSA_ALLOW_PLAIN_HTTP=1` lets the app reach core's development listener
+over plain http; without it (a store build) the app speaks https only
+(plugins/android-release.js, which also keeps a class the release build's
+shrinking would drop: without it the app closed as soon as it opened). The
+APK is signed with the template's debug key: for testing only. The app
+takes core's address from the QR code, so when the laptop's Wi-Fi address
+changes, change `DEVICE_API_URL` and restart core: the APK stays the same.
+
 ## Check-ins, and what phones allow
 
 - **While the app is open** it checks in every 30 seconds, and at once when
