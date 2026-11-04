@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, foreignKey, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 // Relative paths on purpose: drizzle-kit reads this file outside Next.js.
 import type { OpeningHours } from "../../lib/opening-hours";
 import type { AnswerWhen } from "../../lib/assistant/availability";
@@ -64,6 +64,20 @@ export const assistantSettings = pgTable(
     awaySince: timestamp("away_since", { withTimezone: true }),
     awayHours: jsonb("away_hours").$type<OpeningHours>(),
     replyGraceMinutes: integer("reply_grace_minutes"),
+    // The phone app (core/internal/devices): with follow_phone on (off
+    // until an owner switches it on), ansa switches to away by itself when
+    // none of the owners' connected phones has checked in for
+    // phone_wait_minutes, and back when one checks in again.
+    followPhone: boolean("follow_phone").notNull().default(false),
+    phoneWaitMinutes: integer("phone_wait_minutes").notNull().default(5),
+    // Who set away_since: "person" ("I'm away") or "phone" (no phone was
+    // reachable). A phone's check-in switches back only an away the phone
+    // set, never a person's own. Null while not away.
+    awaySetBy: text("away_set_by").$type<"person" | "phone">(),
+    // When away_since was last set or cleared, by anyone: the phones switch
+    // ansa away only once one was seen after that, so a person's "I'm back"
+    // while their phone is off isn't undone at the watcher's next round.
+    awayChangedAt: timestamp("away_changed_at", { withTimezone: true }),
     // "Post for me" (step 54, lib/autopost/): ansa posts on the business's
     // Facebook Page by itself, how often and at what local time (in
     // time_zone), automatically or waiting for an owner's approval. Who
@@ -125,6 +139,15 @@ export const assistantSettings = pgTable(
     check("assistant_settings_answer_when_known", sql`${table.answerWhen} IN ('always', 'when_away')`),
     check("assistant_settings_away_hours_object", sql`jsonb_typeof(${table.awayHours}) = 'object'`),
     check("assistant_settings_reply_grace_known", sql`${table.replyGraceMinutes} IN (5, 10, 15, 30, 60)`),
+    // The companies that follow their phones (the presence watcher's look, every 15 s).
+    index("assistant_settings_follow_phone_idx")
+      .on(table.companyId)
+      .where(sql`${table.followPhone}`),
+    check("assistant_settings_phone_wait_known", sql`${table.phoneWaitMinutes} IN (1, 5, 15, 30)`),
+    check("assistant_settings_away_set_by_known", sql`${table.awaySetBy} IN ('person', 'phone')`),
+    // Only while away. (Not "both or neither": an away set before the phone
+    // app has no away_set_by, and counts as a person's.)
+    check("assistant_settings_away_set_by_only_while_away", sql`${table.awaySetBy} IS NULL OR ${table.awaySince} IS NOT NULL`),
     check("assistant_settings_time_zone_length", sql`char_length(${table.timeZone}) BETWEEN 1 AND 64`),
     check("assistant_settings_opening_hours_object", sql`jsonb_typeof(${table.openingHours}) = 'object'`),
   ],

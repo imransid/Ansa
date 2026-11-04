@@ -23,6 +23,7 @@ var TenantTables = []string{
 	"phone_lines", "knowledge_lookups",
 	"onboarding_messages", "marketing_plans", "performance_reviews", "media_assets", "media_generation_jobs",
 	"phone_calls", "away_summary_reads", "user_categories", "whatsapp_numbers", "usage_months", "page_comments",
+	"device_pair_codes", "devices", "phone_presence_changes",
 }
 
 // Statements allowed to read across companies: each is listed with why in
