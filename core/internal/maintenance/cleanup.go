@@ -54,6 +54,13 @@ var cleanups = []struct {
 		DELETE FROM telegram_link_codes WHERE id IN (
 			SELECT id FROM telegram_link_codes WHERE expires_at < now() - interval '60 minutes' AND ($2 = '' OR company_id::text = $2) LIMIT $1
 		) AND expires_at < now() - interval '60 minutes'`, true},
+	// The phone app's pair codes past their 5 minutes, used or not: never
+	// accepted again (a phone keeps its own row).
+	{"device pair codes", `
+		-- cross-company: expired pair codes are deleted by age alone; nothing is read.
+		DELETE FROM device_pair_codes WHERE id IN (
+			SELECT id FROM device_pair_codes WHERE expires_at < now() AND ($2 = '' OR company_id::text = $2) LIMIT $1
+		) AND expires_at < now()`, true},
 	// Telegram accounts that waited their hour (and a code's 10 minutes) for
 	// a code in vain. No company: Telegram's ids and a name only.
 	{"telegram pending connections", `

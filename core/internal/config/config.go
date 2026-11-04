@@ -101,6 +101,12 @@ type Config struct {
 	// development is the stand-in; production refuses the stand-in, so
 	// image generation is off there until a real service is chosen.
 	MediaProvider string
+	// The ansa phone app (devices.go): DEVICE_API_URL is how a phone reaches
+	// core (it goes into the pairing QR code; required in production, https).
+	// DEVICE_LISTEN_ADDR (development only, unset by default) makes core
+	// also listen there for the app's routes only, so a real phone on the
+	// Wi-Fi reaches the laptop while CORE_LISTEN_ADDR stays on 127.0.0.1.
+	DeviceAPIURL, DeviceListenAddr string
 }
 
 // Getenv reads one setting; os.Getenv in production, a map in tests.
@@ -148,6 +154,7 @@ func Load(getenv Getenv) (Config, error) {
 	}
 	readVapi(&cfg, getenv)
 	readSocialApps(&cfg, getenv)
+	readDevices(&cfg, getenv)
 	problems := socialAppProblems(cfg)
 	if !strings.HasPrefix(cfg.DatabaseURL, "postgres://") && !strings.HasPrefix(cfg.DatabaseURL, "postgresql://") {
 		problems = append(problems, "DATABASE_URL must be a postgres:// address")
@@ -185,6 +192,7 @@ func Load(getenv Getenv) (Config, error) {
 	problems = append(problems, storageProblems(cfg)...)
 	problems = append(problems, stripeProblems(cfg)...)
 	problems = append(problems, vapiProblems(cfg)...)
+	problems = append(problems, deviceProblems(cfg)...)
 	if cfg.ScreensSharedSecret != "" && len(cfg.ScreensSharedSecret) < 32 {
 		problems = append(problems, "SCREENS_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)")
 	}

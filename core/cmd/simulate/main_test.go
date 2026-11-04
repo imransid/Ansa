@@ -110,7 +110,8 @@ func TestEveryToolRefusesProductionAndADatabaseElsewhere(t *testing.T) {
 	production := baseSettings("postgres://ansa@localhost:5432/ansa")
 	for name, value := range map[string]string{"ANSA_ENV": "production", "APP_URL": "https://app.example.com", "SEND_REAL_EMAIL": "true",
 		"EMAIL_FROM": "ansa@example.com", "RESEND_API_KEY": "re_made_up", "INBOUND_EMAIL_DOMAIN": "inbound.example.com",
-		"USE_R2_STORAGE": "true", "R2_ACCOUNT_ID": "a", "R2_ACCESS_KEY_ID": "b", "R2_SECRET_ACCESS_KEY": "c", "R2_BUCKET": "d"} {
+		"USE_R2_STORAGE": "true", "R2_ACCOUNT_ID": "a", "R2_ACCESS_KEY_ID": "b", "R2_SECRET_ACCESS_KEY": "c", "R2_BUCKET": "d",
+		"DEVICE_API_URL": "https://core.example.com"} {
 		production[name] = value
 	}
 	for name, args := range argumentsOfEveryTool {

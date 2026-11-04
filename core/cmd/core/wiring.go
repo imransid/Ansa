@@ -19,6 +19,7 @@ import (
 	"ansa/core/internal/comments"
 	"ansa/core/internal/config"
 	"ansa/core/internal/database"
+	"ansa/core/internal/devices"
 	"ansa/core/internal/email"
 	"ansa/core/internal/files"
 	"ansa/core/internal/httpserver"
@@ -105,6 +106,10 @@ func scheduledTasks(pool *database.Pool, log *logging.Logger, publisher *publish
 		{Name: "assistant catch-up", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return assistant.QueueDueReplies(ctx, pool)
 		}},
+		// The ansa phone app: away when no owner's phone was reachable.
+		{Name: "phone presence", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
+			return devices.SwitchAwayWhenUnreachable(ctx, pool)
+		}},
 		{Name: "publishing queue", Every: 15 * time.Second, Run: func(ctx context.Context) (int, error) {
 			return publisher.RunDue(ctx, "")
 		}},
@@ -131,15 +136,17 @@ func healthCheck(pool *database.Pool) http.HandlerFunc {
 // to 20 seconds in all) when the process is asked to stop, so a deploy never
 // cuts a webhook or a send in half. A job still running then is handed back
 // after its lease.
-func waitForStop(server *http.Server, stopWork context.CancelFunc, working *sync.WaitGroup, log *logging.Logger) {
+func waitForStop(servers []*http.Server, stopWork context.CancelFunc, working *sync.WaitGroup, log *logging.Logger) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	stopWork()
-	if err := server.Shutdown(ctx); err != nil {
-		log.Error("core shutdown", logging.ErrorType(err))
+	for _, server := range servers {
+		if err := server.Shutdown(ctx); err != nil {
+			log.Error("core shutdown", logging.ErrorType(err))
+		}
 	}
 	finished := make(chan struct{})
 	go func() {

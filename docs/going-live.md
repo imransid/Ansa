@@ -585,6 +585,8 @@ section 8):
 | `X_CLIENT_ID`, `X_CLIENT_SECRET` | the pair, once ansa's X app has credits | section 10 |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | the pair, once ansa's Google OAuth client is verified (YouTube) | section 10 |
 | `MEDIA_PROVIDER` | unset until an image service is chosen (generation off) | below |
+| `DEVICE_API_URL` | required: core's https address as the ansa phone app reaches it (`https://<core address>`, no path needed): it goes inside the pairing QR code, so a phone paired once keeps using it; change it only together with the app's users pairing again | section 8 |
+| `DEVICE_LISTEN_ADDR` | unset (development only: core refuses to start with it in production) | section 8 |
 | `CORE_SCHEDULER` | unset on the one core that runs the periodic work; `off` on any other core | section 8 |
 | `ANSA_DEV_FOLDER`, `TEST_DATABASE_URL` | not used in production (where development stand-ins write; core's tests) | |
 
@@ -662,9 +664,15 @@ Hosting is an open decision. Whatever you pick, each part needs this.
   `../.env.core` are for your laptop).
 - Core speaks plain http on `CORE_LISTEN_ADDR`; the host must put https in
   front of it on `<core address>` (a load balancer or proxy): every webhook
-  needs a public https address. Core serves `GET /health`, `/webhooks/...`
-  and the screens' API, `/api/v1/...`, which answers only requests signed
-  with `SCREENS_SHARED_SECRET` (`403` and `api: request refused` otherwise).
+  needs a public https address. Core serves `GET /health`, `/webhooks/...`,
+  the screens' API, `/api/v1/...`, which answers only requests signed
+  with `SCREENS_SHARED_SECRET` (`403` and `api: request refused` otherwise),
+  and the ansa phone app's calls, `/device/v1/...` (a device token each, or
+  a pairing code: docs/backend/modules/devices.md). The app reaches them at
+  `DEVICE_API_URL`, which must be that same public https address: keep
+  `/device/v1/` open to the internet even if you keep `/api/v1/` private.
+  `DEVICE_LISTEN_ADDR` (a second listener for a phone on a laptop's Wi-Fi)
+  is development only and stays unset.
   If the screens share core's private network, point `CORE_API_URL` at
   core's private address and, if your host allows it, answer `/api/v1/` only
   there.
@@ -674,8 +682,9 @@ Hosting is an open decision. Whatever you pick, each part needs this.
   to 5 minutes (core may take that long to answer "Read my menu" or the
   Emails page's "Process again", and almost as long for a marketing plan).
 - Run exactly one core with the scheduler on. It runs the assistant's
-  catch-up ("If I haven't answered within N minutes") and the publishing
-  queue every 15 seconds, "Post for me" and stuck image requests every
+  catch-up ("If I haven't answered within N minutes"), the phone app's
+  presence watcher (away when no owner's phone checked in for the minutes
+  chosen) and the publishing queue every 15 seconds, "Post for me" and stuck image requests every
   minute, post numbers every 5 minutes, and the cleanup every hour
   (`scheduledTasks`, core/cmd/core/wiring.go). Nothing has to call a cron
   address: a post scheduled for later goes out within about 15 seconds of

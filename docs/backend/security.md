@@ -11,8 +11,9 @@ These rules are not optional. A change that breaks one is a bug, even if it
   passed by mistake.
 - The company comes from the server side only: a verified session, a webhook
   secret core issued (a Telegram link code, a Page connected in exactly one
-  company, a WhatsApp number connected in exactly one company), never from
-  the request body.
+  company, a WhatsApp number connected in exactly one company), a phone's
+  device token or pairing code (the ansa phone app: only their SHA-256 is
+  stored, `core/internal/devices`), never from the request body.
 - Cross-company reads (scheduled jobs that find due work) are listed in
   `core/internal/database/CROSS_COMPANY.md` and return ids only.
 - Test: `core/internal/database/tenant_test.go` reads every SQL statement in core and

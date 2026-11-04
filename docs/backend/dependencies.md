@@ -11,6 +11,7 @@ attacker (the 2025 npm worms are the reminder). Add one only with a line here.
 | golang.org/x/net | `idna`: an international email domain converted to ASCII as browsers do (Go's own extended packages) |
 | golang.org/x/crypto | `scrypt`: passwords in Better Auth's own format, so existing passwords keep working (Go's own extended packages; pgx pulls it in too) |
 | golang.org/x/sync | Pulled in by pgx (Go's own extended packages) |
+| rsc.io/qr v0.2.0 | Draws the ansa phone app's pairing QR code as modules (`core/internal/devices/codes.go`): small, no dependencies of its own, by a Go author; the screens draw the rows core sends |
 
 ## brain (Python), exact versions in `brain/requirements.txt`
 | Package | Why |

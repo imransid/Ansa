@@ -107,6 +107,9 @@ type Server struct {
 	// The Co-Founder's AI (interview, suggestions, plans, calendar): a time
 	// long enough for a marketing plan's one try of 270 s.
 	CofounderBrain *brainclient.Client
+	// How the ansa phone app reaches core (DEVICE_API_URL): it goes into
+	// the pairing link inside the QR code.
+	DeviceAPIURL string
 }
 
 // Register adds every endpoint.
@@ -139,6 +142,7 @@ func (s *Server) Register(routes *http.ServeMux) {
 	s.registerPracticeChat(routes)
 	s.registerComments(routes)
 	s.registerDevMailbox(routes)
+	s.registerDevices(routes)
 }
 
 // handler is one endpoint: the request, its body and who is asking.

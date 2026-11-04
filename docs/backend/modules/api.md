@@ -25,6 +25,10 @@ read strictly, and an unknown field (a "companyId") is refused.
   Discard of a waiting reply, the switch) and the practice comment box
   (`/api/v1/practice/comment...`): see [comments](comments.md).
 - Settings → Posts for me: see [autopost](autopost.md).
+- The ansa phone app's page (`/api/v1/devices`: the connected phones, the
+  pairing QR code, "Answer for me when my phone is unreachable", removing a
+  phone): see [devices](devices.md). The app's own calls (`/device/v1/...`,
+  a device token, not the screens' signature) are there too.
 - Social accounts (Facebook Pages, LinkedIn, X, YouTube) and the Accounts
   page (`GET /api/v1/cofounder/accounts`): see [socialconnect](socialconnect.md).
 - The Team page: see [teammates](teammates.md).
