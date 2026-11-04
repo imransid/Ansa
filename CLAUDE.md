@@ -3121,12 +3121,11 @@ this order and is done on the laptop, deploying aside
   itself: core giving up on it (a request's or a job's time running out)
   only closes its connection.
 - CI (.github/workflows/checks.yml: one job each for the screens, core and
-  the brain, and an audit) has never run in this form: the branch holding
-  it (rewrite/go-python) was never pushed, so this machine holds the only
-  copy of everything after origin's last known main (2026-10-28; the
-  repository does have that git remote). Its first run also tries the Go
-  and Python jobs' action versions (actions/setup-go v6,
-  actions/setup-python v6) for the first time.
+  the brain, and an audit) ran in this form once: the owner had main
+  pushed on 2026-11-04 (step 59 the last step in it) and all four jobs
+  passed. Everything after that push (step 60, the phone app) is on this
+  laptop only until the owner asks for another push, so CI hasn't checked
+  it (mobile/ has no CI job: its `npx tsc --noEmit` runs by hand).
 - Ticket and call searches are plain GET (?q=), and the view links and
   Previous/Next keep it, so what was searched, often a customer's phone
   number or email, sits in the URL: the browser history and the hosting
