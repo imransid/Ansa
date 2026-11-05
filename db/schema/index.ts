@@ -32,4 +32,5 @@ export * from "./billing";
 export * from "./orders";
 export * from "./autopost";
 export * from "./page-comments";
+export * from "./devices";
 export * from "./core-jobs";

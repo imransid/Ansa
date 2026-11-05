@@ -59,3 +59,10 @@ next-env.d.ts
 # back"); these patterns only catch one made here by mistake
 *.dump
 *.sql.gz
+
+# The phone app (mobile/): its packages, Expo's cache and the native
+# projects `expo run:ios` / `expo run:android` generate.
+/mobile/node_modules/
+/mobile/.expo/
+/mobile/ios/
+/mobile/android/

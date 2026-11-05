@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "ansa",
+    "slug": "ansa-phone",
+    "version": "1.0.0",
+    "scheme": "ansa",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0B3529",
+    "ios": {
+      "bundleIdentifier": "app.ansa.phone",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "app.ansa.phone",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B3529",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ansa uses the camera only to read the code on ansa's website. Nothing is recorded or kept.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ],
+      "expo-secure-store",
+      "expo-background-task",
+      "expo-font",
+      "./plugins/android-release"
+    ]
+  }
+}

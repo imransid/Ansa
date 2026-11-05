@@ -7,7 +7,12 @@
   away", away now (said "I'm away", or one of the away hours), a few words
   ("You're away: ansa answers", "You're available: ansa answers after 10
   min"), "I'm away" since when, the minutes ansa waits for you, and
-  whether this person may change it (owners).
+  whether this person may change it (owners). Since the phone app
+  ([devices](devices.md)): `awayBy` says why ansa is away now (`you`:
+  someone pressed "I'm away"; `phone`: none of the owners' connected phones
+  was reachable, `awaySince` being when that began; `hours`: one of the away
+  hours; "" not away), and `followPhone` / `phoneWaitMinutes` the phone
+  setting.
 - `gettingStarted` (owners only; empty once all are done): a chat
   connected and allowed to reply (WhatsApp, Telegram, or a Facebook Page
   whose messages come to ansa as Settings → Connections says: Messenger and
@@ -59,6 +64,10 @@ answers for you everywhere: in the same transaction every conversation a
 person took over is handed back (a "handed_back" line by whoever pressed
 it, as "Hand back" writes) and every message waiting out its minutes is
 due now, so core's catch-up answers it within 15 seconds (`settings/away.go`).
+Every switch records who set away (`away_set_by`: "person"; the phone
+app's watcher sets "phone" through `StartAwayWithin`, its hand-back lines by
+no person) and when it last changed (`away_changed_at`), so a phone's
+check-in switches back only what the phones set ([devices](devices.md)).
 "Got it": `POST /api/v1/home/away-summary/seen` (anyone in the company).
 **Settings → Assistant (`GET /api/v1/settings/assistant`, everyone reads):**
 the saved settings (defaults until anything is saved) and the engine's
@@ -101,7 +110,9 @@ Messenger, and the stand-in Page says so.
 `settings/away_test.go`: "I'm away" hands back the conversations a person
 took over (with the line, by the owner) and makes a waiting message due
 now, never another company's; "I'm back" and a member's "I'm away" hand
-nothing back.
+nothing back; "I'm away" is recorded as a person's, and each switch when.
+`home/presence_test.go`: why ansa is away (you, an away from before the
+phone app, the phone, the hours).
 `api/assistant_settings_test.go`: defaults; an empty holding reply refused
 with its words; saved; an own key stored encrypted and shown by its last
 four; Claude Code refused without the brain's say-so; Claude Code standing

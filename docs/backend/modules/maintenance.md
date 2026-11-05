@@ -13,6 +13,8 @@ alone. Nothing is read. Core's scheduler runs it every hour
 - social connection attempts (`oauth_states`) past their 10 minutes;
 - Telegram link codes past their 10 minutes and the hour a claimed one
   waits; Telegram accounts that waited their 70 minutes for a code in vain;
+- the phone app's pair codes past their 5 minutes, used or not
+  ([devices](devices.md); a phone keeps its own row);
 - core's own finished jobs (`core_jobs`, done or failed) 30 days after
   they ended (ids and codes only, kept that long to look into a failure).
   NEW: the old backend had no job table.
@@ -32,5 +34,5 @@ that core started is retried by itself; calls and image requests move with
 their modules.
 
 **Tests:** `cleanup_test.go` (live database, keeping to its own company: an
-expired attempt and a 31-day-old finished job go; a live attempt, a
-recent failed job and a waiting job stay).
+expired attempt, an expired pair code and a 31-day-old finished job go; a
+live attempt, a live pair code, a recent failed job and a waiting job stay).

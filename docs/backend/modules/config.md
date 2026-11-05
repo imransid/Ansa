@@ -38,8 +38,13 @@ development offers a stand-in account and production says the platform isn't
 set up; see [platforms](platforms.md)), MEDIA_PROVIDER (the media
 library's image service: empty or "dev-stand-in"; unset in development is the
 stand-in, and production refuses the stand-in, so generation is off there:
-see [media](media.md)). The checks of each group
-live in `checks.go`. See `core/.env.core.example`.
+see [media](media.md)), DEVICE_API_URL (how the ansa phone app reaches
+core, inside the pairing QR code: an http(s) address with no query;
+development default `http://127.0.0.1:8080`; required in production, https)
+and DEVICE_LISTEN_ADDR (development only, unset by default: core also
+listens there for the app's routes only; refused in production and when it
+is CORE_LISTEN_ADDR itself), `devices.go`, see [devices](devices.md). The
+checks of each group live in `checks.go`. See `core/.env.core.example`.
 **Adding a setting:** the struct, `Load`, `.env.core.example` and this page, together.
 **The command-line tools' settings file (`file.go`):** `FillFromFile`
 sets each `NAME=value` line of `../.env.core` that the environment doesn't
@@ -52,5 +57,7 @@ file's local database ([commands](commands.md)). The service itself
 named, never shown; real email needs its sender; production needs real email
 and an https address; core starts with exactly the Resend secrets
 `resend.IsSigned` can check an event with; `social_test.go`: half a social
-app's pair stops the server, named never shown; `file_test.go`: the file never overrides the
+app's pair stops the server, named never shown; `devices_test.go`: the
+phone app's address defaults in development, and is required and https in
+production, where the LAN listener is refused; `file_test.go`: the file never overrides the
 environment; quotes and comments; a bad line sets nothing.

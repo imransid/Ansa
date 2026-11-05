@@ -110,6 +110,7 @@ catch-up every 15 seconds).
 | `internal/inbox/` | The Inbox: lists, a conversation's page, a person's work | [inbox](../docs/backend/modules/inbox.md) |
 | `internal/team/` | A person's role, read again inside a write; the company row lock | [inbox](../docs/backend/modules/inbox.md) |
 | `internal/home/`, `internal/settings/` | Home's reads; the owner's switches | [home](../docs/backend/modules/home.md) |
+| `internal/devices/` | The ansa phone app: pairing by a QR code, its token, check-ins, its main screen, and the watcher that switches ansa away when no owner's phone was reachable | [devices](../docs/backend/modules/devices.md) |
 | `internal/setup/` | /welcome and Settings → What it knows | [setup](../docs/backend/modules/setup.md) |
 | `internal/channels/` | Settings → Connections | [channels](../docs/backend/modules/channels.md) |
 | `internal/publishing/`, `internal/drafts/`, `internal/contentrules/` | The publishing queue (Facebook text posts); content drafts; what a post may say | [publishing](../docs/backend/modules/publishing.md), [contentrules](../docs/backend/modules/contentrules.md) |

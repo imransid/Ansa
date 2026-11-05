@@ -65,5 +65,25 @@ func main() {
 			os.Exit(1)
 		}
 	}()
-	waitForStop(server, stopWork, &working, log)
+	servers := []*http.Server{server}
+	if cfg.DeviceListenAddr != "" {
+		servers = append(servers, startPhoneListener(cfg.DeviceListenAddr, core.deviceRoutes, log))
+	}
+	waitForStop(servers, stopWork, &working, log)
+}
+
+// startPhoneListener is the development LAN listener (DEVICE_LISTEN_ADDR,
+// refused in production by config): the ansa phone app's routes only, so a
+// real phone on the Wi-Fi reaches the laptop while everything else stays
+// on CORE_LISTEN_ADDR (127.0.0.1).
+func startPhoneListener(addr string, routes http.Handler, log *logging.Logger) *http.Server {
+	server := httpserver.New(addr, routes, log)
+	go func() {
+		log.Info("core: phone app listener started")
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("core: phone app listener stopped", logging.ErrorType(err))
+			os.Exit(1)
+		}
+	}()
+	return server
 }

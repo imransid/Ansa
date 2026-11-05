@@ -32,6 +32,14 @@ type Presence struct {
 	CoverText string `json:"coverText"`
 	// Owners change it; members read it.
 	CanManage bool `json:"canManage"`
+	// Why ansa is away now: "you" (someone pressed "I'm away"), "phone" (none
+	// of the owners' connected phones was reachable: awaySince is when that
+	// began), "hours" (one of the away hours), or "" (not away).
+	AwayBy string `json:"awayBy"`
+	// The phone app (core/internal/devices): ansa switches to away by itself
+	// when no connected phone has checked in for phoneWaitMinutes.
+	FollowPhone      bool `json:"followPhone"`
+	PhoneWaitMinutes int  `json:"phoneWaitMinutes"`
 }
 
 // ReadPresence reads the company's switch and when ansa answers.
@@ -40,7 +48,10 @@ func ReadPresence(ctx context.Context, pool *database.Pool, company tenant.Compa
 	if err := pool.QueryRow(ctx, `SELECT kind FROM companies WHERE id = $1`, company.String()).Scan(&p.Kind); err != nil {
 		return p, err
 	}
-	err := pool.QueryRow(ctx, `SELECT status FROM assistant_settings WHERE company_id = $1`, company.String()).Scan(&p.Status)
+	p.PhoneWaitMinutes = 5
+	awaySetBy := ""
+	const settings = `SELECT status, COALESCE(away_set_by, ''), follow_phone, phone_wait_minutes FROM assistant_settings WHERE company_id = $1`
+	err := pool.QueryRow(ctx, settings, company.String()).Scan(&p.Status, &awaySetBy, &p.FollowPhone, &p.PhoneWaitMinutes)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return p, err
 	}
@@ -52,7 +63,22 @@ func ReadPresence(ctx context.Context, pool *database.Pool, company tenant.Compa
 	p.AwayNow = assistant.IsAwayNow(availability, now)
 	p.AwaySince, p.ReplyGraceMinutes = availability.AwaySince, availability.ReplyGraceMinutes
 	p.CoverText = describeCover(availability, p.AwayNow)
+	p.AwayBy = awayBy(availability.AwaySince != nil, awaySetBy, p.AwayNow)
 	return p, nil
+}
+
+// awayBy says why ansa is away now. An away set before the phone app has
+// no away_set_by: a person's.
+func awayBy(awaySinceSet bool, setBy string, awayNow bool) string {
+	switch {
+	case awaySinceSet && setBy == "phone":
+		return "phone"
+	case awaySinceSet:
+		return "you"
+	case awayNow:
+		return "hours"
+	}
+	return ""
 }
 
 // describeCover is the old describeCover: a few words for the sidebar and Home.

@@ -16,6 +16,7 @@ import { runMenuAndOrdersChecks } from "./screen-checks/menu-and-orders-checks";
 import { runNavigationChecks } from "./screen-checks/navigation-checks";
 import { runPackageChecks } from "./screen-checks/package-checks";
 import { runPageHeadingChecks } from "./screen-checks/page-heading-checks";
+import { runPhoneAppChecks } from "./screen-checks/phone-app-checks";
 import { runPracticePhoneChecks } from "./screen-checks/practice-phone-checks";
 import { runSocialPageChecks } from "./screen-checks/social-page-checks";
 import { runUiPolishChecks } from "./screen-checks/ui-polish-checks";
@@ -35,6 +36,7 @@ async function main() {
   await runConnectionsChecks();
   await runCommentsChecks();
   await runPracticePhoneChecks();
+  await runPhoneAppChecks();
   await runContentRulesChecks();
   await runContentRulesVectorChecks();
   await runWebsiteChecks();

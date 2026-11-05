@@ -33,6 +33,10 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
   and every security rule; the ONLY code that touches the database.
 - brain: Python 3.14 (brain/, FastAPI). The AI thinking only (prompts and
   model calls); no database, no state.
+- The ansa phone app: Expo (React Native, TypeScript; mobile/, its own npm
+  project and lockfile, left out of the root's TypeScript and ESLint). A
+  client of core's device API only (step 60): no database, no secrets but
+  its own device token.
 - Postgres - local in Docker for development, Neon in production later
 - Drizzle - only the schema (db/schema/) and its SQL migrations
   (db/migrations/), run with drizzle-kit (pnpm db:generate, pnpm db:migrate)
@@ -46,7 +50,8 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
 
 ## Architecture rules
 - Three parts, nothing more: the screens (Next.js), core (Go) and the brain
-  (Python); one core service and one brain service, no other services.
+  (Python); one core service and one brain service, no other services. The
+  phone app (mobile/, step 60) is a client like a browser, not a service.
   docs/backend/README.md is the map; read docs/backend/security.md before
   changing core or the brain.
 - Since the rewrite the rules below live in core and the brain. A file they
@@ -1946,6 +1951,31 @@ done on the laptop 2026-11-02; docs/backend/ documents it):
     _SECRET; "stand-in" in development (the stand-in Page of step 40, `pnpm
     simulate:messenger`, replies to .dev-messages/); production without
     the app has no Messenger.
+- The ansa phone app (step 60, mobile/, core/internal/devices,
+  docs/backend/modules/devices.md; the web's Settings → Your phone at
+  /settings/phone). Owners connect a phone: core makes a one-time code (8
+  characters without 0/O/1/I/L, 5 minutes, only its SHA-256 stored, claimed
+  in ONE UPDATE, the maker read again as an active owner) shown as a QR code
+  of ansa://pair?u=<DEVICE_API_URL>&c=<code> (drawn by the screens from
+  core's modules, rsc.io/qr) and as XXXX-XXXX to type. The app (POST
+  /device/v1/pair) gets a device token once (32 random bytes; only its
+  SHA-256 stored; Bearer on every call; at most 10 phones a company; a
+  removed phone or owner = 401). The app checks in (POST
+  /device/v1/heartbeat) every 30 s while open and in the background as the
+  phone allows (expo-background-task, 15 minutes at best), and shows the
+  status, I'm away / I'm back (the web Home's own, the person's), the
+  needs-you count and ansa's newest lines (GET /device/v1/home).
+  assistant_settings.follow_phone (owners, off by default) and
+  phone_wait_minutes (1, 5, 15 or 30; default 5): core's scheduler (every
+  15 s) switches a company whose every connected phone has been silent that
+  long to away exactly as "I'm away" does, recorded as set by the phone
+  (away_set_by), with a phone_presence_changes line; a check-in switches a
+  phone-set away back by itself, never a person's own (nor right after a
+  person's "I'm back" while the phone is still silent: away_changed_at).
+  Home says "Your phone has been unreachable since 21:40". DEVICE_API_URL
+  (https, required in production) is what phones use; DEVICE_LISTEN_ADDR
+  (development only, e.g. 0.0.0.0:8085) also serves ONLY /device/v1/* on the
+  Wi-Fi for a real phone, the main listener staying on 127.0.0.1.
 - Facebook Page comments (step 59, core/internal/comments,
   docs/backend/modules/comments.md; Inbox → Comments, the switch on
   Connections' Facebook Page card, the practice chat's "Facebook comment").
@@ -2661,6 +2691,8 @@ Automatic by default; "Ask me first" is an option:
 58. Website, clean-up of hidden pages, final checks
 59. Facebook Page comments: a short public reply, prices and orders privately in
     Messenger. Real Pages BLOCKED until Meta's App Review
+60. The ansa phone app: connected by a QR code; when the owner's phone is
+    unreachable for the chosen minutes, ansa switches to away by itself
 
 Steps 50 and 51 were added on 2026-11-01 by the owner's direction: ansa is a
 representative that answers for you when you can't, for a business (its
@@ -2668,7 +2700,9 @@ customers) or for one person (their shadow). The old steps 50 to 55 became
 52 to 57; decision log entries keep the numbers they had at the time.
 WhatsApp Business was added as step 56 on 2026-11-03 (the owner's yes):
 packages and the website became 57 and 58. Facebook Page comments were
-added as step 59 on 2026-11-04 (the owner's yes, after research).
+added as step 59 on 2026-11-04 (the owner's yes, after research). The
+phone app was added as step 60 on 2026-11-04 (the owner's yes, after
+research).
 
 Every outside service gets a local stand-in (like .dev-emails/), so each step can
 be built and tested before the real account exists.
@@ -3087,12 +3121,11 @@ this order and is done on the laptop, deploying aside
   itself: core giving up on it (a request's or a job's time running out)
   only closes its connection.
 - CI (.github/workflows/checks.yml: one job each for the screens, core and
-  the brain, and an audit) has never run in this form: the branch holding
-  it (rewrite/go-python) was never pushed, so this machine holds the only
-  copy of everything after origin's last known main (2026-10-28; the
-  repository does have that git remote). Its first run also tries the Go
-  and Python jobs' action versions (actions/setup-go v6,
-  actions/setup-python v6) for the first time.
+  the brain, and an audit) ran in this form once: the owner had main
+  pushed on 2026-11-04 (step 59 the last step in it) and all four jobs
+  passed. Everything after that push (step 60, the phone app) is on this
+  laptop only until the owner asks for another push, so CI hasn't checked
+  it (mobile/ has no CI job: its `npx tsc --noEmit` runs by hand).
 - Ticket and call searches are plain GET (?q=), and the view links and
   Previous/Next keep it, so what was searched, often a customer's phone
   number or email, sits in the URL: the browser history and the hosting
@@ -3575,6 +3608,23 @@ this order and is done on the laptop, deploying aside
   status messages of orders too. One person is a different customer on
   each Page (Page-scoped ids). Attachments are only named. A Page
   connected in two companies receives nothing in either.
+- The phone app (step 60): phones pause apps in the background, so a phone
+  that is on but hasn't opened the app for a while may count as unreachable
+  after the wait (a longer wait makes it rarer); background check-ins are
+  best effort (iOS decides when, Android every 15 minutes at best) and never
+  run in a simulator. A fully reliable "are you there?" needs push
+  notifications: an Apple developer account (99 USD a year) and a Firebase
+  project, not built. The app has run in the iPhone simulator (Expo Go)
+  and, as a test APK built on the laptop (mobile/README.md), on the
+  Android emulator (headless, 2 GB), both against the real core; the first
+  APK closed as soon as it opened (the release build's shrinking dropped
+  the constructor of WorkManager's Room database: mobile/plugins/
+  android-release.js keeps it, for every build). An iPhone build and the
+  stores are untried, the test APK is signed with the template's debug key
+  and allows plain http only because its prebuild set
+  ANSA_ALLOW_PLAIN_HTTP=1, and the ansa:// link opens only in a build of
+  the app itself (Expo Go uses exp://.../--/pair). Phones are per company,
+  not per person: any owner's phone counts.
 - Facebook Page comments (step 59): nothing has met Meta: the feed
   webhook, the private reply and the public reply follow Meta's
   documentation and are checked with fakes. Real Pages need App Review for
@@ -3740,6 +3790,10 @@ For the Co-Founder (docs/going-live.md, sections 5, 7, 8, 10 and 11):
   Review for pages_show_list, pages_read_engagement and pages_manage_posts,
   and Business Verification), X (pay-per-use credits and a spending limit),
   Google (OAuth verification; YouTube's audit past 100 uploads a day).
+- The phone app (step 60): set DEVICE_API_URL to core's public https
+  address; build the app with your own Apple and Google developer accounts
+  (store listing, privacy answers) and, for reliable presence, add push
+  notifications.
 - Run core on a host that keeps it running all the time (never one that
   stops it between requests), one copy with its scheduler on
   (CORE_SCHEDULER unset; "off" on any other): scheduled posts, the
@@ -4749,3 +4803,16 @@ For the restaurant assistant (docs/going-live.md, sections 5 and 12):
   order goes on there; top-level comments only; off until an owner
   switches it on (on in the demo). Migration 0052_page_comments (the table
   and assistant_settings.comments_on); no new package or setting.
+- 2026-11-04: Step 60, the ansa phone app (the owner's yes after research:
+  phones pause background apps, so the server decides "unreachable" by
+  silence, and a reliable check needs push notifications later). Decisions
+  where the research left room: connect by a QR code and a typed code (no
+  login on the phone), a device token per phone, owners only; "unreachable"
+  = every connected phone silent for 1, 5, 15 or 30 minutes (default 5),
+  switching away exactly as "I'm away" does and back on a check-in, never
+  undoing a person's own choice; the app in Expo (one TypeScript app for
+  iPhone and Android, runs free in the simulators), styled as the web
+  ("Dining room"). Migration 0053_phone_devices; new: rsc.io/qr v0.2.0 in
+  core (the QR code), and the app's own npm packages (Expo SDK 58, React
+  Native 0.88.1: mobile/package.json); new settings DEVICE_API_URL and
+  DEVICE_LISTEN_ADDR.

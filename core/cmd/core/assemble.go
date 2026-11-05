@@ -15,6 +15,7 @@ import (
 	"ansa/core/internal/comments"
 	"ansa/core/internal/config"
 	"ansa/core/internal/database"
+	"ansa/core/internal/devices"
 	"ansa/core/internal/email"
 	"ansa/core/internal/files"
 	"ansa/core/internal/inbound"
@@ -47,11 +48,14 @@ import (
 // main serves and runs them; the journey test (journey_test.go) drives the
 // very same parts.
 type parts struct {
-	routes     *http.ServeMux
-	worker     *jobs.Worker
-	tasks      []schedule.Task
-	publisher  *publishing.Runner
-	postWriter *autopost.Writer
+	routes *http.ServeMux
+	// The ansa phone app's routes alone: the development LAN listener
+	// (DEVICE_LISTEN_ADDR) serves only these.
+	deviceRoutes *http.ServeMux
+	worker       *jobs.Worker
+	tasks        []schedule.Task
+	publisher    *publishing.Runner
+	postWriter   *autopost.Writer
 }
 
 // assemble puts core together.
@@ -88,6 +92,10 @@ func assemble(cfg config.Config, pool *database.Pool, box *secure.Box, log *logg
 	routes := http.NewServeMux()
 	routes.HandleFunc("GET /health", healthCheck(pool))
 	addWebhooks(routes, cfg, pool, box, limiter, log, storage, stripe)
+	// The ansa phone app's calls, on core's own address too (production,
+	// behind https).
+	phoneApp := &devices.API{Pool: pool, Limiter: limiter, Log: log}
+	phoneApp.Register(routes)
 	// Two AI answers at most per post, each up to 60 s a try with one retry.
 	postWriter := &autopost.Writer{Pool: pool, Box: box, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.AutopostWait), Log: log}
 	screensAPI := &api.Server{Pool: pool, Box: box, Limiter: limiter, Log: log, Secret: cfg.ScreensSharedSecret,
@@ -111,6 +119,8 @@ func assemble(cfg config.Config, pool *database.Pool, box *secure.Box, log *logg
 	screensAPI.Studio = &api.StudioServices{Writer: &studio.Writer{Pool: pool, Brain: brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.ContentDraftWait), Limiter: limiter, Log: log},
 		Generation: generations}
 	screensAPI.CofounderBrain = brainclient.New(cfg.BrainURL, cfg.BrainSharedSecret, brainclient.CofounderWait)
+	// Core's address for the ansa phone app, inside the pairing QR code.
+	screensAPI.DeviceAPIURL = cfg.DeviceAPIURL
 	screensAPI.WhatsApp = &whatsapp.Connector{Pool: pool, Box: box, AppID: cfg.FacebookAppID, AppSecret: cfg.FacebookAppSecret,
 		SignupConfigID: cfg.WhatsAppSignupConfigID, Development: !cfg.IsProduction()}
 	publisher := &publishing.Runner{Pool: pool, Box: box, Limiter: limiter, Log: log, Files: storage, FacebookAppSecret: cfg.FacebookAppSecret,
@@ -121,8 +131,8 @@ func assemble(cfg config.Config, pool *database.Pool, box *secure.Box, log *logg
 	screensAPI.Register(routes)
 	numbers := &postmetrics.Collector{Pool: pool, Box: box, Log: log, FacebookAppSecret: cfg.FacebookAppSecret, ReadFacebook: postmetrics.ReadFacebook,
 		Renewer: renewer, Platforms: connectors}
-	return &parts{routes: routes, worker: worker, tasks: scheduledTasks(pool, log, publisher, postWriter, numbers, generations),
-		publisher: publisher, postWriter: postWriter}
+	return &parts{routes: routes, deviceRoutes: devices.OnlyDeviceRoutes(phoneApp), worker: worker,
+		tasks: scheduledTasks(pool, log, publisher, postWriter, numbers, generations), publisher: publisher, postWriter: postWriter}
 }
 
 // addWebhooks adds the routes the outside services call: each checks its
